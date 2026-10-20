@@ -276,10 +276,10 @@ public sealed class EditorGroup : DockPanel
         Editor.ContextLabel = ContextShown(document);
         Editor.IsReadOnly = document.IsReadOnly;
         ShowBanner(document);
-        Find.Attach(Editor);
         Editor.IsVisible = true;
         tabBar.IsVisible = true;
         ShowTable(document);
+        Find.Attach(Editor, Table);
     }
 
     /// <summary>The table of the file shown, while it is a CSV or a workbook, null otherwise.</summary>
@@ -301,6 +301,7 @@ public sealed class EditorGroup : DockPanel
             body.Children.Add(tables.Body);
             tables.Switched += (_, _) =>
             {
+                Find.Attach(Editor, Table);
                 if (tables.ShowsTable)
                 {
                     tables.View.Focus();
@@ -481,6 +482,7 @@ public sealed class EditorGroup : DockPanel
                 break;
             case nameof(OpenDocument.Path):
                 ShowTable(document);
+                Find.Attach(Editor, Table);
                 Editor.LineCommentPrefix = document.Language.LineComment;
                 Editor.BlockComment = document.Language.BlockComment;
                 Editor.Markup = document.Language.Markup;

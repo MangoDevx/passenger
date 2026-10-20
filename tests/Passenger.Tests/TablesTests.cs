@@ -100,6 +100,34 @@ public sealed class TablesTests : IDisposable
         window.Close();
     }
 
+    [AvaloniaFact]
+    public void Find_searches_the_tables_cells_and_enter_walks_them_not_the_text_under_it()
+    {
+        string path = Path.Combine(folder, "cities.csv");
+        File.WriteAllText(path, "Name,City\nAda,London\nBob,Paris\nLonny,Leeds\n");
+        MainWindow window = Open(path);
+        CellGrid grid = Grid(window);
+        grid.Focus();
+
+        Ui.Press(window, Ui.Shortcut(AppActions.Find));
+        window.KeyTextInput("lon");
+        Ui.Settle();
+        Assert.True(grid.Caret == (0, 1), $"Find should choose the first cell holding the query, London, but chose {grid.Caret}");
+        Assert.Equal("1/2", window.EditorArea.FindBar.CountText);
+        Assert.Empty(window.EditorArea.CodeEditor.Highlights);
+
+        Ui.Press(window, "ENTER");
+        Assert.True(grid.Caret == (2, 0), $"Enter should go to the next cell holding the query, Lonny, but chose {grid.Caret}");
+        Assert.Equal("2/2", window.EditorArea.FindBar.CountText);
+        Ui.Press(window, "shift ENTER");
+        Assert.Equal((0, 1), grid.Caret);
+
+        Ui.Press(window, "ESCAPE");
+        Assert.False(window.EditorArea.FindBar.IsVisible);
+        Assert.True(grid.IsFocused, "Closing Find should give the table its focus back");
+        window.Close();
+    }
+
     private MainWindow Open(string path)
     {
         MainWindow window = new() { Width = 1200, Height = 800 };

@@ -90,6 +90,10 @@ public static class TextSearch
         return offset + (index >= 0 ? index : ~index);
     }
 
+    /// <summary>The regex a query finds with, for text searched piece by piece (a table's cells); a pattern that does not
+    /// parse throws an <see cref="ArgumentException"/> whose message says why.</summary>
+    public static Regex Pattern(SearchQuery query) => Build(query);
+
     private static Regex Build(SearchQuery query)
     {
         RegexOptions options = RegexOptions.CultureInvariant | RegexOptions.Multiline | (query.MatchCase ? RegexOptions.None : RegexOptions.IgnoreCase);

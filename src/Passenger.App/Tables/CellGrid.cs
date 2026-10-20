@@ -61,6 +61,10 @@ public sealed class CellGrid : Control
 
     private bool choosing;
 
+    /// <summary>The cells Find matched, by <see cref="Spot"/>, and the one it stands on.</summary>
+    private HashSet<long> matched = [];
+    private long currentMatch = -1;
+
     public CellGrid()
     {
         Focusable = true;
@@ -90,8 +94,22 @@ public sealed class CellGrid : Control
             scroll = ClampScroll(scroll);
             InvalidateArrange();
             InvalidateVisual();
+            TableChanged?.Invoke(this, EventArgs.Empty);
         }
     }
+
+    /// <summary>Raised when the table shown is replaced (read again, another sheet, none), for Find to search it again.</summary>
+    public event EventHandler? TableChanged;
+
+    /// <summary>The cells Find matched, marked as the editor marks its matches, the one at <paramref name="current"/> stronger.</summary>
+    public void SetMatches(IReadOnlyList<(int Row, int Column)> matches, int current)
+    {
+        matched = [.. matches.Select(Spot)];
+        currentMatch = current >= 0 && current < matches.Count ? Spot(matches[current]) : -1;
+        InvalidateVisual();
+    }
+
+    private static long Spot((int Row, int Column) cell) => ((long)cell.Row << 32) | (uint)cell.Column;
 
     /// <summary>The cell chosen, which the keys move from.</summary>
     public (int Row, int Column) Caret => caret;
@@ -619,6 +637,10 @@ public sealed class CellGrid : Control
 
     private void DrawCell(DrawingContext context, int row, int column, Rect place, Palette colours)
     {
+        if (matched.Count > 0 && matched.Contains(Spot((row, column))))
+        {
+            context.FillRectangle(Spot((row, column)) == currentMatch ? colours.SearchCurrent : colours.SearchMatch, place);
+        }
         bool number = table!.IsNumber(row, column);
         if (Text(row, column, place.Width, Plain, number ? colours.Number : colours.Text) is { } text)
         {
@@ -669,7 +691,7 @@ public sealed class CellGrid : Control
 
     /// <summary>The theme's brushes the table draws with, read once per look.</summary>
     private sealed record Palette(IBrush Background, IBrush Text, IBrush Number, IBrush Header, IBrush HeaderText, IBrush HeaderChosen,
-        IBrush RowNumber, IBrush Grid, IBrush Edge, IBrush Selection, IBrush SelectionInactive, IPen CaretPen)
+        IBrush RowNumber, IBrush Grid, IBrush Edge, IBrush Selection, IBrush SelectionInactive, IBrush SearchMatch, IBrush SearchCurrent, IPen CaretPen)
     {
         public static Palette From(Control control)
         {
@@ -687,6 +709,8 @@ public sealed class CellGrid : Control
                 Brush("Passenger.Divider"),
                 Brush("Passenger.Editor.Selection"),
                 Brush("Passenger.Editor.SelectionInactive"),
+                Brush("Passenger.Editor.SearchMatch"),
+                Brush("Passenger.Editor.SearchCurrent"),
                 new Pen(Brush("Passenger.Accent"), 1));
         }
     }

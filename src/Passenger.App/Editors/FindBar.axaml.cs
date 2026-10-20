@@ -2,19 +2,24 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using Passenger.App.Tables;
 using Passenger.Editor;
 using Passenger.Text;
 
 namespace Passenger.App.Editors;
 
 /// <summary>Find and replace in the open file. Matches are found as the query is typed and drawn in
-/// the editor; the one nearest after the caret is selected, and the count says which of how many.</summary>
+/// the editor; the one nearest after the caret is selected, and the count says which of how many. While a table lies
+/// over the editor, its cells are searched instead (read-only: replacing is the Text view's).</summary>
 public partial class FindBar : UserControl
 {
     private CodeEditor? editor;
     private TextDocument? document;
     private SearchResult result = SearchResult.None;
     private int current = -1;
+    private CellGrid? grid;
+    private TableSearch cells = TableSearch.None;
+    private CancellationTokenSource? searching;
 
     public FindBar()
     {
@@ -39,10 +44,12 @@ public partial class FindBar : UserControl
 
     public SearchQuery CurrentQuery => new(Query.Text ?? string.Empty, MatchCase.IsChecked == true, WholeWords.IsChecked == true, UseRegex.IsChecked == true);
 
-    /// <summary>Follows whichever document the editor shows; called when a tab is activated.</summary>
-    public void Attach(CodeEditor shown)
+    /// <summary>Follows whichever document the editor shows, or the table over it when there is one; called when a tab is
+    /// activated and when a table file switches between its table and its text.</summary>
+    public void Attach(CodeEditor shown, CellGrid? table = null)
     {
         editor = shown;
+        Follow(table);
         if (document is not null)
         {
             document.Changed -= OnDocumentChanged;
@@ -66,8 +73,27 @@ public partial class FindBar : UserControl
         }
         document = null;
         editor = null;
+        Follow(null);
         result = SearchResult.None;
         current = -1;
+    }
+
+    private void Follow(CellGrid? table)
+    {
+        if (grid is not null)
+        {
+            grid.TableChanged -= OnTableChanged;
+            grid.SetMatches([], -1);
+        }
+        searching?.Cancel();
+        grid = table;
+        cells = TableSearch.None;
+        if (grid is not null)
+        {
+            grid.TableChanged += OnTableChanged;
+        }
+        ReplaceWith.IsEnabled = ReplaceButton.IsEnabled = ReplaceAllButton.IsEnabled = grid is null;
+        ToolTip.SetTip(ReplaceRow, grid is null ? null : "Show the file's Text to replace in it");
     }
 
     /// <summary>Opens the bar (with the replace row if <paramref name="replace"/>), its query the
@@ -80,21 +106,8 @@ public partial class FindBar : UserControl
         }
         IsVisible = true;
         ReplaceRow.IsVisible = replace;
-        TextSnapshot text = editor.Document.Snapshot;
-        Selection primary = editor.Selections.Primary;
-        string? seed = null;
-        if (!primary.IsEmpty && text.GetLineFromOffset(primary.Start) == text.GetLineFromOffset(primary.End))
-        {
-            seed = text.GetText(primary.Range);
-        }
-        else if (primary.IsEmpty)
-        {
-            TextRange word = TextNavigation.WordAt(text, primary.Caret);
-            if (word.Length > 0 && TextNavigation.IsWordChar(text[word.Start]))
-            {
-                seed = text.GetText(word);
-            }
-        }
+        // A table's chosen cell seeds nothing: the query typed last is what is looked for again.
+        string? seed = grid is null ? Seed(editor) : null;
         if (seed is not null && seed != Query.Text)
         {
             Query.Text = seed;
@@ -111,11 +124,41 @@ public partial class FindBar : UserControl
         }, DispatcherPriority.Loaded);
     }
 
+    /// <summary>The selection when it is on one line, or the word under the caret.</summary>
+    private static string? Seed(CodeEditor editor)
+    {
+        TextSnapshot text = editor.Document.Snapshot;
+        Selection primary = editor.Selections.Primary;
+        string? seed = null;
+        if (!primary.IsEmpty && text.GetLineFromOffset(primary.Start) == text.GetLineFromOffset(primary.End))
+        {
+            seed = text.GetText(primary.Range);
+        }
+        else if (primary.IsEmpty)
+        {
+            TextRange word = TextNavigation.WordAt(text, primary.Caret);
+            if (word.Length > 0 && TextNavigation.IsWordChar(text[word.Start]))
+            {
+                seed = text.GetText(word);
+            }
+        }
+        return seed;
+    }
+
     public void Close()
     {
         IsVisible = false;
+        searching?.Cancel();
         editor?.SetHighlights([], -1);
-        editor?.Focus();
+        if (grid is not null)
+        {
+            grid.SetMatches([], -1);
+            grid.Focus();
+        }
+        else
+        {
+            editor?.Focus();
+        }
     }
 
     public void Next() => Step(forward: true);
@@ -126,6 +169,12 @@ public partial class FindBar : UserControl
     {
         if (editor is null || !IsVisible)
         {
+            return;
+        }
+        if (grid is not null)
+        {
+            editor.SetHighlights([], -1);
+            _ = SearchCells(grid, jump);
             return;
         }
         result = TextSearch.FindAll(editor.Document.Snapshot, CurrentQuery);
@@ -142,8 +191,61 @@ public partial class FindBar : UserControl
         Show();
     }
 
+    /// <summary>Searches the table's cells off the UI thread, a newer search or table ending this one's; the match at or
+    /// after the chosen cell is the current one.</summary>
+    private async Task SearchCells(CellGrid shown, bool jump)
+    {
+        searching?.Cancel();
+        CancellationTokenSource cancel = searching = new CancellationTokenSource();
+        SearchQuery query = CurrentQuery;
+        TableSearch found = shown.Table is { } table && !query.IsEmpty
+            ? await BackgroundWork.Run(() => TableSearch.Find(table, query, cancel.Token))
+            : TableSearch.None;
+        if (cancel.IsCancellationRequested || shown != grid || !IsVisible)
+        {
+            return;
+        }
+        cells = found;
+        current = cells.NextFrom(shown.Caret, including: true);
+        if (jump && current >= 0)
+        {
+            shown.Choose(cells.Matches[current], cells.Matches[current]);
+        }
+        ShowCells();
+    }
+
+    private void StepCells(CellGrid shown, bool forward)
+    {
+        if (cells.Matches.Count == 0)
+        {
+            return;
+        }
+        current = forward ? cells.NextFrom(shown.Caret, including: false) : cells.PreviousFrom(shown.Caret);
+        shown.Choose(cells.Matches[current], cells.Matches[current]);
+        ShowCells();
+    }
+
+    private void ShowCells()
+    {
+        grid?.SetMatches(cells.Matches, current);
+        Count.Text = Counted(cells.Problem, cells.Matches.Count, cells.Truncated);
+    }
+
+    private void OnTableChanged(object? sender, EventArgs e)
+    {
+        if (IsVisible)
+        {
+            Search(jump: false);
+        }
+    }
+
     private void Step(bool forward)
     {
+        if (grid is not null)
+        {
+            StepCells(grid, forward);
+            return;
+        }
         if (editor is null || result.Matches.Count == 0)
         {
             return;
@@ -161,7 +263,7 @@ public partial class FindBar : UserControl
 
     private void ReplaceCurrent()
     {
-        if (editor is null || current < 0 || current >= result.Matches.Count)
+        if (editor is null || grid is not null || current < 0 || current >= result.Matches.Count)
         {
             return;
         }
@@ -181,7 +283,7 @@ public partial class FindBar : UserControl
 
     private void ReplaceAll()
     {
-        if (editor is null)
+        if (editor is null || grid is not null)
         {
             return;
         }
@@ -193,11 +295,13 @@ public partial class FindBar : UserControl
     private void Show()
     {
         editor?.SetHighlights(result.Matches, current);
-        Count.Text = result.Problem is { } problem ? problem
-            : string.IsNullOrEmpty(Query.Text) ? string.Empty
-            : result.Matches.Count == 0 ? "0 results"
-            : $"{current + 1}/{result.Matches.Count}{(result.Truncated ? "+" : string.Empty)}";
+        Count.Text = Counted(result.Problem, result.Matches.Count, result.Truncated);
     }
+
+    private string Counted(string? problem, int count, bool truncated) =>
+        problem ?? (string.IsNullOrEmpty(Query.Text) ? string.Empty
+            : count == 0 ? "0 results"
+            : $"{current + 1}/{count}{(truncated ? "+" : string.Empty)}");
 
     private void OnDocumentChanged(object? sender, DocumentChangedEventArgs e)
     {
@@ -211,7 +315,7 @@ public partial class FindBar : UserControl
     {
         switch (e.Key)
         {
-            case Key.Enter when sender == ReplaceWith:
+            case Key.Enter when sender == ReplaceWith && grid is null:
                 ReplaceCurrent();
                 e.Handled = true;
                 break;
