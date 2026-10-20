@@ -705,10 +705,15 @@ public sealed class OpenDocument : Observable
 
     /// <summary>Whether the editor shows it read-only, under a bar that says why: decompiled, the licence or notices the
     /// app carries, or an MSBuild file of the .NET SDK or a package that Go to Declaration went into.</summary>
-    public bool IsReadOnly => IsDecompiled || Product.Carries(Path) || MSBuild.MSBuildFiles.IsInstalled(Path);
+    public bool IsReadOnly => IsDecompiled || IsWorkbook || Product.Carries(Path) || MSBuild.MSBuildFiles.IsInstalled(Path);
+
+    /// <summary>Whether this is an Excel workbook, shown as its sheets' cells: its tab holds no text, and nothing is ever
+    /// written over it.</summary>
+    public bool IsWorkbook => Tables.Workbook.IsWorkbook(Path);
 
     /// <summary>What the bar over a read-only file says it came from.</summary>
-    public string Origin => Product.Carries(Path) ? "Passenger's own file, as the app carries it, read-only"
+    public string Origin => IsWorkbook ? "An Excel workbook, shown as its sheets' cells, read-only"
+        : Product.Carries(Path) ? "Passenger's own file, as the app carries it, read-only"
         : MSBuild.MSBuildFiles.IsInstalled(Path) ? "An MSBuild file of the .NET SDK or a package, as installed, read-only"
         : Path.Contains("SourceLink", StringComparison.OrdinalIgnoreCase) || Path.Contains("Embedded", StringComparison.OrdinalIgnoreCase)
         ? "Source from the library's Source Link or PDB, read-only"
@@ -799,6 +804,11 @@ public sealed class OpenDocument : Observable
     /// one undoable step) and in its <c>charset</c>; a line separator or encoding the person chose stays.</summary>
     public void Save(SelectionSet? carets = null)
     {
+        if (IsWorkbook)
+        {
+            // Its tab's text is no workbook's: written, it would empty the file.
+            throw new IOException($"{Name} is a workbook, shown read-only.");
+        }
         ReadConventions();
         string text = Text.Snapshot.ToString();
         SelectionSet kept = carets ?? Selections;

@@ -8,6 +8,7 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using Passenger.App.Tables;
 using Passenger.App.Workspace;
 using Passenger.Editor;
 using Passenger.Text;
@@ -53,6 +54,9 @@ public sealed class EditorGroup : DockPanel
     private readonly TextBlock bannerText;
     private readonly Button bannerLink;
     private EditorTab? active;
+
+    /// <summary>The table over the editor for a CSV or workbook, made as the group first shows one.</summary>
+    private TableViewer? tables;
 
     public EditorGroup(EditorArea area)
     {
@@ -115,8 +119,15 @@ public sealed class EditorGroup : DockPanel
         body = new Grid { ColumnDefinitions = new ColumnDefinitions("*,0,0") };
         body.Children.Add(Editor);
         Children.Add(body);
-        // The group the person works in is the area's active one.
-        Editor.GotFocus += (_, _) => area.SetActiveGroup(this);
+        // The group the person works in is the area's active one; while a table lies over the editor, the table takes its focus.
+        Editor.GotFocus += (_, _) =>
+        {
+            area.SetActiveGroup(this);
+            if (tables is { ShowsTable: true, View.IsVisible: true })
+            {
+                tables.View.Focus();
+            }
+        };
         Editor.SelectionChanged += (_, _) =>
         {
             if (active is not null && Editor.Document == active.Document.Text)
@@ -268,6 +279,40 @@ public sealed class EditorGroup : DockPanel
         Find.Attach(Editor);
         Editor.IsVisible = true;
         tabBar.IsVisible = true;
+        ShowTable(document);
+    }
+
+    /// <summary>The table of the file shown, while it is a CSV or a workbook, null otherwise.</summary>
+    public CellGrid? Table => tables is { ShowsTable: true } ? tables.View : null;
+
+    /// <summary>The bar and grid of a table file over the editor, or none for any other file.</summary>
+    private void ShowTable(OpenDocument document)
+    {
+        if (TableFile.For(document) is not { } file)
+        {
+            tables?.Hide();
+            return;
+        }
+        if (tables is null)
+        {
+            tables = new TableViewer();
+            Children.Insert(Children.IndexOf(body), tables.Bar);
+            // Over the editor in its own column, so a XAML-like pane beside it is never covered.
+            body.Children.Add(tables.Body);
+            tables.Switched += (_, _) =>
+            {
+                if (tables.ShowsTable)
+                {
+                    tables.View.Focus();
+                }
+                else
+                {
+                    Editor.Focus();
+                }
+            };
+            tables.View.GotFocus += (_, _) => area.SetActiveGroup(this);
+        }
+        tables.Show(file);
     }
 
     /// <summary>The banner over the file: where a read-only file comes from, what its notice says, and what its next save
@@ -301,6 +346,10 @@ public sealed class EditorGroup : DockPanel
         }
         int index = tabs.IndexOf(tab);
         views.Remove(document);
+        if (tables is not null && TableFile.For(document) is { } closed)
+        {
+            tables.Forget(closed);
+        }
         tabs.Remove(tab);
         document.Text.Changed -= OnTabTextChanged;
         if (tab == active)
@@ -319,6 +368,7 @@ public sealed class EditorGroup : DockPanel
                 Editor.IsVisible = false;
                 tabBar.IsVisible = false;
                 banner.IsVisible = false;
+                tables?.Hide();
             }
         }
     }
@@ -430,6 +480,7 @@ public sealed class EditorGroup : DockPanel
                 Editor.ContextLabel = ContextShown(document);
                 break;
             case nameof(OpenDocument.Path):
+                ShowTable(document);
                 Editor.LineCommentPrefix = document.Language.LineComment;
                 Editor.BlockComment = document.Language.BlockComment;
                 Editor.Markup = document.Language.Markup;

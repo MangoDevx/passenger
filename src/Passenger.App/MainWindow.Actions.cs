@@ -170,6 +170,8 @@ public partial class MainWindow
         {
             case TextBox box when Edit(box, action):
                 return;
+            case Tables.CellGrid table when table.Execute(action):
+                return;
             case CodeEditor editor when editor != Editors.CodeEditor:
                 editor.TryExecute(action);
                 return;

@@ -143,7 +143,7 @@ public sealed partial class EditorArea : UserControl
         FileText? file;
         try
         {
-            file = FileText.Load(full);
+            file = Read(full);
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
@@ -647,6 +647,10 @@ public sealed partial class EditorArea : UserControl
         return new EditorFrame.Leaf(group);
     }
 
+    /// <summary>A file's text as a tab holds it: a workbook's none, since its table is read from the file itself.</summary>
+    private static FileText? Read(string path) =>
+        Tables.Workbook.IsWorkbook(path) ? new FileText(string.Empty, new System.Text.UTF8Encoding(false), false) : FileText.Load(path);
+
     /// <summary>A file's document, open already or read from disk now; null when it cannot be read as text.</summary>
     private OpenDocument? Load(string path)
     {
@@ -657,7 +661,7 @@ public sealed partial class EditorArea : UserControl
         }
         try
         {
-            if (FileText.Load(full) is not { } file)
+            if (Read(full) is not { } file)
             {
                 return null;
             }
