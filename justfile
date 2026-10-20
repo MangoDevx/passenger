@@ -66,6 +66,11 @@ package-linux rid="linux-x64":
 app-icon:
     tools/app-icon.sh
 
+# Rewrite the generated themes (Theme/Sorbet.axaml and the rest) from the palettes in tools/themes.py, each checked
+# against the contrast UiRulesTests asks.
+themes:
+    python3 -I tools/themes.py
+
 # Rewrite Theme/Icons.axaml from the list in tools/icons.py (fetches any icon not yet cached).
 icons:
     python3 -I tools/icons.py

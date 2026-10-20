@@ -41,7 +41,7 @@ public sealed partial class SettingsDialog : Window
         [(OpenProjectIn.NewWindow, "New window"), (OpenProjectIn.CurrentWindow, "Current window"), (OpenProjectIn.Ask, "Ask")];
 
     /// <summary>The themes, in the order Settings offers them.</summary>
-    public static readonly (Look Look, string Name)[] LookChoices = [(Look.Passenger, "Passenger"), (Look.Harbour, "Harbour")];
+    public static readonly (Look Look, string Name)[] LookChoices = [.. Enum.GetValues<Look>().Select(l => (l, l.ToString()))];
 
     /// <summary>The code's colour schemes, in the order Settings offers them.</summary>
     public static readonly (ColourScheme Scheme, string Name)[] ColourSchemeChoices = [(ColourScheme.Theme, "Same as theme"), (ColourScheme.Rider, "Rider")];
@@ -216,7 +216,7 @@ public sealed partial class SettingsDialog : Window
         // Each theme has a Dark and a Light, which the next row chooses between, or the system does, as Rider's Sync with OS.
         ComboBox look = new() { ItemsSource = LookChoices.Select(c => c.Name).ToArray(), SelectedIndex = Array.FindIndex(LookChoices, c => c.Look == Working.Look), Classes = { "form" } };
         look.SelectionChanged += (_, _) => Change(s => s with { Look = LookChoices[Math.Max(0, look.SelectedIndex)].Look });
-        Add(Appearance, "Theme", look, "colour color theme look passenger harbour blue warm palette");
+        Add(Appearance, "Theme", look, "colour color theme look palette " + string.Join(" ", LookChoices.Select(c => c.Name.ToLowerInvariant())));
         ComboBox theme = new() { ItemsSource = new[] { "System", "Dark", "Light" }, SelectedIndex = Working.Theme switch { ThemeChoice.Dark => 1, ThemeChoice.Light => 2, _ => 0 }, Classes = { "form" } };
         theme.SelectionChanged += (_, _) => Change(s => s with { Theme = theme.SelectedIndex switch { 1 => ThemeChoice.Dark, 2 => ThemeChoice.Light, _ => ThemeChoice.System } });
         Add(Appearance, "Dark or light", theme, "colour color theme dark light system sync os appearance mode");

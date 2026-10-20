@@ -125,12 +125,9 @@ public sealed record LaunchOptions(string? Folder, IReadOnlyList<string> Files, 
                     break;
                 case "--look":
                     string lookText = Value(args, ref i, flag);
-                    look = lookText switch
-                    {
-                        "passenger" => global::Passenger.App.Look.Passenger,
-                        "harbour" => global::Passenger.App.Look.Harbour,
-                        _ => throw new FormatException($"--look takes passenger or harbour, not '{lookText}'"),
-                    };
+                    global::Passenger.App.Look[] looks = Enum.GetValues<global::Passenger.App.Look>();
+                    look = looks.Cast<global::Passenger.App.Look?>().FirstOrDefault(l => l.ToString()!.ToLowerInvariant() == lookText)
+                        ?? throw new FormatException($"--look takes {string.Join(", ", looks.Select(l => l.ToString().ToLowerInvariant()))}, not '{lookText}'");
                     break;
                 case "--scheme":
                     string schemeText = Value(args, ref i, flag);

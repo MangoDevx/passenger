@@ -27,7 +27,7 @@ public sealed record AppSettings : IStateDocument<AppSettings>
     /// <summary>Dark or light, or as the system is.</summary>
     public ThemeChoice Theme { get; init; } = ThemeChoice.System;
 
-    /// <summary>The theme, Passenger's own or Harbour, each in the dark or light <see cref="Theme"/> says.</summary>
+    /// <summary>The theme, Passenger's own or another of <see cref="Look"/>'s, each in the dark or light <see cref="Theme"/> says.</summary>
     public Look Look { get; init; } = Look.Passenger;
 
     /// <summary>The code's colours: the theme's own scheme, or Rider's for a person who keeps Rider's colours under either

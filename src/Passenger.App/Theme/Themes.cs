@@ -8,11 +8,22 @@ using Avalonia.Themes.Fluent;
 namespace Passenger.App;
 
 /// <summary>Passenger's built-in themes, each a Dark and a Light that follow the dark-or-light setting: Passenger's own
-/// (Tokens.axaml, App.axaml's), the default.</summary>
+/// (Tokens.axaml, App.axaml's), the default; Harbour (Harbour.axaml); the rest written by tools/themes.py, each to the
+/// file of its name.</summary>
 public enum Look
 {
     Passenger,
     Harbour,
+    Sorbet,
+    Nocturne,
+    Saffron,
+    Bonbon,
+    Ledger,
+    Slate,
+    Orbit,
+    Nightjar,
+    Moss,
+    Phosphor,
 }
 
 /// <summary>Which colours the code is drawn in: the theme's own scheme, or Rider's (Dark or Light as the theme is).</summary>
@@ -22,7 +33,7 @@ public enum ColourScheme
     Rider,
 }
 
-/// <summary>Puts a theme and a colour scheme in force for the process: Harbour's tokens (Harbour.axaml) laid over Passenger's
+/// <summary>Puts a theme and a colour scheme in force for the process: another theme's tokens (Theme/NAME.axaml) laid over Passenger's
 /// in the application's resources, then Rider's scheme (RiderScheme.axaml) over either, so the last laid wins. A theme is
 /// tokens alone, its colours and the few shapes it draws differently, which the shared styles (Shell.axaml) and Fluent's
 /// own keys (FluentKeys) read; Fluent's palette takes the theme's accent. UI thread only.</summary>
@@ -55,7 +66,7 @@ public static class Themes
         }
         laid.Clear();
         // Rider's scheme after the theme, so its colours win under either.
-        foreach (string? source in (string?[])[nextLook == Look.Harbour ? "Theme/Harbour.axaml" : null, nextScheme == ColourScheme.Rider ? "Theme/RiderScheme.axaml" : null])
+        foreach (string? source in (string?[])[nextLook == Look.Passenger ? null : $"Theme/{nextLook}.axaml", nextScheme == ColourScheme.Rider ? "Theme/RiderScheme.axaml" : null])
         {
             if (source is not null)
             {

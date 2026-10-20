@@ -35,7 +35,9 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
         project.Reset();
     }
 
-    /// <summary>The looks every rule a look could break is held under, in the order a window wears them.</summary>
+    /// <summary>The looks a window's rules are held under, in the order a window wears them: Passenger's and Harbour's, whose
+    /// shapes are every other theme's (tools/themes.py gives each one or the other's), the rest's colours held by the rules
+    /// of tokens alone (<see cref="EveryLook"/>) and their grounds' steps checked as tools/themes.py writes them.</summary>
     private static readonly Look[] Looks = [Look.Passenger, Look.Harbour];
 
     [AvaloniaFact]
@@ -759,9 +761,11 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
         }
     }
 
+    /// <summary>Every theme, for a rule held of its tokens alone, which costs no window.</summary>
+    public static TheoryData<Look> EveryLook => [.. Enum.GetValues<Look>()];
+
     [AvaloniaTheory]
-    [InlineData(Look.Passenger)]
-    [InlineData(Look.Harbour)]
+    [MemberData(nameof(EveryLook))]
     public void Text_icons_and_focus_rings_meet_WCAG_AA_on_what_they_are_drawn_on_dark_and_light(Look look)
     {
         using IDisposable worn = Wearing(look);
@@ -787,20 +791,26 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
     public void Every_theme_gives_every_colour_in_Dark_and_Light_and_Rider_s_scheme_only_the_codes()
     {
         ResourceDictionary passenger = Dictionary("Tokens.axaml");
-        ResourceDictionary harbour = Dictionary("Harbour.axaml");
         ResourceDictionary rider = Dictionary("RiderScheme.axaml");
         string[] keys = Keys(passenger, ThemeVariant.Dark);
+        string[] shapes = [.. passenger.Keys.Select(k => k.ToString()!).Order(StringComparer.Ordinal)];
         Assert.Equal(keys, Keys(passenger, ThemeVariant.Light));
-        Assert.Equal(keys, Keys(harbour, ThemeVariant.Dark));
-        Assert.Equal(keys, Keys(harbour, ThemeVariant.Light));
-        Assert.Equal([.. passenger.Keys.Select(k => k.ToString()!).Order(StringComparer.Ordinal)], [.. harbour.Keys.Select(k => k.ToString()!).Order(StringComparer.Ordinal)]);
+        List<(string, ResourceDictionary)> files = [("Tokens.axaml", passenger), ("RiderScheme.axaml", rider)];
+        foreach (Look look in Enum.GetValues<Look>().Where(l => l != Look.Passenger))
+        {
+            ResourceDictionary theme = Dictionary($"{look}.axaml");
+            files.Add(($"{look}.axaml", theme));
+            Assert.True(keys.SequenceEqual(Keys(theme, ThemeVariant.Dark)) && keys.SequenceEqual(Keys(theme, ThemeVariant.Light)),
+                $"{look} does not give every colour Tokens.axaml gives, in Dark and Light, and no other: a colour it lacks shows Passenger's own under it");
+            Assert.True(shapes.SequenceEqual(theme.Keys.Select(k => k.ToString()!).Order(StringComparer.Ordinal)), $"{look} does not give every shape Tokens.axaml gives");
+        }
         // The code's colours, which Rider's scheme gives in its place; the editor's ground, gutter and cards stay the theme's.
         string[] scheme = [.. keys.Where(k => (k.StartsWith("Passenger.Editor.", StringComparison.Ordinal) && k is not ("Passenger.Editor.Background" or "Passenger.Editor.Gutter" or "Passenger.Editor.PopupBorder"))
             || k.StartsWith("Passenger.Syntax.", StringComparison.Ordinal) || k.StartsWith("Passenger.SyntaxStyle.", StringComparison.Ordinal) || k.StartsWith("Passenger.Diff.", StringComparison.Ordinal))];
         Assert.Equal(scheme, Keys(rider, ThemeVariant.Dark));
         Assert.Equal(scheme, Keys(rider, ThemeVariant.Light));
         // A theme is tokens alone: Fluent's own keys are FluentKeys.axaml's, once for every theme.
-        foreach ((string file, ResourceDictionary theme) in (ReadOnlySpan<(string, ResourceDictionary)>)[("Tokens.axaml", passenger), ("Harbour.axaml", harbour), ("RiderScheme.axaml", rider)])
+        foreach ((string file, ResourceDictionary theme) in files)
         {
             string[] others = [.. theme.Keys.Concat(theme.ThemeDictionaries.Values.SelectMany(v => ((ResourceDictionary)v).Keys)).Select(k => k.ToString()!)
                 .Where(k => !k.StartsWith("Passenger.", StringComparison.Ordinal)).Distinct().Order(StringComparer.Ordinal)];
@@ -854,7 +864,7 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
         }
         Assert.True(unmapped.Count == 0, $"Fluent gives {unmapped.Count} keys Passenger's controls can reach that no theme answers for, each showing Fluent's own colour "
             + $"under every look: name each in FluentKeys.axaml as the token it is, or say in this test why no control of Passenger's reads it:\n{string.Join("\n", unmapped)}");
-        foreach (Look look in (Look[])[Look.Passenger, Look.Harbour])
+        foreach (Look look in Enum.GetValues<Look>())
         {
             using IDisposable worn = Wearing(look);
             foreach (ThemeVariant variant in (ThemeVariant[])[ThemeVariant.Dark, ThemeVariant.Light])
