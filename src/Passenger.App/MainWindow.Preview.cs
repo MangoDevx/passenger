@@ -63,6 +63,11 @@ public partial class MainWindow
             if (session == next)
             {
                 FollowPreviews();
+                // A preview that found no previewer may have read the project before its restore landed.
+                foreach (XamlPreview preview in previews.Values.Select(p => p.Preview).Where(p => !p.Running))
+                {
+                    _ = preview.RestartAsync();
+                }
             }
         };
         buildRun.BuildFinished += (_, outcome) =>

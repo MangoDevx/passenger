@@ -1079,7 +1079,8 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
     }
 
     /// <summary>An app still on Avalonia 11, whose package carries its previewer under tools/netstandard2.0 where Avalonia
-    /// 12's are under tools/net8.0 and later, previews as one on Avalonia 12 does, turned on from its file's tab strip.</summary>
+    /// 12's are under tools/net8.0 and later, previews as one on Avalonia 12 does: turned on from its file's tab strip
+    /// before the app was ever restored, it draws once Build has restored and built it.</summary>
     [AvaloniaFact]
     public void An_app_on_Avalonia_11_previews_from_its_packages_previewer()
     {
@@ -1161,8 +1162,6 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
             """);
         AvaloniaApp.UseFeed(folder);
         MainWindow window = Ui.OpenFolder(folder, languageServer: false);
-        Ui.Run(window, AppActions.Build);
-        Ui.Settle();
         Assert.Null(window.OpenFile(Path.Combine(folder, "MainWindow.axaml")));
         Ui.Settle();
         OpenDocument document = window.EditorArea.Active!;
@@ -1170,6 +1169,9 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
         Ui.Click(group.PreviewToggle);
         Ui.Settle();
         Passenger.App.Xaml.XamlPreview preview = window.PreviewOf(document) ?? throw new InvalidOperationException("The tab strip's toggle showed no preview beside the file");
+        Assert.StartsWith("Build Eleven to preview its XAML", preview.Status, StringComparison.Ordinal);
+        Ui.Run(window, AppActions.Build);
+        Ui.Settle();
         Ui.WaitFor(() => preview.Frame is not null, () => $"the Avalonia 11 previewer's first frame (the pane says: {preview.Status})", TimeSpan.FromSeconds(60));
         Ui.Settle();
         Assert.Null(preview.Error);

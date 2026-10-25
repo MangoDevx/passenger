@@ -140,6 +140,9 @@ public sealed class XamlPreview : IDisposable
         elements.Where(e => e.Whole.Start <= offset && offset < e.Whole.End).OrderBy(e => e.Whole.Length).FirstOrDefault();
 
     /// <summary>The previewer started again on the project's newest build, the last frame shown until the new one comes.</summary>
+    /// <summary>Whether a previewer runs for the file, rather than the pane saying why none does.</summary>
+    public bool Running => host is not null;
+
     public Task RestartAsync()
     {
         UiThread.Check();

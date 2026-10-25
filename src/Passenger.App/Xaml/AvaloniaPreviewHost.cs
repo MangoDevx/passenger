@@ -51,7 +51,9 @@ internal sealed class AvaloniaPreviewHost : IPreviewHost
         }
         if (HostApp(inputs) is not { } designer)
         {
-            preview.Say("The project's Avalonia package has no previewer (tools/…/designer/Avalonia.Designer.HostApp.dll)");
+            string why = NoHostApp(inputs);
+            IdeLog.Write(IdeLog.Ide, $"Preview of {Path.GetFileName(preview.Document.Document.Path)}: {why}");
+            preview.Say(why);
             return null;
         }
         AvaloniaPreviewHost started = new(preview, built);
@@ -264,6 +266,21 @@ internal sealed class AvaloniaPreviewHost : IPreviewHost
             .OrderByDescending(d => d.Version)
             .Select(d => Path.Combine(d.Folder, "designer", "Avalonia.Designer.HostApp.dll"))
             .FirstOrDefault(File.Exists);
+    }
+
+    /// <summary>Why the project has no previewer host, naming where it was looked for.</summary>
+    private static string NoHostApp(ProjectInputs inputs)
+    {
+        string project = Path.GetFileNameWithoutExtension(inputs.ProjectPath);
+        if (!inputs.PackageFolders.TryGetValue("Avalonia", out string? package))
+        {
+            return inputs.AssetsFile is { } assets
+                ? $"{project}'s restore ({PathNames.Shown(assets, null)}) names no Avalonia package in the package cache: restore {project}, then build it"
+                : $"{project} has not been restored (no project.assets.json): build it to preview its XAML";
+        }
+        string tools = Path.Combine(package, "tools");
+        string[] frameworks = Directory.Exists(tools) ? [.. Directory.EnumerateDirectories(tools).Select(Path.GetFileName).OfType<string>().Order(StringComparer.Ordinal)] : [];
+        return $"No previewer for {inputs.TargetFramework ?? project} in {PathNames.Shown(tools, null)} (it has {(frameworks.Length == 0 ? "none" : string.Join(", ", frameworks))}): designer/Avalonia.Designer.HostApp.dll is looked for in each";
     }
 
     /// <summary>A tools/ folder's framework: net5.0 and later as themselves, and netstandard or netcoreapp (Avalonia 11's
