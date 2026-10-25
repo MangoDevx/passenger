@@ -226,10 +226,8 @@ public sealed class ContainerServicesTests(ContainerRunDebuggingTests.Tools tool
             }
             Assert.True(view.Choose(r => r.Service == "web" && r.LeftUnstarted), "web's row could not be chosen");
             Ui.Settle();
-            Assert.Equal("web of Later is not started: its configuration says Don't start; its Run, Debug or Profile starts it",
-                window.Actions.WhyNot(AppActions.ServiceAttach, window.Actions.Context()));
-            Assert.Equal($"{project}/web is not started: its run configuration says Don't start; its Start, Run, Debug or Profile starts it",
-                window.Actions.WhyNot(AppActions.ContainerStop, window.Actions.Context()));
+            Assert.Equal(Refusals.NotStarted("web of Later", ContainerRun.StartsService), window.Actions.WhyNot(AppActions.ServiceAttach, window.Actions.Context()));
+            Assert.Equal(Refusals.NotStarted($"{project}/web", ContainerRun.StartsService), window.Actions.WhyNot(AppActions.ContainerStop, window.Actions.Context()));
             Assert.Null(window.Actions.WhyNot(AppActions.ServiceRun, window.Actions.Context()));
 
             Later(window, view, project, "web", AppActions.ServiceRun);

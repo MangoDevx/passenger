@@ -129,8 +129,9 @@ public partial class MainWindow
     /// (<see cref="BuildRunController.ServiceOf"/>); an AppHost's resource that does not run, Debug and Run without Debugger
     /// starting it where it advertises a start, Attach and Profile needing it running.</summary>
     private string? WhyNotOn(string id, ServiceAim aim) =>
-        aim.WhyNot ?? (aim.Runs ? aim.Run is ContainerRun ? buildRun.WhyNotOnService(id, aim.Name) : buildRun.ServiceOf(aim.Run!, aim.Name).WhyNot
-            : id is not (AppActions.ServiceDebug or AppActions.ServiceRun) ? $"{aim.Name} of {aim.Run!.Name} is not running: Debug Service starts it"
+        aim.WhyNot ?? (aim.Runs ? buildRun.WhyNotOnService(id, aim.Name, aim.Run)
+            : id is not (AppActions.ServiceDebug or AppActions.ServiceRun)
+                ? aim.Name is { } named && aim.Run!.LeftUnstarted(named) ? aim.Run.WhyNotStarted(named) : $"{aim.Name} of {aim.Run!.Name} is not running: Debug Service starts it"
             : aim.Resource is { } chosen && StartOf(chosen.Resource) is null ? $"{aim.Name} of {aim.Run!.Name} advertises no start command"
             : null);
 

@@ -153,6 +153,20 @@ public abstract class ServiceRun
     /// services are started otherwise (an Aspire AppHost's, by its resource's Start) leaves none so.</summary>
     public virtual bool LeftUnstarted(IRunService service) => false;
 
+    /// <summary>Whether the run left the service of that name unstarted (<see cref="LeftUnstarted(IRunService)"/>), named
+    /// where its kind has no service for it to act on yet.</summary>
+    public virtual bool LeftUnstarted(string name) => ServiceNamed(name) is { } service && LeftUnstarted(service);
+
+    /// <summary>What starts a service the run left unstarted, as its kind starts one.</summary>
+    public abstract string StartsIt { get; }
+
+    /// <summary>How a service the run left unstarted is said where an action has nothing to reach in it, every kind's words.</summary>
+    public string WhyNotStarted(string name) => Refusals.NotStarted(ServiceNamed(name) is { } service ? NameOf(service) : $"{name} of {Name}", StartsIt);
+
+    /// <summary>Why one of a service's actions (<see cref="AppActions.ServiceDebug"/> and the rest) cannot act on a service of
+    /// the run, or null: Attach has nothing to reach in one the run left unstarted.</summary>
+    public virtual string? WhyNot(string action, IRunService service) => action == AppActions.ServiceAttach && LeftUnstarted(service) ? WhyNotStarted(service.Name) : null;
+
     /// <summary>Why a service the run left unstarted cannot be started later where its kind runs it, or null when it can.</summary>
     public virtual string? WhyNotStartedLater(IRunService service) => null;
 

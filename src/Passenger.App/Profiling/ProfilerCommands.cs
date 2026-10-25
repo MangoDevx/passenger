@@ -307,7 +307,7 @@ public sealed class ProfilerCommands
             {
                 // Its folder was left as it started: it ends with the folder's other programs.
                 running.Kill();
-                return "The solution was closed";
+                return Refusals.SolutionClosed;
             }
             profilingName = chosen.Name;
             run.Input = input;
@@ -326,7 +326,7 @@ public sealed class ProfilerCommands
                 {
                     View.Stopped();
                 }
-                return "The solution was closed";
+                return Refusals.SolutionClosed;
             }
             profiled.Profiling = null;
             string stopped = $"Profiling {chosen.Name} was stopped as it started";
@@ -388,7 +388,7 @@ public sealed class ProfilerCommands
         }
         if (profiled.IsEnded)
         {
-            return "The solution was closed";
+            return Refusals.SolutionClosed;
         }
         // A start that failed once recording had begun read its snapshot as it took its containers down, which the window shows.
         bool recorded = profiled.ContainerRun?.Profiled is not null;
@@ -546,7 +546,7 @@ public sealed class ProfilerCommands
         {
             // Its run, or its folder, ended as the recording began, or another took the window meanwhile: read by no one.
             await recording.DisposeAsync();
-            return profiled != Session || profiled.IsEnded ? "The solution was closed"
+            return profiled != Session || profiled.IsEnded ? Refusals.SolutionClosed
                 : run.IsStopped ? $"{run.Name} was stopped as {service.Name}'s recording began" : "A run is already being profiled";
         }
         Follow(profiled, recording, name, killable: false);
@@ -572,7 +572,7 @@ public sealed class ProfilerCommands
                 DotnetProcess? chosen = await parts.ChooseInContainer();
                 if (profiled != Session || profiled.IsEnded)
                 {
-                    return "The solution was closed";
+                    return Refusals.SolutionClosed;
                 }
                 if (chosen is null)
                 {
@@ -610,7 +610,7 @@ public sealed class ProfilerCommands
         }
         if (profiled.IsEnded || profiled != Session)
         {
-            return "The solution was closed";
+            return Refusals.SolutionClosed;
         }
         ProfilingSession running;
         try
@@ -633,7 +633,7 @@ public sealed class ProfilerCommands
         if (profiled.IsEnded || profiled != Session || profiled.Profiling is not null)
         {
             await running.DisposeAsync();
-            return profiled.IsEnded || profiled != Session ? "The solution was closed" : "A run is already being profiled";
+            return profiled.IsEnded || profiled != Session ? Refusals.SolutionClosed : "A run is already being profiled";
         }
         // Profile's own program, profiled again, is still Kill's to end.
         Follow(profiled, running, target.Name, killable: target.Elsewhere is null && profiled.Profiled?.Run.ProcessId == target.ProcessId);

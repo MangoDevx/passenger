@@ -25,7 +25,7 @@ public sealed partial class AspireController
         starting.Token.ThrowIfCancellationRequested();
         if (workspace.IsEnded)
         {
-            throw new InvalidOperationException("The solution was closed");
+            throw new InvalidOperationException(Refusals.SolutionClosed);
         }
         if (startingPaths.Contains(hosts[0].Path) || apps.Any(app => PathNames.Same(app.Configuration.Project, hosts[0].Path)))
         {

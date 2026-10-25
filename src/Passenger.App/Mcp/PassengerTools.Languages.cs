@@ -158,7 +158,7 @@ public sealed partial class PassengerTools
         }
         ((string Path, TextPosition Position)? place, string said) = await CodeAssist.JsonDeclarationAsync(json.Lsp, json.Document, offset);
         return place is { } found ? await PlacesOf([found], cancel)
-            : said == CodeAssist.NoDeclaration ? []
+            : said == Refusals.NoDeclaration ? []
             : throw new InvalidOperationException(said);
     }
 
@@ -177,7 +177,7 @@ public sealed partial class PassengerTools
             throw new InvalidOperationException($"{answer.Said} is declared on its registry, not in the folder: its page is {page}");
         }
         return answer.Places.Count > 0 ? await PlacesOf([.. answer.Places.Select(p => (p.Path, p.Position))], cancel)
-            : answer.Said == ComposeDeclarations.NoDeclaration ? null
+            : answer.Said == Refusals.NoDeclaration ? null
             : throw new InvalidOperationException(answer.Said);
     }
 

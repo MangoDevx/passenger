@@ -25,14 +25,14 @@ public partial class MainWindow
             _ = ShowSelectionHistoryAsync(context.File!.Path, first, last);
         })
         {
-            WhyNot = context => NeedsFolder(context) ?? (session.Vcs.Repository is null ? NoRepository : Refusals.NeedsFile(context)),
+            WhyNot = context => NeedsFolder(context) ?? (session.Vcs.Repository is null ? Refusals.NoRepository : Refusals.NeedsFile(context)),
             Menus = [new MenuPlace("Git", 2, 6)],
         });
 
         void Add(string id, string title, Action<ActionContext> run, int order, bool fileOnly) =>
             actions!.Add(new IdeAction(id, title, "Git", run)
             {
-                WhyNot = context => NeedsFolder(context) ?? (session.Vcs.Repository is null ? NoRepository : WhyNoTarget(context, fileOnly)),
+                WhyNot = context => NeedsFolder(context) ?? (session.Vcs.Repository is null ? Refusals.NoRepository : WhyNoTarget(context, fileOnly)),
                 Menus = [new MenuPlace("Git", 2, order)],
             });
     }
@@ -122,7 +122,7 @@ public partial class MainWindow
     {
         if (session.Vcs.Repository is not { } repository)
         {
-            throw new InvalidOperationException(NoRepository);
+            throw new InvalidOperationException(Refusals.NoRepository);
         }
         path = PathNames.Canonical(path);
         if (!repository.IsInside(path))
@@ -159,7 +159,7 @@ public partial class MainWindow
     {
         if (session.Vcs.Repository is not { } repository)
         {
-            status.Text = NoRepository;
+            status.Text = Refusals.NoRepository;
             return null;
         }
         IReadOnlyList<GitRef> refs = await repository.RefNamesAsync();
@@ -211,7 +211,7 @@ public partial class MainWindow
     {
         if (session.Vcs.Repository is not { } repository)
         {
-            status.Text = NoRepository;
+            status.Text = Refusals.NoRepository;
             return null;
         }
         if (await repository.TextAtAsync(revision, then) is not { } theirs)

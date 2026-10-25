@@ -46,7 +46,7 @@ public partial class MainWindow
             IReadOnlyList<AspireResource> resources = await ReadAspireResourcesAsync(configuration.Project);
             if (session != current || current.IsEnded)
             {
-                return "The solution was closed";
+                return Refusals.SolutionClosed;
             }
             AspireSelection[] choices = resources.Select(resource => new AspireSelection(configuration.Project, resource))
                 .Where(selection => current.Aspire.FindService(selection)?.ProcessId is > 0).ToArray();
@@ -281,7 +281,7 @@ public partial class MainWindow
         AspireSelection selection = await ReadAspireSelectionAsync(appHost, resource, cancel);
         if (session != current || current.IsEnded)
         {
-            throw new InvalidOperationException("The solution was closed");
+            throw new InvalidOperationException(Refusals.SolutionClosed);
         }
         return await ResourceCommandAsync(current, selection, command, () => true, cancel, forAgent: true);
     }
@@ -356,7 +356,7 @@ public partial class MainWindow
         {
             if (session != current || current.IsEnded)
             {
-                return "The solution was closed";
+                return Refusals.SolutionClosed;
             }
             (AspireAppRun app, AspireResourceRun service) = RunningOf(current, selection);
             return await DebugAspireRunningAsync(current, app, service, attach);
@@ -412,7 +412,7 @@ public partial class MainWindow
         {
             if (session != current || current.IsEnded)
             {
-                return "The solution was closed";
+                return Refusals.SolutionClosed;
             }
             (AspireAppRun app, AspireResourceRun service) = RunningOf(current, selection);
             return await ProfileAspireRunningAsync(current, app, service);
@@ -451,7 +451,7 @@ public partial class MainWindow
         {
             if (session != current || current.IsEnded)
             {
-                return "The solution was closed";
+                return Refusals.SolutionClosed;
             }
             if (current.Aspire.FindService(selection) is { } running && current.Aspire.FindApp(selection.AppHostPath) is { } app)
             {
@@ -524,7 +524,7 @@ public partial class MainWindow
         }
         if (session != current || current.IsEnded)
         {
-            throw new InvalidOperationException("The solution was closed");
+            throw new InvalidOperationException(Refusals.SolutionClosed);
         }
         app.Rebuilt[service.Project] = DateTime.UtcNow;
         if (await buildRun.BuildForAsync(new BuildStep(service.Project, service.Plan.Framework), cancel) is { Succeeded: false } failed)
@@ -569,7 +569,7 @@ public partial class MainWindow
         Containers.EngineState engine = await Engine.StateAsync(again: true, cancel: cancel);
         if (session != current || current.IsEnded)
         {
-            return "The solution was closed";
+            return Refusals.SolutionClosed;
         }
         ShowAspireEngine(engine);
         FollowEngineForAspire(current);

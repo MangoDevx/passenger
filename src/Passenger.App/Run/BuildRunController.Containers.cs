@@ -61,7 +61,7 @@ public sealed partial class BuildRunController
         }
         if (session.IsEnded)
         {
-            return Left;
+            return Refusals.SolutionClosed;
         }
         return await StartContainersAsync(chosen, work, how);
     }
@@ -146,7 +146,7 @@ public sealed partial class BuildRunController
         {
             if (await ReplacesOthersAsync(chosen.Name, plan, engine, work) is { } kept)
             {
-                return Said(session.IsEnded ? Left : kept);
+                return Said(session.IsEnded ? Refusals.SolutionClosed : kept);
             }
         }
         catch (OperationCanceledException)
@@ -288,7 +288,7 @@ public sealed partial class BuildRunController
             if (session.IsEnded)
             {
                 // The folder's end takes down what came, once its up has ended; the window's views are another folder's now.
-                return Left;
+                return Refusals.SolutionClosed;
             }
             // A run that did not start leaves nothing running, its own alone: a start that replaced it has its own.
             IdeLog.Write(IdeLog.Ide, $"Containers: {chosen.Name} did not start ({failed}): what came up is taken down");

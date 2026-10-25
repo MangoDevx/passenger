@@ -237,7 +237,7 @@ public partial class MainWindow
     {
         if (session.Vcs.Repository is null)
         {
-            status.Text = "The folder is not in a Git repository";
+            status.Text = Refusals.NoRepository;
             return null;
         }
         NamePopup popup = new("Stash Changes", string.Empty, async message => (await session.Vcs.StashAsync(message)).Problem);
@@ -250,7 +250,7 @@ public partial class MainWindow
     {
         if (session.Vcs.Repository is null)
         {
-            status.Text = "The folder is not in a Git repository";
+            status.Text = Refusals.NoRepository;
             return null;
         }
         UnstashPopup popup = new(await session.Vcs.StashesAsync(), async (stash, pop) => (await session.Vcs.UnstashAsync(stash, pop)).Succeeded,
@@ -281,7 +281,7 @@ public partial class MainWindow
     {
         if (session.Vcs.Repository is null)
         {
-            status.Text = "The folder is not in a Git repository";
+            status.Text = Refusals.NoRepository;
             return null;
         }
         OpenDocument? open = Editors.Find(path) is { HoldsText: true } held ? held : null;
@@ -494,12 +494,11 @@ public partial class MainWindow
         void Add(string id, string title, Action<ActionContext> run, MenuPlace menu, bool onFile = false) =>
             actions!.Add(new IdeAction(id, title, "Git", run)
             {
-                WhyNot = context => NeedsFolder(context) ?? (session.Vcs.Repository is null ? NoRepository : onFile ? Refusals.NeedsFile(context) : null),
+                WhyNot = context => NeedsFolder(context) ?? (session.Vcs.Repository is null ? Refusals.NoRepository : onFile ? Refusals.NeedsFile(context) : null),
                 Menus = [menu],
             });
     }
 
-    private const string NoRepository = "The open folder is not in a Git repository";
 
     private async Task RollbackAsync(IReadOnlyList<FileChange> changes)
     {

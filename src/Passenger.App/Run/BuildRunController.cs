@@ -550,13 +550,11 @@ public sealed partial class BuildRunController
         return Checkpoint(work, chosen.Name) is { } left ? (null, left, false) : (plan, null, false);
     }
 
-    private const string Left = "The solution was closed";
-
     /// <summary>Why a start goes no further now, or null to go on: its folder has ended, or Stop has ended the start.</summary>
-    private string? Checkpoint(Working work, string name) => session.IsEnded ? Left : work.IsStopped ? StoppedStarting(name) : null;
+    private string? Checkpoint(Working work, string name) => session.IsEnded ? Refusals.SolutionClosed : work.IsStopped ? StoppedStarting(name) : null;
 
     /// <summary>What a start ended by a cancel says: its folder's end, else Stop's.</summary>
-    private string Canceled(Working work, string name) => session.IsEnded ? Left : StoppedStarting(name);
+    private string Canceled(Working work, string name) => session.IsEnded ? Refusals.SolutionClosed : StoppedStarting(name);
 
     /// <summary>A start's build of what it starts, in the Build window, which comes forward only as Settings says for a build
     /// Run, Debug or Profile begins: stopped as the start is (<paramref name="stopping"/>), as Stop stops a build.</summary>
@@ -703,7 +701,7 @@ public sealed partial class BuildRunController
             return AlreadyRunning();
         }
         await EndInConsoleAsync();
-        return session.IsEnded ? Left : null;
+        return session.IsEnded ? Refusals.SolutionClosed : null;
     }
 
     /// <summary>Why a start that needs the Run console cannot have it: what has it, by its configuration's name.</summary>
@@ -723,7 +721,7 @@ public sealed partial class BuildRunController
         }
         work.Say($"Ending {chosen.Name}'s run to {doing} it…");
         await EndInConsoleAsync();
-        return session.IsEnded ? Left : null;
+        return session.IsEnded ? Refusals.SolutionClosed : null;
     }
 
     /// <summary>Ends what the Run console (or the terminal's tab) has, done once its end has landed.</summary>
@@ -987,7 +985,7 @@ public sealed partial class BuildRunController
                 await EndInConsoleAsync();
                 if (session.IsEnded)
                 {
-                    return Left;
+                    return Refusals.SolutionClosed;
                 }
             }
             return await RunAsync();
@@ -1058,7 +1056,7 @@ public sealed partial class BuildRunController
         RunStart mode = main.Mode;
         parts.Say($"{chosen.Name}'s AppHost changed: stopping it to build and run it again…");
         await session.Aspire.StopGroupAsync(main.Group);
-        return session.IsEnded ? Left : await RunAspireAsync(again, null, mode);
+        return session.IsEnded ? Refusals.SolutionClosed : await RunAspireAsync(again, null, mode);
     }
 
     /// <summary>Resolves and builds the chosen configuration, then launches its plan under the debugger, with these arguments

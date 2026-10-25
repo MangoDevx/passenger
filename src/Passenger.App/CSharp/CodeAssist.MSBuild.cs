@@ -224,7 +224,7 @@ public sealed partial class CodeAssist
     {
         if (await msbuild.TargetsAsync(offset) is not { Targets.Count: > 0 } found)
         {
-            Message?.Invoke(this, "Cannot find a declaration to go to");
+            Message?.Invoke(this, Refusals.NoDeclaration);
             return;
         }
         if (found.Targets.Count == 1)

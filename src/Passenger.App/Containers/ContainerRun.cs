@@ -926,6 +926,12 @@ public sealed class ContainerRun(ContainerPlan plan, ContainerEngine engine, Con
     /// <summary>A .NET service marked Don't start, not started since.</summary>
     public override bool LeftUnstarted(IRunService service) => Dotnet(service).Action == ServiceStart.DontStart;
 
+    /// <summary>A service of a container run left unstarted is started by the Containers window's Start, or its own Run, Debug
+    /// or Profile.</summary>
+    public const string StartsService = "its Start, Run, Debug or Profile starts it";
+
+    public override string StartsIt => StartsService;
+
     /// <summary>The .NET services it left unstarted, by name, which the Containers window lists as not started.</summary>
     public IReadOnlyList<string> Unstarted => [.. Plan.Dotnet.Where(d => d.Action == ServiceStart.DontStart).Select(d => d.Service)];
 

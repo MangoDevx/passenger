@@ -383,7 +383,7 @@ public sealed class CommitView : DockPanel
                 list.Selection.Select(i);
             }
         }
-        placeholder.Text = vcs.Repository is null ? "The folder is not in a Git repository" : "No changes";
+        placeholder.Text = vcs.Repository is null ? Refusals.NoRepository : "No changes";
         placeholder.IsVisible = rows.Count == 0;
         // A merge under way gives the commit that finishes it the message git wrote for it, until it ends.
         string? merging = vcs.Merge.CommitsWhole ? vcs.Merge.Message : null;

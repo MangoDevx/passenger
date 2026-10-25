@@ -58,19 +58,19 @@ public static partial class ComposeDeclarations
         }
         if (chain is not [{ Name: "services" }, _, { } under, ..])
         {
-            return ComposeAnswer.None(NoDeclaration);
+            return ComposeAnswer.None(Refusals.NoDeclaration);
         }
         ComposeAnswer answer = under.Name switch
         {
             "build" => Build(chain, folder, texts, projects),
             "image" when under.Detail is { Length: > 0 } image => Image(image),
-            "env_file" => EnvFile(chain, lines) is { Length: > 0 } file ? File(file, folder) : ComposeAnswer.None(NoDeclaration),
+            "env_file" => EnvFile(chain, lines) is { Length: > 0 } file ? File(file, folder) : ComposeAnswer.None(Refusals.NoDeclaration),
             "extends" => Extends(chain, outline, lines, folder, texts),
             _ => Named(chain, at, written, column) switch
             {
                 { Kind: "service" } service => Service(outline, lines, service.Name),
                 { } named => Declared(outline, lines, named.Kind + "s", named.Name),
-                null => ComposeAnswer.None(NoDeclaration),
+                null => ComposeAnswer.None(Refusals.NoDeclaration),
             },
         };
         return answer with { Places = [.. answer.Places.Select(p => p.Path.Length == 0 ? p with { Path = path } : p)] };
@@ -112,8 +112,6 @@ public static partial class ComposeDeclarations
         string? file = key == "extends" ? chain[2].Children?.FirstOrDefault(p => p.Name == "file")?.Detail : null;
         return new ComposeName(named, key is "depends_on" or "links" or "volumes_from" or "network_mode" or "extends" ? "service" : key[..^1], file);
     }
-
-    public const string NoDeclaration = "Cannot find a declaration to go to";
 
     /// <summary>A list item's name in the server's outline: its index.</summary>
     private static bool IsIndex(string name) => name.Length > 0 && name.All(char.IsAsciiDigit);
@@ -246,7 +244,7 @@ public static partial class ComposeDeclarations
     {
         if (name is not { Length: > 0 })
         {
-            return ComposeAnswer.None(NoDeclaration);
+            return ComposeAnswer.None(Refusals.NoDeclaration);
         }
         return outline.FirstOrDefault(s => s.Name == "services")?.Children?.FirstOrDefault(s => s.Name == name) is { } service
             ? new ComposeAnswer([Here(lines, service, $"The service {name}")], null, $"The service {name}")
@@ -258,7 +256,7 @@ public static partial class ComposeDeclarations
     {
         if (name is not { Length: > 0 })
         {
-            return ComposeAnswer.None(NoDeclaration);
+            return ComposeAnswer.None(Refusals.NoDeclaration);
         }
         string what = kind[..^1];
         return outline.FirstOrDefault(s => s.Name == kind)?.Children?.FirstOrDefault(s => s.Name == name) is { } declared

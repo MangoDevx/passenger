@@ -37,7 +37,7 @@ public sealed partial class CodeAssist
             }
             switch (answer.Places.Count)
             {
-                case 0 when answer.Said == ComposeDeclarations.NoDeclaration:
+                case 0 when answer.Said == Refusals.NoDeclaration:
                     return false;
                 case 0:
                     Message?.Invoke(this, answer.Said);
@@ -49,7 +49,7 @@ public sealed partial class CodeAssist
             Func<string, TextSnapshot?> texts = ServerPlaces.Texts(editors);
             Go([.. answer.Places.Select(p => new LspLocation(DocumentUris.FromPath(p.Path), new LspRange(
                 ServerPlaces.ServerPositionOf(texts(p.Path), p.Position), ServerPlaces.ServerPositionOf(texts(p.Path), p.Position))))],
-                offset, "Declarations", ComposeDeclarations.NoDeclaration, [.. answer.Places.Select(p => (string?)p.Name)]);
+                offset, "Declarations", Refusals.NoDeclaration, [.. answer.Places.Select(p => (string?)p.Name)]);
             return true;
         }
         catch (LanguageServerFailed failed)

@@ -231,7 +231,7 @@ public sealed class ProfilerTests : IClassFixture<ProfilerTests.Waits>, IDisposa
             Assert.False(started.IsCompleted, $"The profiler gave up on the program before the folder was closed: {(started.IsCompleted ? started.Result : null)}");
             Assert.Null(window.CloseSolution());
             Ui.PumpUntil(() => started.IsCompleted, "the profile's start to end with its folder", TimeSpan.FromSeconds(10));
-            Assert.Equal("The solution was closed", started.Result);
+            Assert.Equal(Refusals.SolutionClosed, started.Result);
             Assert.True(Processes.Gone(closed), $"Closing the folder left the program being profiled running: {Processes.Describe(closed)}");
             Assert.Equal(before, Ports());
             window.Close();

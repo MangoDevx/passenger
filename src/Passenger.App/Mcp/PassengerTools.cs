@@ -113,7 +113,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         }
         if (Session.CSharp is null)
         {
-            throw new InvalidOperationException("No C# language server runs for this folder, and routes are read from code through it");
+            throw new InvalidOperationException($"{Refusals.NoCSharp}, and routes are read from code through it");
         }
         await When(() => Session.CSharp is not { } csharp || csharp.IsReady, ServerLimit, cancel, ServerState());
         IReadOnlyList<Roslyn.Extension.WebRoute> found = await window.RoutesAsync(cancel);
@@ -1826,7 +1826,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
     {
         if (Session.CSharp is null)
         {
-            throw new InvalidOperationException("No C# language server runs for this folder");
+            throw new InvalidOperationException(Refusals.NoCSharp);
         }
         // The session's server, which starts again when its projects change: each look is at the one there is then.
         if (Session.CSharp is { IsReady: false })
@@ -1847,7 +1847,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         OpenDocument document = await DocumentAsync(path, cancel);
         if (Session.CSharp is null)
         {
-            throw new InvalidOperationException("No C# language server runs for this folder");
+            throw new InvalidOperationException(Refusals.NoCSharp);
         }
         // The server is never given another language's file, so waiting for it to load one would wait out the limit.
         if (document.Language.Name is not ("C#" or "Razor"))

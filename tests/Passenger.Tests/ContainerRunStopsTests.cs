@@ -95,7 +95,7 @@ public sealed class ContainerRunStopsTests(ContainerRunDebuggingTests.Tools tool
             Assert.False(debugging.IsCompleted, $"Debug ended before its services came up: {(debugging.IsCompleted ? debugging.Result : null)}");
             Task opening = window.OpenFolder(other);
             Ui.WaitFor(() => opening.IsCompleted, "the next folder to open", TimeSpan.FromMinutes(1));
-            Assert.Equal("The solution was closed", Ui.Await(debugging, "Debug's start to end with its folder", TimeSpan.FromMinutes(2)));
+            Assert.Equal(Refusals.SolutionClosed, Ui.Await(debugging, "Debug's start to end with its folder", TimeSpan.FromMinutes(2)));
             Docker.TakenDown(project, "the left folder's containers to be taken down");
             Ui.Hold(TimeSpan.FromSeconds(3), "a late session of the left folder's to show");
             Assert.Empty(window.Debugger.Tabs.Select(t => t.Name));

@@ -679,7 +679,7 @@ public sealed class ContainersView : DockPanel
             Expands = row.Expands,
             Expanded = row.Expanded,
             State = runs ? StateOf(containers) : RunState.None,
-            StateTip = row.LeftUnstarted ? $"{NotStarted}: {ContainerCommands.StartsIt}" : string.Join(", ", containers.Select(c => $"{c.Name}: {c.Status}")),
+            StateTip = row.LeftUnstarted ? $"{NotStarted}: {Refusals.DontStart}; {ContainerRun.StartsService}" : string.Join(", ", containers.Select(c => $"{c.Name}: {c.Status}")),
             Health = serves ? containers.Select(c => c.Health).FirstOrDefault(h => h is not null) : null,
             Links = serves ? [.. containers.SelectMany(c => c.Ports).Distinct().Take(3).Select(port =>
                 new RunLink(port.ToString(), containers.Any(c => c.IsRunning) ? port.LinkOn(State?.Endpoint) : null))] : [],

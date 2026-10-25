@@ -464,7 +464,7 @@ public sealed partial class CodeAssist
         : syntax && context.File.Syntax is null ? "The file is not C#"
         : syntax && context.Editor.IsReadOnly ? "The file is read-only"
         : !server || Current is not null ? null
-        : service() is null ? "No C# language server runs for this folder"
+        : service() is null ? Refusals.NoCSharp
         : "The file is not C#";
 
     private static readonly string[] GenerateWords = ["Generate", "Implement", "Override", "Add parameter", "Add null check", "Create and assign"];
@@ -1963,7 +1963,7 @@ public sealed partial class CodeAssist
                 await Arrive(element);
                 return;
             }
-            Go(found, offset, "Declarations", "Cannot find a declaration to go to");
+            Go(found, offset, "Declarations", Refusals.NoDeclaration);
         }
         catch (LanguageServerFailed failed)
         {

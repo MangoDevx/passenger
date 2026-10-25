@@ -13,6 +13,25 @@ public static class Refusals
     /// <summary>The folder open has no solution (a project opened alone, or a folder of files).</summary>
     public const string NoSolution = "No solution is open";
 
+    /// <summary>The folder open is in no Git working tree.</summary>
+    public const string NoRepository = "The folder is not in a Git repository";
+
+    /// <summary>The folder has no C# language server: it has neither a solution nor a project, or its window starts none.</summary>
+    public const string NoCSharp = "No C# language server runs for this folder";
+
+    /// <summary>Go to Declaration found nothing to go to where it was asked.</summary>
+    public const string NoDeclaration = "Cannot find a declaration to go to";
+
+    /// <summary>What a start or an action under way was working in has ended: its folder was left or closed.</summary>
+    public const string SolutionClosed = "The solution was closed";
+
+    /// <summary>Why a service of a run of services is not started.</summary>
+    public const string DontStart = "its run configuration says Don't start";
+
+    /// <summary>A service its run left unstarted (<see cref="DontStart"/>), as it is named, and what starts it as its run's kind
+    /// starts one (<see cref="Run.ServiceRun.StartsIt"/>).</summary>
+    public static string NotStarted(string service, string startsIt) => $"{service} is not started: {DontStart}; {startsIt}";
+
     /// <summary>Why an action on the file shown cannot run: none is shown.</summary>
     public static string? NeedsFile(ActionContext context) => context.File is null ? NoFile : null;
 

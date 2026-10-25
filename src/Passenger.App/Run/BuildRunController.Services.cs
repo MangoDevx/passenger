@@ -193,7 +193,9 @@ public sealed partial class BuildRunController
 
     /// <summary>A .NET service of the container run under way, by its name, or why there is none to act on.</summary>
     public (IRunService? Service, string? WhyNot) ServiceOfRun(string? name) => Containers is { } run && IsRunning ? ServiceOf(run, name)
-        : (null, "No container run is under way: Run, Debug or Profile a container configuration first");
+        : (null, NoContainerRun);
+
+    private const string NoContainerRun = "No container run is under way: Run, Debug or Profile a container configuration first";
 
     /// <summary>A .NET service of a run, by its name, or why there is none to act on.</summary>
     public (IRunService? Service, string? WhyNot) ServiceOf(ServiceRun run, string? name)
@@ -213,17 +215,15 @@ public sealed partial class BuildRunController
     }
 
     /// <summary>Why one of a service's actions (<see cref="AppActions.ServiceDebug"/> and the rest) cannot act on a .NET service
-    /// of the container run under way now, or null: Attach has nothing to reach in one the run left unstarted.</summary>
-    public string? WhyNotOnService(string action, string? name) => ServiceOfRun(name) is ({ } service, null)
-        ? action == AppActions.ServiceAttach && Containers!.LeftUnstarted(service) ? NotStarted(Containers, service.Name) : null
-        : ServiceOfRun(name).WhyNot;
+    /// of a run (the container run under way, when none is given) now, or null: no such service there, or what its run says
+    /// (<see cref="ServiceRun.WhyNot"/>).</summary>
+    public string? WhyNotOnService(string action, string? name, ServiceRun? run = null) =>
+        (run ?? (IsRunning ? Containers : null)) is not { } of ? NoContainerRun
+        : ServiceOf(of, name) is ({ } service, null) ? of.WhyNot(action, service)
+        : ServiceOf(of, name).WhyNot;
 
     /// <summary>Whether the container run under way left a .NET service unstarted (marked Don't start), not started since.</summary>
-    public bool LeftUnstarted(string name) => Containers is { } run && run.ServiceNamed(name) is { } service && run.LeftUnstarted(service);
-
-    /// <summary>How a service the run left unstarted is said where an action has nothing to reach in it.</summary>
-    private static string NotStarted(ServiceRun run, string name) =>
-        $"{name} of {run.Name} is not started: its configuration says Don't start; its Run, Debug or Profile starts it";
+    public bool LeftUnstarted(string name) => Containers is { } run && run.LeftUnstarted(name);
 
     /// <summary>A .NET service the run left unstarted (Don't start) started later by its action, the rest left as they run:
     /// its project built here first where its program runs that build (fast mode; as deployed its image is built as it
@@ -302,9 +302,9 @@ public sealed partial class BuildRunController
     /// reach, which is said. Null once attached, else why not.</summary>
     public Task<string?> AttachServiceAsync(ServiceRun? run, string name) => OnServiceAsync(run, name, AppActions.ServiceAttach, $"Attaching the debugger to {name}…", async (run, service, work) =>
     {
-        if (run.LeftUnstarted(service))
+        if (run.WhyNot(AppActions.ServiceAttach, service) is { } unreached)
         {
-            return Said(NotStarted(run, name));
+            return Said(unreached);
         }
         await EndSessionsAsync(run, [service]);
         run.AttachedRunning.Add(name);

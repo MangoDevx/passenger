@@ -193,7 +193,7 @@ public sealed class McpWindowTests : McpRig, IClassFixture<RestoredFolders>
             CallToolResult commit = Await(Task.Run(() => Result(client, "ide_action", new() { ["action"] = AppActions.Commit })), "the commit with no repository");
             said = Text(commit);
             Assert.True(commit.IsError == true, $"Commit in a folder with no repository was answered as run: {said}");
-            Assert.Contains("not in a Git repository", said, StringComparison.Ordinal);
+            Assert.Contains(Refusals.NoRepository, said, StringComparison.Ordinal);
             Assert.False(window.DockHost.IsShown(ToolWindowIds.Commit), "Commit, refused for want of a repository, opened the Commit window anyway");
         }
         finally

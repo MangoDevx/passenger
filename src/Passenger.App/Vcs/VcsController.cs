@@ -19,7 +19,6 @@ public sealed class VcsController : IDisposable
 
     private const string Busy = "Git is still busy with the last change";
 
-    private const string NotInGit = "The folder is not in a Git repository";
 
     /// <summary>What a commit's work is held under, which the Commit window's button starts and no action names.</summary>
     public const string Committing = "vcs.commit";
@@ -485,7 +484,7 @@ public sealed class VcsController : IDisposable
         UiThread.Check();
         if (git is not { } repository)
         {
-            return new CommitResult(Report(false, NotInGit), null, null);
+            return new CommitResult(Report(false, Refusals.NoRepository), null, null);
         }
         if (Conflicts.Count > 0)
         {
@@ -539,7 +538,7 @@ public sealed class VcsController : IDisposable
         UiThread.Check();
         if (git is not { } repository)
         {
-            return Report(false, NotInGit);
+            return Report(false, Refusals.NoRepository);
         }
         if (!Begin(AppActions.Push, $"Pushing {Branch}…", out Working? work))
         {
@@ -556,7 +555,7 @@ public sealed class VcsController : IDisposable
         UiThread.Check();
         if (git is not { } repository)
         {
-            return Report(false, NotInGit);
+            return Report(false, Refusals.NoRepository);
         }
         if (Conflicts.Count > 0)
         {
@@ -598,7 +597,7 @@ public sealed class VcsController : IDisposable
         UiThread.Check();
         if (git is not { } repository)
         {
-            return Report(false, NotInGit);
+            return Report(false, Refusals.NoRepository);
         }
         if (!Begin(AppActions.Fetch, "Fetching…", out Working? work))
         {
@@ -755,7 +754,7 @@ public sealed class VcsController : IDisposable
         UiThread.Check();
         if (git is not { } repository)
         {
-            return Report(false, NotInGit);
+            return Report(false, Refusals.NoRepository);
         }
         if (!Begin(AppActions.Push, $"Pushing {branch.Name}…", out Working? work))
         {
@@ -807,7 +806,7 @@ public sealed class VcsController : IDisposable
     {
         if (git is not { } repository)
         {
-            return Report(false, NotInGit);
+            return Report(false, Refusals.NoRepository);
         }
         if (changes.Count == 0)
         {
@@ -868,7 +867,7 @@ public sealed class VcsController : IDisposable
     {
         if (git is not { } repository)
         {
-            return Report(false, NotInGit);
+            return Report(false, Refusals.NoRepository);
         }
         return await OneAtATimeAsync(async () =>
         {
@@ -900,7 +899,7 @@ public sealed class VcsController : IDisposable
     {
         if (git is not { } repository)
         {
-            return Report(false, NotInGit);
+            return Report(false, Refusals.NoRepository);
         }
         if (conflicts.Count == 0)
         {
@@ -958,7 +957,7 @@ public sealed class VcsController : IDisposable
     {
         if (git is not { } repository)
         {
-            return Report(false, NotInGit);
+            return Report(false, Refusals.NoRepository);
         }
         return await OneAtATimeAsync(async () =>
         {

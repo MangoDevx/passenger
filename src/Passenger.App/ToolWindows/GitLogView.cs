@@ -305,7 +305,7 @@ public sealed class GitLogView : DockPanel
         all = Scope is null ? CommitGraph.Layout(commits) : CommitGraph.Line(commits);
         Filter();
         string name = Scope is null ? string.Empty : Path.GetFileName(Path.TrimEndingDirectorySeparator(Scope.Path));
-        placeholder.Text = repository is null ? "The folder is not in a Git repository"
+        placeholder.Text = repository is null ? Refusals.NoRepository
             : Range is { } compared ? $"{compared.From} contains all commits from {compared.To}"
             : Scope is null ? "No commits yet"
             : Scope.IsLines ? $"No commit changed these lines of {name}"

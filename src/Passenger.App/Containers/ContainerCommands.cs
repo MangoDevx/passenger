@@ -65,10 +65,7 @@ public static class ContainerCommands
     }
 
     /// <summary>How a service row its run left unstarted says what starts it.</summary>
-    public static string NotStarted(ContainerRow row) => $"{row.Name} is not started: {StartsIt}";
-
-    /// <summary>Why a service its run left unstarted is, and what starts it.</summary>
-    public const string StartsIt = "its run configuration says Don't start; its Start, Run, Debug or Profile starts it";
+    public static string NotStarted(ContainerRow row) => Refusals.NotStarted(row.Name, ContainerRun.StartsService);
 
     /// <summary>The words a stage of the action says while it runs ("Stopping web…").</summary>
     public static string Stage(string action, ContainerRow row) => action switch

@@ -87,7 +87,7 @@ public sealed partial class CodeAssist
             ((string Path, TextPosition Position)? place, string said) = await JsonDeclarationAsync(lsp, document, offset);
             if (editors.Active != document || place is not { } found)
             {
-                Message?.Invoke(this, editors.Active == document ? said : NoDeclaration);
+                Message?.Invoke(this, editors.Active == document ? said : Refusals.NoDeclaration);
                 return;
             }
             Navigate?.Invoke(this, found);
@@ -98,8 +98,6 @@ public sealed partial class CodeAssist
         }
     }
 
-    internal const string NoDeclaration = "Cannot find a declaration to go to";
-
     /// <summary>Where Go to Declaration goes in JSON, whose server has none: a package.json dependency's installed package,
     /// a script's <c>npm run</c> to the script; else why not.</summary>
     internal static async Task<((string Path, TextPosition Position)? Place, string Said)> JsonDeclarationAsync(LspDocument lsp, OpenDocument document, int offset)
@@ -108,7 +106,7 @@ public sealed partial class CodeAssist
         IReadOnlyList<DocumentSymbol> outline = await lsp.OutlineAsync();
         if (!IsPackageJson(document))
         {
-            return (null, NoDeclaration);
+            return (null, Refusals.NoDeclaration);
         }
         LspPosition at = lsp.PositionOf(offset);
         List<DocumentSymbol> path = DocumentSymbol.PathTo(outline, at);
@@ -124,7 +122,7 @@ public sealed partial class CodeAssist
             TextPosition name = ServerPlaces.PositionOf(text, declared.SelectionRange.Start);
             return ((document.Path, new TextPosition(name.Line, name.Column + 1)), $"The script {script}");
         }
-        return (null, NoDeclaration);
+        return (null, Refusals.NoDeclaration);
     }
 
     /// <summary>Rename where the server has none (JSON's): the property name at the caret, quotes kept, and in a

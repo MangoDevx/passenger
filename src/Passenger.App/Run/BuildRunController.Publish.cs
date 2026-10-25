@@ -63,7 +63,7 @@ public sealed partial class BuildRunController
         if (session.IsEnded || work.IsStopped || resolved is null)
         {
             work.Dispose();
-            return Said(session.IsEnded ? new BuildOutcome(BuildStatus.Refused, Left) : work.IsStopped ? new BuildOutcome(BuildStatus.Stopped, "Publish stopped")
+            return Said(session.IsEnded ? new BuildOutcome(BuildStatus.Refused, Refusals.SolutionClosed) : work.IsStopped ? new BuildOutcome(BuildStatus.Stopped, "Publish stopped")
                 : new BuildOutcome(BuildStatus.NotStarted, unread!));
         }
         TaskCompletionSource<BuildOutcome> done = new(TaskCreationOptions.RunContinuationsAsynchronously);

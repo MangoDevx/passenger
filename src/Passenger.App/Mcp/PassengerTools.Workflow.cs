@@ -33,7 +33,7 @@ public sealed partial class PassengerTools
         await vcs.RefreshAsync();
         if (vcs.Repository is null)
         {
-            throw new InvalidOperationException("The folder is not in a Git repository");
+            throw new InvalidOperationException(Refusals.NoRepository);
         }
         ConflictSides sides = vcs.Sides;
         VcsConflicts? conflicts = vcs.Conflicts.Count == 0 ? null : new VcsConflicts(sides.Description, sides.Yours, sides.Theirs,
@@ -115,7 +115,7 @@ public sealed partial class PassengerTools
         CancellationToken cancel = default) => OnUi(cancel, async () =>
     {
         await Session.Vcs.Opened;
-        Git repository = Session.Vcs.Repository ?? throw new InvalidOperationException("The folder is not in a Git repository");
+        Git repository = Session.Vcs.Repository ?? throw new InvalidOperationException(Refusals.NoRepository);
         int most = Math.Clamp(count, 1, 500);
         (int, int)? lines = (startLine, endLine) switch
         {

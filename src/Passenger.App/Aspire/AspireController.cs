@@ -358,7 +358,7 @@ public sealed partial class AspireController(ProjectSession workspace, string st
         cancellation.ThrowIfCancellationRequested();
         if (workspace.IsEnded || disposed)
         {
-            throw new LaunchException("The solution was closed");
+            throw new LaunchException(Refusals.SolutionClosed);
         }
         if (plan.WhyNot("run") is { } why)
         {
@@ -864,7 +864,7 @@ public sealed partial class AspireController(ProjectSession workspace, string st
         string serviceName = ((IRunService)resource).Name;
         if (app.LeftUnstarted(serviceName, ResourceAction(app.Configuration, resource) == ServiceStart.DontStart))
         {
-            throw new LaunchException($"{serviceName} is not started: {app.Configuration.Name} says Don't start it; start it from the Aspire window to run it");
+            throw new LaunchException(app.WhyNotStarted(serviceName));
         }
         app.Resources.Add(resource.Id, resource);
         using CancellationTokenSource starting = CancellationTokenSource.CreateLinkedTokenSource(cancellation, app.Lifetime.Token, resource.Stopping.Token);
@@ -1208,7 +1208,15 @@ public sealed class AspireAppRun : ServiceRun
     /// <summary>How a resource the run left unstarted is said, where DCP says the start it refused failed, and why.</summary>
     public const string NotStarted = "Not started";
 
-    public const string NotStartedWhy = "Its run configuration says Don't start; its Start command runs it";
+    public const string NotStartedWhy = $"Its run configuration says Don't start; {StartsService}";
+
+    /// <summary>A service an AppHost's run left unstarted is started by its resource's Start, Debug Service or Run Service
+    /// without Debugger, each of which has its AppHost start it.</summary>
+    public const string StartsService = "its Start, Debug Service or Run Service without Debugger starts it";
+
+    public override string StartsIt => StartsService;
+
+    public override bool LeftUnstarted(string name) => unstarted.Contains(name);
 
     /// <summary>Each service's next start, as a restart waits for it: its failure, or null once started and attached to.</summary>
     private readonly Dictionary<string, TaskCompletionSource<string?>> nextStarts = new(StringComparer.Ordinal);

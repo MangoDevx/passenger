@@ -186,7 +186,7 @@ public partial class MainWindow
         actions.Add(new IdeAction(A.HideToolWindow, "Hide Active Tool Window", "Tool Windows", _ => HideToolWindow()) { Menus = [new("View", 3, 2)], FromTerminal = true });
         Add(A.FocusEditor, "Focus Editor", "IDE", _ => FocusEditor(), Refusals.NeedsFile);
         Add(A.ToggleSolutionAnalysis, "Toggle Solution-Wide Analysis", "IDE", _ => ToggleSolutionAnalysis(),
-            _ => session.CSharp is null ? "No C# language server runs for this folder" : null, ("Code", 4, 0));
+            _ => session.CSharp is null ? Refusals.NoCSharp : null, ("Code", 4, 0));
     }
 
     /// <summary>The editor's actions, run where the keys are: a text box's own editing there, another editor (a diff's)

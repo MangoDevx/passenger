@@ -89,7 +89,7 @@ public partial class MainWindow
         IReadOnlyList<AspireRunResource> resources = await ReadAspireConfigurationResourcesAsync(configuration, cancel);
         if (session != current || current.IsEnded)
         {
-            throw new InvalidOperationException("The solution was closed");
+            throw new InvalidOperationException(Refusals.SolutionClosed);
         }
         AspireRunResource[] matches = resources.Where(resource => resource.Name == name).ToArray();
         if (matches.Length != 1 || resources.GroupBy(resource => resource.Name, StringComparer.Ordinal).Any(group => group.Count() != 1))
@@ -103,7 +103,7 @@ public partial class MainWindow
             : await buildRun.RunAspireAsync(selected, arguments, mode == RunStart.Debug ? RunStart.Debug : RunStart.Run, cancel);
         if (session != current || current.IsEnded)
         {
-            throw new InvalidOperationException("The solution was closed");
+            throw new InvalidOperationException(Refusals.SolutionClosed);
         }
         if (problem is not null)
         {

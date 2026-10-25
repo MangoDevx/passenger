@@ -180,7 +180,7 @@ public sealed partial class CodeAssist
     /// string's generated property and each language's entry of its key).</summary>
     private async Task XamlGoTo(XamlDocument xaml, int offset)
     {
-        if (await XamlSymbolAt(xaml, offset, "Cannot find a declaration to go to") is not { } found)
+        if (await XamlSymbolAt(xaml, offset, Refusals.NoDeclaration) is not { } found)
         {
             return;
         }
