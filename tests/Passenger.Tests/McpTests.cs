@@ -269,6 +269,22 @@ public sealed class McpTests : McpRig, IClassFixture<RestoredFolders>
         }
     }
 
+    /// <summary>A call whose arguments its tool does not take is answered with what is wrong and every parameter the tool
+    /// takes, before the tool runs.</summary>
+    [Fact]
+    public async Task An_agents_call_with_a_parameter_its_tool_lacks_or_misses_hears_which_and_what_the_tool_takes()
+    {
+        string folder = TestFolders.Create("mcp-parameters-");
+        DeleteAtEnd(folder);
+        await using McpClient client = await Start(["--mcp", folder], languageServer: false);
+        CallToolResult named = await Result(client, "find_symbol", new() { ["name"] = "Language" });
+        Assert.True(named.IsError == true && Text(named) == "find_symbol has no parameter name, and needs query. Its parameters: query (string, required), kind (string), "
+            + "limit (integer), exact (boolean)", $"find_symbol given name for query answered: {Text(named)}");
+        CallToolResult typed = await Result(client, "editor_text", new() { ["path"] = "Program.cs", ["from"] = "first" });
+        Assert.True(typed.IsError == true && Text(typed).StartsWith("editor_text takes an integer as from, not \"first\". Its parameters: path (string, required), from (integer)", StringComparison.Ordinal),
+            $"editor_text given a word for a line answered: {Text(typed)}");
+    }
+
     /// <summary>An agent's view of the IDE's actions: every one the IDE declares, listed with why it cannot run now, and run by
     /// its id as its shortcut would.</summary>
     [Fact]

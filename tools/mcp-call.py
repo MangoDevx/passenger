@@ -182,7 +182,7 @@ def shown(answer, request, log):
     result = answer.get("result", {})
     if "list" in request:
         for tool in result.get("tools", []):
-            print(f"{tool['name']}: {tool.get('description', '').split('. ')[0]}")
+            print(f"{tool['name']}({parameters(tool)}): {tool.get('description', '').split('. ')[0]}")
         return 0
     for item in result.get("content", []):
         if item.get("type") == "text":
@@ -196,6 +196,16 @@ def shown(answer, request, log):
         else:
             print(json.dumps(item))
     return 1 if result.get("isError") else 0
+
+
+def parameters(tool):
+    """A tool's parameters as its schema gives them, each with its type, an optional one marked '?': "path: string, line?: integer"."""
+    schema = tool.get("inputSchema", {})
+    required = set(schema.get("required", []))
+    def typed(shape):
+        given = shape.get("type", "any")
+        return "|".join(given) if isinstance(given, list) else given
+    return ", ".join(f"{name}{'' if name in required else '?'}: {typed(shape)}" for name, shape in schema.get("properties", {}).items())
 
 
 class Keeper:
