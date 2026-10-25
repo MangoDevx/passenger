@@ -269,40 +269,22 @@ public sealed class ProfilingSession : IAsyncDisposable
         EventPipeSession? session = null;
         try
         {
-            DiagnosticsClient client = new(processId);
-            // A program just started held opens its port as its runtime starts: waited for while it lives, 30 s at most.
-            DateTime until = DateTime.UtcNow + TimeSpan.FromSeconds(30);
-            while (true)
+            if (!resume)
             {
-                try
-                {
-                    session = await client.StartEventPipeSessionAsync(Providers, requestRundown: true, circularBufferMB: 512, cancellation);
-                    break;
-                }
-                catch (ServerNotAvailableException) when (resume && !process.HasExited && DateTime.UtcNow < until)
-                {
-                    await Task.Delay(TimeSpan.FromMilliseconds(100), cancellation);
-                }
+                session = await new DiagnosticsClient(processId).StartEventPipeSessionAsync(Providers, requestRundown: true, circularBufferMB: 512, cancellation);
             }
-            if (resume)
+            else
             {
-                try
+                // A program just started held opens its port as its runtime starts.
+                PortWait waited = await HeldStart.AtPortAsync(process, async client =>
+                    session = await client.StartEventPipeSessionAsync(Providers, requestRundown: true, circularBufferMB: 512, cancellation), cancellation);
+                if (session is null)
                 {
-                    // What it starts runs freely, not held at its start.
-                    client.SetEnvironmentVariable(RuntimeVariables.DefaultDiagnosticPortSuspend, "0");
+                    throw new ProfilingException(waited == PortWait.Ended ? $"Could not profile {name}: it has ended"
+                        : $"The profiler could not reach {name}: it opened no diagnostic port in {HeldStart.PortLimit.TotalSeconds:0} s");
                 }
-                catch (Exception error) when (error is DiagnosticsClientException or IOException)
-                {
-                    // A runtime before .NET 6 sets no variable; what it starts is held as it was.
-                }
-                try
-                {
-                    client.ResumeRuntime();
-                }
-                catch (Exception error) when (error is DiagnosticsClientException or IOException)
-                {
-                    // A runtime not held at its start may refuse what it never waits for; it runs, recorded.
-                }
+                // Recorded either way: a runtime not held at its start may refuse what it never waits for, and runs.
+                _ = await HeldStart.LetGoAsync(processId);
             }
             return new ProfilingSession(process, null, session, Copy(session, trace), Task.CompletedTask, trace, null);
         }

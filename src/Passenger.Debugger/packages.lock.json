@@ -152,7 +152,10 @@
         }
       },
       "passenger.core": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.Diagnostics.NETCore.Client": "[0.2.750501, )"
+        }
       },
       "passenger.dap": {
         "type": "Project"

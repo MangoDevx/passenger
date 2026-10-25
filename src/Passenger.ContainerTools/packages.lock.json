@@ -156,7 +156,10 @@
         "contentHash": "wLBKzFnDCxP12VL9ANydSYhk59fC4cvOr9ypYQLPnAj48NQIhqnjdD2yhP8yEKyBJEjERWS9DisKL7rX5eU25Q=="
       },
       "passenger.core": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.Diagnostics.NETCore.Client": "[0.2.750501, )"
+        }
       },
       "passenger.dap": {
         "type": "Project"
@@ -169,9 +172,9 @@
           "Microsoft.CodeAnalysis.CSharp": "[5.9.0, )",
           "Microsoft.Diagnostics.DbgShim": "[10.0.750501, )",
           "Microsoft.Diagnostics.NETCore.Client": "[0.2.750501, )",
-          "Passenger.Core": "[0.1.0, )",
-          "Passenger.Dap": "[0.1.0, )",
-          "Passenger.Debugger.Interop": "[0.1.0, )",
+          "Passenger.Core": "[0.2.0, )",
+          "Passenger.Dap": "[0.2.0, )",
+          "Passenger.Debugger.Interop": "[0.2.0, )",
           "ZLinq": "[1.5.6, )"
         }
       },
@@ -184,7 +187,7 @@
           "Microsoft.Diagnostics.NETCore.Client": "[0.2.750501, )",
           "Microsoft.Diagnostics.Runtime": "[4.2.751201, )",
           "Microsoft.Diagnostics.Tracing.TraceEvent": "[4.0.0, )",
-          "Passenger.Core": "[0.1.0, )"
+          "Passenger.Core": "[0.2.0, )"
         }
       },
       "ICSharpCode.Decompiler": {

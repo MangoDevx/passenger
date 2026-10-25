@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Net.Sockets;
 using Microsoft.Diagnostics.NETCore.Client;
@@ -26,42 +27,37 @@ public static class InContainer
     /// <paramref name="said"/>; the exit code is 0 once recorded.</summary>
     public static async Task<int> TraceAsync(int processId, bool resume, Stream input, Stream output, TextWriter said, bool requests = false)
     {
-        DiagnosticsClient client = new(processId);
-        EventPipeSession session;
+        EventPipeSession? session = null;
         try
         {
-            // A web app's requests need no rundown: nothing in them is named by address.
-            session = requests
-                ? await client.StartEventPipeSessionAsync(LiveRequests.Providers, requestRundown: false, circularBufferMB: 64).ConfigureAwait(false)
-                : await client.StartEventPipeSessionAsync(ProfilingSession.Providers, requestRundown: true, circularBufferMB: 512).ConfigureAwait(false);
+            if (!resume)
+            {
+                session = await StartAsync(new DiagnosticsClient(processId)).ConfigureAwait(false);
+            }
+            else
+            {
+                // A program just started held opens its port as its runtime starts.
+                using Process process = Process.GetProcessById(processId);
+                await HeldStart.AtPortAsync(process, async client => session = await StartAsync(client).ConfigureAwait(false)).ConfigureAwait(false);
+            }
         }
-        catch (Exception error) when (error is DiagnosticsClientException or ServerNotAvailableException or IOException or UnauthorizedAccessException
-            or SocketException or TimeoutException or PlatformNotSupportedException)
+        catch (Exception error) when (error is DiagnosticsClientException or IOException or UnauthorizedAccessException or SocketException or TimeoutException
+            or PlatformNotSupportedException or ArgumentException or InvalidOperationException)
         {
             await said.WriteLineAsync(Unreachable(processId, error)).ConfigureAwait(false);
+            return 1;
+        }
+        if (session is null)
+        {
+            await said.WriteLineAsync(Unreachable(processId, null)).ConfigureAwait(false);
             return 1;
         }
         using (session)
         {
             if (resume)
             {
-                try
-                {
-                    // What it starts runs freely, not held at its start.
-                    client.SetEnvironmentVariable(RuntimeVariables.DefaultDiagnosticPortSuspend, "0");
-                }
-                catch (Exception error) when (error is DiagnosticsClientException or IOException)
-                {
-                    // A runtime before .NET 6 sets no variable; what it starts is held as it was.
-                }
-                try
-                {
-                    client.ResumeRuntime();
-                }
-                catch (Exception error) when (error is DiagnosticsClientException or IOException)
-                {
-                    // A runtime not held at its start may refuse what it never waits for; it runs, recorded.
-                }
+                // Recorded either way: a runtime not held at its start may refuse what it never waits for, and runs.
+                _ = await HeldStart.LetGoAsync(processId).ConfigureAwait(false);
             }
             await said.WriteLineAsync(Recording).ConfigureAwait(false);
             await said.FlushAsync().ConfigureAwait(false);
@@ -89,11 +85,17 @@ public static class InContainer
             }
         }
         return 0;
+
+        // A web app's requests need no rundown: nothing in them is named by address.
+        Task<EventPipeSession> StartAsync(DiagnosticsClient client) => requests
+            ? client.StartEventPipeSessionAsync(LiveRequests.Providers, requestRundown: false, circularBufferMB: 64)
+            : client.StartEventPipeSessionAsync(ProfilingSession.Providers, requestRundown: true, circularBufferMB: 512);
     }
 
-    /// <summary>Why a program's runtime could not be reached for a session, in words for the person.</summary>
-    private static string Unreachable(int processId, Exception error) =>
-        error is ServerNotAvailableException
+    /// <summary>Why a program's runtime could not be reached for a session, in words for the person: no error when its port
+    /// never opened.</summary>
+    private static string Unreachable(int processId, Exception? error) =>
+        error is null or ServerNotAvailableException or ArgumentException
             ? $"Process {processId} has no diagnostic port to reach in this container: it has ended, is no .NET program, or its runtime was started with DOTNET_EnableDiagnostics=0"
             : $"The profiler could not reach process {processId}: {error.Message}";
 

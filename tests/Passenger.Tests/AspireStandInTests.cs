@@ -1033,6 +1033,41 @@ public sealed class AspireStandInTests(StandInAppHost project) : IClassFixture<S
         }
     }
 
+    /// <summary>A service held at its start for a debugger its runtime keeps out (the debugger off, its diagnostic port on) runs
+    /// on undebugged, and a .NET program it starts runs too, held for no one: debugged, the stand-in's API runs a child of its
+    /// own as it starts, and says what the child wrote.</summary>
+    [AvaloniaFact]
+    public void An_Aspire_service_the_debugger_cannot_reach_runs_on_and_so_does_a_program_it_starts()
+    {
+        project.Reset();
+        project.BuildApi();
+        File.Delete(project.KeyFile);
+        AspireInteractionHost backend = Ui.Await(AspireInteractionHost.StartAsync(project.KeyFile), "the stand-in resource service");
+        project.Serve(backend);
+        MainWindow window = project.Open(project.Program, languageServer: false);
+        try
+        {
+            Ui.WaitFor(() => window.Configurations.Any(configuration => configuration.Name == StandInAppHost.Configuration), "the stand-in AppHost's Aspire configuration");
+            Assert.True(window.SelectConfiguration(StandInAppHost.Configuration));
+            Ui.Launched(window, window.DebugAsync(), "the stand-in AppHost to come up debugged");
+            (System.Net.WebSockets.ClientWebSocket notified, System.Net.HttpStatusCode answer) = project.AskToStartApi("apiservice", "Debug",
+                new Dictionary<string, string> { ["DOTNET_EnableDiagnostics_Debugger"] = "0", ["STAND_IN_CHILD"] = "1" });
+            using System.Net.WebSockets.ClientWebSocket subscribed = notified;
+            Assert.True((int)answer is >= 200 and < 300, $"The IDE refused the held API's start: {answer} ({window.Status})");
+            int api = Api(window);
+            AspireResourceRun service = window.AspireRuntime.Apps.Single().Services.Single();
+            Ui.WaitFor(() => service.Console.Document.Snapshot.ToString().Contains("child said: child ran", StringComparison.Ordinal),
+                () => $"the API, which the debugger could not reach, and the program it starts to run, not held at their start ({service.Console.Document.Snapshot})");
+            Assert.StartsWith("apiservice runs without the debugger: ", window.Status, StringComparison.Ordinal);
+            Assert.True(Processes.IsRunning(api) && service.DebugTab is null, "The API the debugger could not reach did not run on undebugged");
+        }
+        finally
+        {
+            window.Close();
+            Ui.Await(Complete(backend.DisposeAsync().AsTask()), "the stand-in resource service to stop");
+        }
+    }
+
     /// <summary>The stand-in API's program, once the IDE has started it as DCP asked.</summary>
     private static int Api(MainWindow window)
     {
@@ -1902,8 +1937,32 @@ public sealed class StandInAppHost : SharedProject
             """);
         TestFolders.Write(Folder, $"{Name}/Properties/launchSettings.json", Profile(null));
         TestFolders.Write(Folder, $"{Api}/{Api}.csproj", TestProjects.Console());
-        TestFolders.Write(Folder, $"{Api}/Program.cs",
-            "System.Console.WriteLine(\"The stand-in API is up\");\nSystem.Threading.Thread.Sleep(System.Threading.Timeout.Infinite);\n");
+        TestFolders.Write(Folder, $"{Api}/Program.cs", """
+            using System;
+            using System.Diagnostics;
+            using System.IO;
+            using System.Threading;
+
+            if (args is ["child"])
+            {
+                Console.WriteLine("child ran");
+                return;
+            }
+            if (Environment.GetEnvironmentVariable("STAND_IN_CHILD") == "1")
+            {
+                ProcessStartInfo start = new(Environment.ProcessPath!) { RedirectStandardOutput = true };
+                if (Path.GetFileNameWithoutExtension(Environment.ProcessPath) == "dotnet")
+                {
+                    start.ArgumentList.Add(System.Reflection.Assembly.GetEntryAssembly()!.Location);
+                }
+                start.ArgumentList.Add("child");
+                using Process child = Process.Start(start)!;
+                Console.WriteLine($"child said: {child.StandardOutput.ReadToEnd().Trim()}");
+            }
+            Console.WriteLine("The stand-in API is up");
+            Thread.Sleep(Timeout.Infinite);
+
+            """);
         TestFolders.Write(Folder, "StandIn.slnx", $"<Solution>\n  <Project Path=\"{Name}/{Name}.csproj\" />\n  <Project Path=\"{Api}/{Api}.csproj\" />\n</Solution>\n");
         Prepare();
     }
@@ -1911,7 +1970,8 @@ public sealed class StandInAppHost : SharedProject
     public string ProjectFile => PathOf($"{Name}/{Name}.csproj");
 
     /// <summary>A service the stand-in AppHost's orchestrator would start, which a test asks the IDE to start by the execution
-    /// protocol, as DCP does: a console app that says it is up and waits.</summary>
+    /// protocol, as DCP does: a console app that says it is up and waits, with STAND_IN_CHILD=1 having first run itself as a
+    /// child and said what the child wrote.</summary>
     public const string Api = "StandIn.Api";
 
     public string ApiProject => PathOf($"{Api}/{Api}.csproj");

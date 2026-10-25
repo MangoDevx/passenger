@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
-using Microsoft.Diagnostics.NETCore.Client;
 using Passenger.Core;
 using Passenger.Dap;
 
@@ -380,23 +379,8 @@ public sealed class DebugSession : IDisposable
         {
             return this;
         }
-        ServerNotAvailableException? never = null;
-        TimeSpan limit = TimeSpan.FromSeconds(10);
-        bool resumed = Waiting.Until(() =>
-        {
-            try
-            {
-                new DiagnosticsClient(processId).ResumeRuntime();
-                return true;
-            }
-            catch (ServerNotAvailableException notYet)
-            {
-                never = notYet;
-                return false;
-            }
-        }, limit, every: TimeSpan.FromMilliseconds(50));
-        return resumed ? this
-            : throw new TimeoutException($"The program started suspended (process {processId}) opened no diagnostic port in {limit.Scaled().TotalSeconds} s, so it could not be let go. {Heard()}", never);
+        string? why = HeldStart.LetGoAsync(processId).GetAwaiter().GetResult();
+        return why is null ? this : throw new TimeoutException($"The program started suspended (process {processId}) could not be let go: {why}. {Heard()}");
     }
 
     public DapStackFrame GetTopStackFrame(int threadId) =>
@@ -589,7 +573,10 @@ public sealed class DebugSession : IDisposable
         ProcessStartInfo start = ChildProcesses.Command(path, []);
         if (startSuspended)
         {
-            start.Environment["DOTNET_DefaultDiagnosticPortSuspend"] = "1";
+            foreach ((string name, string value) in HeldStart.Variables(changeable: false))
+            {
+                start.Environment[name] = value;
+            }
         }
         // A test runner under a debugger hands these on, and they change the debuggee's stacks (ReadyToRun code).
         foreach (string variable in (string[])["COMPLUS_FORCEENC", "COMPLUS_ReadyToRun", "COMPLUS_ZapDisable", "DOTNET_GCConserveMemory", "DOTNET_GCHeapCount", "DOTNET_GCNoAffinitize", "DOTNET_MODIFIABLE_ASSEMBLIES", "DOTNET_MULTILEVEL_LOOKUP", "DOTNET_TieredPGO", "DOTNET_gcServer", "_NO_DEBUG_HEAP"])

@@ -910,13 +910,13 @@ public sealed partial class AspireController(ProjectSession workspace, string st
                 inspection.BindingFailed += (_, _) => BindingsFailed();
             }
             LaunchPlan inspected = resource.Inspection?.Plan ?? plan;
-            if (held is not null)
+            // Held until what attaches lets it go, never where nothing can; the profiler's gets no changeable code to measure.
+            if (held is not null && AspireAppRun.DiagnosticsOff(inspected.Environment) is null)
             {
-                // Held until what attaches lets it go; the profiler's gets no changeable code, which it would measure.
-                Dictionary<string, string> holding = new(inspected.Environment, StringComparer.Ordinal) { [RuntimeVariables.DefaultDiagnosticPortSuspend] = "1" };
-                if (held != RunStart.Profile)
+                Dictionary<string, string> holding = new(inspected.Environment, StringComparer.Ordinal);
+                foreach ((string name, string value) in HeldStart.Variables(changeable: held != RunStart.Profile))
                 {
-                    holding[RuntimeVariables.ModifiableAssemblies] = "debug";
+                    holding[name] = value;
                 }
                 inspected = inspected with { Environment = holding };
             }
@@ -968,18 +968,13 @@ public sealed partial class AspireController(ProjectSession workspace, string st
     /// <summary>A service held at its start for a debugger that could not reach it, which then runs on unheld: said.</summary>
     public event EventHandler<string>? RunsUndebugged;
 
-    /// <summary>Lets a program held at its runtime's start go, through its own diagnostic port; one already going, or gone, is
-    /// left as it is.</summary>
-    private static Task LetGoAsync(int? process) => process is not int id ? Task.CompletedTask : BackgroundWork.Run(() =>
+    /// <summary>Lets a program held at its runtime's start go (<see cref="HeldStart"/>), its hold cleared for what it starts;
+    /// one already going, or gone, is left as it is.</summary>
+    private static Task LetGoAsync(int? process) => process is not int id ? Task.CompletedTask : BackgroundWork.Run(async () =>
     {
-        try
+        if (await HeldStart.LetGoAsync(id) is { } why)
         {
-            new Microsoft.Diagnostics.NETCore.Client.DiagnosticsClient(id).ResumeRuntime();
-        }
-        catch (Exception gone) when (gone is Microsoft.Diagnostics.NETCore.Client.DiagnosticsClientException or IOException or TimeoutException
-            or UnauthorizedAccessException or InvalidOperationException)
-        {
-            IdeLog.Write(IdeLog.Ide, $"Aspire: process {id} was not held at its start to let go ({gone.Message})");
+            IdeLog.Write(IdeLog.Ide, $"Aspire: process {id} was not let go: {why}");
         }
     });
 
@@ -1366,8 +1361,8 @@ public sealed class AspireAppRun : ServiceRun
             : throw new ServiceUnreachedException($"{service.Name} of {Name} has no program running");
 
     /// <summary>Why no debugger or profiler can reach a program its environment starts with its runtime's diagnostics off
-    /// (which no hold then holds either); null when they are on.</summary>
-    private static string? DiagnosticsOff(IReadOnlyDictionary<string, string> environment) =>
+    /// (never held at its start, then, since nothing could let it go); null when they are on.</summary>
+    internal static string? DiagnosticsOff(IReadOnlyDictionary<string, string> environment) =>
         environment.GetValueOrDefault("DOTNET_EnableDiagnostics") == "0" || environment.GetValueOrDefault("DOTNET_EnableDiagnostics_Debugger") == "0"
             ? "Its runtime was started with DOTNET_EnableDiagnostics=0, which turns its debugger off: nothing can attach to it" : null;
 

@@ -11,7 +11,7 @@ public static class RuntimeVariables
 
     /// <summary>"1" holds the runtime at its start, before the program's first instruction, until a diagnostic client
     /// (a debugger attaching, a profiler) lets it go; the variable stays in the program's environment for every program it
-    /// starts, so whoever lets it go clears it there.</summary>
+    /// starts, so HeldStart's let-go clears it there.</summary>
     public const string DefaultDiagnosticPortSuspend = "DOTNET_DefaultDiagnosticPortSuspend";
 
     /// <summary>A diagnostic port the runtime connects to as it starts: its address, then connect or listen, then

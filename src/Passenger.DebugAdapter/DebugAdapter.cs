@@ -549,11 +549,12 @@ public sealed partial class DebugAdapter
     private async Task<int> RunInTerminal(LaunchInfo launch)
     {
         string programForTitle = launch.Program is "dotnet" ? launch.Arguments[0] : launch.Program;
-        Dictionary<string, string> env = new(launch.Env)
+        // The program waits at startup for the debugger to attach and let it go.
+        Dictionary<string, string> env = new(launch.Env);
+        foreach ((string name, string value) in HeldStart.Variables(changeable: false))
         {
-            // The program waits at startup for the debugger to attach and let it go.
-            [RuntimeVariables.DefaultDiagnosticPortSuspend] = "1",
-        };
+            env[name] = value;
+        }
         RunInTerminalArguments arguments = new(
             launch.LaunchRequestConsoleType switch
             {

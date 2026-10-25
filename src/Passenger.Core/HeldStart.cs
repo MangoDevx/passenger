@@ -1,0 +1,172 @@
+using System.Diagnostics;
+using Microsoft.Diagnostics.NETCore.Client;
+
+namespace Passenger.Core;
+
+/// <summary>A .NET program held at its start by its runtime's own diagnostic port until what attaches to it (the debugger,
+/// the profiler) or Passenger lets it go: the variables that hold it, the one wait for that port, which a runtime opens a
+/// moment after its process starts, and the one let-go, which clears the hold first, so a .NET program it starts in turn
+/// runs as it would unheld.</summary>
+public static class HeldStart
+{
+    /// <summary>How long a program is given to open its diagnostic port: a runtime loads slowly on a busy machine.</summary>
+    public static readonly TimeSpan PortLimit = TimeSpan.FromSeconds(10);
+
+    private static readonly TimeSpan Poll = TimeSpan.FromMilliseconds(50);
+
+    /// <summary>The variables that hold a program at its start; <paramref name="changeable"/> also opens its code to Hot
+    /// Reload, which a program held for the profiler goes without.</summary>
+    public static IEnumerable<KeyValuePair<string, string>> Variables(bool changeable)
+    {
+        yield return new(RuntimeVariables.DefaultDiagnosticPortSuspend, "1");
+        if (changeable)
+        {
+            yield return new(RuntimeVariables.ModifiableAssemblies, "debug");
+        }
+    }
+
+    /// <summary>Lets go the runtime <paramref name="client"/> reaches, held at its start, its hold cleared first; a runtime
+    /// not held takes the word as done. Null once let go, else why not; a port not listening yet is a
+    /// <see cref="ServerNotAvailableException"/>, which <see cref="AtPortAsync"/> waits out.</summary>
+    public static string? LetGo(DiagnosticsClient client)
+    {
+        try
+        {
+            try
+            {
+                client.SetEnvironmentVariable(RuntimeVariables.DefaultDiagnosticPortSuspend, string.Empty);
+            }
+            catch (ServerErrorException)
+            {
+                // A runtime before .NET 6 has no such command: what it starts is still held, but it runs.
+            }
+            client.ResumeRuntime();
+            return null;
+        }
+        catch (Exception error) when (error is (DiagnosticsClientException and not ServerNotAvailableException) or IOException or TimeoutException
+            or UnauthorizedAccessException or InvalidOperationException)
+        {
+            return error.Message;
+        }
+    }
+
+    /// <summary>Lets a program go (<see cref="LetGo"/>) once its port is open, as <see cref="AtPortAsync"/> waits for it.
+    /// Null once let go, or once its runtime has <paramref name="answered"/> otherwise; else why not.</summary>
+    public static async Task<string?> LetGoAsync(int processId, CancellationToken stop = default, Task? answered = null, bool sinceItStarted = false,
+        TimeSpan? within = null)
+    {
+        Process process;
+        try
+        {
+            process = Process.GetProcessById(processId);
+        }
+        catch (Exception gone) when (gone is ArgumentException or InvalidOperationException)
+        {
+            return "it had ended";
+        }
+        using (process)
+        {
+            string? refused = null;
+            return await AtPortAsync(process, client =>
+            {
+                refused = LetGo(client);
+                return Task.CompletedTask;
+            }, stop, answered, sinceItStarted, within).ConfigureAwait(false) switch
+            {
+                PortWait.Reached => refused,
+                PortWait.Answered => null,
+                PortWait.Ended => "it ended first",
+                _ => $"it opened no diagnostic port in {PortLimit.TotalSeconds:0} s",
+            };
+        }
+    }
+
+    /// <summary>Runs <paramref name="ask"/> at the program's diagnostic port, waiting for the port while the program lives,
+    /// <see cref="PortLimit"/> from now (from the program's start, <paramref name="sinceItStarted"/>), within
+    /// <paramref name="within"/> when given, and no longer once its runtime has <paramref name="answered"/> otherwise. What
+    /// the ask throws but a port not listening goes to the caller, and <paramref name="stop"/> throws.</summary>
+    public static async Task<PortWait> AtPortAsync(Process process, Func<DiagnosticsClient, Task> ask, CancellationToken stop = default, Task? answered = null,
+        bool sinceItStarted = false, TimeSpan? within = null)
+    {
+        DateTime until = (sinceItStarted ? StartOf(process) : DateTime.UtcNow) + PortLimit;
+        if (within is { } given && DateTime.UtcNow + given < until)
+        {
+            until = DateTime.UtcNow + given;
+        }
+        while (true)
+        {
+            if (answered is { IsCompleted: true })
+            {
+                return PortWait.Answered;
+            }
+            stop.ThrowIfCancellationRequested();
+            if (Listed(process.Id))
+            {
+                try
+                {
+                    await ask(new DiagnosticsClient(process.Id)).ConfigureAwait(false);
+                    return PortWait.Reached;
+                }
+                catch (ServerNotAvailableException)
+                {
+                    // None yet, one closing, or one a process of the same id left when it was killed.
+                }
+            }
+            if (Ended(process))
+            {
+                return PortWait.Ended;
+            }
+            if (DateTime.UtcNow >= until)
+            {
+                return PortWait.NoPort;
+            }
+            await (answered is null ? Task.Delay(Poll, stop) : Task.WhenAny(answered, Task.Delay(Poll, stop))).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>Whether the port may be there: on Windows its pipe is looked for first, since a client there waits 30 s on
+    /// one that does not exist; elsewhere the client finds the socket at once, with no list of published processes made.</summary>
+    private static bool Listed(int processId) => !OperatingSystem.IsWindows() || DiagnosticsClient.GetPublishedProcesses().Contains(processId);
+
+    /// <summary>When the process started, or now when the system will not say.</summary>
+    private static DateTime StartOf(Process process)
+    {
+        try
+        {
+            return process.StartTime.ToUniversalTime();
+        }
+        catch (Exception error) when (error is InvalidOperationException or System.ComponentModel.Win32Exception or NotSupportedException)
+        {
+            return DateTime.UtcNow;
+        }
+    }
+
+    /// <summary>Whether the process has ended, false when the system will not say (the deadline then ends the wait).</summary>
+    private static bool Ended(Process process)
+    {
+        try
+        {
+            return process.HasExited;
+        }
+        catch (Exception error) when (error is InvalidOperationException or System.ComponentModel.Win32Exception or NotSupportedException)
+        {
+            return false;
+        }
+    }
+}
+
+/// <summary>How <see cref="HeldStart.AtPortAsync"/>'s wait ended.</summary>
+public enum PortWait
+{
+    /// <summary>The port was there, and the ask was made.</summary>
+    Reached,
+
+    /// <summary>The runtime answered otherwise first.</summary>
+    Answered,
+
+    /// <summary>The program ended first.</summary>
+    Ended,
+
+    /// <summary>No port opened in its time.</summary>
+    NoPort,
+}

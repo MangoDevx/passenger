@@ -585,11 +585,10 @@ public static class ContainerPlans
                 }
                 if (held.Contains(service.Name))
                 {
-                    environment[RuntimeVariables.DefaultDiagnosticPortSuspend] = "1";
-                }
-                if (modifiable.Contains(service.Name))
-                {
-                    environment[RuntimeVariables.ModifiableAssemblies] = "debug";
+                    foreach ((string name, string value) in HeldStart.Variables(changeable: modifiable.Contains(service.Name)))
+                    {
+                        environment[name] = value;
+                    }
                 }
                 if (Serves(service) && certificate is { } exported)
                 {
