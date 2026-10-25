@@ -166,7 +166,7 @@ public partial class MainWindow
     }
 
     /// <summary>Run, from its key, the toolbar or the Run window: what stopped it, if anything, is in the status bar.</summary>
-    private void RunSelected() => _ = RunAsync();
+    private void RunSelected() => IdeErrors.Observe(RunAsync());
 
     /// <summary>Rerun, of the configuration chosen (<see cref="BuildRunController.RerunAsync"/>): what stopped it, if anything,
     /// is in the status bar.</summary>

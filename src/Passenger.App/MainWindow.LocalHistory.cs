@@ -49,7 +49,7 @@ public partial class MainWindow
             WhyNot = NeedsFolder,
             Menus = [new MenuPlace(LocalHistoryMenu, 1, 0)],
         });
-        actions.Add(new IdeAction(AppActions.RecentChanges, "Recent Changes", "Local History", context => _ = ShowRecentChangesAsync())
+        actions.Add(new IdeAction(AppActions.RecentChanges, "Recent Changes", "Local History", context => IdeErrors.Observe(ShowRecentChangesAsync()))
         {
             WhyNot = NeedsFolder,
             Menus = [new MenuPlace(LocalHistoryMenu, 1, 1)],

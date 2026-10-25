@@ -116,7 +116,7 @@ public sealed class FindInFilesPopup : UserControl, IAnswers<SearchMatch?>
         directoryBox.Text = choices.Start.Directory ?? string.Empty;
         recursive = new ToggleButton { Classes = { "option" }, Content = Glyph("Icon.Structure"), IsChecked = choices.Start.Recursive };
         ToolTip.SetTip(recursive, "Recursively (Alt+Y)");
-        Button browse = ToolButtons.Of("Icon.FolderOpen", "Choose a directory", () => _ = BrowseAsync());
+        Button browse = ToolButtons.Of("Icon.FolderOpen", "Choose a directory", () => IdeErrors.Observe(BrowseAsync()));
         browse.Margin = new Thickness(4, 0, 2, 0);
         DockPanel directory = new() { Children = { recursive, browse, directoryBox } };
         DockPanel.SetDock(recursive, Dock.Right);
@@ -159,8 +159,8 @@ public sealed class FindInFilesPopup : UserControl, IAnswers<SearchMatch?>
         ToolWindows.ListMenus.Attach(results, () => results.SelectedItem is not SearchMatch chosen ? [] :
         [
             ToolWindows.ListMenus.Item("Go to", "Enter", Choose),
-            ToolWindows.ListMenus.Item("Copy Path", null, () => _ = ToolWindows.ListMenus.CopyAsync(this, chosen.Path)),
-            ToolWindows.ListMenus.Item("Copy Line", null, () => _ = ToolWindows.ListMenus.CopyAsync(this, chosen.LineText.Trim())),
+            ToolWindows.ListMenus.Item("Copy Path", null, () => IdeErrors.Observe(ToolWindows.ListMenus.CopyAsync(this, chosen.Path))),
+            ToolWindows.ListMenus.Item("Copy Line", null, () => IdeErrors.Observe(ToolWindows.ListMenus.CopyAsync(this, chosen.LineText.Trim()))),
         ]);
         preview = new CodeEditor { IsReadOnly = true, ShowErrorStripe = false, Height = 180, Focusable = false, Ligatures = ligatures };
         // Clear of the frame's rounded foot, which the editor's square corners would cover.
@@ -329,7 +329,7 @@ public sealed class FindInFilesPopup : UserControl, IAnswers<SearchMatch?>
     /// <summary>Replace All, on the matches of the query and scope as they stand: those shown may be the last search's
     /// for a moment (a key or the scope changed within the pause before the next), so they are searched again
     /// first.</summary>
-    public void RequestReplace() => _ = ReplaceAsync();
+    public void RequestReplace() => IdeErrors.Observe(ReplaceAsync());
 
     private async Task ReplaceAsync()
     {

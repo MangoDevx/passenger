@@ -33,7 +33,7 @@ public partial class MainWindow
             Words = ["dotnet publish", "Publish Profile", "Deploy"],
             Works = A.Publish,
         });
-        actions.Add(new IdeAction(A.PublishAgain, "Publish Again", "Build", c => _ = PublishAgainAsync(c))
+        actions.Add(new IdeAction(A.PublishAgain, "Publish Again", "Build", c => IdeErrors.Observe(PublishAgainAsync(c)))
         {
             WhyNot = c => AgainTarget(c).Why,
             Menus = [new MenuPlace("Build", 2, 1)],

@@ -83,7 +83,7 @@ public sealed class MigrationsView : DockPanel
         [
             ListMenus.Item($"Update Database to {chosen.Name}", null, () => ActionRequested?.Invoke(this, AppActions.UpdateDatabaseTo)),
             ListMenus.Item("Update Database", null, () => ActionRequested?.Invoke(this, AppActions.UpdateDatabase)),
-            ListMenus.Item("Copy Id", null, () => _ = ListMenus.CopyAsync(list, chosen.Id)),
+            ListMenus.Item("Copy Id", null, () => IdeErrors.Observe(ListMenus.CopyAsync(list, chosen.Id))),
         ]);
         placeholder = new TextBlock { Classes = { "emptyText" } };
         Children.Add(leftBar);
@@ -158,7 +158,7 @@ public sealed class MigrationsView : DockPanel
         foreach (EfFix fix in gap.Fixes)
         {
             Button button = new() { Content = fix.Title };
-            button.Click += (_, _) => _ = controller.FixAsync(fix);
+            button.Click += (_, _) => IdeErrors.Observe(controller.FixAsync(fix));
             fixes.Children.Add(button);
         }
         StackPanel words = new() { Children = { new TextBlock { Text = gap.Said, TextWrapping = TextWrapping.Wrap } } };

@@ -58,7 +58,7 @@ public sealed class GitLogView : DockPanel, IOwnKeys
             Classes = { "tree" },
             ItemTemplate = new FuncDataTemplate<GraphRow>((row, _) => row is null ? new TextBlock() : Row(row), supportsRecycling: false),
         };
-        list.SelectionChanged += (_, _) => _ = ShowCommitAsync();
+        list.SelectionChanged += (_, _) => IdeErrors.Observe(ShowCommitAsync());
         list.DoubleTapped += (_, _) => RequestFileDiff();
         // Ahead of the list's own keys, which take Enter for its selection.
         list.AddHandler(KeyDownEvent, (_, e) =>
@@ -76,13 +76,13 @@ public sealed class GitLogView : DockPanel, IOwnKeys
                 ListMenus.Item("Compare with Local", null, () => CompareRequested?.Invoke(this, (commit, change))),
                 new Separator(),
             } : [],
-            ListMenus.Item("Copy Revision Number", null, () => _ = ListMenus.CopyAsync(this, commit.Hash)),
+            ListMenus.Item("Copy Revision Number", null, () => IdeErrors.Observe(ListMenus.CopyAsync(this, commit.Hash))),
             new Separator(),
-            ListMenus.Item("Checkout Revision", null, () => _ = vcs.CheckoutRevisionAsync(commit.Hash)),
+            ListMenus.Item("Checkout Revision", null, () => IdeErrors.Observe(vcs.CheckoutRevisionAsync(commit.Hash))),
             ListMenus.Item("New Branch…", null, () => NewBranchRequested?.Invoke(this, commit)),
             new Separator(),
-            ListMenus.Item("Cherry-Pick", null, () => _ = vcs.CherryPickAsync(commit.Hash)),
-            ListMenus.Item("Revert Commit", null, () => _ = vcs.RevertAsync(commit.Hash)),
+            ListMenus.Item("Cherry-Pick", null, () => IdeErrors.Observe(vcs.CherryPickAsync(commit.Hash))),
+            ListMenus.Item("Revert Commit", null, () => IdeErrors.Observe(vcs.RevertAsync(commit.Hash))),
             ListMenus.Sub("Reset Current Branch to Here",
                 ListMenus.Item("Soft: the changes since kept staged", null, () => ResetRequested?.Invoke(this, (commit, ResetMode.Soft))),
                 ListMenus.Item("Mixed: the changes since kept in the files", null, () => ResetRequested?.Invoke(this, (commit, ResetMode.Mixed))),
@@ -117,7 +117,7 @@ public sealed class GitLogView : DockPanel, IOwnKeys
 
         filter = new TextBox { Classes = { "search" }, PlaceholderText = "Text or hash", Width = 240, Margin = new Thickness(8, 0) };
         filter.TextChanged += (_, _) => Filter();
-        Button refresh = ToolButtons.Of("Icon.Rerun", "Refresh", () => _ = LoadAsync());
+        Button refresh = ToolButtons.Of("Icon.Rerun", "Refresh", () => IdeErrors.Observe(LoadAsync()));
         // The Branch filter, shown while the log is filtered to a branch, its x showing every branch again.
         branchFilterText = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
         PathIcon clearGlyph = new() { Classes = { "small" } };
@@ -153,7 +153,7 @@ public sealed class GitLogView : DockPanel, IOwnKeys
         {
             Branches = new BranchesPanel(vcs);
             Branches.FilterRequested += (_, branch) => FilterBranch(branch);
-            Branches.NavigateRequested += (_, branch) => _ = SelectHashAsync(branch.Hash);
+            Branches.NavigateRequested += (_, branch) => IdeErrors.Observe(SelectHashAsync(branch.Hash));
             Grid withBranches = new() { ColumnDefinitions = new ColumnDefinitions("240,1,*") };
             HairlineDivider beside = new(GridResizeDirection.Columns) { [Grid.ColumnProperty] = 1 };
             Grid.SetColumn(split, 2);

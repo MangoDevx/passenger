@@ -333,61 +333,61 @@ public sealed class CodeAssist
     public void AddActions(ActionRegistry registry)
     {
         WebAssist web = context.Languages.Web;
-        Code(AppActions.Complete, "Basic Completion", context => _ = completion.Start(null), new("Code/Code Completion", 0, 0), xaml: true, msbuild: true);
+        Code(AppActions.Complete, "Basic Completion", context => IdeErrors.Observe(completion.Start(null)), new("Code/Code Completion", 0, 0), xaml: true, msbuild: true);
         Code(AppActions.CompleteStatement, "Complete Current Statement", _ => completion.CompleteStatement(), new("Code/Code Completion", 1, 0), server: false, syntax: true);
         // Passenger's own fixes first, which a file the server does not read (a XAML file) may have too.
-        registry.Add(new IdeAction(AppActions.QuickFix, "Show Context Actions", "Code", context => _ = actions.ShowFixes())
+        registry.Add(new IdeAction(AppActions.QuickFix, "Show Context Actions", "Code", context => IdeErrors.Observe(actions.ShowFixes()))
         {
             WhyNot = context => actions.OwnFixes(context.File, context.Editor.Selections.Primary.Caret).Count > 0 ? null : WhyNot(context, server: true, xaml: true),
             Menus = [new("Code", 0, 1)],
         });
         // Generate: the server's actions that write code for the type (constructors, equality, members, overrides).
-        Code(AppActions.Generate, "Generate…", context => _ = actions.ShowFixes(a => RoslynNames.Generate.Any(w => a.Title.StartsWith(w, StringComparison.Ordinal)), "Generate"),
+        Code(AppActions.Generate, "Generate…", context => IdeErrors.Observe(actions.ShowFixes(a => RoslynNames.Generate.Any(w => a.Title.StartsWith(w, StringComparison.Ordinal)), "Generate")),
             new("Code", 0, 2));
         Code(AppActions.SurroundWith, "Surround With…", _ => completion.ShowSurround(), new("Code", 0, 3), server: false, syntax: true, markup: true);
         // A file Prettier formats (Run on 'Reformat Code' action) needs no language server.
-        registry.Add(new IdeAction(AppActions.Reformat, "Reformat Code", "Code", context => _ = actions.Reformat())
+        registry.Add(new IdeAction(AppActions.Reformat, "Reformat Code", "Code", context => IdeErrors.Observe(actions.Reformat()))
         {
             WhyNot = context => web.PrettierReformats(context.File) ? (context.Editor.IsReadOnly ? "The file is read-only" : null) : WhyNot(context, server: true, markup: true),
             Menus = [new("Code", 1, 0)],
         });
         web.AddLintingActions(registry);
-        Code(AppActions.CodeCleanup, "Code Cleanup", context => _ = actions.Cleanup(), new("Code", 1, 1), markup: true);
-        Code(AppActions.OptimizeUsings, "Optimize Imports", context => _ = actions.OptimizeUsings(), new("Code", 1, 2));
-        Code(AppActions.RefactorThis, "Refactor This…", context => _ = actions.ShowFixes(a => a.Kind?.StartsWith("refactor", StringComparison.Ordinal) == true, "Refactor This"),
+        Code(AppActions.CodeCleanup, "Code Cleanup", context => IdeErrors.Observe(actions.Cleanup()), new("Code", 1, 1), markup: true);
+        Code(AppActions.OptimizeUsings, "Optimize Imports", context => IdeErrors.Observe(actions.OptimizeUsings()), new("Code", 1, 2));
+        Code(AppActions.RefactorThis, "Refactor This…", context => IdeErrors.Observe(actions.ShowFixes(a => a.Kind?.StartsWith("refactor", StringComparison.Ordinal) == true, "Refactor This")),
             new("Refactor", 0, 0), xaml: true);
-        Code(AppActions.ChangeSignature, "Change Signature…", context => _ = actions.ChangeSignature(), new("Refactor", 1, 1));
-        Code(AppActions.ExtractMethod, "Extract Method…", context => _ = actions.Refactor(a => a.Title == RoslynNames.ExtractMethod, "Extract Method", renameMethod: true),
+        Code(AppActions.ChangeSignature, "Change Signature…", context => IdeErrors.Observe(actions.ChangeSignature()), new("Refactor", 1, 1));
+        Code(AppActions.ExtractMethod, "Extract Method…", context => IdeErrors.Observe(actions.Refactor(a => a.Title == RoslynNames.ExtractMethod, "Extract Method", renameMethod: true)),
             new("Refactor", 1, 2));
         Code(AppActions.IntroduceVariable, "Introduce Variable…",
-            context => _ = actions.Refactor(a => a.Title.StartsWith(RoslynNames.IntroduceLocal, StringComparison.Ordinal), "Introduce Variable", renameMethod: false), new("Refactor", 1, 3));
-        Code(AppActions.IntroduceField, "Introduce Field…", context => _ = actions.Refactor(CodeActions.IntroduceField), new("Refactor", 1, 4));
-        Code(AppActions.IntroduceParameter, "Introduce Parameter…", context => _ = actions.Refactor(CodeActions.IntroduceParameter), new("Refactor", 1, 5));
-        Code(AppActions.ExtractInterface, "Extract Interface…", context => _ = actions.ExtractInterface(), new("Refactor", 1, 6));
+            context => IdeErrors.Observe(actions.Refactor(a => a.Title.StartsWith(RoslynNames.IntroduceLocal, StringComparison.Ordinal), "Introduce Variable", renameMethod: false)), new("Refactor", 1, 3));
+        Code(AppActions.IntroduceField, "Introduce Field…", context => IdeErrors.Observe(actions.Refactor(CodeActions.IntroduceField)), new("Refactor", 1, 4));
+        Code(AppActions.IntroduceParameter, "Introduce Parameter…", context => IdeErrors.Observe(actions.Refactor(CodeActions.IntroduceParameter)), new("Refactor", 1, 5));
+        Code(AppActions.ExtractInterface, "Extract Interface…", context => IdeErrors.Observe(actions.ExtractInterface()), new("Refactor", 1, 6));
         Code(AppActions.Inline, "Inline…",
-            context => _ = actions.Refactor(a => a.Kind == RoslynNames.InlineKind || a.Title.StartsWith(RoslynNames.Inline, StringComparison.Ordinal), "Inline", renameMethod: false), new("Refactor", 1, 7));
-        Code(AppActions.Move, "Move…", context => _ = actions.Move(), new("Refactor", 2, 0));
-        Code(AppActions.SafeDelete, "Safe Delete…", context => _ = actions.SafeDelete(), new("Refactor", 2, 1));
-        Code(AppActions.PullMembersUp, "Pull Members Up…", context => _ = actions.MoveMembers(up: true), new("Refactor", 3, 0));
-        Code(AppActions.PushMembersDown, "Push Members Down…", context => _ = actions.MoveMembers(up: false), new("Refactor", 3, 1));
-        Code(AppActions.EncapsulateField, "Encapsulate Field…", context => _ = actions.Refactor(CodeActions.EncapsulateField), new("Refactor", 3, 2));
-        registry.Add(new IdeAction(AppActions.ExtractResource, "Extract Resource…", "Code", context => _ = actions.ExtractResource())
+            context => IdeErrors.Observe(actions.Refactor(a => a.Kind == RoslynNames.InlineKind || a.Title.StartsWith(RoslynNames.Inline, StringComparison.Ordinal), "Inline", renameMethod: false)), new("Refactor", 1, 7));
+        Code(AppActions.Move, "Move…", context => IdeErrors.Observe(actions.Move()), new("Refactor", 2, 0));
+        Code(AppActions.SafeDelete, "Safe Delete…", context => IdeErrors.Observe(actions.SafeDelete()), new("Refactor", 2, 1));
+        Code(AppActions.PullMembersUp, "Pull Members Up…", context => IdeErrors.Observe(actions.MoveMembers(up: true)), new("Refactor", 3, 0));
+        Code(AppActions.PushMembersDown, "Push Members Down…", context => IdeErrors.Observe(actions.MoveMembers(up: false)), new("Refactor", 3, 1));
+        Code(AppActions.EncapsulateField, "Encapsulate Field…", context => IdeErrors.Observe(actions.Refactor(CodeActions.EncapsulateField)), new("Refactor", 3, 2));
+        registry.Add(new IdeAction(AppActions.ExtractResource, "Extract Resource…", "Code", context => IdeErrors.Observe(actions.ExtractResource()))
         {
             WhyNot = context => WhyNotXaml(context),
             Menus = [new("Refactor", 4, 0)],
         });
-        registry.Add(new IdeAction(AppActions.ExtractStyle, "Extract Style…", "Code", context => _ = actions.ExtractStyle())
+        registry.Add(new IdeAction(AppActions.ExtractStyle, "Extract Style…", "Code", context => IdeErrors.Observe(actions.ExtractStyle()))
         {
             WhyNot = context => WhyNotXaml(context),
             Menus = [new("Refactor", 4, 1)],
         });
-        Code(AppActions.GoToDeclaration, "Go to Declaration", context => _ = navigation.GoToDefinition(Caret), new("Navigate", 2, 0), xaml: true, msbuild: true, http: true);
-        Code(AppActions.DerivedSymbols, "Derived Symbols", context => _ = navigation.GoToDerivedSymbols(Caret), new("Navigate", 2, 1));
-        Code(AppActions.GoToImplementation, "Go to Implementation", context => _ = navigation.GoToImplementation(Caret), new("Navigate", 2, 2));
-        Code(AppActions.GoToTypeDeclaration, "Go to Type Declaration", context => _ = navigation.GoToTypeDeclaration(Caret), new("Navigate", 2, 3));
-        Code(AppActions.BaseSymbols, "Base Symbols", context => _ = navigation.GoToBaseSymbols(Caret), new("Navigate", 2, 4));
-        Code(AppActions.FindUsages, "Find Usages", context => _ = navigation.FindUsages(Caret), new("Navigate", 2, 5), xaml: true);
-        Code(AppActions.ParameterInfo, "Parameter Info", context => _ = parameterInfo.Show(), new("View", 1, 2));
+        Code(AppActions.GoToDeclaration, "Go to Declaration", context => IdeErrors.Observe(navigation.GoToDefinition(Caret)), new("Navigate", 2, 0), xaml: true, msbuild: true, http: true);
+        Code(AppActions.DerivedSymbols, "Derived Symbols", context => IdeErrors.Observe(navigation.GoToDerivedSymbols(Caret)), new("Navigate", 2, 1));
+        Code(AppActions.GoToImplementation, "Go to Implementation", context => IdeErrors.Observe(navigation.GoToImplementation(Caret)), new("Navigate", 2, 2));
+        Code(AppActions.GoToTypeDeclaration, "Go to Type Declaration", context => IdeErrors.Observe(navigation.GoToTypeDeclaration(Caret)), new("Navigate", 2, 3));
+        Code(AppActions.BaseSymbols, "Base Symbols", context => IdeErrors.Observe(navigation.GoToBaseSymbols(Caret)), new("Navigate", 2, 4));
+        Code(AppActions.FindUsages, "Find Usages", context => IdeErrors.Observe(navigation.FindUsages(Caret)), new("Navigate", 2, 5), xaml: true);
+        Code(AppActions.ParameterInfo, "Parameter Info", context => IdeErrors.Observe(parameterInfo.Show()), new("View", 1, 2));
         Code(AppActions.NextError, "Next Highlighted Error", _ => navigation.StepToMarker(forward: true), new("Navigate", 3, 0), server: false);
         Code(AppActions.PreviousError, "Previous Highlighted Error", _ => navigation.StepToMarker(forward: false), new("Navigate", 3, 1), server: false);
         Code(AppActions.QuickDocumentation, "Quick Documentation", context => quickInfo.QuickDocumentation(), new("View", 1, 1), server: false);

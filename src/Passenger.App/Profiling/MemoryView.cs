@@ -311,7 +311,7 @@ public sealed class MemoryView : DockPanel
         foreach (MemorySnapshot other in snapshots.Where(s => s != snapshot))
         {
             MenuItem item = new() { Header = $"{other.Name} ({other.Taken:HH:mm:ss})" };
-            item.Click += (_, _) => _ = CompareWithAsync(other);
+            item.Click += (_, _) => IdeErrors.Observe(CompareWithAsync(other));
             menu.Items.Add(item);
         }
         CompareMenu = menu;

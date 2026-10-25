@@ -54,7 +54,7 @@ public partial class MainWindow
             Action = AppActions.ShowRequests,
             Menus = [new MenuPlace("Tools", 0, 4)],
         });
-        Closed += (_, _) => _ = LetGoOfRequestsAsync();
+        Closed += (_, _) => IdeErrors.Observe(LetGoOfRequestsAsync());
     }
 
     /// <summary>The Requests window's view over the log, as it is first shown or asked for.</summary>
@@ -122,7 +122,7 @@ public partial class MainWindow
                 else if (program.Starting is { } started && waitedStarts.Add(started))
                 {
                     // Its program is followed once the debugger says it has started.
-                    _ = started.ContinueWith(_ => UiThread.Post(() => _ = FollowRequestsAsync()), TaskScheduler.Default);
+                    _ = started.ContinueWith(_ => UiThread.Post(() => IdeErrors.Observe(FollowRequestsAsync())), TaskScheduler.Default);
                 }
                 continue;
             }

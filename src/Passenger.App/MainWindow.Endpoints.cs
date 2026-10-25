@@ -36,7 +36,7 @@ public partial class MainWindow
             Chosen = () => endpoints?.Chosen,
         });
         // The row's Test button, Enter and its menu test it as this does; an agent or Find Action tests the row chosen.
-        actions!.Add(new IdeAction(AppActions.TestEndpoint, "Test Request", "Endpoints", context => _ = Endpoints.TestAsync(Endpoints.Chosen!))
+        actions!.Add(new IdeAction(AppActions.TestEndpoint, "Test Request", "Endpoints", context => IdeErrors.Observe(Endpoints.TestAsync(Endpoints.Chosen!)))
         {
             WhyNot = _ => endpoints?.Chosen is null ? "No request is chosen in the Endpoints window" : null,
             Words = ["HTTP Client", "Send Request"],

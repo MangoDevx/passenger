@@ -236,7 +236,7 @@ public sealed partial class SettingsDialog
     {
         Keymap current = Current;
         IReadOnlyList<Shortcut> keys = current.ShortcutsFor(action);
-        List<Control> items = [Item("Add Keyboard Shortcut", () => _ = AddKeyboardShortcut(action))];
+        List<Control> items = [Item("Add Keyboard Shortcut", () => IdeErrors.Observe(AddKeyboardShortcut(action)))];
         if (keys.Count > 0)
         {
             items.Add(new Separator());

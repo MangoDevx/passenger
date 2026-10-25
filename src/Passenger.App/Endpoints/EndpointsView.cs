@@ -104,7 +104,7 @@ public sealed class EndpointsView : DockPanel
             ListMenus.Item("Go to Route", "F4", () => RouteGoToRequested?.Invoke(this, route)),
         ] : list.SelectedItem is not EndpointRequest chosen ? [] :
         [
-            ListMenus.Item("Test", "Enter", () => _ = TestAsync(chosen)),
+            ListMenus.Item("Test", "Enter", () => IdeErrors.Observe(TestAsync(chosen))),
             ListMenus.Item("Interactive Test…", null, () => InteractiveRequested?.Invoke(this, chosen)),
             ListMenus.Item("Go to Request", "F4", GoToChosen),
         ]);
@@ -409,7 +409,7 @@ public sealed class EndpointsView : DockPanel
 
     private Control Row(EndpointRequest request)
     {
-        Button test = ToolButtons.Of("Icon.Run", "Test", () => _ = TestAsync(request));
+        Button test = ToolButtons.Of("Icon.Run", "Test", () => IdeErrors.Observe(TestAsync(request)));
         Button interactive = ToolButtons.Of("Icon.Edit", "Interactive Test…", () => InteractiveRequested?.Invoke(this, request));
         test.Name = "endpointTest";
         ((PathIcon)test.Content!).Bind(PathIcon.ForegroundProperty, test.GetResourceObservable("Passenger.Run"));

@@ -69,7 +69,7 @@ public static partial class ProjectTemplates
         {
             return;
         }
-        Dispatcher.UIThread.Post(() => _ = PreloadAsync(folder), DispatcherPriority.Background);
+        Dispatcher.UIThread.Post(() => IdeErrors.Observe(PreloadAsync(folder)), DispatcherPriority.Background);
     }
 
     private static async Task PreloadAsync(string folder)

@@ -251,7 +251,7 @@ public sealed class WebLanguages : IAsyncDisposable
         document.Notice = tools.Count == 1
             ? $"{tools[0]} is not installed: {Shown(manifest)} lists {packages}, which is not in node_modules."
             : $"{string.Join(" and ", tools)} are not installed: {Shown(manifest)} lists {packages}, which are not in node_modules.";
-        document.NoticeAction = new NoticeAction("Run 'npm install'", () => _ = InstallAsync(where));
+        document.NoticeAction = new NoticeAction("Run 'npm install'", () => IdeErrors.Observe(InstallAsync(where)));
     }
 
     private void AnnounceAll()

@@ -228,7 +228,7 @@ public sealed class ProfilerView : DockPanel
         Border top = ToolBars.Top(bar);
         Children.Add(top);
         timeline = new Timeline();
-        timeline.Chosen += (_, stretch) => _ = ChooseAsync(stretch);
+        timeline.Chosen += (_, stretch) => IdeErrors.Observe(ChooseAsync(stretch));
         timelineBand = new Border { [DockProperty] = Dock.Top, BorderThickness = new Thickness(0, 0, 0, 1), Child = timeline, IsVisible = false, Padding = new Thickness(0, 4) };
         timelineBand.Bind(Border.BorderBrushProperty, timelineBand.GetResourceObservable("Passenger.Divider"));
         Children.Add(timelineBand);

@@ -42,7 +42,7 @@ public sealed class VariablesList : ListBox
                 EditSelectedValue();
             }
         };
-        TreeKeys.Attach<VariableNode>(this, node => _ = Toggle(node), node =>
+        TreeKeys.Attach<VariableNode>(this, node => IdeErrors.Observe(Toggle(node)), node =>
         {
             if (!node.IsQueryText || Tree.Rows.Any(r => r.IsEditing))
             {
@@ -185,8 +185,8 @@ public sealed class VariablesList : ListBox
         items.AddRange(
         [
             ListMenus.Item("Set Value…", "F2", () => EditSelectedValue(), node.Expression is not null),
-            ListMenus.Item("Copy Value", null, () => _ = ListMenus.CopyAsync(this, node.Value)),
-            ListMenus.Item("Copy Name", null, () => _ = ListMenus.CopyAsync(this, node.Name)),
+            ListMenus.Item("Copy Value", null, () => IdeErrors.Observe(ListMenus.CopyAsync(this, node.Value))),
+            ListMenus.Item("Copy Name", null, () => IdeErrors.Observe(ListMenus.CopyAsync(this, node.Name))),
             new Separator(),
             ListMenus.Item("Add to Watches", null, () => EvaluateRequested?.Invoke(this, (node.Expression!, true)), node.Expression is not null && node.Role != VariableRole.Watch),
             ListMenus.Item("Inspect", null, () => EvaluateRequested?.Invoke(this, (node.Expression!, false)), node.Expression is not null),
@@ -204,7 +204,7 @@ public sealed class VariablesList : ListBox
             items.Add(watch);
             _ = Offer(watch, offer(node));
             // Asked again each time the menu opens: the row may have been watched, or let go, since it was chosen.
-            watch.AttachedToVisualTree += (_, _) => _ = Offer(watch, offer(node));
+            watch.AttachedToVisualTree += (_, _) => IdeErrors.Observe(Offer(watch, offer(node)));
         }
         return items;
     }

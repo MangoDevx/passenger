@@ -144,6 +144,44 @@ public sealed class IdeErrorsTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void An_error_in_what_the_Git_menus_Abort_Merge_set_going_is_shown_and_logged_as_it_happens_and_the_merge_stays()
+    {
+        string shop = Path.Combine(folder, "Shop.cs");
+        File.WriteAllText(shop, "class Shop { int count; }\n");
+        TestGit.Init(folder);
+        TestGit.Run(folder, "switch", "-q", "-c", "feature");
+        File.WriteAllText(shop, "class Shop { short count; }\n");
+        TestGit.Run(folder, "commit", "-q", "-am", "Short");
+        TestGit.Run(folder, "switch", "-q", "main");
+        File.WriteAllText(shop, "class Shop { long count; }\n");
+        TestGit.Run(folder, "commit", "-q", "-am", "Long");
+        Passenger.Core.ChildResult merging = Task.Run(() => Passenger.Core.ChildProcesses.RunAsync(
+            Passenger.Core.ChildProcesses.Command("git", ["merge", "feature"], folder), limit: TimeSpan.FromMinutes(1).Scaled())).GetAwaiter().GetResult();
+        Assert.False(merging.Succeeded, $"git merge was to stop for its conflict: {merging.Output}");
+        MainWindow window = Ui.OpenFolder(folder);
+        Ui.Landed(() => window.CommitView.Rows.OfType<CommitGroup>().Any(g => g.Name == "Merge Conflicts"), "the merge's conflict");
+        IdeErrors.Clear();
+        // The question fails after the action has returned, as work it awaits would.
+        window.Confirm = async (_, _, _) =>
+        {
+            await Task.Yield();
+            throw new InvalidOperationException("Abort Merge's question went wrong");
+        };
+
+        Assert.True(window.Perform(AppActions.AbortMerge), window.Status);
+        Ui.Settle();
+
+        Assert.True(IdeErrors.Errors.Any(e => e.Kind == "InvalidOperationException" && e.Message == "Abort Merge's question went wrong"),
+            $"Abort Merge's error went unreported until its task would be collected; the IDE's errors: {string.Join("; ", IdeErrors.Errors.Select(e => e.Message))}");
+        Assert.Equal("IDE error: Abort Merge's question went wrong", window.Status);
+        Assert.Contains("Abort Merge's question went wrong", Ui.IdeLog(), StringComparison.Ordinal);
+        Assert.True(File.Exists(Path.Combine(folder, ".git", "MERGE_HEAD")), "The merge was aborted though its question failed");
+        // Thrown on purpose: the check that fails a test over a caught error is not to see it.
+        IdeErrors.Clear();
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public void The_same_error_again_and_again_is_one_row_with_its_count_and_a_log_rotated_under_its_size_cap()
     {
         long limit = IdeErrors.LogLimit;

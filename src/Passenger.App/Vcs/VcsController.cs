@@ -374,7 +374,7 @@ public sealed class VcsController : IDisposable
                 tracked.Reblame.Restart();
             }
         };
-        tracked.OnSaved = (_, _) => _ = ReadAsync();
+        tracked.OnSaved = (_, _) => IdeErrors.Observe(ReadAsync());
         document.Text.Changed += tracked.OnChanged;
         document.Saved += tracked.OnSaved;
         documents[document] = tracked;

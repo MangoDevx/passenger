@@ -31,7 +31,7 @@ public partial class MainWindow
     /// <summary>Bumped by each search shown, so one that lands after a later one is dropped.</summary>
     private int usageSearches;
 
-    private void ShowUsages(string title, IReadOnlyList<LspLocation> locations) => _ = ShowUsagesAsync(title, locations);
+    private void ShowUsages(string title, IReadOnlyList<LspLocation> locations) => IdeErrors.Observe(ShowUsagesAsync(title, locations));
 
     /// <summary>The usages under what each does there, read from each file's syntax off the UI thread: an open file's
     /// shared parse as it stands, a file not open read from disk and parsed there.</summary>

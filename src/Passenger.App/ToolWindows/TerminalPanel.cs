@@ -70,7 +70,7 @@ public sealed class TerminalPanel : DockPanel
             }
             FocusView();
         };
-        Button add = ToolButtons.Of("Icon.Add", "New Session", () => _ = NewSessionAsync());
+        Button add = ToolButtons.Of("Icon.Add", "New Session", () => IdeErrors.Observe(NewSessionAsync()));
         HeaderTools = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { strip, add } };
     }
 

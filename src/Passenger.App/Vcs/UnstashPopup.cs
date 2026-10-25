@@ -39,7 +39,7 @@ public sealed class UnstashPopup : UserControl
             SelectedIndex = stashes.Count > 0 ? 0 : -1,
             ItemTemplate = new FuncDataTemplate<StashInfo>((stash, _) => stash is null ? new TextBlock() : Row(stash), supportsRecycling: false),
         };
-        list.DoubleTapped += (_, _) => _ = PopAsync();
+        list.DoubleTapped += (_, _) => IdeErrors.Observe(PopAsync());
         Button pop = Action("Pop", () => PopAsync(), primary: true);
         Button apply = Action("Apply", () => ApplyAsync());
         Button remove = Action("Drop", () => DropAsync());
@@ -171,7 +171,7 @@ public sealed class UnstashPopup : UserControl
         {
             button.Classes.Add("primary");
         }
-        button.Click += (_, _) => _ = run();
+        button.Click += (_, _) => IdeErrors.Observe(run());
         return button;
     }
 

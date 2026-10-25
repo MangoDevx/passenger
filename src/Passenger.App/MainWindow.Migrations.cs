@@ -65,25 +65,25 @@ public partial class MainWindow
         };
         controller.Changed += (_, _) => ListMigrationsIfShown();
         Func<ActionContext, string?> none = _ => Folder is null ? Refusals.NoFolder : controller.Projects.Count == 0 ? "No project here uses EF Core" : null;
-        actions!.Add(new IdeAction(A.MigrationsRefresh, "Refresh Migrations", "Migrations", c => _ = controller.ListAsync(A.MigrationsRefresh))
+        actions!.Add(new IdeAction(A.MigrationsRefresh, "Refresh Migrations", "Migrations", c => IdeErrors.Observe(controller.ListAsync(A.MigrationsRefresh)))
         {
             WhyNot = none,
             Menus = [new MenuPlace("Tools/Migrations", 0, 0)],
             Words = ["dotnet ef migrations list", "Entity Framework Core", "EF Core"],
         });
-        actions.Add(new IdeAction(A.AddMigration, "Add Migration…", "Migrations", c => _ = AddMigrationAsync())
+        actions.Add(new IdeAction(A.AddMigration, "Add Migration…", "Migrations", c => IdeErrors.Observe(AddMigrationAsync()))
         {
             WhyNot = none,
             Menus = [new MenuPlace("Tools/Migrations", 0, 1)],
             Words = ["dotnet ef migrations add", "Entity Framework Core", "EF Core"],
         });
-        actions.Add(new IdeAction(A.RemoveLastMigration, "Remove Last Migration", "Migrations", c => _ = controller.RemoveLastAsync(A.RemoveLastMigration))
+        actions.Add(new IdeAction(A.RemoveLastMigration, "Remove Last Migration", "Migrations", c => IdeErrors.Observe(controller.RemoveLastAsync(A.RemoveLastMigration)))
         {
             WhyNot = none,
             Menus = [new MenuPlace("Tools/Migrations", 0, 2)],
             Words = ["dotnet ef migrations remove"],
         });
-        actions.Add(new IdeAction(A.UpdateDatabase, "Update Database", "Migrations", c => _ = controller.UpdateAsync(A.UpdateDatabase, null))
+        actions.Add(new IdeAction(A.UpdateDatabase, "Update Database", "Migrations", c => IdeErrors.Observe(controller.UpdateAsync(A.UpdateDatabase, null)))
         {
             WhyNot = none,
             Menus = [new MenuPlace("Tools/Migrations", 1, 0)],
@@ -102,13 +102,13 @@ public partial class MainWindow
             Menus = [new MenuPlace("Tools/Migrations", 1, 1)],
             Words = ["Roll Back Migration", "dotnet ef database update"],
         });
-        actions.Add(new IdeAction(A.ScriptMigrations, "Script Migrations…", "Migrations", c => _ = ScriptMigrationsAsync())
+        actions.Add(new IdeAction(A.ScriptMigrations, "Script Migrations…", "Migrations", c => IdeErrors.Observe(ScriptMigrationsAsync()))
         {
             WhyNot = none,
             Menus = [new MenuPlace("Tools/Migrations", 2, 0)],
             Words = ["dotnet ef migrations script", "SQL Script"],
         });
-        actions.Add(new IdeAction(A.BundleMigrations, "Bundle Migrations", "Migrations", c => _ = controller.BundleAsync(A.BundleMigrations))
+        actions.Add(new IdeAction(A.BundleMigrations, "Bundle Migrations", "Migrations", c => IdeErrors.Observe(controller.BundleAsync(A.BundleMigrations)))
         {
             WhyNot = none,
             Menus = [new MenuPlace("Tools/Migrations", 2, 1)],

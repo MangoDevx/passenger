@@ -106,14 +106,14 @@ public sealed class DebugController : IDisposable
         Breakpoints.Changed += (_, path) => UpdateMarks(path);
         Breakpoints.ExceptionsChanged += (_, _) => view.ShowMuted(Breakpoints.Muted);
         EventHandler<string> asked = (_, action) => ActionRequested?.Invoke(this, action);
-        EventHandler<DapStackFrame> framed = (_, chosen) => _ = ChooseFrame(chosen, navigate: true);
-        EventHandler<DapThread> threaded = (_, thread) => _ = ChooseThread(thread.Id);
-        EventHandler<(string Expression, bool Watch)> evaluated = (_, request) => _ = Evaluate(request.Expression, request.Watch);
-        EventHandler<(VariableNode Node, string Value)> set = (_, request) => _ = SetValue(request.Node, request.Value);
-        EventHandler<VariableNode> watchData = (_, node) => _ = ToggleDataBreakpointAsync(node);
+        EventHandler<DapStackFrame> framed = (_, chosen) => IdeErrors.Observe(ChooseFrame(chosen, navigate: true));
+        EventHandler<DapThread> threaded = (_, thread) => IdeErrors.Observe(ChooseThread(thread.Id));
+        EventHandler<(string Expression, bool Watch)> evaluated = (_, request) => IdeErrors.Observe(Evaluate(request.Expression, request.Watch));
+        EventHandler<(VariableNode Node, string Value)> set = (_, request) => IdeErrors.Observe(SetValue(request.Node, request.Value));
+        EventHandler<VariableNode> watchData = (_, node) => IdeErrors.Observe(ToggleDataBreakpointAsync(node));
         EventHandler<VariableNode> textOpened = (_, node) => TextOpened?.Invoke(this, node.Value);
-        EventHandler<DebugTab> tabChosen = (_, tab) => _ = ChooseAsync(tab);
-        EventHandler<DebugTab> tabClosed = (_, tab) => _ = CloseTabAsync(tab);
+        EventHandler<DebugTab> tabChosen = (_, tab) => IdeErrors.Observe(ChooseAsync(tab));
+        EventHandler<DebugTab> tabClosed = (_, tab) => IdeErrors.Observe(CloseTabAsync(tab));
         EventHandler<string> unwatched = (_, expression) =>
         {
             watches.Remove(expression);
@@ -692,7 +692,7 @@ public sealed class DebugController : IDisposable
             {
                 shown.Input = new ConsoleInput(text => Send(session.InputAsync(text)), () => Send(session.CloseInputAsync()));
             }
-            session.StateChanged += (_, _) => _ = OnStateChanged(tab);
+            session.StateChanged += (_, _) => IdeErrors.Observe(OnStateChanged(tab));
             await OnStateChanged(tab);
             return null;
         }
@@ -1170,20 +1170,20 @@ public sealed class DebugController : IDisposable
             }
             _ = d.ResumeAsync(session => session.ContinueAsync(), "resume");
         }, (d, c) => d.IsDebugging ? d.NotPaused() : actions.WhyNot(AppActions.Debug, c), new("Run", 1, 0));
-        Add(AppActions.Pause, "Pause Program", (d, c) => _ = d.Session!.PauseAsync(),
+        Add(AppActions.Pause, "Pause Program", (d, c) => IdeErrors.Observe(d.Session!.PauseAsync()),
             (d, _) => d.NotLive() ?? d.Session!.State switch
             {
                 DebugState.Paused => "The program is paused already",
                 DebugState.Starting => StillStarting,
                 _ => null,
             }, new("Run", 1, 1));
-        Add(AppActions.StepOver, "Step Over", (d, c) => _ = d.ResumeAsync(session => session.StepOverAsync(), "step over"), (d, _) => d.NotPaused(), new("Run", 1, 2));
-        Add(AppActions.StepInto, "Step Into", (d, c) => _ = d.ResumeAsync(session => session.StepIntoAsync(), "step into"), (d, _) => d.NotPaused(), new("Run", 1, 3));
-        Add(AppActions.SmartStepInto, "Smart Step Into", (d, c) => _ = d.SmartStepIntoAsync(), (d, _) => d.NotPaused(), new("Run", 1, 4));
-        Add(AppActions.StepOut, "Step Out", (d, c) => _ = d.ResumeAsync(session => session.StepOutAsync(), "step out"), (d, _) => d.NotPaused(), new("Run", 1, 5));
-        Add(AppActions.RunToCursor, "Run to Cursor", (d, c) => _ = d.ResumeAsync(session => session.RunToCursorAsync(c.File!.Path, c.Caret.Line), "run to the cursor"),
+        Add(AppActions.StepOver, "Step Over", (d, c) => IdeErrors.Observe(d.ResumeAsync(session => session.StepOverAsync(), "step over")), (d, _) => d.NotPaused(), new("Run", 1, 2));
+        Add(AppActions.StepInto, "Step Into", (d, c) => IdeErrors.Observe(d.ResumeAsync(session => session.StepIntoAsync(), "step into")), (d, _) => d.NotPaused(), new("Run", 1, 3));
+        Add(AppActions.SmartStepInto, "Smart Step Into", (d, c) => IdeErrors.Observe(d.SmartStepIntoAsync()), (d, _) => d.NotPaused(), new("Run", 1, 4));
+        Add(AppActions.StepOut, "Step Out", (d, c) => IdeErrors.Observe(d.ResumeAsync(session => session.StepOutAsync(), "step out")), (d, _) => d.NotPaused(), new("Run", 1, 5));
+        Add(AppActions.RunToCursor, "Run to Cursor", (d, c) => IdeErrors.Observe(d.ResumeAsync(session => session.RunToCursorAsync(c.File!.Path, c.Caret.Line), "run to the cursor")),
             (d, c) => Refusals.NeedsLines(c) ?? d.NotPaused(), new("Run", 1, 6));
-        Add(AppActions.SetNextStatement, "Set Next Statement", (d, c) => _ = d.SetNextStatementAsync(d.Session!, c.File!.Path, c.Caret.Line),
+        Add(AppActions.SetNextStatement, "Set Next Statement", (d, c) => IdeErrors.Observe(d.SetNextStatementAsync(d.Session!, c.File!.Path, c.Caret.Line)),
             (d, c) => Refusals.NeedsLines(c) ?? d.NotPaused(), new("Run", 1, 7));
         Add(AppActions.ShowExecutionPoint, "Show Execution Point", (d, _) =>
         {
@@ -1191,9 +1191,9 @@ public sealed class DebugController : IDisposable
             d.Navigate?.Invoke(d, (path, new TextPosition(d.Current(path, line), 0)));
         }, (d, _) => d.NotPaused() ?? (d.executionPoint is null ? "Where the program is paused has no source" : null), new("Run", 1, 8));
         Add(AppActions.Evaluate, "Evaluate Expression…", (d, c) => d.view.FocusEvaluate(c.Symbol ?? string.Empty), (d, _) => d.NotPaused(), new("Run", 1, 9));
-        Add(AppActions.AddToWatches, "Add to Watches", (d, c) => _ = d.Evaluate(c.Symbol!, watch: true),
+        Add(AppActions.AddToWatches, "Add to Watches", (d, c) => IdeErrors.Observe(d.Evaluate(c.Symbol!, watch: true)),
             (d, c) => d.NotPaused() ?? (c.Symbol is { Length: > 0 } ? null : "No expression is at the caret"), null);
-        Add(AppActions.Detach, "Detach", (d, c) => _ = d.DetachAsync(), (d, _) => d.WhyNotDetach(), new("Run", 0, 8));
+        Add(AppActions.Detach, "Detach", (d, c) => IdeErrors.Observe(d.DetachAsync()), (d, _) => d.WhyNotDetach(), new("Run", 0, 8));
         // Every breakpoint stays as it is, and none stops the program until it is chosen again.
         actions.Add(new IdeAction(AppActions.MuteBreakpoints, "Mute Breakpoints", "Debug", _ => current().Breakpoints.SetMuted(!current().Breakpoints.Muted))
         {
@@ -1506,9 +1506,9 @@ public sealed class DebugController : IDisposable
         };
         tree.Show([Hovered(value)]);
         VariablesList list = new(tree) { DataWatch = DataWatchAsync };
-        list.EvaluateRequested += (_, request) => _ = Evaluate(request.Expression, request.Watch);
-        list.DataBreakpointRequested += (_, node) => _ = ToggleDataBreakpointAsync(node);
-        list.SetValueRequested += (_, request) => _ = SetHoveredAsync(request.Node, request.Value);
+        list.EvaluateRequested += (_, request) => IdeErrors.Observe(Evaluate(request.Expression, request.Watch));
+        list.DataBreakpointRequested += (_, node) => IdeErrors.Observe(ToggleDataBreakpointAsync(node));
+        list.SetValueRequested += (_, request) => IdeErrors.Observe(SetHoveredAsync(request.Node, request.Value));
         list.TextOpened += (_, node) => TextOpened?.Invoke(this, node.Value);
         return list;
 

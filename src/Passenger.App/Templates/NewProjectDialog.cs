@@ -142,7 +142,7 @@ public sealed class NewProjectDialog : Window
         heading = new TextBlock { FontSize = 16, FontWeight = FontWeight.SemiBold };
         description = new TextBlock { Classes = { "muted" }, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) };
         directory.Text = folder;
-        browse.Click += (_, _) => _ = BrowseAsync();
+        browse.Click += (_, _) => IdeErrors.Observe(BrowseAsync());
         Grid folderRow = BrowseRow.Of(directory, browse);
         solutionName.TextChanged += (_, _) => NameChanged(solution: true);
         projectName.TextChanged += (_, _) => NameChanged(solution: false);
@@ -176,7 +176,7 @@ public sealed class NewProjectDialog : Window
             Spacing = 10,
             Children = { Row("Target framework:", framework), languageRow, options, Row(null, command) },
         };
-        install.Click += (_, _) => _ = InstallAsync();
+        install.Click += (_, _) => IdeErrors.Observe(InstallAsync());
         offer = new StackPanel
         {
             Spacing = 10,
@@ -195,14 +195,14 @@ public sealed class NewProjectDialog : Window
         working = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, IsVisible = false, Children = { bar, progress } };
         Button cancel = new() { Content = "Cancel", IsCancel = true };
         cancel.Click += (_, _) => Cancel();
-        create.Click += (_, _) => _ = CreateAsync();
+        create.Click += (_, _) => IdeErrors.Observe(CreateAsync());
         Closing += (_, _) =>
         {
             creating?.Cancel();
             installing?.Cancel();
         };
         // What a read brings while the dialog is open (an install, another SDK) fills it in.
-        Action changed = () => _ = RefreshAsync();
+        Action changed = () => IdeErrors.Observe(RefreshAsync());
         ProjectTemplates.Changed += changed;
         Closed += (_, _) => ProjectTemplates.Changed -= changed;
         Border bottom = DialogFooter.Bar(DialogFooter.Of(create, cancel), new Panel { Children = { problem, working } });

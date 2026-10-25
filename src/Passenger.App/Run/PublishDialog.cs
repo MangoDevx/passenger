@@ -91,9 +91,9 @@ public sealed class PublishDialog : Window
 
         Button cancel = new() { Content = "Cancel", IsCancel = true };
         cancel.Click += (_, _) => Close(null);
-        publish.Click += (_, _) => _ = PublishAsync();
-        saveButton.Click += (_, _) => _ = SaveAsync();
-        browse.Click += (_, _) => _ = BrowseAsync();
+        publish.Click += (_, _) => IdeErrors.Observe(PublishAsync());
+        saveButton.Click += (_, _) => IdeErrors.Observe(SaveAsync());
+        browse.Click += (_, _) => IdeErrors.Observe(BrowseAsync());
         Closing += (_, _) => reads?.Cancel();
 
         frameworkBox.ItemsSource = project.TargetFrameworks;

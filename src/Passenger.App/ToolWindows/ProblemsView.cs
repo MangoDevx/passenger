@@ -60,7 +60,7 @@ public sealed class ProblemsView : DockPanel
         ListMenus.Attach(list, () => list.SelectedItem is not ProblemRow { Problem: { } problem } ? [] :
         [
             ListMenus.Item("Go to", "F4", Choose, problem.Path is not null),
-            ListMenus.Item("Copy Message", null, () => _ = ListMenus.CopyAsync(this, problem.Message)),
+            ListMenus.Item("Copy Message", null, () => IdeErrors.Observe(ListMenus.CopyAsync(this, problem.Message))),
             ListMenus.Item("Open Link", null, () => model.Open(problem.Link!), problem.Link is not null),
             new Separator(),
             ListMenus.Item("Show Context Actions", null, () => model.Fix(problem), model.HasFixes(problem)),

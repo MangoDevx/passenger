@@ -56,7 +56,7 @@ public sealed class LiveTreeController
         window = new ToolWindow(ToolWindowIds.LiveTree, "Live Visual Tree", "Icon.LiveTree", Make, ToolAnchor.RightTop) { Action = AppActions.ShowLiveTree };
         parts.Dock.Add(window);
         window.PropertyChanged += OnWindowChanged;
-        parts.Actions.Add(new IdeAction(AppActions.SelectElement, "Select Element", "Debug", context => _ = PickAsync(!picking))
+        parts.Actions.Add(new IdeAction(AppActions.SelectElement, "Select Element", "Debug", context => IdeErrors.Observe(PickAsync(!picking)))
         {
             WhyNot = _ => WhyNotAsk(),
         });
@@ -70,9 +70,9 @@ public sealed class LiveTreeController
     private LiveTreeView Make()
     {
         LiveTreeView made = view = new LiveTreeView();
-        made.ElementChosen += (_, id) => _ = ChooseAsync(id);
-        made.PickRequested += (_, on) => _ = PickAsync(on);
-        made.RefreshRequested += (_, _) => _ = RefreshAsync();
+        made.ElementChosen += (_, id) => IdeErrors.Observe(ChooseAsync(id));
+        made.PickRequested += (_, on) => IdeErrors.Observe(PickAsync(on));
+        made.RefreshRequested += (_, _) => IdeErrors.Observe(RefreshAsync());
         made.GoToRequested += (_, place) => GoTo(place);
         made.BreakRequested += (_, value) => ToggleBreak(value);
         made.Watched = value => details.Details is { } shown && Debugged() is { } debugged && session!.Debug.Breakpoints.FindProperty(debugged, shown.Id, value.Name) is not null;

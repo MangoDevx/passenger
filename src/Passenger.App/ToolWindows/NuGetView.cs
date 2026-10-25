@@ -72,11 +72,11 @@ public sealed class NuGetView : DockPanel
         prerelease = new CheckBox { Content = "Prerelease", VerticalAlignment = VerticalAlignment.Center };
         status = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0), TextTrimming = TextTrimming.CharacterEllipsis };
         status.Classes.Add("muted");
-        Button refresh = ToolButtons.Of("Icon.Rerun", "Refresh", () => _ = ReloadSourcesAsync());
+        Button refresh = ToolButtons.Of("Icon.Rerun", "Refresh", () => IdeErrors.Observe(ReloadSourcesAsync()));
         refresh.Margin = new Thickness(6, 0, 0, 0);
         typing = new Debounce(Pause, RefreshAsync);
         search.TextChanged += (_, _) => typing.Restart();
-        prerelease.IsCheckedChanged += (_, _) => _ = RefreshAsync();
+        prerelease.IsCheckedChanged += (_, _) => IdeErrors.Observe(RefreshAsync());
         // In a narrow window the search and the count give way, so the feed chooser, Prerelease and Refresh keep their room.
         Grid row = new() { ColumnDefinitions = new ColumnDefinitions("3*,Auto,Auto,Auto,2*"), VerticalAlignment = VerticalAlignment.Center };
         row.ColumnDefinitions[0].MaxWidth = 276;
@@ -93,7 +93,7 @@ public sealed class NuGetView : DockPanel
             Classes = { "tree" },
             ItemTemplate = new FuncDataTemplate<PackageRow>((row, _) => row is null ? new TextBlock() : Row(row), supportsRecycling: false),
         };
-        list.SelectionChanged += (_, _) => _ = ShowAsync();
+        list.SelectionChanged += (_, _) => IdeErrors.Observe(ShowAsync());
         details = new StackPanel { Spacing = 8, Margin = new Thickness(14, 10) };
         log = new TextBox
         {
@@ -647,7 +647,7 @@ public sealed class NuGetView : DockPanel
     private Button Action(string label, Func<Task<bool>> run)
     {
         Button button = new() { Content = label, IsEnabled = !model.IsBusy };
-        button.Click += (_, _) => _ = run();
+        button.Click += (_, _) => IdeErrors.Observe(run());
         return button;
     }
 

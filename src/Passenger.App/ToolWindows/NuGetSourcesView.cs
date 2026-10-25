@@ -119,7 +119,7 @@ public sealed class NuGetSourcesView : Grid
 
     private void DrawFile(ConfigFile file)
     {
-        Button add = ToolButtons.Of("Icon.Add", "Add Feed", () => _ = AddAsync(file));
+        Button add = ToolButtons.Of("Icon.Add", "Add Feed", () => IdeErrors.Observe(AddAsync(file)));
         add.IsEnabled = !file.ReadOnly && file.Problem is null;
         add.Name = "AddFeed";
         DockPanel header = new() { Children = { add, Title("Feeds", default) } };
@@ -159,7 +159,7 @@ public sealed class NuGetSourcesView : Grid
         bool enabled = effective?.Enabled ?? !feed.DisabledHere;
         CheckBox toggle = new() { IsChecked = enabled, IsEnabled = !file.ReadOnly, VerticalAlignment = VerticalAlignment.Center, MinWidth = 0, Margin = new Thickness(0, 0, 4, 0) };
         ToolTip.SetTip(toggle, "Enabled");
-        toggle.IsCheckedChanged += (_, _) => _ = SetEnabledAsync(file, feed.Name, toggle.IsChecked == true);
+        toggle.IsCheckedChanged += (_, _) => IdeErrors.Observe(SetEnabledAsync(file, feed.Name, toggle.IsChecked == true));
         TextBlock name = new() { Text = feed.Name, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
         TextBlock url = new() { Classes = { "muted" }, Text = feed.Value, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(10, 0) };
         ToolTip.SetTip(url, feed.Value);
@@ -174,8 +174,8 @@ public sealed class NuGetSourcesView : Grid
             ToolTip.SetTip(locked, feed.Username is { } user ? $"Credentials for {user} in this file" : "Credentials in this file");
             Add(row, locked, 3);
         }
-        Button edit = ToolButtons.Of("Icon.Edit", "Edit", () => _ = EditAsync(file, feed));
-        Button delete = ToolButtons.Of("Icon.Clear", "Delete Feed", () => _ = DeleteAsync(file, feed));
+        Button edit = ToolButtons.Of("Icon.Edit", "Edit", () => IdeErrors.Observe(EditAsync(file, feed)));
+        Button delete = ToolButtons.Of("Icon.Clear", "Delete Feed", () => IdeErrors.Observe(DeleteAsync(file, feed)));
         edit.IsEnabled = delete.IsEnabled = !file.ReadOnly;
         Add(row, edit, 4);
         Add(row, delete, 5);

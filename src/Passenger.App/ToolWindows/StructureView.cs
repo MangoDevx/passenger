@@ -66,7 +66,7 @@ public sealed class StructureView : DockPanel
         [
             ListMenus.Item("Go to", "F4", () => GoToRequested?.Invoke(this, chosen)),
             ListMenus.Item("Find Usages", null, () => UsagesRequested?.Invoke(this, chosen)),
-            ListMenus.Item("Copy Name", null, () => _ = ListMenus.CopyAsync(this, chosen.Name)),
+            ListMenus.Item("Copy Name", null, () => IdeErrors.Observe(ListMenus.CopyAsync(this, chosen.Name))),
         ]);
         Children.Add(new Panel { Children = { list, placeholder } });
         this.Bind(BackgroundProperty, this.GetResourceObservable("Passenger.Panel"));

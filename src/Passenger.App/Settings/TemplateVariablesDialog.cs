@@ -40,7 +40,7 @@ public sealed class TemplateVariablesDialog : Window
         EditableBox = new CheckBox { Content = "Editable" };
         EditableBox.IsCheckedChanged += (_, _) => Edit(v => v with { Editable = EditableBox.IsChecked == true });
         ChangeMacroButton = new Button { Content = "Change macro" };
-        ChangeMacroButton.Click += (_, _) => _ = ChangeMacro();
+        ChangeMacroButton.Click += (_, _) => IdeErrors.Observe(ChangeMacro());
         DoneButton = new Button { Content = "Done", IsDefault = true, Classes = { "primary" } };
         DoneButton.Click += (_, _) => Close(true);
 

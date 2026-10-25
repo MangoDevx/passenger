@@ -65,7 +65,7 @@ public partial class MainWindow
     private void AddUpdates()
     {
         actions!.Add(new IdeAction(AppActions.CheckForUpdates, "Check for Updates…", "Help",
-            context => _ = CheckForUpdatesAsync(asked: true))
+            context => IdeErrors.Observe(CheckForUpdatesAsync(asked: true)))
         {
             Menus = OperatingSystem.IsMacOS() ? [] : [new MenuPlace("Help", 3, 1)],
         });
@@ -158,7 +158,7 @@ public partial class MainWindow
             return;
         }
         updateTimer = new DispatcherTimer { Interval = UpdateInterval };
-        updateTimer.Tick += (_, _) => _ = CheckForUpdatesAsync(asked: false);
+        updateTimer.Tick += (_, _) => IdeErrors.Observe(CheckForUpdatesAsync(asked: false));
         updateTimer.Start();
         _ = CheckForUpdatesAsync(asked: false);
     }

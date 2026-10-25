@@ -71,7 +71,7 @@ public sealed class ConflictsDialog : Window
             ItemTemplate = new FuncDataTemplate<ConflictRow>((row, _) => row is null ? new Panel() : Row(row), supportsRecycling: false),
         };
         list.SelectionChanged += (_, _) => UpdateButtons();
-        list.DoubleTapped += (_, _) => _ = MergeAsync();
+        list.DoubleTapped += (_, _) => IdeErrors.Observe(MergeAsync());
         list.AddHandler(KeyDownEvent, (_, e) =>
         {
             if (e.Key == Key.Enter && e.KeyModifiers == KeyModifiers.None)
@@ -242,7 +242,7 @@ public sealed class ConflictsDialog : Window
     {
         // The column's buttons one width, the widest's.
         Button button = new() { Content = label, MinWidth = 120, HorizontalAlignment = HorizontalAlignment.Stretch };
-        button.Click += (_, _) => _ = run();
+        button.Click += (_, _) => IdeErrors.Observe(run());
         return button;
     }
 }

@@ -27,7 +27,7 @@ public abstract class RefactoringDialog : Window
 
         NextButton = new Button { Content = "Next", IsDefault = true, Classes = { "primary" } };
         Button cancel = new() { Content = "Cancel", IsCancel = true };
-        NextButton.Click += (_, _) => _ = Next();
+        NextButton.Click += (_, _) => IdeErrors.Observe(Next());
         cancel.Click += (_, _) => Close(false);
         problem.Bind(TextBlock.ForegroundProperty, problem.GetResourceObservable("Passenger.Error"));
 

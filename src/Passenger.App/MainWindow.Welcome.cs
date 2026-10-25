@@ -32,7 +32,7 @@ public partial class MainWindow
         welcome.RemoveRequested += (_, row) => ForgetRecent(row.Path);
         welcome.RevealRequested += (_, row) => ShowInFileManager(row.Path);
         AddNewProjectActions();
-        actions!.Add(new IdeAction(AppActions.OpenFolder, "Open Folder…", "IDE", context => _ = PickFolder()) { Menus = [new MenuPlace("File", 0, 1)] });
+        actions!.Add(new IdeAction(AppActions.OpenFolder, "Open Folder…", "IDE", context => IdeErrors.Observe(PickFolder())) { Menus = [new MenuPlace("File", 0, 1)] });
         actions.Add(new IdeAction(AppActions.CloneRepository, "Clone Repository…", "Git", _ => ShowCloneRepository())
         {
             Menus = [new MenuPlace("File", 0, 2), new MenuPlace("Git", 4, 0)],

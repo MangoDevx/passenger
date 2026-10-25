@@ -18,9 +18,9 @@ public partial class MainWindow
     {
         Add(AppActions.ResolveConflicts, "Resolve Conflicts…", _ => ShowConflicts(), 5,
             () => session.Vcs.Conflicts.Count == 0 ? "No conflicts found" : null);
-        Add(AppActions.ContinueRebase, "Continue Rebase", context => _ = session.Vcs.ContinueRebaseAsync(), 6, NoRebase);
-        Add(AppActions.AbortRebase, "Abort Rebase", context => _ = AbortAsync("Abort Rebase", $"Abort rebase in {Path.GetFileName(session.Vcs.Repository?.Root)}?"), 7, NoRebase);
-        Add(AppActions.AbortMerge, "Abort Merge", context => _ = AbortAsync("Abort Merge", "Abort merge?"), 8,
+        Add(AppActions.ContinueRebase, "Continue Rebase", context => IdeErrors.Observe(session.Vcs.ContinueRebaseAsync()), 6, NoRebase);
+        Add(AppActions.AbortRebase, "Abort Rebase", context => IdeErrors.Observe(AbortAsync("Abort Rebase", $"Abort rebase in {Path.GetFileName(session.Vcs.Repository?.Root)}?")), 7, NoRebase);
+        Add(AppActions.AbortMerge, "Abort Merge", context => IdeErrors.Observe(AbortAsync("Abort Merge", "Abort merge?")), 8,
             () => session.Vcs.Merge.Operation is MergeOperation.Merge ? null : "No merge in progress");
 
         string? NoRebase() => session.Vcs.Merge.Operation is MergeOperation.Rebase ? null : "No rebase in progress";

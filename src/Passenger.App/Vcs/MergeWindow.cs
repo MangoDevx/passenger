@@ -149,7 +149,7 @@ public sealed class MergeWindow : Window, IOwnKeys
     private static Button Action(string label, Func<Task> run)
     {
         Button button = new() { Content = label };
-        button.Click += (_, _) => _ = run();
+        button.Click += (_, _) => IdeErrors.Observe(run());
         return button;
     }
 }

@@ -73,13 +73,13 @@ public sealed class ProfilerCommands
             Menus = [new MenuPlace("Tools", 0, 1)],
         };
         parts.Dock.Add(window);
-        parts.Actions.Add(new IdeAction(AppActions.Profile, "Profile", "Run", context => _ = ProfileReportingAsync())
+        parts.Actions.Add(new IdeAction(AppActions.Profile, "Profile", "Run", context => IdeErrors.Observe(ProfileReportingAsync()))
         {
             WhyNot = _ => WhyNotProfile(Session) ?? (Session.Configurations.Chosen is null ? "Nothing to profile: no executable project" : null),
             Menus = [new MenuPlace("Run", 0, 2)],
         });
         // Nothing of the folder's running, it offers the programs of the engine's running containers to choose from.
-        parts.Actions.Add(new IdeAction(AppActions.AttachProfiler, "Attach Profiler to Running Program", "Run", context => _ = AttachReportingAsync())
+        parts.Actions.Add(new IdeAction(AppActions.AttachProfiler, "Attach Profiler to Running Program", "Run", context => IdeErrors.Observe(AttachReportingAsync()))
         {
             WhyNot = _ => Busy(Session),
             Menus = [new MenuPlace("Run", 3, 0)],
@@ -93,7 +93,7 @@ public sealed class ProfilerCommands
     private ProfilerView Make()
     {
         ProfilerView made = view = new ProfilerView();
-        made.StopRequested += (_, _) => _ = SnapshotAsync();
+        made.StopRequested += (_, _) => IdeErrors.Observe(SnapshotAsync());
         made.KillRequested += (_, _) =>
         {
             if (starting is { } start)
@@ -105,16 +105,16 @@ public sealed class ProfilerCommands
                 Session.Profiled?.Run.Kill();
             }
         };
-        made.OpenRequested += (_, method) => _ = OpenMethodAsync(method);
+        made.OpenRequested += (_, method) => IdeErrors.Observe(OpenMethodAsync(method));
         made.FramesPage.ControlOpened += (_, control) => OpenControl(control);
-        made.OpenSnapshotRequested += (_, _) => _ = PickSnapshotAsync();
-        made.OpenKeptRequested += (_, path) => _ = OpenSnapshotAsync(path);
+        made.OpenSnapshotRequested += (_, _) => IdeErrors.Observe(PickSnapshotAsync());
+        made.OpenKeptRequested += (_, path) => IdeErrors.Observe(OpenSnapshotAsync(path));
         made.RevealSnapshotsRequested += (_, _) =>
         {
             Directory.CreateDirectory(SnapshotFolder);
             parts.ShowInFileManager(SnapshotFolder);
         };
-        made.MemoryRequested += (_, _) => _ = MemorySnapshotAsync();
+        made.MemoryRequested += (_, _) => IdeErrors.Observe(MemorySnapshotAsync());
         if (listed is ({ } folder, { } files))
         {
             made.ShowKept(folder, files);

@@ -93,7 +93,7 @@ public sealed class CommitView : DockPanel, IOwnKeys
             ListMenus.Item("Resolve Conflicts…", null, () => ResolveRequested?.Invoke(this, EventArgs.Empty)),
             ListMenus.Item("Jump to Source", "F4", () => OpenRequested?.Invoke(this, chosen.Change.Path)),
             new Separator(),
-            ListMenus.Item("Copy Path", null, () => _ = ListMenus.CopyAsync(this, chosen.Change.Path)),
+            ListMenus.Item("Copy Path", null, () => IdeErrors.Observe(ListMenus.CopyAsync(this, chosen.Change.Path))),
         ] :
         [
             ListMenus.Item("Show Diff", "Enter", () => DiffRequested?.Invoke(this, chosen.Change.Path)),
@@ -103,7 +103,7 @@ public sealed class CommitView : DockPanel, IOwnKeys
             ListMenus.Item("Delete…", null, () => DeleteRequested?.Invoke(this, chosen.Change.Path), chosen.Change.Kind is not ChangeKind.Deleted),
             ListMenus.Item("Add to .gitignore", null, () => IgnoreRequested?.Invoke(this, chosen.Change.Path), chosen.Change.Kind is ChangeKind.Unversioned),
             new Separator(),
-            ListMenus.Item("Copy Path", null, () => _ = ListMenus.CopyAsync(this, chosen.Change.Path)),
+            ListMenus.Item("Copy Path", null, () => IdeErrors.Observe(ListMenus.CopyAsync(this, chosen.Change.Path))),
         ]);
         // Double-click shows the diff and F4 the file.
         list.DoubleTapped += (_, _) =>
@@ -168,9 +168,9 @@ public sealed class CommitView : DockPanel, IOwnKeys
             }
         }, RoutingStrategies.Tunnel);
         commit = new Button { Content = "Commit", Classes = { "primary" } };
-        commit.Click += (_, _) => _ = CommitAsync(push: false);
+        commit.Click += (_, _) => IdeErrors.Observe(CommitAsync(push: false));
         commitAndPush = new Button { Content = "Commit and Push…" };
-        commitAndPush.Click += (_, _) => _ = CommitAsync(push: true);
+        commitAndPush.Click += (_, _) => IdeErrors.Observe(CommitAsync(push: true));
         StackPanel buttons = new()
         {
             Orientation = Orientation.Horizontal,
@@ -194,7 +194,7 @@ public sealed class CommitView : DockPanel, IOwnKeys
             VerticalAlignment = VerticalAlignment.Center,
             Children =
             {
-                ToolButtons.Of("Icon.Rerun", "Refresh", () => _ = vcs.RefreshAsync()),
+                ToolButtons.Of("Icon.Rerun", "Refresh", () => IdeErrors.Observe(vcs.RefreshAsync())),
                 ToolButtons.Of("Icon.Rollback", "Rollback", () => RollbackRequested?.Invoke(this, ChosenOrSelected())),
                 ToolButtons.Of(AppActions.ShowDiff, "Icon.Diff", "Show Diff", _ =>
                 {

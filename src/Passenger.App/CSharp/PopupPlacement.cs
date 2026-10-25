@@ -116,7 +116,7 @@ internal sealed class PopupPlacement
         modal = popup;
         layer.Children.Add(popup);
         Place(popup, offset, above: false);
-        popup.Done += (_, choice) => _ = Carried(what, () => done(choice));
+        popup.Done += (_, choice) => IdeErrors.Observe(Carried(what, () => done(choice)));
     }
 
     public void ShowModal(RenameBox box, int offset, Func<string?, Task> done)
@@ -125,7 +125,7 @@ internal sealed class PopupPlacement
         modal = box;
         layer.Children.Add(box);
         Place(box, offset, above: true);
-        box.Done += (_, name) => _ = Carried("Rename", () => done(name));
+        box.Done += (_, name) => IdeErrors.Observe(Carried("Rename", () => done(name)));
     }
 
     /// <summary>What a modal's answer does (a fix chosen, a new name), carried out as background work. A failure of the

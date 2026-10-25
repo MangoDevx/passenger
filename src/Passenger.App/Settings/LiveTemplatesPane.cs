@@ -67,14 +67,14 @@ public sealed class LiveTemplatesPane : DockPanel
         AvailabilityText = new TextBlock { VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
         AvailabilityButton = new Button { Content = "…", Padding = new Thickness(8, 1), Margin = new Thickness(8, 0, 0, 0) };
         ToolTip.SetTip(AvailabilityButton, "Availability configuration");
-        AvailabilityButton.Click += (_, _) => _ = ConfigureAvailability();
+        AvailabilityButton.Click += (_, _) => IdeErrors.Observe(ConfigureAvailability());
         GenerationButton = Use("Generation", TemplateUse.Generation);
         SurroundButton = Use("Surround", TemplateUse.Surround);
         BothButton = Use("Both", TemplateUse.Both);
         MnemonicBox = new TextBox { Classes = { "search" }, Width = 44 };
         MnemonicBox.TextChanged += (_, _) => Mnemonic();
         EditVariablesButton = new Button { Content = "Edit variables" };
-        EditVariablesButton.Click += (_, _) => _ = EditVariables();
+        EditVariablesButton.Click += (_, _) => IdeErrors.Observe(EditVariables());
         TextBox = new TextBox
         {
             AcceptsReturn = true,

@@ -206,12 +206,12 @@ public sealed class BranchesPanel : DockPanel
         }
         if (!isCurrent)
         {
-            Add("Checkout", () => _ = vcs.CheckoutRefAsync(branch, Branches));
+            Add("Checkout", () => IdeErrors.Observe(vcs.CheckoutRefAsync(branch, Branches)));
         }
         Add($"New Branch from {it}…", () => NewBranchRequested?.Invoke(this, branch));
         if (branch.Kind == RefKind.Local && !isCurrent)
         {
-            Add(current is null ? "Checkout and Rebase onto Current" : $"Checkout and Rebase onto {here}", () => _ = vcs.CheckoutAndRebaseAsync(branch), current is not null);
+            Add(current is null ? "Checkout and Rebase onto Current" : $"Checkout and Rebase onto {here}", () => IdeErrors.Observe(vcs.CheckoutAndRebaseAsync(branch)), current is not null);
         }
         Separate();
         if (!isCurrent)
@@ -222,17 +222,17 @@ public sealed class BranchesPanel : DockPanel
         Separate();
         if (!isCurrent && branch.Kind != RefKind.Tag)
         {
-            Add(current is null ? "Rebase Current onto Selected" : $"Rebase {here} onto {it}", () => _ = vcs.RebaseOntoAsync(branch), current is not null);
+            Add(current is null ? "Rebase Current onto Selected" : $"Rebase {here} onto {it}", () => IdeErrors.Observe(vcs.RebaseOntoAsync(branch)), current is not null);
         }
         if (!isCurrent)
         {
-            Add(current is null ? "Merge into Current" : $"Merge {it} into {here}", () => _ = vcs.MergeAsync(branch));
+            Add(current is null ? "Merge into Current" : $"Merge {it} into {here}", () => IdeErrors.Observe(vcs.MergeAsync(branch)));
         }
         Separate();
         if (branch.Kind == RefKind.Local)
         {
-            Add("Update", () => _ = vcs.UpdateBranchAsync(branch), isCurrent || branch.UpstreamRemote is not null);
-            Add("Push…", () => _ = vcs.PushBranchAsync(branch));
+            Add("Update", () => IdeErrors.Observe(vcs.UpdateBranchAsync(branch)), isCurrent || branch.UpstreamRemote is not null);
+            Add("Push…", () => IdeErrors.Observe(vcs.PushBranchAsync(branch)));
             Separate();
             Add("Rename…", () => RenameRequested?.Invoke(this, branch));
         }
