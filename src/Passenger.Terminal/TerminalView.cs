@@ -76,9 +76,9 @@ public sealed class TerminalView : Control
         bool mac = OperatingSystem.IsMacOS();
         KeyModifiers clipboard = mac ? KeyModifiers.Meta : KeyModifiers.Control | KeyModifiers.Shift;
         MenuItem copy = new() { Header = "Copy", InputGesture = new KeyGesture(Key.C, clipboard) };
-        copy.Click += (_, _) => _ = CopyAsync();
+        copy.Click += (_, _) => Core.UnawaitedWork.Observe(CopyAsync());
         MenuItem paste = new() { Header = "Paste", InputGesture = new KeyGesture(Key.V, clipboard) };
-        paste.Click += (_, _) => _ = PasteAsync();
+        paste.Click += (_, _) => Core.UnawaitedWork.Observe(PasteAsync());
         MenuItem clear = new() { Header = "Clear Buffer", InputGesture = mac ? new KeyGesture(Key.K, KeyModifiers.Meta) : null };
         clear.Click += (_, _) => ClearBuffer();
         ContextMenu menu = new() { Items = { copy, paste, new Separator(), clear } };
@@ -904,14 +904,14 @@ public sealed class TerminalView : Control
         if ((mac && mods == KeyModifiers.Meta && e.Key == Key.C) || (!mac && mods == (KeyModifiers.Control | KeyModifiers.Shift) && e.Key == Key.C)
             || (!mac && mods == KeyModifiers.Control && e.Key == Key.C && SelectedText.Length > 0))
         {
-            _ = CopyAsync();
+            Core.UnawaitedWork.Observe(CopyAsync());
             e.Handled = true;
             return;
         }
         if ((mac && mods == KeyModifiers.Meta && e.Key == Key.V) || (!mac && mods == (KeyModifiers.Control | KeyModifiers.Shift) && e.Key == Key.V)
             || (mods == KeyModifiers.Shift && e.Key == Key.Insert))
         {
-            _ = PasteAsync();
+            Core.UnawaitedWork.Observe(PasteAsync());
             e.Handled = true;
             return;
         }

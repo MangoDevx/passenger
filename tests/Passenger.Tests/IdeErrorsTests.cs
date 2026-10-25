@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -179,6 +180,37 @@ public sealed class IdeErrorsTests : IDisposable
         // Thrown on purpose: the check that fails a test over a caught error is not to see it.
         IdeErrors.Clear();
         window.Close();
+    }
+
+    /// <summary>A lambda whose body is a bare discard of the work it starts: a handler, menu item, action or callback.
+    /// A member's own body (a method that starts its work and returns) is its callers' to say.</summary>
+    [AvaloniaFact]
+    public void No_handler_action_or_callback_leaves_a_fault_in_the_work_it_starts_for_the_garbage_collector_to_find()
+    {
+        Regex discarded = new(@"=>\s*_ = (?![a-z]+\.Exception\b)");
+        Regex member = new(@"^\s*(public|private|internal|protected)\b");
+        string root = Passenger.Tests.Debugging.Helpers.Debuggees.Root;
+        List<string> found = [];
+        foreach (string file in Directory.EnumerateFiles(Path.Combine(root, "src"), "*.cs", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
+        {
+            string relative = Path.GetRelativePath(root, file).Replace('\\', '/');
+            if (relative.Contains("/obj/", StringComparison.Ordinal) || relative.Contains("/bin/", StringComparison.Ordinal))
+            {
+                continue;
+            }
+            string text = File.ReadAllText(file);
+            foreach (Match match in discarded.Matches(text))
+            {
+                int start = text.LastIndexOf('\n', match.Index) + 1;
+                string line = text[start..text.IndexOf('\n', match.Index)];
+                if (!member.IsMatch(line))
+                {
+                    found.Add($"{relative}:{text.AsSpan(0, match.Index).Count('\n') + 1}: {line.Trim()}");
+                }
+            }
+        }
+        Assert.True(found.Count == 0, $"Work started with a bare discard reports its fault only once the task is collected, which may be never; "
+            + $"give it to IdeErrors.Observe (Core.UnawaitedWork.Observe below the app):\n{string.Join('\n', found)}");
     }
 
     [AvaloniaFact]
