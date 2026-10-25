@@ -8,6 +8,7 @@ using Avalonia.Media;
 using Passenger.App.State;
 using Passenger.App.Vcs;
 using Passenger.Editor;
+using Passenger.Vcs;
 
 namespace Passenger.App.ToolWindows;
 

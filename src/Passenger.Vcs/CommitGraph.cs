@@ -1,4 +1,4 @@
-namespace Passenger.App.Vcs;
+namespace Passenger.Vcs;
 
 /// <summary>A row of the log's graph: the commit, the lane its dot is in, the commit each lane waits for just above the
 /// row and just below it (null for an empty lane), from which the lines through the row are drawn, and the commits its

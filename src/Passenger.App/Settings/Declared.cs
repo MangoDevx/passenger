@@ -1,3 +1,4 @@
+using Passenger.Vcs;
 using Passenger.Xaml.Features;
 using D = Passenger.App.Settings.SettingsDialog;
 
@@ -253,7 +254,7 @@ public static class Declared
 
     public static readonly ChoiceSetting<Passenger.Editor.KeymapPreset> Keymap = new(s => s.Keymap, (s, v) => s with { Keymap = v });
 
-    public static readonly ChoiceSetting<Vcs.DiffHighlighting> DiffHighlighting = new(s => s.DiffHighlighting, (s, v) => s with { DiffHighlighting = v });
+    public static readonly ChoiceSetting<DiffHighlighting> DiffHighlighting = new(s => s.DiffHighlighting, (s, v) => s with { DiffHighlighting = v });
 
     /// <summary>An enum's values with the names Settings gives them, in the enum's order.</summary>
     private static (T Value, string Name)[] Named<T>(string[] names) where T : struct, Enum => [.. Enum.GetValues<T>().Zip(names)];

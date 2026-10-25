@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
+using Passenger.Vcs;
 
 namespace Passenger.App.Vcs;
 

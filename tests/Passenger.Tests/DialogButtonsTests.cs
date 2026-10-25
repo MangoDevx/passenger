@@ -10,7 +10,6 @@ using Passenger.App.Debugging;
 using Passenger.App.Run;
 using Passenger.App.Settings;
 using Passenger.App.Templates;
-using Passenger.App.Vcs;
 
 namespace Passenger.Tests;
 

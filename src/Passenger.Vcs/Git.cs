@@ -3,7 +3,7 @@ using System.Text;
 using Passenger.Core;
 using Passenger.Text;
 
-namespace Passenger.App.Vcs;
+namespace Passenger.Vcs;
 
 /// <summary>How a file differs from the last commit.</summary>
 public enum ChangeKind

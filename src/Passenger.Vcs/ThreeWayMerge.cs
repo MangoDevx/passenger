@@ -1,7 +1,7 @@
 using System.Text;
 using Passenger.Text;
 
-namespace Passenger.App.Vcs;
+namespace Passenger.Vcs;
 
 /// <summary>One change of a three-way merge: a stretch of the base's lines and what each side has there, lines from
 /// zero, ends exclusive. A side that left the stretch as the base has it has no change there; a stretch both sides changed

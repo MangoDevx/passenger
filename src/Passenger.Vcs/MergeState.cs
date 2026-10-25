@@ -1,4 +1,4 @@
-namespace Passenger.App.Vcs;
+namespace Passenger.Vcs;
 
 /// <summary>What git is in the middle of, stopped for its conflicts.</summary>
 public enum MergeOperation

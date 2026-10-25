@@ -10,6 +10,7 @@ using Passenger.App.Vcs;
 using Passenger.Core;
 using Passenger.Editor;
 using Passenger.Text;
+using Passenger.Vcs;
 
 namespace Passenger.Tests;
 
@@ -1018,7 +1019,7 @@ public sealed class VcsTests : IDisposable
         Ui.Landed(() => !window.Vcs.IsBusy, "the revert's end");
 
         Ui.Landed(() => log.Rows.Any(r => r.Commit.Subject == "First"), "the first commit in the log");
-        Passenger.App.Vcs.CommitInfo first = log.Rows.First(r => r.Commit.Subject == "First").Commit;
+        CommitInfo first = log.Rows.First(r => r.Commit.Subject == "First").Commit;
         log.Select(first);
         Ui.ChooseFromMenu(commits, "Copy Revision Number");
         Ui.WaitFor(() => Ui.Clipboard(window) == first.Hash, "the hash on the clipboard");

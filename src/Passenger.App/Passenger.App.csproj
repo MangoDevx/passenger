@@ -56,6 +56,7 @@
     <ProjectReference Include="../Passenger.Lsp/Passenger.Lsp.csproj" />
     <ProjectReference Include="../Passenger.Text/Passenger.Text.csproj" />
     <ProjectReference Include="../Passenger.Terminal/Passenger.Terminal.csproj" />
+    <ProjectReference Include="../Passenger.Vcs/Passenger.Vcs.csproj" />
     <ProjectReference Include="../Passenger.Xaml/Passenger.Xaml.csproj" />
     <ProjectReference Include="../Passenger.Profiler/Passenger.Profiler.csproj" />
     <ProjectReference Include="../Passenger.Dap/Passenger.Dap.csproj" />

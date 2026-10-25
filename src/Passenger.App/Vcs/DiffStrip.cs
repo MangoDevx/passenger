@@ -4,6 +4,7 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Passenger.Editor;
 using Passenger.Text;
+using Passenger.Vcs;
 
 namespace Passenger.App.Vcs;
 

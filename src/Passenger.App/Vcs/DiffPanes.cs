@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Passenger.App.Workspace;
 using Passenger.Editor;
 using Passenger.Text;
+using Passenger.Vcs;
 
 namespace Passenger.App.Vcs;
 

@@ -1,6 +1,6 @@
 using Passenger.Text;
 
-namespace Passenger.App.Vcs;
+namespace Passenger.Vcs;
 
 /// <summary>How a diff marks the differences inside changed lines (Highlighting Differences): none (the lines alone),
 /// the words or the characters that changed, or no highlighting at all.</summary>

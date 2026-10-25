@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using Passenger.App.State;
+using Passenger.Vcs;
 
 namespace Passenger.App.Settings;
 
@@ -282,7 +283,7 @@ public sealed record AppSettings : IStateDocument<AppSettings>
 
     /// <summary>The diff's Highlighting Differences: the words that changed inside changed lines marked, at first; the
     /// diff's Settings changes it for every diff after.</summary>
-    public Vcs.DiffHighlighting DiffHighlighting { get; init; } = Vcs.DiffHighlighting.Words;
+    public DiffHighlighting DiffHighlighting { get; init; } = DiffHighlighting.Words;
 
     /// <summary>Highlight Words in a change bar's popup: the words that changed marked in what the lines were and in
     /// the file while the popup is open; the popup's toggle changes it.</summary>
