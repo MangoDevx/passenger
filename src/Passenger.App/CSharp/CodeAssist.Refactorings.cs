@@ -22,16 +22,16 @@ public sealed partial class CodeAssist
     /// <summary>The server makes a field only of a constant (its Introduce constant, whose nested choices include a
     /// local constant) or of a field initializer's value; of anything else, a local.</summary>
     public static readonly ServerRefactoring IntroduceField = new("Introduce Field",
-        a => a.Title.StartsWith("Introduce field", StringComparison.Ordinal) || a.Title.StartsWith("Introduce constant", StringComparison.Ordinal),
+        a => a.Title.StartsWith(RoslynNames.IntroduceField, StringComparison.Ordinal) || a.Title.StartsWith(RoslynNames.IntroduceConstant, StringComparison.Ordinal),
         "the C# language server makes a field only of a constant expression",
-        c => !c.Text.Contains("local", StringComparison.OrdinalIgnoreCase));
+        c => !c.Text.Contains(RoslynNames.Local, StringComparison.OrdinalIgnoreCase));
 
     public static readonly ServerRefactoring IntroduceParameter = new("Introduce Parameter",
-        a => a.Title.StartsWith("Introduce parameter", StringComparison.Ordinal),
+        a => a.Title.StartsWith(RoslynNames.IntroduceParameter, StringComparison.Ordinal),
         "choose an expression in a method's body that uses none of its locals");
 
     public static readonly ServerRefactoring EncapsulateField = new("Encapsulate Field",
-        a => a.Title.StartsWith("Encapsulate field", StringComparison.Ordinal),
+        a => a.Title.StartsWith(RoslynNames.EncapsulateField, StringComparison.Ordinal),
         "put the caret on a field's declaration");
 
     /// <summary>A refactoring the server offers under its own words, over the selection: its one action carried out, or
@@ -44,7 +44,7 @@ public sealed partial class CodeAssist
         {
             return;
         }
-        BackgroundWork.Begin();
+        using IDisposable held = BackgroundWork.Scope();
         try
         {
             Selection primary = Editor.Selections.Primary;
@@ -68,10 +68,6 @@ public sealed partial class CodeAssist
         {
             Failed(name, failed);
         }
-        finally
-        {
-            BackgroundWork.End();
-        }
     }
 
     /// <summary>The server's actions that are a refactoring over a range of a file, those it would not let run left
@@ -86,7 +82,7 @@ public sealed partial class CodeAssist
 
     private async Task OptimizeUsings()
     {
-        BackgroundWork.Begin();
+        using IDisposable held = BackgroundWork.Scope();
         try
         {
             if (Ask("Optimize Imports") is not { } lsp || editors.Active is not { } document)
@@ -99,10 +95,6 @@ public sealed partial class CodeAssist
         catch (LanguageServerFailed failed)
         {
             Failed("Optimize Imports", failed);
-        }
-        finally
-        {
-            BackgroundWork.End();
         }
     }
 
@@ -121,16 +113,16 @@ public sealed partial class CodeAssist
     {
         // Asked of the server now rather than read from the diagnostics shown, which a file just opened has yet to get.
         (IReadOnlyList<Diagnostic> found, _) = await lsp.DiagnosticsAsync();
-        List<Diagnostic> unused = [.. found.Where(d => d.Code is { ValueKind: System.Text.Json.JsonValueKind.String } code && code.GetString() == "IDE0005")];
+        List<Diagnostic> unused = [.. found.Where(d => d.Code is { ValueKind: System.Text.Json.JsonValueKind.String } code && code.GetString() == RoslynNames.UnnecessaryUsing)];
         bool removed = unused.Count > 0
-            && await ApplyNamed(lsp, document, LineRange(document.Text.Snapshot, document.Text.Snapshot.GetLineFromOffset(lsp.OffsetOf(unused[0].Range.Start))), unused, "Remove unnecessary usings");
+            && await ApplyNamed(lsp, document, LineRange(document.Text.Snapshot, document.Text.Snapshot.GetLineFromOffset(lsp.OffsetOf(unused[0].Range.Start))), unused, RoslynNames.RemoveUnnecessaryUsings);
         TextSnapshot text = document.Text.Snapshot;
         int usingLine = Enumerable.Range(0, text.LineCount).FirstOrDefault(l => text.GetLineText(l).TrimStart().StartsWith("using ", StringComparison.Ordinal) && text.GetLineText(l).TrimEnd().EndsWith(';'), -1);
         bool sorted = false;
         if (usingLine >= 0)
         {
             string before = text.ToString();
-            sorted = await ApplyNamed(lsp, document, LineRange(text, usingLine), [], "Sort Usings") && document.Text.Snapshot.ToString() != before;
+            sorted = await ApplyNamed(lsp, document, LineRange(text, usingLine), [], RoslynNames.SortUsings) && document.Text.Snapshot.ToString() != before;
         }
         return (removed, sorted);
     }
@@ -153,23 +145,21 @@ public sealed partial class CodeAssist
         }
         int caret = Caret;
         Doomed? doomed;
-        BackgroundWork.Begin();
-        try
+        using (BackgroundWork.Scope())
         {
-            (doomed, string? whyNot) = await FindDoomedAsync(lsp, caret);
-            if (whyNot is not null)
+            try
             {
-                Message?.Invoke(this, whyNot);
+                (doomed, string? whyNot) = await FindDoomedAsync(lsp, caret);
+                if (whyNot is not null)
+                {
+                    Message?.Invoke(this, whyNot);
+                }
             }
-        }
-        catch (LanguageServerFailed failed)
-        {
-            Failed("Safe Delete", failed);
-            return;
-        }
-        finally
-        {
-            BackgroundWork.End();
+            catch (LanguageServerFailed failed)
+            {
+                Failed("Safe Delete", failed);
+                return;
+            }
         }
         if (doomed is null)
         {

@@ -390,27 +390,23 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
             Editors.SaveAll();
             return $"{made.Said}: {string.Join(", ", made.Files.Select(f => Relative(f.Path)).Distinct())}";
         }
-        (string Type, IReadOnlyList<string> Files)? named = server.Web is null && Session.CSharp?.Session?.Folder is { } folder
+        (string Type, IReadOnlyList<string> Files)? named = renameFiles && server.Web is null && Session.CSharp?.Session?.Folder is { } folder
             ? await TypeRename.NamedAsync(Editors, folder, lsp, offset) : null;
-        // The open files as the request went: what is typed meanwhile carries the answer on.
-        using Asked asked = WorkspaceEdits.Track(Editors);
-        if (await lsp.RenameAsync(offset, newName) is not { } edit)
+        RefactorOutcome renaming = await window.Assist.RenameSymbolAsync(served.Document, offset, newName, named?.Files ?? [], patience);
+        if (renaming.Problem is { } notRenamed)
         {
-            return "This can't be renamed";
+            throw new InvalidOperationException(notRenamed);
         }
-        if (await WorkspaceEdits.StaleAsync(Editors, lsp, edit, asked.Since, patience) is { } stale)
+        if (renaming.Files.Count == 0 && renaming.Left.Count == 0)
         {
-            throw new InvalidOperationException($"Nothing was renamed: {stale}");
+            return renaming.Said;
         }
-        List<(string From, string To)> moves = renameFiles && named is { } type ? [.. type.Files.Select(f => (f, TypeRename.Renamed(f, newName)))] : [];
-        List<string> dropped = [];
-        TypeRename.Apply(Editors, edit, moves, $"Rename {named?.Type ?? "symbol"} to {newName}", asked, dropped);
         Editors.SaveAll();
-        IReadOnlyList<string> files = [.. Shapes.WorkspaceEdit(edit).Select(f => DocumentUris.ToPath(f.Uri)).Distinct()
-            .Where(f => !dropped.Contains(Path.GetFileName(f)))];
-        string renamed = moves.Count > 0 ? $"; renamed {string.Join(", ", moves.Select(m => $"{Relative(m.From)} to {Relative(m.To)}"))}" : string.Empty;
-        string unrenamed = dropped.Count > 0 ? $"; not in {string.Join(", ", dropped)}, edited meanwhile" : string.Empty;
-        return $"Renamed in {Plural.Of(files.Count, "file")}: {string.Join(", ", files.Select(Relative))}{renamed}{unrenamed}";
+        List<string> changed = [.. renaming.Files.Where(f => f.Change == "changed").Select(f => Relative(f.Path))];
+        List<string> moved = [.. renaming.Files.Where(f => f.Change == "moved").Select(f => $"{Relative(f.Path)} to {Relative(f.To!)}")];
+        string renamed = moved.Count > 0 ? $"; renamed {string.Join(", ", moved)}" : string.Empty;
+        string unrenamed = renaming.Left.Count > 0 ? $"; not in {string.Join(", ", renaming.Left)}, edited meanwhile" : string.Empty;
+        return $"Renamed in {Plural.Of(changed.Count, "file")}: {string.Join(", ", changed)}{renamed}{unrenamed}";
     }, cancel));
 
     [McpServerTool(Name = "code_actions", Title = "Fixes and refactorings", ReadOnly = true), Description(
@@ -520,50 +516,46 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         "Prettier where it formats it, else the language server. MSBuild files have none.")]
     public Task<string> Format(string path, CancellationToken cancel = default) => OnUi(cancel, async () =>
     {
+        OpenDocument document;
+        LspDocument? lsp = null;
         if (Passenger.App.Xaml.XamlService.IsXaml(Resolve(path)))
         {
-            return await FormatXamlAsync(await DocumentAsync(path, cancel));
+            document = await DocumentAsync(path, cancel);
         }
-        Served file = await Serve(path, cancel);
-        ServerServed served = file as ServerServed ?? throw Lacks(file, "Reformat Code", MSBuildHas);
-        if (served.Web is not null && await Prettify(served) is { } prettified)
+        else
         {
-            return prettified;
+            Served file = await Serve(path, cancel);
+            ServerServed served = file as ServerServed ?? throw Lacks(file, "Reformat Code", MSBuildHas);
+            (document, lsp) = (served.Document, served.Lsp);
         }
-        (OpenDocument document, LspDocument lsp) = (served.Document, served.Lsp);
         window.OpenFile(document.Path);
-        using Passenger.Text.ChangeTracker asked = new(document.Text);
-        IReadOnlyList<LspTextEdit> edits = await lsp.FormatAsync(document.Indentation.Options);
-        if (WorkspaceEdits.Carried(asked, edits, document.Indentation.Options) is not { } placed)
-        {
-            return "Not reformatted: the file was edited while the language server worked on it";
-        }
-        WorkspaceEdits.ApplyTo(Editors, document, placed);
-        document.Save();
-        return edits.Count == 0 ? "Already formatted" : $"Reformatted ({edits.Count} edits)";
+        CodeAssist.Reformatted done = await window.Assist.ReformatAsync(document, null, () => lsp)
+            ?? throw new InvalidOperationException($"Reformat Code was not applied: {Relative(document.Path)} was closed as it was reformatted");
+        return Saved(done, document);
     });
 
-    /// <summary>A XAML file reformatted, saved: Passenger's own layout, by the window's XAML code style with the file's
-    /// .editorconfig over it, which is Code Cleanup's in XAML too.</summary>
-    private async Task<string> FormatXamlAsync(OpenDocument markup)
+    /// <summary>A XAML file reformatted as the window's Reformat Code and Code Cleanup reformat it, then saved.</summary>
+    private async Task<CodeAssist.Reformatted> FormatXamlAsync(OpenDocument markup, string what)
     {
         window.OpenFile(markup.Path);
-        using Passenger.Text.ChangeTracker tracked = new(markup.Text);
-        Passenger.Xaml.Features.XamlFormatted formatted = await CodeAssist.FormatXamlAsync(markup, window.Settings.XamlFormat);
-        if (formatted.Problem is { } problem)
+        CodeAssist.Reformatted done = await window.Assist.ReformatXamlAsync(markup, null, what);
+        _ = Saved(done, markup);
+        return done;
+    }
+
+    /// <summary>What a reformat came to, as an agent is told it, the file saved once it is applied and the file holds
+    /// what is not saved; one not applied refused, saying why.</summary>
+    private static string Saved(CodeAssist.Reformatted done, OpenDocument document)
+    {
+        if (!done.Applied)
         {
-            return $"Not reformatted: {problem}";
+            throw new InvalidOperationException(done.Said);
         }
-        if (tracked.Map(formatted.Edits) is not { } laid)
+        if (document.IsModified)
         {
-            return "Not reformatted: the file was edited meanwhile";
+            document.Save();
         }
-        if (laid.Count > 0)
-        {
-            WorkspaceEdits.ApplyTo(Editors, markup, laid);
-            markup.Save();
-        }
-        return laid.Count == 0 ? "Already formatted" : $"Reformatted ({laid.Count} edits)";
+        return done.Said;
     }
 
     [McpServerTool(Name = "find_symbol", Title = "Go to symbol", ReadOnly = true), Description(

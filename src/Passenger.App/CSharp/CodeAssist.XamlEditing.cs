@@ -37,30 +37,26 @@ public sealed partial class CodeAssist
         });
     }
 
-    /// <summary>Reformat Code on a XAML file, the selection's lines alone when there is one, as one undo step; whether it
-    /// changed the file, null when it could not (said in the status bar).</summary>
-    private async Task<bool?> ReformatXaml(OpenDocument document, string what)
+    /// <summary>A XAML file reformatted by Passenger's own layout, only <paramref name="within"/> when given, as one
+    /// undoable edit: what came of it.</summary>
+    internal async Task<Reformatted> ReformatXamlAsync(OpenDocument document, TextRange? within, string what)
     {
         using ChangeTracker asked = new(document.Text);
-        Selection selection = Editor.Selections.Primary;
-        TextRange? within = editors.Active == document && !selection.IsEmpty ? selection.Range : null;
         XamlFormatted formatted = await FormatXamlAsync(document, XamlFormat, within);
         if (formatted.Problem is { } problem)
         {
-            Message?.Invoke(this, $"{what} was not applied: {problem}");
-            return null;
+            return new Reformatted(false, false, $"{what} was not applied: {problem}");
         }
         if (formatted.Edits.Count == 0 || !editors.Documents.Contains(document))
         {
-            return false;
+            return new Reformatted(true, false, "Already formatted");
         }
         if (asked.Map(formatted.Edits) is not { } edits)
         {
-            Message?.Invoke(this, $"{what} was not applied: the code it changes was edited meanwhile");
-            return null;
+            return new Reformatted(false, false, $"{what} was not applied: the code it changes was edited meanwhile");
         }
         WorkspaceEdits.ApplyTo(editors, document, edits);
-        return true;
+        return new Reformatted(true, true, "Reformatted");
     }
 
     /// <summary>Extract Resource (Extract XAML Resource): the value at the caret to a keyed resource, through its
@@ -70,8 +66,7 @@ public sealed partial class CodeAssist
         const string name = "Extract Resource";
         ExtractResourceDialog? dialog = null;
         // Held until the dialog shows, which then waits for the person.
-        BackgroundWork.Begin();
-        try
+        using (BackgroundWork.Scope())
         {
             if (await XamlAtCaret(name) is not ({ } file, int caret))
             {
@@ -96,10 +91,6 @@ public sealed partial class CodeAssist
                 return Task.FromResult(refused);
             });
         }
-        finally
-        {
-            BackgroundWork.End();
-        }
         if (dialog is not null)
         {
             await ShowAsync(dialog);
@@ -112,8 +103,7 @@ public sealed partial class CodeAssist
     {
         const string name = "Extract Style";
         ExtractStyleDialog? dialog = null;
-        BackgroundWork.Begin();
-        try
+        using (BackgroundWork.Scope())
         {
             if (await XamlAtCaret(name) is not ({ } file, int caret))
             {
@@ -136,10 +126,6 @@ public sealed partial class CodeAssist
                 }
                 return Task.FromResult(refused);
             });
-        }
-        finally
-        {
-            BackgroundWork.End();
         }
         if (dialog is not null)
         {

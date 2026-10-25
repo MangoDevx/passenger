@@ -362,9 +362,8 @@ public sealed partial class PassengerTools
                 {
                     return new RefactorAnswer(kind, $"Code Cleanup would reformat {Relative(markup.Path)}", [], []);
                 }
-                string formatted = await FormatXamlAsync(markup);
-                return formatted.StartsWith("Not reformatted", StringComparison.Ordinal) ? throw new InvalidOperationException(formatted)
-                    : new RefactorAnswer(kind, formatted, formatted == "Already formatted" ? [] : [new RefactorFile(Relative(markup.Path), "changed", [], formatted)], []);
+                CodeAssist.Reformatted formatted = await FormatXamlAsync(markup, name);
+                return new RefactorAnswer(kind, formatted.Said, formatted.Changed ? [new RefactorFile(Relative(markup.Path), "changed", [], formatted.Said)] : [], []);
             }
             (OpenDocument document, LspDocument lsp) = await CSharpOnly(path, kind, cancel);
             if (describe)

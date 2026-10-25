@@ -262,30 +262,6 @@ public sealed partial class PassengerTools
         return $"Applied '{fix.Title}' to {Relative(web.Document.Path)}";
     }
 
-    /// <summary>Reformat Code on a web file the project's Prettier formats (Prettier's Run on 'Reformat Code' action),
-    /// saved; null for one its .prettierignore names or whose type it does not read, which the language server
-    /// formats.</summary>
-    private async Task<string?> Prettify(ServerServed web)
-    {
-        if (Session.Web is not { } languages || !languages.Prettier.OnReformat(web.Document.Path))
-        {
-            return null;
-        }
-        window.OpenFile(web.Document.Path);
-        (CodeAssist.Prettified outcome, string said) = await window.Assist.PrettifyAsync(languages, web.Document, "Reformat Code");
-        switch (outcome)
-        {
-            case CodeAssist.Prettified.Ignored or CodeAssist.Prettified.Unsupported:
-                return null;
-            case CodeAssist.Prettified.Failed:
-                throw new InvalidOperationException($"Not reformatted: {said}");
-            case CodeAssist.Prettified.Formatted:
-                web.Document.Save();
-                break;
-        }
-        return said;
-    }
-
     /// <summary>A XAML name at an offset, with the places it leads; null where there is none.</summary>
     private static async Task<XamlSymbol?> XamlSymbolAt(XamlServed xaml, int offset) =>
         await BackgroundWork.Run(() => XamlNavigation.At(xaml.File, offset)) is { Targets.Count: > 0 } symbol ? symbol : null;

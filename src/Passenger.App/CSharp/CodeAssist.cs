@@ -362,7 +362,7 @@ public sealed partial class CodeAssist
             Menus = [new("Code", 0, 1)],
         });
         // Generate: the server's actions that write code for the type (constructors, equality, members, overrides).
-        Code(AppActions.Generate, "Generate…", context => _ = ShowFixes(a => GenerateWords.Any(w => a.Title.StartsWith(w, StringComparison.Ordinal)), "Generate"),
+        Code(AppActions.Generate, "Generate…", context => _ = ShowFixes(a => RoslynNames.Generate.Any(w => a.Title.StartsWith(w, StringComparison.Ordinal)), "Generate"),
             new("Code", 0, 2));
         Code(AppActions.SurroundWith, "Surround With…", _ => ShowSurround(), new("Code", 0, 3), server: false, syntax: true, markup: true);
         // A file Prettier formats (Run on 'Reformat Code' action) needs no language server.
@@ -377,15 +377,15 @@ public sealed partial class CodeAssist
         Code(AppActions.RefactorThis, "Refactor This…", context => _ = ShowFixes(a => a.Kind?.StartsWith("refactor", StringComparison.Ordinal) == true, "Refactor This"),
             new("Refactor", 0, 0), xaml: true);
         Code(AppActions.ChangeSignature, "Change Signature…", context => _ = ChangeSignature(), new("Refactor", 1, 1));
-        Code(AppActions.ExtractMethod, "Extract Method…", context => _ = Refactor(a => a.Title == "Extract method", "Extract Method", renameMethod: true),
+        Code(AppActions.ExtractMethod, "Extract Method…", context => _ = Refactor(a => a.Title == RoslynNames.ExtractMethod, "Extract Method", renameMethod: true),
             new("Refactor", 1, 2));
         Code(AppActions.IntroduceVariable, "Introduce Variable…",
-            context => _ = Refactor(a => a.Title.StartsWith("Introduce local", StringComparison.Ordinal), "Introduce Variable", renameMethod: false), new("Refactor", 1, 3));
+            context => _ = Refactor(a => a.Title.StartsWith(RoslynNames.IntroduceLocal, StringComparison.Ordinal), "Introduce Variable", renameMethod: false), new("Refactor", 1, 3));
         Code(AppActions.IntroduceField, "Introduce Field…", context => _ = Refactor(IntroduceField), new("Refactor", 1, 4));
         Code(AppActions.IntroduceParameter, "Introduce Parameter…", context => _ = Refactor(IntroduceParameter), new("Refactor", 1, 5));
         Code(AppActions.ExtractInterface, "Extract Interface…", context => _ = ExtractInterface(), new("Refactor", 1, 6));
         Code(AppActions.Inline, "Inline…",
-            context => _ = Refactor(a => a.Kind == "refactor.inline" || a.Title.StartsWith("Inline", StringComparison.Ordinal), "Inline", renameMethod: false), new("Refactor", 1, 7));
+            context => _ = Refactor(a => a.Kind == RoslynNames.InlineKind || a.Title.StartsWith(RoslynNames.Inline, StringComparison.Ordinal), "Inline", renameMethod: false), new("Refactor", 1, 7));
         Code(AppActions.Move, "Move…", context => _ = Move(), new("Refactor", 2, 0));
         Code(AppActions.SafeDelete, "Safe Delete…", context => _ = SafeDelete(), new("Refactor", 2, 1));
         Code(AppActions.PullMembersUp, "Pull Members Up…", context => _ = MoveMembers(up: true), new("Refactor", 3, 0));
@@ -467,8 +467,6 @@ public sealed partial class CodeAssist
         : service() is null ? Refusals.NoCSharp
         : "The file is not C#";
 
-    private static readonly string[] GenerateWords = ["Generate", "Implement", "Override", "Add parameter", "Add null check", "Create and assign"];
-
     /// <summary>What the open list of choices (fixes, refactorings, definitions) offers, by its words; empty with none open.</summary>
     public IReadOnlyList<string> Offered => layer.Children.OfType<ChoicePopup>().LastOrDefault()?.Titles ?? [];
 
@@ -527,15 +525,10 @@ public sealed partial class CodeAssist
     /// after any name: a dot lists members, a bracket shows the signature.</summary>
     private async Task CommitOn(string text, int end)
     {
-        BackgroundWork.Begin();
-        try
+        using (BackgroundWork.Scope())
         {
             await CommitCore(end);
             AfterTyped(text);
-        }
-        finally
-        {
-            BackgroundWork.End();
         }
     }
 
@@ -595,14 +588,9 @@ public sealed partial class CodeAssist
 
     private async Task StartCompletion(string? trigger, bool incomplete = false)
     {
-        BackgroundWork.Begin();
-        try
+        using (BackgroundWork.Scope())
         {
             await StartCompletionCore(trigger, incomplete);
-        }
-        finally
-        {
-            BackgroundWork.End();
         }
     }
 
@@ -872,14 +860,9 @@ public sealed partial class CodeAssist
 
     private async Task Commit()
     {
-        BackgroundWork.Begin();
-        try
+        using (BackgroundWork.Scope())
         {
             await CommitCore();
-        }
-        finally
-        {
-            BackgroundWork.End();
         }
     }
 
@@ -1071,7 +1054,7 @@ public sealed partial class CodeAssist
         }
         CancellationTokenSource cancel = new();
         describing = cancel;
-        BackgroundWork.Begin();
+        using IDisposable held = BackgroundWork.Scope();
         try
         {
             await Task.Delay(TimeSpan.FromMilliseconds(120), cancel.Token);
@@ -1108,10 +1091,6 @@ public sealed partial class CodeAssist
         {
             // No card beside the list.
         }
-        finally
-        {
-            BackgroundWork.End();
-        }
     }
 
     /// <summary>A card to the right of a popup, at its top; to its left when the right has no room.</summary>
@@ -1136,14 +1115,9 @@ public sealed partial class CodeAssist
 
     private async Task ShowHover(int offset, Point point)
     {
-        BackgroundWork.Begin();
-        try
+        using (BackgroundWork.Scope())
         {
             await ShowHoverCore(offset, point);
-        }
-        finally
-        {
-            BackgroundWork.End();
         }
     }
 
@@ -1345,7 +1319,7 @@ public sealed partial class CodeAssist
             hoverCard.IsVisible = false;
             return;
         }
-        BackgroundWork.Begin();
+        using IDisposable held = BackgroundWork.Scope();
         try
         {
             string tooltip = await lsp.InlayHintTooltipAsync(server, cancel.Token);
@@ -1372,10 +1346,6 @@ public sealed partial class CodeAssist
             // A server that no longer has the hint (the file changed since) shows no card for it.
             hoverCard.IsVisible = false;
         }
-        finally
-        {
-            BackgroundWork.End();
-        }
     }
 
     private void HideHover()
@@ -1396,14 +1366,9 @@ public sealed partial class CodeAssist
 
     private async Task ShowSignature()
     {
-        BackgroundWork.Begin();
-        try
+        using (BackgroundWork.Scope())
         {
             await ShowSignatureCore();
-        }
-        finally
-        {
-            BackgroundWork.End();
         }
     }
 
@@ -1493,14 +1458,9 @@ public sealed partial class CodeAssist
 
     private async Task ShowFixes(Func<CodeAction, bool>? only = null, string title = "Fixes and refactorings")
     {
-        BackgroundWork.Begin();
-        try
+        using (BackgroundWork.Scope())
         {
             await ShowFixesCore(only, title);
-        }
-        finally
-        {
-            BackgroundWork.End();
         }
     }
 
@@ -1553,15 +1513,10 @@ public sealed partial class CodeAssist
             {
                 return;
             }
-            BackgroundWork.Begin();
-            try
+            using (BackgroundWork.Scope())
             {
                 RefactorOutcome made = await asks.Make(value, null);
                 Message?.Invoke(this, made.Problem ?? made.Said);
-            }
-            finally
-            {
-                BackgroundWork.End();
             }
         }
         catch (Exception error)
@@ -1736,7 +1691,7 @@ public sealed partial class CodeAssist
         {
             return;
         }
-        BackgroundWork.Begin();
+        using IDisposable held = BackgroundWork.Scope();
         try
         {
             Selection primary = Editor.Selections.Primary;
@@ -1763,10 +1718,6 @@ public sealed partial class CodeAssist
         catch (LanguageServerFailed failed)
         {
             Failed(name, failed);
-        }
-        finally
-        {
-            BackgroundWork.End();
         }
     }
 
@@ -1820,14 +1771,12 @@ public sealed partial class CodeAssist
         }
         TextSnapshot text = Editor.Document.Snapshot;
         int caret = Editor.Selections.Primary.Caret;
-        // A web language's names run on through its own characters: CSS's --accent, JavaScript's $el.
-        TextRange word = WebCurrent is { } web ? WebWordAt(web, caret) : TextNavigation.WordAt(text, caret);
+        TextRange word = RenamedAt(document, text, caret);
         if (word.Length == 0 || !(TextNavigation.IsWordChar(text[word.Start]) || (WebCurrent is { } named && IsWebWordChar(named, text[word.Start]))))
         {
             return;
         }
-        string old = text.GetText(word);
-        RenameBox box = new(old);
+        RenameBox box = new(text.GetText(word));
         box.RenamesFilesChanged += (_, on) => RenameSettings = RenameSettings with { RenameFiles = on };
         ChangeTracker opened = new(Editor.Document);
         ShowModal(box, word.Start, async name =>
@@ -1840,45 +1789,65 @@ public sealed partial class CodeAssist
             }
             try
             {
-                using Asked asked = WorkspaceEdits.Track(editors);
-                // Asked of the server running now: the one there as the box opened may have been started again since.
-                if (await Now(document).RenameAsync(at, name) is { } edit)
-                {
-                    if (await StaleAsync(document, edit, asked) is { } stale)
-                    {
-                        Message?.Invoke(this, $"Rename was not applied: {stale}");
-                        return;
-                    }
-                    List<string> dropped = [];
-                    List<(string From, string To)> moves = box.RenamesFiles ? [.. box.Files.Select(f => (f, TypeRename.Renamed(f, name)))] : [];
-                    int files = TypeRename.Apply(editors, edit, moves, $"Rename {old} to {name}", asked, dropped);
-                    string renamedFiles = moves.Count > 0 ? $"; {string.Join(", ", moves.Select(m => $"{Path.GetFileName(m.From)} to {Path.GetFileName(m.To)}"))}" : string.Empty;
-                    Message?.Invoke(this, dropped.Count > 0 ? $"Renamed, but not in {string.Join(", ", dropped)}: it was edited meanwhile"
-                        : (files > 1 ? $"Renamed in {files} files" : "Renamed") + renamedFiles);
-                }
-                else
-                {
-                    Message?.Invoke(this, "This can't be renamed");
-                }
+                RefactorOutcome made = await RenameSymbolAsync(document, at, name, box.RenamesFiles ? box.Files : [], null);
+                Message?.Invoke(this, made.Problem ?? made.Said);
             }
             catch (LanguageServerFailed failed)
             {
                 Failed("Rename", failed);
-            }
-            catch (WorkspaceEditFailed failed)
-            {
-                Message?.Invoke(this, $"Rename failed: {failed.Message}");
             }
         });
         modalClosed = opened.Dispose;
         _ = OfferFileRenames(box, document, word.Start);
     }
 
+    /// <summary>The name a rename at an offset of a file renames: a web language's through its own characters (CSS's
+    /// --accent, JavaScript's $el).</summary>
+    private TextRange RenamedAt(OpenDocument document, TextSnapshot text, int offset) =>
+        WebOf(document) is { } web ? WebWordAt(web, text, offset) : TextNavigation.WordAt(text, offset);
+
+    /// <summary>A name renamed through the language server at an offset of a file, with the type's files given renamed
+    /// after it, as one command of global undo: the window's Rename and an agent's alike. Why not, else the files it
+    /// changed and moved, those it left as edited meanwhile, and the status bar's words; an agent's call is told its
+    /// <paramref name="patience"/> for files the server has yet to read again.</summary>
+    internal async Task<RefactorOutcome> RenameSymbolAsync(OpenDocument document, int offset, string name, IReadOnlyList<string> typeFiles, Patience? patience)
+    {
+        TextSnapshot text = document.Text.Snapshot;
+        string old = text.GetText(RenamedAt(document, text, offset));
+        // The open files as the request went: what is typed meanwhile carries the answer on.
+        using Asked asked = WorkspaceEdits.Track(editors);
+        // Asked of the server running now: one there before may have been started again since.
+        if (await Now(document).RenameAsync(offset, name) is not { } edit)
+        {
+            return new RefactorOutcome("This can't be renamed", null, [], []);
+        }
+        if (await StaleAsync(document, edit, asked, patience) is { } stale)
+        {
+            return RefactorOutcome.Refused($"Rename was not applied: {stale}");
+        }
+        IReadOnlyList<RefactoredFile> edited = WorkspaceEdits.Files(edit, WorkspaceEdits.Answered(editors, asked));
+        List<(string From, string To)> moves = [.. typeFiles.Select(f => (From: f, To: TypeRename.Renamed(f, name))).Where(m => m.From != m.To && File.Exists(m.From))];
+        List<string> dropped = [];
+        try
+        {
+            TypeRename.Apply(editors, edit, moves, $"Rename {old} to {name}", asked, dropped);
+        }
+        catch (WorkspaceEditFailed failed)
+        {
+            return RefactorOutcome.Refused($"Rename failed: {failed.Message}");
+        }
+        List<RefactoredFile> changed = [.. edited.Where(f => !(editors.Find(f.Path) is { } open && dropped.Contains(open.Name)))];
+        string movedSaid = moves.Count > 0 ? $"; {string.Join(", ", moves.Select(m => $"{Path.GetFileName(m.From)} to {Path.GetFileName(m.To)}"))}" : string.Empty;
+        string said = dropped.Count > 0 ? $"Renamed, but not in {string.Join(", ", dropped)}: it was edited meanwhile"
+            : (changed.Count > 1 ? $"Renamed in {changed.Count} files" : "Renamed") + movedSaid;
+        return new RefactorOutcome(said, null, [.. changed, .. moves.Select(m => new RefactoredFile(m.From, "moved", [], m.To))], dropped);
+    }
+
     /// <summary>Also rename files to reflect this change, offered in the open rename box once the server says the name
     /// is a type's declared in files named after it.</summary>
     private async Task OfferFileRenames(RenameBox box, OpenDocument document, int offset)
     {
-        BackgroundWork.Begin();
+        using IDisposable held = BackgroundWork.Scope();
         try
         {
             if (WebOf(document) is null && service()?.Session?.Folder is { } folder && await TypeRename.NamedAsync(editors, folder, Now(document), offset) is { Files.Count: > 0 } named
@@ -1892,22 +1861,13 @@ public sealed partial class CodeAssist
         {
             // The rename asks the same server, and says why it could not.
         }
-        finally
-        {
-            BackgroundWork.End();
-        }
     }
 
     private async Task GoToDefinition(int offset)
     {
-        BackgroundWork.Begin();
-        try
+        using (BackgroundWork.Scope())
         {
             await GoToDefinitionCore(offset);
-        }
-        finally
-        {
-            BackgroundWork.End();
         }
     }
 
@@ -1973,14 +1933,9 @@ public sealed partial class CodeAssist
 
     private async Task GoToImplementation(int offset)
     {
-        BackgroundWork.Begin();
-        try
+        using (BackgroundWork.Scope())
         {
             await GoToImplementationCore(offset);
-        }
-        finally
-        {
-            BackgroundWork.End();
         }
     }
 
@@ -2004,7 +1959,7 @@ public sealed partial class CodeAssist
     /// symbols): straight there when it is one place, else the places to choose from; the status bar says when none.</summary>
     private async Task GoToRelated(string what, int offset, Func<LspDocument, int, Task<IReadOnlyList<Target>>> find, string none)
     {
-        BackgroundWork.Begin();
+        using IDisposable held = BackgroundWork.Scope();
         try
         {
             if (Ask(what) is { } lsp)
@@ -2022,10 +1977,6 @@ public sealed partial class CodeAssist
         catch (LanguageServerFailed failed)
         {
             Failed(what, failed);
-        }
-        finally
-        {
-            BackgroundWork.End();
         }
     }
 
@@ -2137,14 +2088,9 @@ public sealed partial class CodeAssist
 
     private async Task FindUsages(int offset)
     {
-        BackgroundWork.Begin();
-        try
+        using (BackgroundWork.Scope())
         {
             await FindUsagesCore(offset);
-        }
-        finally
-        {
-            BackgroundWork.End();
         }
     }
 
@@ -2241,44 +2187,23 @@ public sealed partial class CodeAssist
 
     private async Task Reformat()
     {
-        BackgroundWork.Begin();
-        try
+        using (BackgroundWork.Scope())
         {
             await ReformatCore();
-        }
-        finally
-        {
-            BackgroundWork.End();
         }
     }
 
     private async Task ReformatCore()
     {
-        if (editors.Active is { } shown && XamlService.IsXaml(shown.Path))
-        {
-            if (await ReformatXaml(shown, "Reformat Code") is { } changed)
-            {
-                Message?.Invoke(this, changed ? "Reformatted" : "Already formatted");
-            }
-            return;
-        }
-        // Prettier's "Run on 'Reformat Code' action": a file its .prettierignore names goes to its language server.
-        if (editors.Active is { } file && PrettierReformats(file) && Web?.Invoke() is { } web
-            && await Prettify(web, file, "Reformat Code") is not (Prettified.Ignored or Prettified.Unsupported))
-        {
-            return;
-        }
-        if (Ask("Reformat Code") is not { } lsp || editors.Active is not { } document)
+        if (editors.Active is not { } document)
         {
             return;
         }
         try
         {
-            using ChangeTracker asked = new(document.Text);
-            IReadOnlyList<LspTextEdit> edits = await lsp.FormatAsync(document.Indentation.Options);
-            if (ApplyAnswer(document, asked, edits, "Reformat Code"))
+            if (await ReformatAsync(document, Selected(document), () => Ask("Reformat Code")) is { } done)
             {
-                Message?.Invoke(this, edits.Count == 0 ? "Already formatted" : "Reformatted");
+                Message?.Invoke(this, done.Said);
             }
         }
         catch (LanguageServerFailed failed)
@@ -2287,16 +2212,63 @@ public sealed partial class CodeAssist
         }
     }
 
+    /// <summary>What Reformat Code came to: whether it was applied, whether it changed the text (not when the file was
+    /// formatted already), and what to say of it, or why it was not applied.</summary>
+    internal sealed record Reformatted(bool Applied, bool Changed, string Said);
+
+    /// <summary>Reformat Code on a file, the window's and an agent's alike, as one undoable edit: XAML by Passenger's own
+    /// layout (only <paramref name="within"/> when given), a web language by its project's Prettier where it formats it
+    /// on Reformat Code, else the language <paramref name="server"/> gives, asked for only then. Null with no server to
+    /// ask, or once the file has closed.</summary>
+    internal async Task<Reformatted?> ReformatAsync(OpenDocument document, TextRange? within, Func<LspDocument?> server)
+    {
+        const string what = "Reformat Code";
+        if (XamlService.IsXaml(document.Path))
+        {
+            return await ReformatXamlAsync(document, within, what);
+        }
+        // Prettier's "Run on 'Reformat Code' action": a file its .prettierignore names goes to its language server.
+        if (PrettierReformats(document) && Web?.Invoke() is { } web)
+        {
+            (Prettified outcome, string said) = await PrettifyAsync(web, document, what);
+            if (outcome is not (Prettified.Ignored or Prettified.Unsupported))
+            {
+                return new Reformatted(outcome != Prettified.Failed, outcome == Prettified.Formatted, said);
+            }
+        }
+        return server() is { } lsp ? await ServerFormatAsync(lsp, document, what) : null;
+    }
+
+    /// <summary>The language server's formatting of a file, carried through what was typed as it worked, applied; null
+    /// once the file has closed.</summary>
+    private async Task<Reformatted?> ServerFormatAsync(LspDocument lsp, OpenDocument document, string what)
+    {
+        using ChangeTracker asked = new(document.Text);
+        IReadOnlyList<LspTextEdit> answer = await lsp.FormatAsync(document.Indentation.Options);
+        if (!editors.Documents.Contains(document))
+        {
+            return null;
+        }
+        if (WorkspaceEdits.Carried(asked, answer, document.Indentation.Options) is not { } edits)
+        {
+            return new Reformatted(false, false, $"{what} was not applied: the code it changes was edited meanwhile");
+        }
+        if (edits.Count > 0)
+        {
+            WorkspaceEdits.ApplyTo(editors, document, edits);
+        }
+        return new Reformatted(true, edits.Count > 0, answer.Count == 0 ? "Already formatted" : "Reformatted");
+    }
+
+    /// <summary>The selection a file's reformatting keeps to: the editor's, when it shows the file and something is selected.</summary>
+    private TextRange? Selected(OpenDocument document) =>
+        editors.Active == document && !Editor.Selections.Primary.IsEmpty ? Editor.Selections.Primary.Range : null;
+
     private async Task Cleanup()
     {
-        BackgroundWork.Begin();
-        try
+        using (BackgroundWork.Scope())
         {
             await CleanupCore();
-        }
-        finally
-        {
-            BackgroundWork.End();
         }
     }
 
@@ -2307,10 +2279,8 @@ public sealed partial class CodeAssist
         // Code Cleanup on XAML reformats it, by the same code style.
         if (editors.Active is { } shown && XamlService.IsXaml(shown.Path))
         {
-            if (await ReformatXaml(shown, "Code Cleanup") is { } changed)
-            {
-                Message?.Invoke(this, changed ? "Code cleanup reformatted" : "Already clean");
-            }
+            Reformatted done = await ReformatXamlAsync(shown, Selected(shown), "Code Cleanup");
+            Message?.Invoke(this, !done.Applied ? done.Said : done.Changed ? "Code cleanup reformatted" : "Already clean");
             return;
         }
         if (Ask("Code Cleanup") is not { } lsp || editors.Active is not { } document)
@@ -2345,11 +2315,16 @@ public sealed partial class CodeAssist
             done.Add("sorted the usings");
         }
         string unformatted = document.Text.Snapshot.ToString();
-        using ChangeTracker asked = new(document.Text);
-        IReadOnlyList<LspTextEdit> edits = await lsp.FormatAsync(document.Indentation.Options);
-        if (ApplyAnswer(document, asked, edits, "Code Cleanup") && document.Text.Snapshot.ToString() != unformatted)
+        if (await ServerFormatAsync(lsp, document, "Code Cleanup") is { } formatted)
         {
-            done.Add("reformatted");
+            if (!formatted.Applied)
+            {
+                Message?.Invoke(this, formatted.Said);
+            }
+            else if (document.Text.Snapshot.ToString() != unformatted)
+            {
+                done.Add("reformatted");
+            }
         }
         return done;
     }
@@ -2400,27 +2375,6 @@ public sealed partial class CodeAssist
         return new RefactorOutcome(string.Empty, null, files, dropped);
     }
 
-    /// <summary>Edits answered for a document's text as it was asked about, applied to that document as it is now (through
-    /// the editor when it shows it), never to whatever file the editor shows by then; refused, said in the status bar,
-    /// when the code they change was edited meanwhile.</summary>
-    private bool ApplyAnswer(OpenDocument document, ChangeTracker asked, IReadOnlyList<LspTextEdit> answer, string what)
-    {
-        if (!editors.Documents.Contains(document))
-        {
-            return false;
-        }
-        if (WorkspaceEdits.Carried(asked, answer, document.Indentation.Options) is not { } edits)
-        {
-            Message?.Invoke(this, $"{what} was not applied: the code it changes was edited meanwhile");
-            return false;
-        }
-        if (edits.Count > 0)
-        {
-            WorkspaceEdits.ApplyTo(editors, document, edits);
-        }
-        return true;
-    }
-
     /// <summary>The next (or previous) error or warning after the caret, wrapping.</summary>
     private void StepToMarker(bool forward)
     {
@@ -2465,7 +2419,7 @@ public sealed partial class CodeAssist
         {
             CloseModal();
         }
-        BackgroundWork.Begin();
+        using IDisposable held = BackgroundWork.Scope();
         try
         {
             await done();
@@ -2481,10 +2435,6 @@ public sealed partial class CodeAssist
         catch (Exception error)
         {
             IdeErrors.Report(error);
-        }
-        finally
-        {
-            BackgroundWork.End();
         }
     }
 

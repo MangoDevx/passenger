@@ -78,7 +78,7 @@ public sealed partial class CodeAssist
             }
             return;
         }
-        BackgroundWork.Begin();
+        using IDisposable held = BackgroundWork.Scope();
         try
         {
             await lint.RunAsync(fix);
@@ -86,10 +86,6 @@ public sealed partial class CodeAssist
         catch (LanguageServerFailed failed)
         {
             Failed(fix.Title, failed);
-        }
-        finally
-        {
-            BackgroundWork.End();
         }
     }
 
@@ -104,17 +100,12 @@ public sealed partial class CodeAssist
             Message?.Invoke(this, $"ESLint does not check {document.Name}");
             return;
         }
-        BackgroundWork.Begin();
-        try
+        using (BackgroundWork.Scope())
         {
             if (await FixAll(document, lint, "Fix ESLint Problems") is { } changed)
             {
                 Message?.Invoke(this, changed ? "ESLint: fixed what it can fix" : "ESLint: nothing to fix");
             }
-        }
-        finally
-        {
-            BackgroundWork.End();
         }
     }
 
@@ -150,14 +141,9 @@ public sealed partial class CodeAssist
         {
             return;
         }
-        BackgroundWork.Begin();
-        try
+        using (BackgroundWork.Scope())
         {
             await Prettify(web, document, "Reformat with Prettier");
-        }
-        finally
-        {
-            BackgroundWork.End();
         }
     }
 

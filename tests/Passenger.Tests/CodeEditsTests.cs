@@ -11,7 +11,7 @@ namespace Passenger.Tests;
 
 /// <summary>Edits beyond completion and Refactor This, each through its own keys in the window on a real project with
 /// its language server: Surround With's templates, Complete Current Statement, Optimize Imports, Safe Delete, Introduce
-/// Field and Parameter, and Encapsulate Field.</summary>
+/// Variable, Field and Parameter, Encapsulate Field, and Inline.</summary>
 public sealed class CodeEditsTests : IClassFixture<CodeEditsTests.Project>
 {
     private readonly Project project;
@@ -206,6 +206,54 @@ public sealed class CodeEditsTests : IClassFixture<CodeEditsTests.Project>
         Ui.WaitFor(() => Text().Contains("public int Count", StringComparison.Ordinal), "the property to be made");
         Assert.Contains("private int count;", Text(), StringComparison.Ordinal);
         Assert.Contains("public void Add() => Count++;", Text(), StringComparison.Ordinal);
+        window.Close();
+    }
+
+    /// <summary>Introduce Variable over an expression the method uses twice offers the server's two choices, and the one
+    /// for every occurrence makes a local of it in the place of each, one Undo taking it back.</summary>
+    [AvaloniaFact]
+    public void Introduce_variable_offers_one_occurrence_or_all_and_makes_a_local_in_the_place_of_each()
+    {
+        MainWindow window = project.Open("Prices.cs");
+        CodeEditor editor = window.EditorArea.CodeEditor;
+        string Text() => editor.Document.Snapshot.ToString();
+        string prices = Text();
+        editor.Focus();
+        Choose(editor, "price * count");
+        Ui.Run(window, AppActions.IntroduceVariable);
+        Ui.WaitFor(() => window.Assist.Offered.Count > 0, "Introduce Variable's choices");
+        Assert.Equal(["Introduce local for 'price * count'", "Introduce local for all occurrences of 'price * count'"], window.Assist.Offered);
+        PickTitled(window, "Introduce local for all occurrences of 'price * count'");
+        Ui.WaitFor(() => !Text().Contains("price * count + price * count", StringComparison.Ordinal), "the local to be introduced");
+        Assert.Matches(@"\n        int (\w+) = price \* count;\n        return \1 \+ \1 / 10;\n", Text());
+        Assert.Equal("Introduce Variable done", window.Status);
+        Ui.Run(window, EditorActions.Undo);
+        Assert.True(Text() == prices, $"One Undo did not take the local back:\n{Text()}");
+        window.Close();
+    }
+
+    /// <summary>Inline on a local puts its value in its one use at once; on the call of a method called once it offers
+    /// to inline the method or to keep it too, and inlining puts its body in the call's place and deletes it.</summary>
+    [AvaloniaFact]
+    public void Inline_puts_a_locals_value_in_its_use_and_a_methods_body_in_its_call()
+    {
+        MainWindow window = project.Open("Inlined.cs");
+        CodeEditor editor = window.EditorArea.CodeEditor;
+        string Text() => editor.Document.Snapshot.ToString();
+        Ui.PlaceAfter(editor, "int are");
+        editor.Focus();
+        Ui.Run(window, AppActions.Inline);
+        Ui.WaitFor(() => Text().Contains("return width * height + 1;", StringComparison.Ordinal), () => $"the local to be inlined: {window.Status}");
+        Assert.DoesNotContain("int area", Text(), StringComparison.Ordinal);
+        Assert.Equal("Inline done", window.Status);
+
+        Ui.PlaceAfter(editor, "=> Ha");
+        Ui.Run(window, AppActions.Inline);
+        Ui.WaitFor(() => window.Assist.Offered.Count > 0, () => $"Inline's choices for the method: {window.Status}");
+        Assert.Equal(["Inline 'Half(int value)'", "Inline and keep 'Half(int value)'"], window.Assist.Offered);
+        PickTitled(window, "Inline 'Half(int value)'");
+        Ui.WaitFor(() => Text().Contains("Quarter(int value) => value / 2 + 1;", StringComparison.Ordinal), () => $"the method's body to take the call's place:\n{Text()}");
+        Assert.DoesNotContain("Half", Text(), StringComparison.Ordinal);
         window.Close();
     }
 
@@ -425,6 +473,9 @@ public sealed class CodeEditsTests : IClassFixture<CodeEditsTests.Project>
                 + "    public static int Unused(int value) => value + 1;\n\n    public static int Four() => Twice(2);\n}\n");
             File.WriteAllText(PathOf("Scale.cs"), "static class Scale\n{\n    public static int Kilo(int value)\n    {\n        return value * 1024;\n    }\n\n    public static int Two() => Kilo(2);\n}\n");
             File.WriteAllText(PathOf("Counter.cs"), "class Counter\n{\n    public int count;\n\n    public void Add() => count++;\n}\n");
+            File.WriteAllText(PathOf("Prices.cs"), "static class Prices\n{\n    public static int Total(int price, int count)\n    {\n        return price * count + price * count / 10;\n    }\n}\n");
+            File.WriteAllText(PathOf("Inlined.cs"), "static class Inlined\n{\n    public static int Area(int width, int height)\n    {\n        int area = width * height;\n"
+                + "        return area + 1;\n    }\n\n    private static int Half(int value) => value / 2;\n\n    public static int Quarter(int value) => Half(value) + 1;\n}\n");
             Prepare();
         }
     }

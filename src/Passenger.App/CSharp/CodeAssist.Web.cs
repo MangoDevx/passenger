@@ -50,9 +50,10 @@ public sealed partial class CodeAssist
         _ => c is '"' or '-' or '.' or '@' or '/',
     };
 
-    private int WebWordStart(WebDocument web, int caret)
+    private int WebWordStart(WebDocument web, int caret) => WebWordStart(web, Editor.Document.Snapshot, caret);
+
+    private static int WebWordStart(WebDocument web, TextSnapshot text, int caret)
     {
-        TextSnapshot text = Editor.Document.Snapshot;
         int start = caret;
         while (start > 0 && (IsIdentifierChar(text[start - 1]) || (IsWebWordChar(web, text[start - 1]) && text[start - 1] != '"')))
         {
@@ -61,11 +62,10 @@ public sealed partial class CodeAssist
         return start;
     }
 
-    /// <summary>The name around an offset in a web file, through its language's own characters.</summary>
-    private TextRange WebWordAt(WebDocument web, int offset)
+    /// <summary>The name around an offset in a web file's text, through its language's own characters.</summary>
+    private static TextRange WebWordAt(WebDocument web, TextSnapshot text, int offset)
     {
-        TextSnapshot text = Editor.Document.Snapshot;
-        int start = WebWordStart(web, Math.Min(offset, text.Length));
+        int start = WebWordStart(web, text, Math.Min(offset, text.Length));
         int end = Math.Min(offset, text.Length);
         while (end < text.Length && (IsIdentifierChar(text[end]) || (IsWebWordChar(web, text[end]) && text[end] != '"')))
         {

@@ -180,7 +180,7 @@ public sealed partial class CodeAssist
             return (null, null, null);
         }
         FollowedCaret caret = new(new ChangeTracker(document.Text), Caret);
-        BackgroundWork.Begin();
+        using IDisposable held = BackgroundWork.Scope();
         try
         {
             return (await DescribeAtAsync<T>(lsp, Caret, handler), document, caret);
@@ -190,10 +190,6 @@ public sealed partial class CodeAssist
             caret.Dispose();
             Failed(name, failed);
             return (null, null, null);
-        }
-        finally
-        {
-            BackgroundWork.End();
         }
     }
 
