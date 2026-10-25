@@ -1,10 +1,13 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.VisualTree;
 using Passenger.App;
+using Passenger.App.Docking;
 using Passenger.App.Editors;
 using Passenger.App.Explorer;
 using Passenger.App.Vcs;
@@ -345,6 +348,45 @@ public sealed class ExplorerFilesTests : IDisposable
         Ui.Press(window, "Down");
         Ui.Press(window, "Enter");
         Assert.True(window.EditorArea.Active?.Path == order.Path, $"Enter on a file in the Explorer did not open it: the status bar says '{window.Status}'");
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void The_explorers_scroll_bar_dragged_over_its_rows_scrolls_them_and_drags_no_file()
+    {
+        for (int i = 0; i < 80; i++)
+        {
+            File.WriteAllText(Path.Combine(folder, "Models", $"Order{i:D2}.cs"), "class Order { }\n");
+        }
+        MainWindow window = Open();
+        ExplorerNode first = Row(window, Path.Combine("Models", "Order00.cs"));
+        Ui.ClickRow(window, first);
+        ListBox rows = window.ExplorerView.Rows();
+        ScrollViewer scroller = rows.GetVisualDescendants().OfType<ScrollViewer>().First();
+        scroller.Offset = default;
+        Ui.Settle();
+        Thumb thumb = rows.GetVisualDescendants().OfType<ScrollBar>().Single(b => b.Orientation == Orientation.Vertical)
+            .GetVisualDescendants().OfType<Thumb>().Single();
+        DropOverlay overlay = window.ExplorerView.GetVisualDescendants().OfType<DropOverlay>().Single();
+
+        Point from = Ui.Centre(thumb, window);
+        Point to = from + new Point(-60, 120);
+        window.MouseDown(from, MouseButton.Left);
+        bool lit = false;
+        for (int step = 1; step <= 10; step++)
+        {
+            window.MouseMove(from + ((to - from) * (step / 10.0)), RawInputModifiers.LeftMouseButton);
+            Ui.Settle();
+            lit |= overlay.IsVisible;
+        }
+        double dragged = scroller.Offset.Y;
+        window.MouseUp(to, MouseButton.Left);
+        Ui.Settle();
+
+        Assert.False(lit, "Dragging the Explorer's scroll bar lit up a folder to drop a file in, as if a row were dragged");
+        Assert.True(dragged > 0, "The Explorer's scroll bar let go of the pointer as it left the bar, so its rows never scrolled");
+        Assert.Equal(80, Directory.GetFiles(Path.Combine(folder, "Models")).Length);
+        Assert.Equal([first.Name], window.ExplorerView.SelectedNodes.Select(n => n.Name));
         window.Close();
     }
 
