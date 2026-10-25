@@ -460,6 +460,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+## Codicons
+
+`src/Passenger.App/Theme/Icons.axaml`'s `Icon.Preview` is the path data of the `open-preview` icon from Visual Studio
+Code's Codicons (https://github.com/microsoft/vscode-codicons, `src/icons/open-preview.svg` at commit 5a6ad495),
+unchanged, written by `tools/icons.py`. Copyright (c) Microsoft Corporation. It is licensed under the Creative Commons
+Attribution 4.0 International License (CC BY 4.0, https://creativecommons.org/licenses/by/4.0/).
+
 ## File Icons
 
 `src/Passenger.App/Theme/FileIconSet.axaml` holds path data written by `tools/file-icons.py`, which lists every

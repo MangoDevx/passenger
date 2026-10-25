@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Writes src/Passenger.App/Theme/Icons.axaml from Microsoft's Fluent UI System Icons (MIT).
+"""Writes src/Passenger.App/Theme/Icons.axaml from Microsoft's Fluent UI System Icons (MIT) and, where an icon is
+taken from Visual Studio Code, its Codicons (CC BY 4.0).
 
-Each icon is fetched once into artifacts/icons/ and kept there; the list below is the only place an icon is named.
+Each icon is fetched once into artifacts/icons/ and kept there; the lists below are the only places an icon is named.
 """
 import os
 import re
@@ -12,6 +13,8 @@ import urllib.request
 # The repository's commit the icons come from, so every run draws the same ones.
 COMMIT = "463d58b8186f874ab2f51cf0a08b4ff5097c912f"
 BASE = f"https://raw.githubusercontent.com/microsoft/fluentui-system-icons/{COMMIT}/assets"
+CODICONS_COMMIT = "5a6ad49557af022f97987cb3cfc3412b5d03f554"
+CODICONS_BASE = f"https://raw.githubusercontent.com/microsoft/vscode-codicons/{CODICONS_COMMIT}/src/icons"
 
 # Resource key, the icon's folder in the Fluent repo, and the file's size and style.
 ICONS = [
@@ -127,16 +130,22 @@ ICONS = [
     ("Attach", "Plug Connected", "20_regular"),
     # The Migrations window's stripe button: a database, whose migrations it lists and applies.
     ("Database", "Database", "20_regular"),
-    # A Markdown file's preview beside its editor, shown or hidden from the editor's tab strip.
-    ("Preview", "Eye", "20_regular"),
+]
+
+# Resource key and the Codicon's name.
+CODICONS = [
+    # A XAML or Markdown file's preview beside its editor, shown or hidden from the editor's tab strip.
+    ("Preview", "open-preview"),
 ]
 
 
 def fetch(folder, stem, cache):
     name = f"ic_fluent_{folder.lower().replace(' ', '_')}_{stem}.svg"
-    path = os.path.join(cache, name)
+    return fetched(os.path.join(cache, name), f"{BASE}/{urllib.parse.quote(folder)}/SVG/{name}")
+
+
+def fetched(path, url):
     if not os.path.exists(path):
-        url = f"{BASE}/{urllib.parse.quote(folder)}/SVG/{name}"
         with urllib.request.urlopen(url) as response:
             data = response.read()
         with open(path, "wb") as out:
@@ -148,24 +157,31 @@ def fetch(folder, stem, cache):
 def main():
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     cache = os.path.join(root, "artifacts", "icons", COMMIT)
+    codicons = os.path.join(root, "artifacts", "icons", "codicons-" + CODICONS_COMMIT)
     os.makedirs(cache, exist_ok=True)
+    os.makedirs(codicons, exist_ok=True)
     lines = [
         '<ResourceDictionary xmlns="https://github.com/avaloniaui"',
         '                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">',
-        "    <!-- Written by tools/icons.py from Fluent UI System Icons (MIT, Microsoft; see",
-        "         THIRD_PARTY_NOTICES.md). F1 is the nonzero fill rule the SVGs are drawn for. -->",
+        "    <!-- Written by tools/icons.py from Fluent UI System Icons (MIT) and Codicons (CC BY 4.0), Microsoft's; see",
+        "         THIRD_PARTY_NOTICES.md. F1 is the nonzero fill rule the SVGs are drawn for. -->",
     ]
     for key, folder, stem in ICONS:
-        svg = fetch(folder, stem, cache)
-        paths = re.findall(r'<path[^>]*\sd="([^"]+)"', svg)
-        if len(paths) != 1 or re.search(r"<(rect|circle|line|polygon|g)\b", svg):
-            sys.exit(f"icons: {folder} {stem} is not a single path")
-        lines.append(f'    <StreamGeometry x:Key="Icon.{key}">F1 {paths[0]}</StreamGeometry>')
+        lines.append(geometry(key, f"{folder} {stem}", fetch(folder, stem, cache)))
+    for key, name in CODICONS:
+        lines.append(geometry(key, name, fetched(os.path.join(codicons, name + ".svg"), f"{CODICONS_BASE}/{name}.svg")))
     lines.append("</ResourceDictionary>")
     target = os.path.join(root, "src", "Passenger.App", "Theme", "Icons.axaml")
     with open(target, "w", encoding="utf-8") as out:
         out.write("\n".join(lines) + "\n")
-    print(f"icons: {len(ICONS)} written to {os.path.relpath(target, root)}")
+    print(f"icons: {len(ICONS) + len(CODICONS)} written to {os.path.relpath(target, root)}")
+
+
+def geometry(key, named, svg):
+    paths = re.findall(r'<path[^>]*\sd="([^"]+)"', svg)
+    if len(paths) != 1 or re.search(r"<(rect|circle|line|polygon|g)\b", svg):
+        sys.exit(f"icons: {named} is not a single path")
+    return f'    <StreamGeometry x:Key="Icon.{key}">F1 {paths[0]}</StreamGeometry>'
 
 
 if __name__ == "__main__":

@@ -204,7 +204,7 @@ public sealed class MarkdownPreviewTests
         Ui.Settle();
         EditorGroup group = window.EditorArea.ActiveGroup;
         Shown(group);
-        Assert.True(group.MarkdownToggle.IsVisible && group.MarkdownToggle.IsChecked == true, "The README's tab strip has no pressed preview toggle");
+        Assert.True(group.PreviewToggle.IsVisible && group.PreviewToggle.IsChecked == true, "The README's tab strip has no pressed preview toggle");
 
         WeakReference<MarkdownPreview> closed = SplitAndClose(window);
         // Avalonia's hold gesture keeps the pressed close button, and so the group, until a frame fires its timer.
@@ -217,11 +217,11 @@ public sealed class MarkdownPreviewTests
         }, "the closed split's preview to be let go (still alive, it is held by the file it showed or the window)", TimeSpan.FromSeconds(10));
         group = Assert.Single(window.EditorArea.Groups);
 
-        Ui.Click(group.MarkdownToggle);
-        Assert.True(group.Markdown is null && group.MarkdownToggle.IsChecked == false, "The toggle left the preview shown");
+        Ui.Click(group.PreviewToggle);
+        Assert.True(group.Markdown is null && group.PreviewToggle.IsChecked == false, "The toggle left the preview shown");
         Assert.Null(window.OpenFile(Path.Combine(folder, "Program.cs")));
         Ui.Settle();
-        Assert.False(group.MarkdownToggle.IsVisible, "A C# file's tab strip shows the Markdown preview's toggle");
+        Assert.False(group.PreviewToggle.IsVisible, "A C# file's tab strip shows the Markdown preview's toggle");
         window.Close();
         Ui.Settle();
 
@@ -229,7 +229,7 @@ public sealed class MarkdownPreviewTests
         Assert.Null(window.OpenFile(readme));
         Ui.Settle();
         group = window.EditorArea.ActiveGroup;
-        Assert.True(group.Markdown is null && group.MarkdownToggle.IsChecked == false, "The next window showed the preview the last one hid");
+        Assert.True(group.Markdown is null && group.PreviewToggle.IsChecked == false, "The next window showed the preview the last one hid");
         NativeMenu view = Ui.Submenu(window.MenuBar, "View");
         NativeMenuItem item = view.Items.OfType<NativeMenuItem>().FirstOrDefault(i => i.Header == "Markdown Preview")
             ?? throw new Xunit.Sdk.XunitException($"View has no Markdown Preview: [{string.Join(", ", view.Items.OfType<NativeMenuItem>().Select(i => i.Header))}]");

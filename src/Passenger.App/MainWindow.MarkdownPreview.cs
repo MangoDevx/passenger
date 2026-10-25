@@ -5,7 +5,7 @@ using A = Passenger.App.AppActions;
 namespace Passenger.App;
 
 /// <summary>A Markdown file's preview beside its editor (<see cref="MarkdownPreview"/>), each group's own: View, Markdown
-/// Preview and the toggle on a group's tab strip show or hide it for every Markdown file, the choice kept in the store's
+/// Preview and the preview toggle on a group's tab strip show or hide it for every Markdown file, the choice kept in the store's
 /// previews.json, so a file opens as the last one was left; a link to a file in it opens that file here.</summary>
 public partial class MainWindow
 {
@@ -21,7 +21,6 @@ public partial class MainWindow
         });
         Editors.Root = () => Folder;
         Editors.FileLinkClicked += (_, path) => OpenLinkedFile(path);
-        Editors.MarkdownToggleClicked += (_, _) => Request(A.MarkdownPreview);
     }
 
     private void ToggleMarkdownPreview()

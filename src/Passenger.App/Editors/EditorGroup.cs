@@ -81,15 +81,15 @@ public sealed class EditorGroup : DockPanel
             ItemsPanel = new FuncTemplate<Panel?>(() => new StackPanel { Orientation = Orientation.Horizontal }),
             ItemTemplate = new FuncDataTemplate<EditorTab>((tab, _) => Tab(tab), supportsRecycling: false),
         };
-        MarkdownToggle = ToolButtons.Toggle("Icon.Preview", "Markdown Preview");
-        MarkdownToggle.Classes.Add("tabStripTool");
-        MarkdownToggle.IsVisible = false;
-        MarkdownToggle[DockProperty] = Dock.Right;
-        MarkdownToggle.Click += (_, _) =>
+        PreviewToggle = ToolButtons.Toggle("Icon.Preview", "Preview");
+        PreviewToggle.Classes.Add("tabStripTool");
+        PreviewToggle.IsVisible = false;
+        PreviewToggle[DockProperty] = Dock.Right;
+        PreviewToggle.Click += (_, _) =>
         {
-            area.MarkdownToggled(this);
+            area.PreviewToggled(this);
             // It says what is in force once its action ran, or was refused.
-            FollowMarkdown();
+            FollowPreviewToggle();
         };
         tabBar = new Border
         {
@@ -99,7 +99,7 @@ public sealed class EditorGroup : DockPanel
             {
                 Children =
                 {
-                    MarkdownToggle,
+                    PreviewToggle,
                     new ScrollViewer { HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled, Content = strip },
                 },
             },
@@ -214,8 +214,9 @@ public sealed class EditorGroup : DockPanel
     }
     public FindBar Find { get; }
 
-    /// <summary>The tab strip's toggle of a Markdown file's preview, shown while the group shows one.</summary>
-    public ToggleButton MarkdownToggle { get; }
+    /// <summary>The tab strip's toggle of the preview beside the editor, shown while the group shows a Markdown file or a
+    /// XAML file the previewer draws.</summary>
+    public ToggleButton PreviewToggle { get; }
 
     /// <summary>The group's own preview of its Markdown file, made as it first shows one.</summary>
     private MarkdownPreview? markdown;
@@ -229,8 +230,7 @@ public sealed class EditorGroup : DockPanel
     {
         OpenDocument? document = active?.Document;
         bool shows = document is not null && InEditor(document) && document.Language.Name == "Markdown";
-        MarkdownToggle.IsVisible = shows;
-        MarkdownToggle.IsChecked = area.ShowsMarkdownPreview;
+        FollowPreviewToggle();
         if (shows && area.ShowsMarkdownPreview)
         {
             markdown ??= new MarkdownPreview(Editor, area);
@@ -244,6 +244,21 @@ public sealed class EditorGroup : DockPanel
                 Side = null;
             }
             markdown?.Show(null);
+        }
+    }
+
+    /// <summary>The strip's preview toggle shows for a Markdown file or a XAML file the previewer draws, pressed while
+    /// that kind's preview is on, its tip naming the action it runs.</summary>
+    internal void FollowPreviewToggle()
+    {
+        OpenDocument? document = active is { } shown && InEditor(shown.Document) ? shown.Document : null;
+        bool markdown = document?.Language.Name == "Markdown";
+        bool xaml = !markdown && document is not null && area.HasXamlPreview(document);
+        PreviewToggle.IsVisible = markdown || xaml;
+        PreviewToggle.IsChecked = markdown ? area.ShowsMarkdownPreview : xaml && area.ShowsXamlPreview;
+        if (markdown || xaml)
+        {
+            ActionTips.Set(PreviewToggle, markdown ? AppActions.MarkdownPreview : AppActions.XamlPreview, markdown ? "Markdown Preview" : "XAML Preview");
         }
     }
 

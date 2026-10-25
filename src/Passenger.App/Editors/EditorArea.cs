@@ -104,11 +104,30 @@ public sealed partial class EditorArea : UserControl
         }
     }
 
-    /// <summary>A group's Markdown preview toggle pressed, for the window to run its action: nothing outside the group holds
-    /// the toggle, so a closed split goes with it.</summary>
-    public event EventHandler<EditorGroup>? MarkdownToggleClicked;
+    /// <summary>A group's preview toggle pressed, for the window to run the preview's action: nothing outside the group
+    /// holds the toggle, so a closed split goes with it.</summary>
+    public event EventHandler<EditorGroup>? PreviewToggleClicked;
 
-    internal void MarkdownToggled(EditorGroup group) => MarkdownToggleClicked?.Invoke(this, group);
+    internal void PreviewToggled(EditorGroup group) => PreviewToggleClicked?.Invoke(this, group);
+
+    /// <summary>Whether the window's previewer draws an open XAML file.</summary>
+    public Func<OpenDocument, bool> HasXamlPreview { get; set; } = _ => false;
+
+    private bool showsXamlPreview;
+
+    /// <summary>Whether XAML files show their preview beside their editor, as View, XAML Preview has it.</summary>
+    public bool ShowsXamlPreview
+    {
+        get => showsXamlPreview;
+        set
+        {
+            showsXamlPreview = value;
+            foreach (EditorGroup group in AllGroups)
+            {
+                group.FollowPreviewToggle();
+            }
+        }
+    }
 
     /// <summary>The commands that changed several files at once or moved one (a rename), which Undo takes back whole.</summary>
     public CommandHistory Commands { get; }

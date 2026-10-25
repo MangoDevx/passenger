@@ -36,6 +36,8 @@ public partial class MainWindow
             IsChecked = _ => previewing,
             Menus = [new MenuPlace("View", 4, 0)],
         });
+        Editors.HasXamlPreview = document => session.Xaml.For(document) is not null;
+        Editors.PreviewToggleClicked += (_, group) => Request(group.Active?.Language.Name == "Markdown" ? A.MarkdownPreview : A.XamlPreview);
         Editors.ActiveChanged += (_, _) => FollowPreviews();
         Editors.Closed += (_, document) => EndPreview(document);
         Editors.ForEachEditor(editor => editor.SelectionChanged += (_, _) => OutlineAtCaret(editor));
@@ -76,6 +78,7 @@ public partial class MainWindow
     private void TogglePreview()
     {
         previewing = !previewing;
+        Editors.ShowsXamlPreview = previewing;
         if (!previewing)
         {
             foreach (OpenDocument document in previews.Keys.ToList())
@@ -92,6 +95,7 @@ public partial class MainWindow
     {
         foreach (EditorGroup group in Editors.Groups)
         {
+            group.FollowPreviewToggle();
             if (previewing && group.Active is { } shown && session.Xaml.For(shown) is { } document)
             {
                 group.Side = PaneFor(shown, document);

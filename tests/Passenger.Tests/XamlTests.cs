@@ -1024,6 +1024,9 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
         OpenDocument document = window.EditorArea.Active!;
         Ui.Run(window, AppActions.Build);
         Ui.Settle();
+        Passenger.App.Editors.EditorGroup group = window.EditorArea.ActiveGroup;
+        Assert.True(group.PreviewToggle.IsVisible && group.PreviewToggle.IsChecked == false && ActionTips.Of(group.PreviewToggle) == "XAML Preview",
+            $"The XAML file's tab strip offers no XAML Preview toggle (shown {group.PreviewToggle.IsVisible}, tip {ActionTips.Of(group.PreviewToggle)})");
         Ui.Run(window, AppActions.FindAction);
         Passenger.App.Navigation.ActionPopup popup = Assert.IsType<Passenger.App.Navigation.ActionPopup>(window.Popup);
         popup.Query = "xaml preview";
@@ -1032,6 +1035,7 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
         Ui.Press(window, "ENTER");
         Ui.Settle();
         Passenger.App.Xaml.XamlPreview preview = window.PreviewOf(document) ?? throw new InvalidOperationException("XAML Preview showed no preview beside the file");
+        Assert.True(group.PreviewToggle.IsChecked == true, "The tab strip's preview toggle stayed up while XAML Preview was on");
         Ui.WaitFor(() => preview.Frame is not null, "the previewer's first frame", TimeSpan.FromSeconds(60));
         Ui.Settle();
         Assert.Null(preview.Error);
@@ -1068,6 +1072,9 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
         Avalonia.Controls.Image button = window.PreviewPaneOf(shown)!.Frame;
         Ui.WaitFor(() => button.TranslatePoint(new Point(24, styled.FrameSize.Height / 2), window) is { } inside && Ui.Pixel(window, inside) == orange,
             "the button Design.PreviewWith holds drawn in the style's colour", TimeSpan.FromSeconds(30));
+        Ui.Click(group.PreviewToggle);
+        Ui.Settle();
+        Assert.True(window.PreviewOf(shown) is null && group.PreviewToggle.IsChecked == false, "The tab strip's toggle left XAML Preview on");
         window.Close();
     }
 
