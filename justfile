@@ -113,6 +113,13 @@ unicode-widths:
 mcp folder="":
     @tools/mcp.sh {{folder}}
 
+# Its server is kept for the folder's next calls, so the language server loads once; it ends after 20 idle minutes or at
+# just mcp-call FOLDER --stop, and just mcp-call FOLDER lists the tools.
+# One MCP tool called over a folder from the shell (tools/mcp-call.py): just mcp-call FOLDER TOOL ['{"name": value}' | -]
+[unix]
+mcp-call folder tool="" arguments="":
+    @python3 -I tools/mcp-call.py --from {{ quote(invocation_directory()) }} {{ quote(folder) }} {{ quote(tool) }} {{ quote(arguments) }}
+
 # Retake the site's pictures, site/images/<scene>-<dark|light>.webp, after just build (macOS): just site-shots [SCENE...]
 [unix]
 site-shots *scenes:
