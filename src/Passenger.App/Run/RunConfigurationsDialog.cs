@@ -1068,11 +1068,11 @@ public sealed class RunConfigurationsDialog : Window
             string from = row.Kind switch
             {
                 RunKind.Project when row.Aspire => "Aspire",
-                RunKind.Compose when Containers.ContainerConfigurations.IsComposeProject(row.Project) => row.LaunchProfile.Length > 0 ? "launchSettings.json" : ".dcproj",
+                RunKind.Compose when Containers.ContainerConfigurations.IsComposeProject(row.Project) => row.LaunchProfile.Length > 0 ? LaunchProfile.SettingsFile : ".dcproj",
                 RunKind.Compose => "compose file",
                 RunKind.Dockerfile when row.LaunchProfile.Length == 0 => "Dockerfile",
                 RunKind.SdkContainer when row.LaunchProfile.Length == 0 => "SDK container",
-                _ => row.LaunchProfile.Length > 0 ? "launchSettings.json" : "project",
+                _ => row.LaunchProfile.Length > 0 ? LaunchProfile.SettingsFile : "project",
             };
             line.Children.Add(new TextBlock { Text = from, Classes = { "muted" }, FontSize = 11, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) });
         }

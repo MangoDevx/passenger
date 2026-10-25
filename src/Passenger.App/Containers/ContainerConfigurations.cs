@@ -194,7 +194,7 @@ public static class ContainerConfigurations
             Origin = $"Generated for the Docker Compose project {Path.GetFileName(dcproj)}",
         };
         List<RunConfiguration> made = [own];
-        foreach (LaunchProfile profile in LaunchProfile.Read(Path.Combine(folder, "Properties", "launchSettings.json")).Where(p => p.Is(LaunchProfile.DockerComposeCommand)))
+        foreach (LaunchProfile profile in LaunchProfile.Read(LaunchProfile.SettingsIn(folder)).Where(p => p.Is(LaunchProfile.DockerComposeCommand)))
         {
             Dictionary<string, ServiceStart> actions = profile.ServiceActions.ToDictionary(told => told.Key, told => told.Value switch
             {

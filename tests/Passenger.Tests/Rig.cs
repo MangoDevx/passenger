@@ -7,6 +7,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Passenger.App.State;
 using Passenger.Core;
 using Passenger.Editor;
 using Passenger.Text;
@@ -109,7 +110,7 @@ public sealed class TestRun : IDisposable
         Directory.CreateDirectory(Settings);
         string gitConfig = Path.Combine(Root, "gitconfig");
         File.WriteAllText(gitConfig, string.Empty);
-        Environment.SetEnvironmentVariable("PASSENGER_SETTINGS", Settings);
+        Environment.SetEnvironmentVariable(StateStore.Variable, Settings);
         Environment.SetEnvironmentVariable("GIT_CONFIG_GLOBAL", gitConfig);
         Environment.SetEnvironmentVariable("GIT_CONFIG_NOSYSTEM", "1");
         // Configuration given on git's command line through the environment, which would come before the file's.

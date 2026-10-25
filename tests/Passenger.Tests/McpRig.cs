@@ -5,6 +5,7 @@ using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 using Passenger.App;
 using Passenger.App.Mcp;
+using Passenger.App.State;
 using Passenger.Core;
 
 namespace Passenger.Tests;
@@ -115,7 +116,7 @@ public abstract class McpRig : IDisposable
         string? executable = null)
     {
         ProcessStartInfo start = ChildProcesses.Command(executable ?? Passenger, arguments, workingDirectory);
-        start.Environment["PASSENGER_SETTINGS"] = arguments.Contains("--mcp-attach") ? TestRun.Settings : OwnState;
+        start.Environment[StateStore.Variable] = arguments.Contains("--mcp-attach") ? TestRun.Settings : OwnState;
         start.Environment[global::Passenger.Dap.AdapterEnvironment.EngineLogVariable] = EngineLog;
         if (!languageServer)
         {

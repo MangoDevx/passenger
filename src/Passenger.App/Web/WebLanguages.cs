@@ -162,7 +162,7 @@ public sealed class WebLanguages : IAsyncDisposable
     private static bool AllowsComments(string name) =>
         name.StartsWith("tsconfig", StringComparison.OrdinalIgnoreCase) || name.StartsWith("jsconfig", StringComparison.OrdinalIgnoreCase)
         || name.StartsWith("appsettings", StringComparison.OrdinalIgnoreCase)
-        || name.Equals("launchSettings.json", StringComparison.OrdinalIgnoreCase) || name.Equals("global.json", StringComparison.OrdinalIgnoreCase)
+        || name.Equals(Run.LaunchProfile.SettingsFile, StringComparison.OrdinalIgnoreCase) || name.Equals("global.json", StringComparison.OrdinalIgnoreCase)
         || name.Equals(".eslintrc.json", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>A server's name as the status bar and banner say it.</summary>

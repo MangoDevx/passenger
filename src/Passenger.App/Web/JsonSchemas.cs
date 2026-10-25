@@ -22,7 +22,7 @@ public sealed class JsonSchemas(Func<bool> download)
         (["tsconfig.json", "tsconfig.*.json"], "https://json.schemastore.org/tsconfig.json"),
         (["jsconfig.json", "jsconfig.*.json"], "https://json.schemastore.org/jsconfig.json"),
         (["appsettings.json", "appsettings.*.json"], "https://json.schemastore.org/appsettings.json"),
-        (["launchSettings.json"], "https://json.schemastore.org/launchsettings.json"),
+        ([Run.LaunchProfile.SettingsFile], "https://json.schemastore.org/launchsettings.json"),
         (["global.json"], "https://json.schemastore.org/global.json"),
     ];
 

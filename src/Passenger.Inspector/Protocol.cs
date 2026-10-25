@@ -27,6 +27,9 @@ public static class Wire
     /// <summary>A WPF app's environment: the launched project's folder, where its XAML is when its build's symbols do not say.</summary>
     public const string ProjectVariable = "PASSENGER_INSPECTOR_PROJECT";
 
+    /// <summary>The app's environment: a file the inspector traces its start and its answers to.</summary>
+    public const string TraceVariable = "PASSENGER_INSPECTOR_TRACE";
+
     public const string Tree = "tree";
     public const string Details = "details";
     public const string Pick = "pick";

@@ -69,7 +69,7 @@ public partial class MainWindow
             }
         }
         // A settings file, a launch profile or a compose file written: the reads of keys nothing gave are looked at again.
-        if (changes.Lost || changes.Paths.Any(p => ConfigurationFiles.IsSettings(p) || Path.GetFileName(p).Equals("launchSettings.json", StringComparison.OrdinalIgnoreCase)
+        if (changes.Lost || changes.Paths.Any(p => ConfigurationFiles.IsSettings(p) || Path.GetFileName(p).Equals(Run.LaunchProfile.SettingsFile, StringComparison.OrdinalIgnoreCase)
             || Web.ComposeDeclarations.IsCompose(p)))
         {
             session.CSharp?.ConfigurationChanged();

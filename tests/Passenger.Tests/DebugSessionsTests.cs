@@ -517,8 +517,7 @@ public sealed class DebugSessionsTests : IClassFixture<DebugSessionsTests.Pair>
     /// for good), and whether the place still runs as given.</summary>
     private static AdapterPlace Here(bool follow, Func<Task<bool>>? running = null)
     {
-        string adapter = Path.Combine(AppContext.BaseDirectory, "debugger", "Passenger.DebugAdapter.dll");
-        return new AdapterPlace(arguments => ChildProcesses.DotnetCommand([adapter, .. arguments]), TestFolders.Create("place-symbols-"),
+        return new AdapterPlace(arguments => ChildProcesses.DotnetCommand([DebugSession.AdapterPath, .. arguments]), TestFolders.Create("place-symbols-"),
             Passenger.App.Containers.ContainerPaths.None, "here")
         {
             Output = follow ? () => ChildProcesses.DotnetCommand([Debugging.Helpers.Debuggees.Program("DebuggableConsoleApp")]) : null,

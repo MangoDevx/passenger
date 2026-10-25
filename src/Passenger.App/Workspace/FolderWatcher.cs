@@ -446,7 +446,7 @@ public sealed class FolderWatcher : IDisposable
                 bool saved = ownWrites.TryGetValue(canonical, out DateTime at) && DateTime.UtcNow - at < OwnWriteHeard;
                 structure |= created && !saved;
                 projects |= ProjectExtensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase)
-                    || Path.GetFileName(path).Equals("launchSettings.json", StringComparison.OrdinalIgnoreCase);
+                    || Path.GetFileName(path).Equals(Run.LaunchProfile.SettingsFile, StringComparison.OrdinalIgnoreCase);
             }
             if (pending)
             {

@@ -10,6 +10,7 @@ using Avalonia.Input;
 using Avalonia.VisualTree;
 using Passenger.App;
 using Passenger.App.Endpoints;
+using Passenger.App.State;
 
 namespace Passenger.Tests;
 
@@ -256,13 +257,13 @@ public sealed class EndpointsTests : IDisposable
         window.ShowToolWindow(ToolWindowIds.Endpoints);
         Ui.WaitFor(() => window.Endpoints.Requests.Count == 4, "the requests");
         EndpointRequest whoami = window.Endpoints.Requests.Single(r => r.Name == "Who am I");
-        string set = System.Environment.GetEnvironmentVariable("PASSENGER_SETTINGS")!;
+        string set = System.Environment.GetEnvironmentVariable(StateStore.Variable)!;
 
         // The env file's token hides a $processEnv the .http file never shows; the question names it, and one not set.
         Ui.Click(RowButton(window, whoami, "endpointTest"));
         EndpointQuestionDialog question = DialogButtonsTests.Check(window.Endpoints.Question ?? throw new Xunit.Sdk.XunitException("A request reading the person's environment was sent unasked"));
         Assert.Contains($"127.0.0.1:{api.Port}", question.Title);
-        Assert.Equal([new EndpointRead(false, "PASSENGER_ENDPOINTS_UNSET", Missing: true), new EndpointRead(false, "PASSENGER_SETTINGS")], question.Reads);
+        Assert.Equal([new EndpointRead(false, "PASSENGER_ENDPOINTS_UNSET", Missing: true), new EndpointRead(false, StateStore.Variable)], question.Reads);
         Assert.Contains(question.GetVisualDescendants().OfType<TextBlock>(), t => t.Text?.Contains("PASSENGER_ENDPOINTS_UNSET, which is not set", StringComparison.Ordinal) == true);
         Ui.Click(question.DontAllowButton);
         Assert.Null(window.Endpoints.Question);
@@ -447,7 +448,7 @@ public sealed class EndpointsTests : IDisposable
         Ui.Click(RowButton(window, window.Endpoints.Requests.Single(r => r.Name == "Other port"), "endpointTest"));
         EndpointQuestionDialog question = window.Endpoints.Question ?? throw new Xunit.Sdk.XunitException("A request reading the person's environment was sent unasked");
         Ui.Click(question.AllowButton);
-        Assert.Equal(System.Environment.GetEnvironmentVariable("PASSENGER_SETTINGS"), Assert.Single(api.Received).Header("X-Secret"));
+        Assert.Equal(System.Environment.GetEnvironmentVariable(StateStore.Variable), Assert.Single(api.Received).Header("X-Secret"));
         StandInApi.Request redirected = Assert.Single(other.Received);
         Assert.Equal("GET /items", redirected.Line);
         Assert.True(redirected.Header("X-Secret") is null, "What the request read was allowed to one port of the host and sent to another");
@@ -478,7 +479,7 @@ public sealed class EndpointsTests : IDisposable
             Ui.Click(RowButton(window, window.Endpoints.Requests.Single(r => r.Name == "Other port"), "endpointTest"));
             EndpointQuestionDialog question = Assert.IsType<EndpointQuestionDialog>(window.Endpoints.Question);
             Ui.Click(question.AllowButton);
-            Assert.Equal(Environment.GetEnvironmentVariable("PASSENGER_SETTINGS"), Assert.Single(api.Received).Header("X-Secret"));
+            Assert.Equal(Environment.GetEnvironmentVariable(StateStore.Variable), Assert.Single(api.Received).Header("X-Secret"));
             Assert.Null(Assert.Single(other.Received).Header("X-Secret"));
             Assert.Equal(200, window.Endpoints.Response.Response!.Status);
             Assert.Equal([$"Redirected to {other.Root}, another origin, without the request's headers"], window.Endpoints.Response.Response.Notes);

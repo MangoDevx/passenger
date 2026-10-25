@@ -88,6 +88,9 @@ public sealed class DebugSession
     /// <summary>Why a start failed that was stopped (Stop, Detach, the window's close) before it was done.</summary>
     public const string StoppedStarting = "the session was stopped as it started";
 
+    /// <summary>The debug adapter the app carries, beside it in debugger/, which dotnet runs.</summary>
+    public static string AdapterPath => Path.Combine(AppContext.BaseDirectory, "debugger", "Passenger.DebugAdapter.dll");
+
     /// <summary>How the adapter starts: beside the app, or where the program is (a container's, over docker exec).</summary>
     private static ProcessStartInfo AdapterStart(AdapterPlace? place, bool elsewhere)
     {
@@ -100,7 +103,7 @@ public sealed class DebugSession
         }
         else
         {
-            string path = Path.Combine(AppContext.BaseDirectory, "debugger", "Passenger.DebugAdapter.dll");
+            string path = AdapterPath;
             if (!File.Exists(path))
             {
                 throw new FileNotFoundException("The debug adapter is not beside the app", path);

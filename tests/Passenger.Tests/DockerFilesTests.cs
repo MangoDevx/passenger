@@ -1229,7 +1229,7 @@ public sealed class DockerFilesTests : IClassFixture<DockerFilesTests.Shop>
             if (yaml)
             {
                 Passenger.App.Web.NodeRuntime node = Task.Run(() => Passenger.App.Web.NodeRuntime.FindAsync(null)).GetAwaiter().GetResult();
-                string? old = node.Problem ?? node.TooOldFor(Path.Combine(AppContext.BaseDirectory, "web", "node_modules", "yaml-language-server", "package.json"), "the YAML language server");
+                string? old = node.Problem ?? node.TooOldFor(Path.Combine(Passenger.App.Web.WebLanguages.Modules, "yaml-language-server", "package.json"), "the YAML language server");
                 Assert.SkipWhen(old is not null, $"The YAML language server cannot run here: {old}");
             }
         }

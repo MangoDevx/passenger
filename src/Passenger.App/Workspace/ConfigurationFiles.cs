@@ -20,7 +20,7 @@ public sealed record ConfigurationProject(string Project, string? UserSecretsId,
     /// <summary>Its appsettings.json, there or not.</summary>
     public string Settings => Path.Combine(Folder, "appsettings.json");
 
-    public string LaunchSettings => Path.Combine(Folder, "Properties", "launchSettings.json");
+    public string LaunchSettings => Run.LaunchProfile.SettingsIn(Folder);
 }
 
 /// <summary>What gives a configuration key: a settings file of the project's folder, a launch profile's variable, the

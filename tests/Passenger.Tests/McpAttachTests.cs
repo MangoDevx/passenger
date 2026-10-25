@@ -11,6 +11,7 @@ using ModelContextProtocol.Server;
 using Passenger.App;
 using Passenger.App.Mcp;
 using Passenger.App.Settings;
+using Passenger.App.State;
 using Passenger.Core;
 
 namespace Passenger.Tests;
@@ -36,7 +37,7 @@ public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
         DeleteAtEnd(root);
         string state = Path.Combine(root, new string('s', 60), new string('t', 60));
         string notes = Plain("mcp-start-");
-        Process proxy = StartPassenger(["--mcp-attach"], notes, new() { ["PASSENGER_SETTINGS"] = state });
+        Process proxy = StartPassenger(["--mcp-attach"], notes, new() { [StateStore.Variable] = state });
         await using McpClient client = await Connect(proxy, ["--mcp-attach"]);
 
         IList<McpClientTool> tools = await Exchange("Listing the tools", TimeSpan.FromMinutes(1), cancel => client.ListToolsAsync(cancellationToken: cancel).AsTask());
@@ -88,7 +89,7 @@ public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
         DeleteAtEnd(root);
         string state = Path.Combine(root, "state");
         string notes = Plain("mcp-term-");
-        Process proxy = StartPassenger(["--mcp-attach"], notes, new() { ["PASSENGER_SETTINGS"] = state });
+        Process proxy = StartPassenger(["--mcp-attach"], notes, new() { [StateStore.Variable] = state });
         McpClient client = await Connect(proxy, ["--mcp-attach"]);
         string sockets = McpHost.SocketFolderFor(state);
         DeleteAtEnd(sockets);

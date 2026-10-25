@@ -5,6 +5,7 @@ using ModelContextProtocol.Protocol;
 using Passenger.App;
 using Passenger.App.Containers;
 using Passenger.App.Mcp;
+using Passenger.App.State;
 
 namespace Passenger.Tests;
 
@@ -186,7 +187,7 @@ public sealed class McpContainersTests : McpRig, IClassFixture<RestoredFolders>
         string left = Docker.Container("left", "sleep 600", state, machine, gone);
         string living = Docker.Container("living", "sleep 600", labels);
         string elsewhere = Docker.Container("elsewhere", "sleep 600", state, $"{ContainerLabels.Machine}=0123456789abcdef", gone);
-        McpClient client = Await(Task.Run(() => Start(["--mcp", Folder], environment: new() { ["PASSENGER_SETTINGS"] = TestRun.Settings }, languageServer: false)), "Passenger starting");
+        McpClient client = Await(Task.Run(() => Start(["--mcp", Folder], environment: new() { [StateStore.Variable] = TestRun.Settings }, languageServer: false)), "Passenger starting");
         try
         {
             Ui.WaitFor(() => Docker.State(left) is null, $"{left}, labelled with this state and a process that is gone, removed as Passenger started",

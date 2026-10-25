@@ -28,7 +28,7 @@ public sealed class McpWpfAppTests : McpRig
         }, wpf);
         // The inspector traces to a file a failure quotes: the variable is the started Passenger's, never this process's.
         string trace = Path.Combine(wpf, "inspector.log");
-        await using McpClient client = await Start(["--mcp", wpf], environment: new() { ["PASSENGER_INSPECTOR_TRACE"] = trace }, languageServer: false);
+        await using McpClient client = await Start(["--mcp", wpf], environment: new() { [Passenger.Inspector.Wire.TraceVariable] = trace }, languageServer: false);
         JsonElement built = await Call(client, "build");
         Assert.True(built.GetProperty("succeeded").GetBoolean(), $"The app did not build: {built}");
         JsonElement ran = await Call(client, "run", new() { ["waitSeconds"] = 0 });

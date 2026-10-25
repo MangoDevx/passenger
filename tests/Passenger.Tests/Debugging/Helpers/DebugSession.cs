@@ -35,7 +35,7 @@ public sealed class DebugSession : IDisposable
     {
         this.debuggee = debuggee;
         this.terminateDebuggee = terminateDebuggee;
-        string path = Path.Combine(AppContext.BaseDirectory, "debugger", "Passenger.DebugAdapter.dll");
+        string path = Passenger.App.Debugging.DebugSession.AdapterPath;
         if (!File.Exists(path))
         {
             throw new FileNotFoundException("The debug adapter is not beside the tests", path);

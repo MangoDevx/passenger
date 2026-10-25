@@ -274,17 +274,15 @@ internal static class ElementIds<T> where T : class
     public static T? Find(long? id) => id is long known && ById.TryGetValue(known, out WeakReference<T>? held) && held.TryGetTarget(out T? element) ? element : null;
 }
 
-/// <summary>A file in the app's environment, PASSENGER_INSPECTOR_TRACE=FILE: the inspector adds each step of its start and
+/// <summary>A file the app's environment names (<see cref="Wire.TraceVariable"/>): the inspector adds each step of its start and
 /// what it answers to it, for an inspector that never says hello or answers wrongly.</summary>
 internal static class InspectorTrace
 {
-    public const string Variable = "PASSENGER_INSPECTOR_TRACE";
-
-    private static readonly string? TraceFile = Environment.GetEnvironmentVariable(Variable) is { Length: > 0 } file ? file : null;
+    private static readonly string? TraceFile = Environment.GetEnvironmentVariable(Wire.TraceVariable) is { Length: > 0 } file ? file : null;
 
     private static readonly object Tracer = new();
 
-    /// <summary>A step of the inspector's to the trace file, while <see cref="Variable"/> names one.</summary>
+    /// <summary>A step of the inspector's to the trace file, while <see cref="Wire.TraceVariable"/> names one.</summary>
     public static void Step(string step)
     {
         if (TraceFile is not { } file)
