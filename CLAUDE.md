@@ -125,8 +125,9 @@ referenced projects twice).
   Server edits pass `LineEndings.Fit` then `Indentation.Fit`.
 - **State is a `StateDocument`** in the one `StateStore` (versioned `Upgrades`, `Clamped`, written debounced and merged,
   a bad file set aside as `.bad`), read off the UI thread; never a file of its own. Per-folder state lives under
-  `workspaces/<name>-<hash>/` and is made in `ProjectSession`. A new setting: an `AppSettings` property, a row in
-  `SettingsDialog`, a line in `MainWindow.Follow` or `SettingsStore.InForce`, its range in `Clamped`.
+  `workspaces/<name>-<hash>/` and is made in `ProjectSession`. A new setting: an `AppSettings` property, its row and
+  range declared in `Declared` and `Add`ed in its place in `SettingsDialog`, a line in `MainWindow.Follow` or
+  `SettingsStore.InForce`.
 - **Every action is an `IdeAction`** in the window's `ActionRegistry` (ids and keymaps in `AppActions.cs`): keys, menus,
   Find Action, context menus and MCP's `ide_action` all run it, `WhyNot` greys it with why, titles come from the registry
   (`TitleWhere`), a title that asks more ends in "…", and what's missing is said in `Refusals`' words. Anything that
@@ -136,7 +137,8 @@ referenced projects twice).
   `ShowInFileManager` (both recorded for tests).
 - **Shortcuts follow Rider's**: its Visual Studio (Windows) or Visual Studio OSX (macOS) keymap, and its VS Code keymaps
   for that preset, resolved as IntelliJ does (own list, then plugins' descriptors, then the parent); a keypad key Rider
-  binds beside a main key is bound too. A key IntelliJ gives two actions by place goes to one, said where it's bound.
+  binds beside a main key is bound too. A key IntelliJ gives two actions by place goes to one, said where it's bound;
+  the place takes it through `AppActions.KeysIn`.
 - **Workflows run only by hand** (the owner's choice): never `gh workflow run` unless the owner says. Commit messages go
   through a file (`git commit -F msg.txt`): backticks in a `-m` string are zsh command substitution.
 
@@ -154,11 +156,12 @@ Projects in `src/`:
   soft wrap, whatever turns an offset into a place goes through `Rows`/`RowSpan`. Wraps (`WrapMap`), rows (`RowMap`),
   folds (`FoldList`), hints (`HintList`) and built lines (`LineRuns`) are runs an edit moves only where it reaches, so a
   key costs what it changed, not the file's size: keep it so.
-- `Passenger.Languages`: C# coloured by Roslyn's parser in-process (`CSharpHighlighter`, also each open file's one syntax
-  service, `OpenDocument.Syntax`: use it, never a fresh parse), the rest by VS Code's TextMate grammars
-  (`TextMateHighlighter`, scopes mapped in `ScopeColours`); `Highlighters.For` chooses. A new grammar: its file,
-  `Grammar.Files` and `Languages`, `Language.ForPath` with its comments, and a notices entry. A finder never tells its
-  answer inside a document's `Changed` (the open file moves its regions in a later handler).
+- `Passenger.Languages`: C# coloured by Roslyn's parser in-process (`CSharpHighlighter`, also each open file's one
+  syntax service, `OpenDocument.Syntax`: use it, never a fresh parse), the rest by VS Code's TextMate grammars
+  (`TextMateHighlighter`, scopes mapped in `ScopeColours`); `Highlighters.For` chooses. A new language: one `Language`
+  entry (patterns, comments, grammar, folds, service), its grammar file and a notices entry; compare entries, never
+  names. A finder never tells its answer inside a document's `Changed` (the open file moves its regions in a later
+  handler).
 - `Passenger.Xaml`: Passenger's own XAML core (no Avalonia; WPF shares it): tolerant syntax, a TypeSystem over the
   project's assemblies and its C#, the Avalonia and WPF dialects (`XamlProjectBuilder.DialectOf`), completion,
   diagnostics, navigation, `XamlFormatter`, refactorings, `CreateFromUsage`. Not Avalonia.Ide.CompletionEngine.
@@ -206,10 +209,11 @@ Projects in `src/`:
   window with one `Dock.Add`). A window builds its view when first shown; what the IDE writes while it's hidden lives in a
   model (`ProblemsModel`, `DebugModel`, `AspireModel`, `RequestLog`, `MigrationsController`), and code reaches a view
   only through a property that builds it for a person's action.
-- **C#.** `CSharpService`, `CSharpDocument`, `ServerDiagnostics` (one pull at a time after a pause), `CodeAssist` and its
-  partials (completion narrowed off the UI thread, rows kept; popups; context actions with Passenger's own
-  `EditorFixes` first), `WorkspaceEdits` (a server's edit to a file not open is refused if it was written in the last
-  2 s; an agent's call waits instead, `Patience`), `TypeRename`, `LiveTemplates`.
+- **C#.** `CSharpService`, `CSharpDocument`, `ServerDiagnostics` (one pull at a time after a pause), `CodeAssist` (the
+  window's wiring) over `CodeCompletion` (narrowed off the UI thread, rows kept), `QuickInfo`, `ParameterInfo`,
+  `CodeNavigation`, `CodeActions` (Passenger's own `EditorFixes` first) and `PopupPlacement`; each language's answers a
+  `LanguageAssist`, asked in `LanguageAssists`' one order; `WorkspaceEdits` (a server's edit to a file not open is
+  refused if it was written in the last 2 s; an agent's call waits instead, `Patience`), `TypeRename`, `LiveTemplates`.
 - **Web languages.** `WebLanguages` (one Node.js server per kind: TypeScript, HTML, CSS, JSON, Dockerfile, YAML; ESLint
   and Prettier per folder; every per-kind switch names each kind), `JsonSchemas` (carried schemas; downloads only while
   Settings allows), compose help (`ComposeDeclarations`, `ComposeNames`, `ComposeRename`, `ComposeText`). The servers are
