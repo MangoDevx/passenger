@@ -1,8 +1,6 @@
 using Avalonia.Controls;
-using Avalonia.Input;
-using Avalonia.Interactivity;
+using Avalonia.Layout;
 using Avalonia.Media;
-using Avalonia.Threading;
 using Passenger.App.Explorer;
 using Passenger.App.Workspace;
 
@@ -10,24 +8,18 @@ namespace Passenger.App.Navigation;
 
 /// <summary>Go to File: a query over every file in the folder, ranked as it is typed, the recent files when it is
 /// empty. Up and Down move through the results, Enter opens one, Escape leaves.</summary>
-public partial class GoToFilePopup : UserControl
+public sealed partial class GoToFilePopup : SearchPopup<FileHit>
 {
     private readonly FileIndex index;
     private readonly IReadOnlyList<string> recent;
 
     public GoToFilePopup(FileIndex index, IReadOnlyList<string> recent)
+        : base("Go to File", "File name, CamelHumps or a path with /", PopupFrame.Wide)
     {
-        InitializeComponent();
         this.index = index;
         this.recent = recent;
-        Query.TextChanged += (_, _) => Refresh();
-        Query.AddHandler(KeyDownEvent, OnQueryKeyDown, RoutingStrategies.Tunnel);
-        Refresh();
-        Dispatcher.UIThread.Post(() => Query.Focus(), DispatcherPriority.Loaded);
+        QueryChanged();
     }
-
-    /// <summary>The chosen file (a full path), or null when the popup was dismissed.</summary>
-    public event EventHandler<string?>? Done;
 
     /// <summary>The place a line after the file's name asked for ("Foo.cs:20", "Foo.cs:20:4", counted from one, as a
     /// stack trace writes it), from the start of its line when no column is given; null for the file alone.</summary>
@@ -49,53 +41,30 @@ public partial class GoToFilePopup : UserControl
         return (query, null);
     }
 
-    public GoToFilePopup()
-        : this(new FileIndex(), [])
+    protected override void QueryChanged()
     {
-    }
-
-    private void Refresh()
-    {
-        (string query, At) = PlaceIn(Query.Text ?? string.Empty);
+        (string query, At) = PlaceIn(Query);
         string root = index.Root ?? string.Empty;
         IEnumerable<string> paths = query.Trim().Length == 0
             ? recent.Select(full => Core.PathNames.Shown(full, root))
             : index.Search(query);
-        List<FileHit> hits = paths.Select(p => new FileHit(Path.Combine(root, p), p)).ToList();
-        Results.ItemsSource = hits;
-        Results.SelectedIndex = hits.Count > 0 ? 0 : -1;
-        Empty.IsVisible = hits.Count == 0;
-        Empty.Text = query.Trim().Length == 0 ? "No recent files" : "Nothing matches";
+        Show([.. paths.Select(p => new FileHit(Path.Combine(root, p), p))], query.Trim().Length == 0 ? "No recent files" : "Nothing matches");
     }
 
-    private void OnQueryKeyDown(object? sender, KeyEventArgs e)
+    protected override Control Draw(FileHit hit)
     {
-        if (ListKeys.Move(Results, e))
+        return new StackPanel
         {
-            e.Handled = true;
-            return;
-        }
-        switch (e.Key)
-        {
-            case Key.Enter:
-                Choose();
-                e.Handled = true;
-                break;
-            case Key.Escape:
-                Done?.Invoke(this, null);
-                e.Handled = true;
-                break;
-        }
-    }
-
-    private void OnResultDoubleTapped(object? sender, RoutedEventArgs e) => Choose();
-
-    private void Choose()
-    {
-        if (Results.SelectedItem is FileHit hit)
-        {
-            Done?.Invoke(this, hit.FullPath);
-        }
+            Orientation = Orientation.Horizontal,
+            Spacing = 8,
+            Height = ListRow.Height,
+            Children =
+            {
+                new PathIcon { Data = hit.Icon, Foreground = hit.IconBrush, VerticalAlignment = VerticalAlignment.Center },
+                new TextBlock { Text = hit.Name, VerticalAlignment = VerticalAlignment.Center },
+                MutedText.Of(hit.Folder),
+            },
+        };
     }
 }
 

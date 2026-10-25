@@ -12,7 +12,7 @@ namespace Passenger.App.Vcs;
 /// correct; Escape gives up. With kinds to choose from (New Class/Interface), they are listed under the box, the first
 /// chosen, and Up and Down choose another while the name is typed. With an option (a file's Rename type), it is a check
 /// box under the box, clicked while the keys stay with the name.</summary>
-public sealed class NamePopup : UserControl
+public sealed class NamePopup : UserControl, IAnswers<bool>
 {
     private readonly TextBox name;
     private readonly TextBlock problem;

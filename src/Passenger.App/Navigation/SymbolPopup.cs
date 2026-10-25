@@ -1,11 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Templates;
-using Avalonia.Input;
-using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Avalonia.Threading;
 using Passenger.App.CSharp;
 using Passenger.Editor;
 using Passenger.Lsp;
@@ -33,94 +29,41 @@ public sealed record SymbolRow(string Name, string? Detail, string? Where, int K
 /// up): Go to Symbol, Go to Everything, File Structure and Recent Files, whose switch (Show edited only) asks again as it
 /// turns. Up and Down move, Enter goes, Escape leaves. A search the language server cannot answer fails with a
 /// <see cref="LanguageServerFailed"/>, whose message the popup shows.</summary>
-public sealed class SymbolPopup : UserControl
+public sealed class SymbolPopup : SearchPopup<SymbolRow>
 {
     private static readonly TimeSpan Pause = TimeSpan.FromMilliseconds(120);
 
     private readonly Func<string, CancellationToken, Task<IReadOnlyList<SymbolRow>>> search;
-    private readonly TextBox query;
-    private readonly ListBox results;
-    private readonly TextBlock empty;
     private readonly Debounce typing;
-    private readonly CheckBox? option;
     private CancellationTokenSource? asking;
 
     public SymbolPopup(string title, string placeholder, Func<string, CancellationToken, Task<IReadOnlyList<SymbolRow>>> search, string? initialQuery = null,
         (string Label, bool Checked)? option = null)
+        : base(title, placeholder, PopupFrame.Wide, initialQuery, option)
     {
         this.search = search;
-        query = new TextBox { Classes = { "search" }, PlaceholderText = placeholder, Text = initialQuery ?? string.Empty };
-        results = new ListBox
-        {
-            Classes = { "tree" },
-            MaxHeight = ListRow.Height * 15,
-            Margin = new Thickness(0, 0, 0, 8),
-            ItemTemplate = new FuncDataTemplate<SymbolRow>((row, _) => Row(row), supportsRecycling: false),
-        };
-        empty = new TextBlock { Classes = { "muted" }, Margin = new Thickness(12, 0, 12, 12), IsVisible = false };
-        results.DoubleTapped += (_, _) => Choose();
         typing = new Debounce(Pause, Refresh);
-        query.TextChanged += (_, _) => typing.Restart();
-        query.AddHandler(KeyDownEvent, OnQueryKeyDown, RoutingStrategies.Tunnel);
-        DockPanel body = new();
-        DockPanel heading = new();
-        if (option is { } shown)
-        {
-            // Not focusable: the keys stay with the query.
-            this.option = new CheckBox { Content = shown.Label, IsChecked = shown.Checked, Focusable = false, FontSize = 12, VerticalAlignment = VerticalAlignment.Center };
-            this.option.IsCheckedChanged += (_, _) =>
-            {
-                OptionChanged?.Invoke(this, IsOptionChecked);
-                _ = Refresh();
-            };
-            DockPanel.SetDock(this.option, Dock.Right);
-            heading.Children.Add(this.option);
-        }
-        heading.Children.Add(new TextBlock { Classes = { "popupTitle" }, Text = title, VerticalAlignment = VerticalAlignment.Center });
-        StackPanel top = new() { Margin = new Thickness(12, 10, 12, 8), Spacing = 8, Children = { heading, query } };
-        DockPanel.SetDock(top, Dock.Top);
-        DockPanel.SetDock(empty, Dock.Top);
-        body.Children.Add(top);
-        body.Children.Add(empty);
-        body.Children.Add(results);
-        Content = new Border { Classes = { "popup" }, Child = body };
-        Width = PopupFrame.Wide;
         _ = Refresh();
-        Dispatcher.UIThread.Post(() =>
-        {
-            query.Focus();
-            query.SelectAll();
-        }, DispatcherPriority.Loaded);
     }
-
-    /// <summary>The place chosen, or null when the popup was dismissed.</summary>
-    public event EventHandler<SymbolRow?>? Done;
 
     /// <summary>The popup's switch turned, before it asks again; its search reads what it is now.</summary>
     public event EventHandler<bool>? OptionChanged;
-
-    /// <summary>Whether the popup's switch (Recent Files' Show edited only) is on; false for a popup without one.</summary>
-    public bool IsOptionChecked
-    {
-        get => option?.IsChecked == true;
-        set
-        {
-            if (option is not null)
-            {
-                option.IsChecked = value;
-            }
-        }
-    }
-
-    public IReadOnlyList<SymbolRow> Rows => results.ItemsSource as IReadOnlyList<SymbolRow> ?? [];
-
-    public SymbolRow? Selected => results.SelectedItem as SymbolRow;
 
     /// <summary>The answer to the query as it now is is in.</summary>
     public bool IsSettled { get; private set; }
 
     /// <summary>Which of the first rows to choose (the caret's member), before anything is typed.</summary>
     public Func<IReadOnlyList<SymbolRow>, int>? Initial { get; init; }
+
+    protected override void QueryChanged() => typing.Restart();
+
+    protected override void OptionTurned()
+    {
+        OptionChanged?.Invoke(this, IsOptionChecked);
+        _ = Refresh();
+    }
+
+    protected override Control Draw(SymbolRow row) => Row(row);
 
     private async Task Refresh()
     {
@@ -130,20 +73,12 @@ public sealed class SymbolPopup : UserControl
         BackgroundWork.Begin();
         try
         {
-            IReadOnlyList<SymbolRow> found = await search(query.Text ?? string.Empty, mine.Token);
+            IReadOnlyList<SymbolRow> found = await search(Query, mine.Token);
             if (mine.IsCancellationRequested)
             {
                 return;
             }
-            results.ItemsSource = found;
-            int chosen = Initial is { } initial && (query.Text ?? string.Empty).Length == 0 ? initial(found) : 0;
-            results.SelectedIndex = found.Count > 0 ? Math.Clamp(chosen, 0, found.Count - 1) : -1;
-            if (results.SelectedIndex > 0)
-            {
-                results.ScrollIntoView(results.SelectedIndex);
-            }
-            empty.IsVisible = found.Count == 0;
-            empty.Text = "Nothing matches";
+            Show(found, "Nothing matches", Initial is { } initial && Query.Length == 0 ? initial(found) : 0);
             IsSettled = true;
         }
         catch (OperationCanceledException)
@@ -151,41 +86,12 @@ public sealed class SymbolPopup : UserControl
         }
         catch (LanguageServerFailed failed)
         {
-            empty.Text = failed.Message;
-            empty.IsVisible = true;
+            Say(failed.Message);
             IsSettled = true;
         }
         finally
         {
             BackgroundWork.End();
-        }
-    }
-
-    private void OnQueryKeyDown(object? sender, KeyEventArgs e)
-    {
-        if (ListKeys.Move(results, e))
-        {
-            e.Handled = true;
-            return;
-        }
-        switch (e.Key)
-        {
-            case Key.Enter:
-                Choose();
-                e.Handled = true;
-                break;
-            case Key.Escape:
-                Done?.Invoke(this, null);
-                e.Handled = true;
-                break;
-        }
-    }
-
-    private void Choose()
-    {
-        if (results.SelectedItem is SymbolRow row)
-        {
-            Done?.Invoke(this, row);
         }
     }
 

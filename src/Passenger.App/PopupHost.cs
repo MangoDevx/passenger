@@ -110,6 +110,22 @@ public sealed class PopupHost
         layer.IsVisible = true;
     }
 
+    /// <summary>A popup that answers, shown as <see cref="Show(Control, Point?)"/> shows one: as it answers, it closes
+    /// (while it is still the one open) and <paramref name="done"/> is given the answer.</summary>
+    public void Show<T>(IAnswers<T> popup, Action<T> done, Point? at = null)
+    {
+        Control shown = popup as Control ?? throw new ArgumentException($"{popup.GetType().Name} is no control to show", nameof(popup));
+        popup.Done += (_, answer) =>
+        {
+            if (Open == shown)
+            {
+                Close();
+            }
+            done(answer);
+        };
+        Show(shown, at);
+    }
+
     /// <summary>A popup no wider than the window it is over, its frame's shadow inside it, so one over a window
     /// narrower than the popups' widths (a floating tool window, an editor window) shows its frame whole; as the window
     /// is resized, it follows. Its height stays its own: a popup's list is as tall as its rows.</summary>

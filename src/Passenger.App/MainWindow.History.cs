@@ -172,15 +172,13 @@ public partial class MainWindow
                 _ => "tag",
             }, r))],
             "No branch or tag matches");
-        popup.Done += (_, chosen) =>
+        popups.Show(popup, chosen =>
         {
-            popups.Close();
             if (chosen?.Value is GitRef named)
             {
                 _ = CompareWithAsync(path, named.FullName, named.Name, path);
             }
-        };
-        popups.Show(popup);
+        });
         return popup;
     }
 
@@ -196,15 +194,13 @@ public partial class MainWindow
         ChoicePopup popup = new($"Compare {Path.GetFileName(path)} with Revision", "Search by message, author or hash",
             [.. history.Select(h => new Choice(h.Commit.Subject, $"{h.Commit.Short}  {h.Commit.Author}  {ToolWindows.GitLogView.When(h.Commit.Time)}", h))],
             history.Count == 0 ? $"Git has no history of {Path.GetFileName(path)}" : "No revision matches");
-        popup.Done += (_, chosen) =>
+        popups.Show(popup, chosen =>
         {
-            popups.Close();
             if (chosen?.Value is HistoryCommit revision)
             {
                 _ = CompareWithAsync(path, revision.Commit.Hash, revision.Commit.Short, revision.Changes.FirstOrDefault()?.Path ?? path);
             }
-        };
-        popups.Show(popup);
+        });
         return popup;
     }
 

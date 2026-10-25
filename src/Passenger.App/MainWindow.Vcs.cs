@@ -119,8 +119,7 @@ public partial class MainWindow
         view.NewBranchRequested += (_, commit) =>
         {
             NamePopup popup = new($"New Branch from {commit.Short}", string.Empty, async name => (await session.Vcs.NewBranchAtAsync(name, commit.Hash)).Problem);
-            popup.Done += (_, _) => popups.Close();
-            popups.Show(popup);
+            popups.Show(popup, _ => { });
         };
         view.ResetRequested += async (_, reset) =>
         {
@@ -241,8 +240,7 @@ public partial class MainWindow
             return null;
         }
         NamePopup popup = new("Stash Changes", string.Empty, async message => (await session.Vcs.StashAsync(message)).Problem);
-        popup.Done += (_, _) => popups.Close();
-        popups.Show(popup);
+        popups.Show(popup, _ => { });
         return popup;
     }
 
@@ -272,8 +270,7 @@ public partial class MainWindow
     public void ShowNewBranch()
     {
         NamePopup popup = new("Create New Branch", string.Empty, async name => (await session.Vcs.NewBranchAsync(name)).Problem);
-        popup.Done += (_, _) => popups.Close();
-        popups.Show(popup);
+        popups.Show(popup, _ => { });
     }
 
     /// <summary>Show Diff: the last commit's text beside the file's, in a window over this one. The right side is the

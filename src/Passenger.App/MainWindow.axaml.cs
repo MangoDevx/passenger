@@ -772,9 +772,8 @@ public partial class MainWindow : Window
     {
         ActionContext context = actions!.Context();
         Navigation.ActionPopup popup = new(actions, context, recentActions);
-        popup.Done += (_, chosen) =>
+        popups.Show(popup, chosen =>
         {
-            popups.Close();
             if (chosen is null || chosen.Id == AppActions.FindAction || !Request(chosen.Id, context))
             {
                 return;
@@ -785,8 +784,7 @@ public partial class MainWindow : Window
             {
                 recentActions.RemoveAt(recentActions.Count - 1);
             }
-        };
-        popups.Show(popup);
+        });
     }
 
     /// <summary>Unload Project: the project shows dimmed with nothing under it, and leaves the run configurations, the

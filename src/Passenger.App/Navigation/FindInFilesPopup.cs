@@ -24,7 +24,7 @@ public sealed record FindChoices(SearchScope Start, IReadOnlyList<ProjectModel> 
 /// scope (Solution, Project, Directory with Recursively, or a named Scope: Alt+U, Alt+P, Alt+D, Alt+S, Alt+Y) and the
 /// file mask (Alt+K), the matches as they are found with each one's file and line, the chosen one's file previewed
 /// below; Enter or a double-click goes to it, Escape closes. In Replace mode a replacement and Replace All.</summary>
-public sealed class FindInFilesPopup : UserControl
+public sealed class FindInFilesPopup : UserControl, IAnswers<SearchMatch?>
 {
     private static readonly TimeSpan Pause = TimeSpan.FromMilliseconds(250);
 

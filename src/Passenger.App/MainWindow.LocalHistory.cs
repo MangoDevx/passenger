@@ -127,15 +127,13 @@ public partial class MainWindow
         IReadOnlyList<HistoryRow> rows = await BackgroundWork.Run(() => HistoryRows.OfFolder(events, open));
         ChoicePopup popup = new("Recent Changes", "Search by name",
             [.. rows.Select(r => new Choice(r.Title, ToolWindows.GitLogView.When(r.Time), r))], "There are no changes");
-        popup.Done += (_, chosen) =>
+        popups.Show(popup, chosen =>
         {
-            popups.Close();
             if (chosen?.Value is HistoryRow row)
             {
                 ShowLocalHistory(open)?.SelectSet(row.Set);
             }
-        };
-        popups.Show(popup);
+        });
         return popup;
     }
 
@@ -158,8 +156,7 @@ public partial class MainWindow
             status.Text = $"Label {label} created";
             return Task.FromResult<string?>(null);
         });
-        popup.Done += (_, _) => popups.Close();
-        popups.Show(popup);
+        popups.Show(popup, _ => { });
         return popup;
     }
 

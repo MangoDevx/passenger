@@ -175,14 +175,6 @@ public sealed class Navigator
         NavigationHistory places = Places;
         RecentLocationsPopup popup = new(editedOnly => [.. places.Recent(editedOnly, here).Select(place => Location(place, files, made)).OfType<RecentLocation>().Take(RecentLocationsShown)],
             recentEditedOnly);
-        popup.Done += (_, place) =>
-        {
-            parts.Popups.Close();
-            if (place is not null)
-            {
-                GoToPlace(place);
-            }
-        };
         popup.Forgot += (_, place) => places.Forget(place);
         popup.DetachedFromVisualTree += (_, _) =>
         {
@@ -193,7 +185,13 @@ public sealed class Navigator
             }
             made.Clear();
         };
-        parts.Popups.Show(popup);
+        parts.Popups.Show(popup, row =>
+        {
+            if (row is not null)
+            {
+                GoToPlace(row.Place);
+            }
+        });
         return popup;
     }
 
@@ -246,19 +244,17 @@ public sealed class Navigator
             return;
         }
         GoToFilePopup popup = new(session.Index, session.RecentFiles.Skip(Editors.Active is null ? 0 : 1).ToList());
-        popup.Done += (_, path) =>
+        parts.Popups.Show(popup, hit =>
         {
-            parts.Popups.Close();
-            if (path is not null && popup.At is { } at)
+            if (hit is not null && popup.At is { } at)
             {
-                NavigateTo(path, at);
+                NavigateTo(hit.FullPath, at);
             }
-            else if (path is not null)
+            else if (hit is not null)
             {
-                parts.OpenFile(path);
+                parts.OpenFile(hit.FullPath);
             }
-        };
-        parts.Popups.Show(popup);
+        });
     }
 
     /// <summary>Go to Symbol: the solution's types and members by name or CamelHumps, as the language server finds them.</summary>
@@ -275,15 +271,13 @@ public sealed class Navigator
         }
         symbolFiles = new(StringComparer.Ordinal);
         SymbolPopup popup = new(title, placeholder, search, SelectedWord());
-        popup.Done += (_, row) =>
+        parts.Popups.Show(popup, row =>
         {
-            parts.Popups.Close();
             if (row is not null)
             {
                 NavigateTo(row.Path, row.ServerPosition is { } at ? ServerPlaces.PositionOf(Editors, row.Path, at) : row.Position);
             }
-        };
-        parts.Popups.Show(popup);
+        });
     }
 
     /// <summary>What a search starts from: the editor's selection, if it is one word.</summary>
@@ -404,15 +398,13 @@ public sealed class Navigator
             // The innermost member the caret is in.
             Initial = rows => rows.Select((row, i) => (row, i)).LastOrDefault(p => p.row.Spans(caretLine), (null!, 0)).Item2,
         };
-        popup.Done += (_, row) =>
+        parts.Popups.Show(popup, row =>
         {
-            parts.Popups.Close();
             if (row is not null)
             {
                 NavigateTo(row.Path, row.Position);
             }
-        };
-        parts.Popups.Show(popup);
+        });
     }
 
     private static IReadOnlyList<SymbolRow> FilterOutline(IReadOnlyList<SymbolRow> outline, string query)
@@ -453,15 +445,13 @@ public sealed class Navigator
         }
         CodeEditor editor = Editors.CodeEditor;
         GoToLinePopup popup = new(editor.CaretPosition, editor.Document.Snapshot.LineCount);
-        popup.Done += (_, position) =>
+        parts.Popups.Show(popup, position =>
         {
-            parts.Popups.Close();
             if (position is { } at)
             {
                 editor.GoTo(at);
             }
-        };
-        parts.Popups.Show(popup);
+        });
     }
 
     /// <summary>A file's colours over a stretch of it, shifted to the stretch's own offsets, for a place's lines drawn

@@ -404,8 +404,7 @@ public sealed class FindInFilesTests : IDisposable
             Ui.Press(window, Ui.Shortcut(AppActions.GoToFile));
             window.KeyTextInput("needle");
             Ui.Settle();
-            ListBox results = window.Popup!.FindControl<ListBox>("Results")!;
-            string[] offered = [.. results.Items.OfType<FileHit>().Select(hit => hit.RelativePath)];
+            string[] offered = [.. Assert.IsType<GoToFilePopup>(window.Popup).Rows.Select(hit => hit.RelativePath)];
             Assert.True(offered.SequenceEqual([source]), $"Go to File offers [{string.Join(", ", offered)}] for needle, where the monorepo's packages alone are the person's code");
             Ui.Press(window, "ESCAPE");
 

@@ -43,8 +43,7 @@ public partial class MainWindow
     private void AskName(string title, string initial, Func<string, string?> attempt)
     {
         Vcs.NamePopup popup = new(title, initial, name => Task.FromResult(attempt(name)));
-        popup.Done += (_, _) => popups.Close();
-        popups.Show(popup);
+        popups.Show(popup, _ => { });
     }
 
     /// <summary>Asks for a name as <see cref="AskName"/> does, answering with the one taken, or null once the popup closes
@@ -59,9 +58,8 @@ public partial class MainWindow
             taken = why is null ? name : null;
             return Task.FromResult(why);
         });
-        popup.Done += (_, _) => popups.Close();
         popup.DetachedFromVisualTree += (_, _) => answer.TrySetResult(taken);
-        popups.Show(popup);
+        popups.Show(popup, _ => { });
         return answer.Task;
     }
 
@@ -74,8 +72,7 @@ public partial class MainWindow
         Vcs.NamePopup? popup = null;
         popup = new Vcs.NamePopup("New Class/Interface", string.Empty, name => Task.FromResult(CreateType(into, name, popup?.Kind ?? TypeKinds[0])),
             [.. TypeKinds.Select(kind => (kind, TypeBadge(kind)))]);
-        popup.Done += (_, _) => popups.Close();
-        popups.Show(popup);
+        popups.Show(popup, _ => { });
     }
 
     /// <summary>The letter and colour a kind of type is marked with, as Go to Symbol shows it.</summary>
@@ -208,8 +205,7 @@ public partial class MainWindow
         popup = new Vcs.NamePopup("Rename", Path.GetFileName(path), name => RenameWithTypeAsync(path, name, type, popup?.Option?.IsChecked == true),
             option: ($"Rename type '{type.Name}' to match the new file name", assist.RenameSettings.RenameType));
         popup.OptionChanged += (_, on) => assist.RenameSettings = assist.RenameSettings with { RenameType = on };
-        popup.Done += (_, _) => popups.Close();
-        popups.Show(popup);
+        popups.Show(popup, _ => { });
     }
 
     /// <summary>Renames a C# file and, when asked, the type it is named after: the language server renames the type

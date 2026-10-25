@@ -8,7 +8,7 @@ namespace Passenger.App.Navigation;
 
 /// <summary>Go to Line: "LINE" or "LINE:COLUMN", both from one as the status bar shows them, the
 /// current position as its starting text.</summary>
-public partial class GoToLinePopup : UserControl
+public partial class GoToLinePopup : UserControl, IAnswers<TextPosition?>
 {
     private readonly int lineCount;
 

@@ -1,11 +1,8 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Templates;
 using Avalonia.Input;
-using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Avalonia.Threading;
 using Passenger.App.CSharp;
 using Passenger.Editor;
 using Passenger.Text;
@@ -28,81 +25,50 @@ public sealed record RecentLocation(HistoryPlace Place, string Name, string? Mem
 /// <summary>Recent Locations: the places left and edited, the latest first, each with its file, what it is in and its
 /// lines of code. Show edited only (or the action's keys again) keeps the places edited. Typing narrows them by file,
 /// member or code; Up and Down move, Enter or a double-click goes, Delete forgets a place, Escape leaves.</summary>
-public sealed class RecentLocationsPopup : UserControl
+public sealed class RecentLocationsPopup : SearchPopup<RecentLocation>
 {
+    /// <summary>How tall the list grows: its rows are a place's lines of code.</summary>
+    private const double PlacesHeight = 560;
+
     private readonly Func<bool, IReadOnlyList<RecentLocation>> places;
-    private readonly TextBlock title;
-    private readonly CheckBox editedOnly;
-    private readonly TextBox query;
-    private readonly ListBox list;
-    private readonly TextBlock empty;
     private IReadOnlyList<RecentLocation> all = [];
 
     public RecentLocationsPopup(Func<bool, IReadOnlyList<RecentLocation>> places, bool editedOnly)
+        : base(string.Empty, "A file's name, a member or code", PopupFrame.Wide, option: ("Show edited only", editedOnly), listHeight: PlacesHeight)
     {
         this.places = places;
-        title = new TextBlock { Classes = { "popupTitle" }, VerticalAlignment = VerticalAlignment.Center };
-        // Not focusable: the keys stay with the query.
-        this.editedOnly = new CheckBox { Content = "Show edited only", IsChecked = editedOnly, Focusable = false, FontSize = 12, VerticalAlignment = VerticalAlignment.Center };
-        this.editedOnly.IsCheckedChanged += (_, _) => Reload();
-        DockPanel heading = new();
-        DockPanel.SetDock(this.editedOnly, Dock.Right);
-        heading.Children.Add(this.editedOnly);
-        heading.Children.Add(title);
-        query = new TextBox { Classes = { "search" }, PlaceholderText = "A file's name, a member or code" };
-        query.TextChanged += (_, _) => Filter();
-        query.AddHandler(KeyDownEvent, OnQueryKeyDown, RoutingStrategies.Tunnel);
-        list = new ListBox
-        {
-            Classes = { "tree" },
-            MaxHeight = 560,
-            Margin = new Thickness(0, 0, 0, 8),
-            ItemTemplate = new FuncDataTemplate<RecentLocation>((row, _) => Row(row), supportsRecycling: false),
-        };
-        list.DoubleTapped += (_, _) => Choose();
-        empty = new TextBlock { Classes = { "muted" }, Margin = new Thickness(12, 0, 12, 12), IsVisible = false, Text = "No recent locations found" };
-        StackPanel top = new() { Margin = new Thickness(12, 10, 12, 8), Spacing = 8, Children = { heading, query } };
-        DockPanel body = new();
-        DockPanel.SetDock(top, Dock.Top);
-        DockPanel.SetDock(empty, Dock.Top);
-        body.Children.Add(top);
-        body.Children.Add(empty);
-        body.Children.Add(list);
-        Content = new Border { Classes = { "popup" }, Child = body };
-        Width = PopupFrame.Wide;
         Reload();
-        Dispatcher.UIThread.Post(() => query.Focus(), DispatcherPriority.Loaded);
     }
-
-    /// <summary>The place chosen, or null when the popup was dismissed.</summary>
-    public event EventHandler<HistoryPlace?>? Done;
 
     /// <summary>A place forgotten with Delete, which the history lets go of too.</summary>
     public event EventHandler<HistoryPlace>? Forgot;
 
-    public IReadOnlyList<RecentLocation> Rows => list.ItemsSource as IReadOnlyList<RecentLocation> ?? [];
-
-    public RecentLocation? Selected => list.SelectedItem as RecentLocation;
-
-    /// <summary>The title for what is listed: every recent place, or only those edited.</summary>
-    public string Title => title.Text ?? string.Empty;
-
     public bool EditedOnly
     {
-        get => editedOnly.IsChecked == true;
-        set => editedOnly.IsChecked = value;
+        get => IsOptionChecked;
+        set => IsOptionChecked = value;
     }
 
-    public string Query
+    protected override void QueryChanged() => Filter();
+
+    protected override void OptionTurned() => Reload();
+
+    protected override bool TakesKey(KeyEventArgs e)
     {
-        get => query.Text ?? string.Empty;
-        set => query.Text = value;
+        if (e.Key is Key.Delete or Key.Back && Query.Length == 0 && Selected is { } chosen)
+        {
+            Forget(chosen);
+            return true;
+        }
+        return false;
     }
+
+    protected override Control Draw(RecentLocation row) => Row(row);
 
     /// <summary>The places asked for again, as the switch between all of them and those edited turns.</summary>
     private void Reload()
     {
-        title.Text = EditedOnly ? "Recently Edited Locations" : "Recent Locations";
+        Title = EditedOnly ? "Recently Edited Locations" : "Recent Locations";
         all = places(EditedOnly);
         Filter();
     }
@@ -110,59 +76,22 @@ public sealed class RecentLocationsPopup : UserControl
     private void Filter()
     {
         string typed = Query.Trim();
-        List<RecentLocation> shown = [.. all.Where(p => p.Matches(typed))];
-        list.ItemsSource = shown;
-        list.SelectedIndex = shown.Count > 0 ? 0 : -1;
-        empty.IsVisible = shown.Count == 0;
-    }
-
-    private void OnQueryKeyDown(object? sender, KeyEventArgs e)
-    {
-        switch (e.Key)
-        {
-            case Key.Up or Key.Down or Key.PageUp or Key.PageDown when ListKeys.Move(list, e):
-                e.Handled = true;
-                break;
-            case Key.Enter:
-                Choose();
-                e.Handled = true;
-                break;
-            case Key.Escape:
-                Done?.Invoke(this, null);
-                e.Handled = true;
-                break;
-            case Key.Delete or Key.Back when Query.Length == 0 && Selected is { } chosen:
-                Forget(chosen);
-                e.Handled = true;
-                break;
-        }
+        Show([.. all.Where(p => p.Matches(typed))], "No recent locations found");
     }
 
     private void Forget(RecentLocation chosen)
     {
-        int at = list.SelectedIndex;
+        int at = Rows.ToList().IndexOf(chosen);
         all = [.. all.Where(p => p != chosen)];
         Forgot?.Invoke(this, chosen.Place);
         Filter();
-        list.SelectedIndex = Math.Min(at, list.ItemCount - 1);
-    }
-
-    private void Choose()
-    {
-        if (Selected is { } row)
-        {
-            Done?.Invoke(this, row.Place);
-        }
+        Selected = Rows.Count == 0 ? null : Rows[Math.Min(at, Rows.Count - 1)];
     }
 
     /// <summary>A place's row: its file and what it is in over its lines of code, numbered as the file numbers them,
     /// the place's own line marked.</summary>
-    private static Control Row(RecentLocation? row)
+    private static Control Row(RecentLocation row)
     {
-        if (row is null)
-        {
-            return new TextBlock();
-        }
         PathIcon icon = new()
         {
             Data = Explorer.FileIcons.ForFile(row.Place.Path),

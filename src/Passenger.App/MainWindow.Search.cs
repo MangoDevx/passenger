@@ -30,19 +30,6 @@ public partial class MainWindow
         popup.ScopeChanged += (_, scope) => KeepFindScope(scope, closing: false);
         // However it closes: a match chosen, Escape, a click outside.
         popup.DetachedFromVisualTree += (_, _) => KeepFindScope(popup.Scope, closing: true);
-        popup.Done += (_, match) =>
-        {
-            popups.Close();
-            if (match is not null)
-            {
-                NavigateTo(match.Path, new TextPosition(match.Line, match.Column));
-                if (Editors.Active?.Path == match.Path)
-                {
-                    int at = Editors.CodeEditor.Document.Snapshot.GetOffset(new TextPosition(match.Line, match.Column));
-                    Editors.CodeEditor.Select(new TextRange(at, match.Length));
-                }
-            }
-        };
         popup.ReplaceRequested += async (_, asked) =>
         {
             string what = FilesReplaced.Count(asked.Matches);
@@ -55,7 +42,18 @@ public partial class MainWindow
                 await popup.SearchAsync();
             }
         };
-        popups.Show(popup);
+        popups.Show(popup, match =>
+        {
+            if (match is not null)
+            {
+                NavigateTo(match.Path, new TextPosition(match.Line, match.Column));
+                if (Editors.Active?.Path == match.Path)
+                {
+                    int at = Editors.CodeEditor.Document.Snapshot.GetOffset(new TextPosition(match.Line, match.Column));
+                    Editors.CodeEditor.Select(new TextRange(at, match.Length));
+                }
+            }
+        });
         return popup;
     }
 
@@ -258,15 +256,13 @@ public partial class MainWindow
                 Navigation.SymbolRow.FileKind, p, new TextPosition(0, 0)))]);
         }, option: ("Show edited only", editedOnly));
         popup.OptionChanged += (_, on) => edited = on;
-        popup.Done += (_, row) =>
+        popups.Show(popup, row =>
         {
-            popups.Close();
             if (row is not null)
             {
                 OpenFile(row.Path);
             }
-        };
-        popups.Show(popup);
+        });
         return popup;
     }
 
