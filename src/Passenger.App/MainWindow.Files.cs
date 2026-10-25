@@ -453,7 +453,7 @@ public partial class MainWindow
         {
             session.Index.Build(folder);
         }
-        _ = session.Vcs.RefreshAsync();
+        IdeErrors.Observe(session.Vcs.RefreshAsync());
     }
 
     private static string? Invalid(string name) =>

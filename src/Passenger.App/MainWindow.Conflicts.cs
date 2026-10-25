@@ -55,7 +55,7 @@ public partial class MainWindow
             conflictsDialog = null;
             IdeErrors.Observe(OfferToContinueRebaseAsync());
         };
-        _ = dialog.ShowDialog(this);
+        IdeErrors.Observe(dialog.ShowDialog(this));
         return dialog;
     }
 

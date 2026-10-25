@@ -129,7 +129,7 @@ public sealed class MergeView : DockPanel
         };
         DetachedFromVisualTree += (_, _) => keys?.RemoveHandler(KeyDownEvent, OnKeyDown);
         Show();
-        _ = MarkWordsAsync();
+        IdeErrors.Observe(MarkWordsAsync());
     }
 
     /// <summary>The words each side changed inside its changes' lines, worked out off the window's thread, then shown.</summary>

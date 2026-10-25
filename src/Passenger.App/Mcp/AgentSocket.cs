@@ -35,7 +35,7 @@ public sealed class AgentSocket : IDisposable
         this.listener = listener;
         Path = path;
         // Not held: it listens for as long as the window does.
-        _ = Task.Run(AcceptAsync);
+        IdeErrors.Observe(Task.Run(AcceptAsync));
     }
 
     /// <summary>The socket's file.</summary>
@@ -158,7 +158,7 @@ public sealed class AgentSocket : IDisposable
             {
                 return;
             }
-            _ = ServeAsync(client);
+            IdeErrors.Observe(ServeAsync(client));
         }
     }
 

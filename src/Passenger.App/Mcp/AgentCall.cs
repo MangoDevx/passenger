@@ -112,7 +112,7 @@ public sealed class AgentCall : IAsyncDisposable
         waitingOn = onWhat;
         Log($"waiting: {onWhat}");
         // Not held, and never on the caller's thread (the window's): it changes nothing drawn, and the agent's pipe may be slow.
-        _ = Task.Run(() => TellAsync());
+        IdeErrors.Observe(Task.Run(() => TellAsync()));
     }
 
     /// <summary>The wait is over, with what it came to.</summary>
@@ -136,7 +136,7 @@ public sealed class AgentCall : IAsyncDisposable
         {
             heard = message;
         }
-        _ = TellAsync(message);
+        IdeErrors.Observe(TellAsync(message));
     }
 
     /// <summary>How the call ended, logged: answered, an error, given up by the agent, failed.</summary>

@@ -52,7 +52,7 @@ public partial class MainWindow
         if (session.Packages.Sources != PackageSourceSet.None
             && changes.Paths.Any(p => Path.GetFileName(p).Equals("nuget.config", StringComparison.OrdinalIgnoreCase)))
         {
-            _ = nuget is { } view ? view.ReloadSourcesAsync() : session.Packages.ReloadSourcesAsync();
+            IdeErrors.Observe(nuget is { } view ? view.ReloadSourcesAsync() : session.Packages.ReloadSourcesAsync());
         }
     }
 }

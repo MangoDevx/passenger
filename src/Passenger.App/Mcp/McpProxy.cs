@@ -498,8 +498,8 @@ public sealed class McpProxy
             start.RedirectStandardOutput = true;
             start.RedirectStandardError = true;
             headless = ChildProcesses.Start(start);
-            _ = headless.StandardOutput.BaseStream.CopyToAsync(Stream.Null, CancellationToken.None);
-            _ = headless.StandardError.BaseStream.CopyToAsync(Stream.Null, CancellationToken.None);
+            IdeErrors.Observe(headless.StandardOutput.BaseStream.CopyToAsync(Stream.Null, CancellationToken.None));
+            IdeErrors.Observe(headless.StandardError.BaseStream.CopyToAsync(Stream.Null, CancellationToken.None));
             return;
         }
         if (OperatingSystem.IsMacOS() && Bundle(self) is { } app)

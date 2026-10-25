@@ -310,7 +310,7 @@ public partial class MainWindow : Window
         {
             if (file.EndsWith(".nettrace", StringComparison.OrdinalIgnoreCase))
             {
-                _ = OpenSnapshotAsync(Path.GetFullPath(file));
+                IdeErrors.Observe(OpenSnapshotAsync(Path.GetFullPath(file)));
                 continue;
             }
             OpenFile(file);
@@ -324,7 +324,7 @@ public partial class MainWindow : Window
             welcome.FocusSearch();
         }
         PreloadTemplates();
-        _ = ForgetUnmaskedCopiesAsync();
+        IdeErrors.Observe(ForgetUnmaskedCopiesAsync());
     }
 
     private string? followed;

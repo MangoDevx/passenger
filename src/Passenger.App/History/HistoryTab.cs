@@ -131,7 +131,7 @@ public sealed class HistoryTab : DockPanel
                 IdeErrors.Observe(ShowAsync());
             }
         };
-        _ = LoadAsync();
+        IdeErrors.Observe(LoadAsync());
     }
 
     /// <summary>The file or folder the history is of, as it is named now.</summary>

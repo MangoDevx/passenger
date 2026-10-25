@@ -126,7 +126,7 @@ public sealed class NuGetView : DockPanel
         Follow(model);
         AttachedToVisualTree += (_, _) =>
         {
-            _ = Shown();
+            IdeErrors.Observe(Shown());
             Dispatcher.UIThread.Post(() => search.Focus(), DispatcherPriority.Loaded);
         };
     }
@@ -151,7 +151,7 @@ public sealed class NuGetView : DockPanel
         Follow(next);
         if (next.Sources == PackageSourceSet.None && read)
         {
-            _ = ReloadSourcesAsync(list: false);
+            IdeErrors.Observe(ReloadSourcesAsync(list: false));
         }
     }
 
@@ -246,7 +246,7 @@ public sealed class NuGetView : DockPanel
     public void ShowSources()
     {
         Show(Sources);
-        _ = ReloadSourcesAsync(list: false);
+        IdeErrors.Observe(ReloadSourcesAsync(list: false));
     }
 
     /// <summary>Reads the folder's nuget.config files again (after one changed, here or on disk), keeping the feed chosen

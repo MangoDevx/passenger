@@ -160,7 +160,7 @@ public partial class MainWindow
         updateTimer = new DispatcherTimer { Interval = UpdateInterval };
         updateTimer.Tick += (_, _) => IdeErrors.Observe(CheckForUpdatesAsync(asked: false));
         updateTimer.Start();
-        _ = CheckForUpdatesAsync(asked: false);
+        IdeErrors.Observe(CheckForUpdatesAsync(asked: false));
     }
 
     /// <summary>Asks for the latest release, off the UI thread. A newer one downloads when this copy installs updates
@@ -339,14 +339,14 @@ public partial class MainWindow
         readyRelease = null;
         // Once the download stopped has let go of its files. Not drawn: removing hundreds of megabytes is the disk's work.
         Task? stopping = downloadTask;
-        _ = Task.Run(async () =>
+        IdeErrors.Observe(Task.Run(async () =>
         {
             if (stopping is not null)
             {
                 await stopping.ContinueWith(_ => { }, TaskScheduler.Default);
             }
             updater.Discard();
-        });
+        }));
     }
 
     /// <summary>What the last session's install came to, said once: the version it installed, or that it did not.</summary>

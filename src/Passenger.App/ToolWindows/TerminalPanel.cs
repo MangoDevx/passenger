@@ -104,7 +104,7 @@ public sealed class TerminalPanel : DockPanel
         {
             at = tabs.IndexOf(ended);
             tabs.RemoveAt(at);
-            _ = ended.Session.DisposeAsync();
+            IdeErrors.Observe(ended.Session.DisposeAsync().AsTask());
         }
         TerminalSession session = new(view.Session?.Screen.Columns ?? 120, view.Session?.Screen.Rows ?? 30);
         Run.TerminalRun run = new(name, session, start);
@@ -208,7 +208,7 @@ public sealed class TerminalPanel : DockPanel
             return;
         }
         tabs.RemoveAt(index);
-        _ = tab.Session.DisposeAsync();
+        IdeErrors.Observe(tab.Session.DisposeAsync().AsTask());
         if (tabs.Count == 0)
         {
             view.Session = null;

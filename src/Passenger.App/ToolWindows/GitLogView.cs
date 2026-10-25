@@ -210,7 +210,7 @@ public sealed class GitLogView : DockPanel, IOwnKeys
         (BranchFilter, BranchFilterName) = all ? (null, null) : branch is null ? ("HEAD", "HEAD") : (branch.Ref.FullName, branch.Name);
         branchFilter.IsVisible = BranchFilter is not null;
         branchFilterText.Text = $"Branch: {BranchFilterName}";
-        _ = LoadAsync();
+        IdeErrors.Observe(LoadAsync());
     }
 
     /// <summary>A history's tab closed: it stops following the history.</summary>

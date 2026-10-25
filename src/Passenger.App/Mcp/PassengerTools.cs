@@ -2125,7 +2125,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
     /// <summary>A task whose end may make a wait's condition hold, however it ends.</summary>
     private static Wake Ends(Task task) => look =>
     {
-        _ = task.ContinueWith(_ => UiThread.Post(look), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+        IdeErrors.Observe(task.ContinueWith(_ => UiThread.Post(look), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default));
         return () => { };
     };
 

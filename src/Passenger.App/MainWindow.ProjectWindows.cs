@@ -92,7 +92,7 @@ public partial class MainWindow
             // Once the question has gone and this window has the keys back, so a new window comes in front of it.
             Avalonia.Threading.Dispatcher.UIThread.Post(() => PassengerApp.OpenProject(full, target, this, then));
         };
-        _ = dialog.ShowDialog(this);
+        IdeErrors.Observe(dialog.ShowDialog(this));
     }
 
     /// <summary>Window's list: each solution window open, by its solution's name (Welcome to Passenger for one with

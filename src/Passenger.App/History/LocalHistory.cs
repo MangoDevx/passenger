@@ -394,7 +394,7 @@ public sealed class LocalHistory
             }
             draining = true;
         }
-        _ = BackgroundWork.Run(Drain);
+        IdeErrors.Observe(BackgroundWork.Run(Drain));
     }
 
     private void Drain()

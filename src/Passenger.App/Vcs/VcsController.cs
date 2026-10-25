@@ -209,7 +209,7 @@ public sealed class VcsController : IDisposable
         TaskCompletionSource next = asked ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         if (!reading)
         {
-            _ = ReadInTurnAsync();
+            IdeErrors.Observe(ReadInTurnAsync());
         }
         return next.Task;
     }
@@ -343,7 +343,7 @@ public sealed class VcsController : IDisposable
         }
         foreach (OpenDocument document in documents.Keys)
         {
-            _ = MarkAsync(document);
+            IdeErrors.Observe(MarkAsync(document));
         }
 
         static async Task<string?> TextOfAsync(Task<IReadOnlyDictionary<string, string?>> texts, string path, string origin)
@@ -378,7 +378,7 @@ public sealed class VcsController : IDisposable
         document.Text.Changed += tracked.OnChanged;
         document.Saved += tracked.OnSaved;
         documents[document] = tracked;
-        _ = MarkAsync(document);
+        IdeErrors.Observe(MarkAsync(document));
     }
 
     public void Detach(OpenDocument document)

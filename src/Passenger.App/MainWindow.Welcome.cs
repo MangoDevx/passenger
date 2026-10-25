@@ -205,7 +205,7 @@ public partial class MainWindow
                 Open(cloned);
             }
         };
-        _ = dialog.ShowDialog(this);
+        IdeErrors.Observe(dialog.ShowDialog(this));
         return dialog;
     }
 

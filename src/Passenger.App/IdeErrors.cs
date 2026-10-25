@@ -156,9 +156,9 @@ public static class IdeErrors
         Dispatcher.UIThread.Post(() => Raised?.Invoke(null, reported));
     }
 
-    /// <summary>Work a handler, menu item, action or callback starts and nothing awaits: its fault is reported as it
-    /// faults, as an exception escaping the handler itself is, never only once the task is collected. A cancelled task
-    /// is no fault.</summary>
+    /// <summary>Work started that nothing awaits (a handler's, a menu item's, a callback's, a method's that returns before
+    /// it ends): its fault is reported as it faults, as an exception escaping a handler is, never only once the task is
+    /// collected. A cancelled task is no fault.</summary>
     public static void Observe(Task work) =>
         _ = work.ContinueWith(faulted => Report(Single(faulted.Exception!)), CancellationToken.None,
             TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);

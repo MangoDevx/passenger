@@ -833,7 +833,7 @@ public sealed class ProjectSession : IAsyncDisposable
     /// server, and for a folder without a solution the walk for its projects.</summary>
     public void Start(bool walk)
     {
-        _ = Vcs.OpenAsync(Folder!);
+        IdeErrors.Observe(Vcs.OpenAsync(Folder!));
         StartCSharp();
         if (walk)
         {
@@ -854,7 +854,7 @@ public sealed class ProjectSession : IAsyncDisposable
         WorkspaceRead = landed.Task;
         // Held through the walk, then by the crossing, which lets go of what it can never deliver.
         IDisposable held = BackgroundWork.Scope();
-        Task.Run(() => WorkspaceModel.Read(walking, named)).ContinueWith(walked =>
+        IdeErrors.Observe(Task.Run(() => WorkspaceModel.Read(walking, named)).ContinueWith(walked =>
         {
             // Seen here, so a walk that failed after another read began is no unobserved task's error later.
             _ = walked.Exception;
@@ -873,7 +873,7 @@ public sealed class ProjectSession : IAsyncDisposable
                 }
             });
             held.Dispose();
-        }, TaskScheduler.Default);
+        }, TaskScheduler.Default));
     }
 
     /// <summary>Takes a new read of the folder. The language server starts again only when what it loaded changed: another
@@ -896,7 +896,7 @@ public sealed class ProjectSession : IAsyncDisposable
     /// folder with neither a solution nor a project, nor in a window that starts none.</summary>
     private void StartCSharp()
     {
-        _ = CSharp?.DisposeAsync();
+        IdeErrors.Observe(CSharp?.DisposeAsync().AsTask() ?? Task.CompletedTask);
         CSharp = null;
         if (!IsEnded && setup.StartsLanguageServer && Workspace is { } opening && (opening.Solution is not null || opening.Projects.Count > 0))
         {

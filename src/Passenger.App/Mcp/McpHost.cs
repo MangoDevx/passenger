@@ -209,7 +209,7 @@ public static partial class McpHost
             {
                 context.Cancel = true;
                 end();
-                _ = Task.Delay(EndLimit).ContinueWith(_ => Environment.Exit(143), TaskScheduler.Default);
+                IdeErrors.Observe(Task.Delay(EndLimit).ContinueWith(_ => Environment.Exit(143), TaskScheduler.Default));
             });
         }
         catch (PlatformNotSupportedException)
@@ -236,7 +236,7 @@ public static partial class McpHost
         // The agent's own IDE: nobody else is at it to ask.
         AgentConnection connection = new(done.Token, attached: false);
         // Not held, and made on a worker while the window is: it serves as long as the agent stays, each tool holding what it starts.
-        _ = Task.Run(async () =>
+        IdeErrors.Observe(Task.Run(async () =>
         {
             try
             {
@@ -247,7 +247,7 @@ public static partial class McpHost
             {
                 ended.TrySetResult();
             }
-        });
+        }));
         using System.Runtime.InteropServices.PosixSignalRegistration? terminated = EndOnSignal(() => ended.TrySetResult());
 
         AppBuilder.Configure<App>()
@@ -265,7 +265,7 @@ public static partial class McpHost
         window.Start(launch);
         ready.SetResult(new PassengerTools(window, connection));
         // Posted once the dispatcher is this thread's: the agent may have gone before it was.
-        _ = ended.Task.ContinueWith(_ => UiThread.Post(done.Cancel), TaskScheduler.Default);
+        IdeErrors.Observe(ended.Task.ContinueWith(_ => UiThread.Post(done.Cancel), TaskScheduler.Default));
         Dispatcher.UIThread.MainLoop(done.Token);
         // What the agent left running (a program, a debugger) ends with the windows, as it does with the person's.
         PassengerApp.Quit();
@@ -285,7 +285,7 @@ public static partial class McpHost
         string folder = File.Exists(full) && WorkspaceModel.Opens(full) ? Path.GetDirectoryName(full)! : full;
         if (Directory.Exists(folder))
         {
-            _ = Task.Run(async () =>
+            IdeErrors.Observe(Task.Run(async () =>
             {
                 try
                 {
@@ -295,7 +295,7 @@ public static partial class McpHost
                 {
                     // Said when the folder asks for its host.
                 }
-            });
+            }));
         }
     }
 
@@ -324,7 +324,7 @@ public static partial class McpHost
         using CancellationTokenSource done = new();
         using System.Runtime.InteropServices.PosixSignalRegistration? terminated = EndOnSignal(() => UiThread.Post(done.Cancel));
         // Not held: it waits for the end of the input, which its starter's own end closes.
-        _ = Task.Run(() =>
+        IdeErrors.Observe(Task.Run(() =>
         {
             try
             {
@@ -334,7 +334,7 @@ public static partial class McpHost
             {
                 UiThread.Post(done.Cancel);
             }
-        });
+        }));
         Dispatcher.UIThread.MainLoop(done.Token);
         PassengerApp.Quit();
         PassengerApp.End();

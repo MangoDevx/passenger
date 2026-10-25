@@ -298,7 +298,7 @@ public sealed class ProjectBuilds
             ["RazorDesignTimeTargets"] = Path.Combine(RoslynServerFolder.Carried, "Targets", "Microsoft.NET.Sdk.Razor.DesignTime.targets"),
         };
         // Not background work: only the language server's load waits on it, and a large solution's round takes minutes.
-        _ = RoundAsync(generation, folder, round, properties, ending.Token);
+        IdeErrors.Observe(RoundAsync(generation, folder, round, properties, ending.Token));
     }
 
     /// <summary>The solution the projects are built under now, by the path its global properties give.</summary>

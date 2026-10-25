@@ -24,7 +24,7 @@ internal sealed class AppSocket : IDisposable
         Path = path;
         this.listener = listener;
         // Not held: it listens for as long as the process has a window agents reach.
-        _ = Task.Run(AcceptAsync);
+        IdeErrors.Observe(Task.Run(AcceptAsync));
     }
 
     public string Path { get; }
@@ -133,7 +133,7 @@ internal sealed class AppSocket : IDisposable
             {
                 return;
             }
-            _ = AnswerAsync(client);
+            IdeErrors.Observe(AnswerAsync(client));
         }
     }
 

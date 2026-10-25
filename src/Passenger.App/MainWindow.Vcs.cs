@@ -175,7 +175,7 @@ public partial class MainWindow
 
     private void ShowBranches()
     {
-        _ = ShowBranchesAsync();
+        IdeErrors.Observe(ShowBranchesAsync());
     }
 
     private async Task ShowBranchesAsync()
@@ -382,7 +382,7 @@ public partial class MainWindow
             GoToChange(step);
             if (Editors.Active is { } now && ChangeAt(now, Editors.CodeEditor.CaretPosition.Line) is { } next)
             {
-                _ = ShowChangePopupAsync(Editors.CodeEditor, now, next);
+                IdeErrors.Observe(ShowChangePopupAsync(Editors.CodeEditor, now, next));
             }
         }
         // The file's changed words are marked in it while the popup shows them; an edit since moves them.
@@ -609,6 +609,6 @@ public partial class MainWindow
         }
         FollowWritten([ignore]);
         status.Text = $"Added {line} to .gitignore";
-        _ = session.Vcs.RefreshAsync();
+        IdeErrors.Observe(session.Vcs.RefreshAsync());
     }
 }

@@ -105,7 +105,7 @@ public sealed class StateDocument<T> where T : class, IStateDocument<T>, new()
             }
             scheduled = true;
         }
-        _ = Task.Delay(Delay).ContinueWith(_ => Write(), TaskScheduler.Default);
+        IdeErrors.Observe(Task.Delay(Delay).ContinueWith(_ => Write(), TaskScheduler.Default));
     }
 
     /// <summary>Writes a change still waiting, now, on the caller's thread: as the window closes, since the process does

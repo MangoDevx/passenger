@@ -171,7 +171,7 @@ public partial class MainWindow
         ShowWorkspaceName();
         UpdateStatus();
         Remember();
-        _ = KeepSnapshotsAsync();
+        IdeErrors.Observe(KeepSnapshotsAsync());
     }
 
     /// <summary>What the open folder had in the window goes, kept with it in the store first: its editors close, each saved

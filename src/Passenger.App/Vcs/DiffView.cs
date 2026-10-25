@@ -88,7 +88,7 @@ public sealed class DiffView : DockPanel, IOwnKeys
             }
         }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         Show(diff);
-        _ = CompareAsync();
+        IdeErrors.Observe(CompareAsync());
     }
 
     /// <summary>The last commit's side.</summary>
@@ -141,7 +141,7 @@ public sealed class DiffView : DockPanel, IOwnKeys
             return;
         }
         Right.ApplyEdits([shown.Restore(hunk)]);
-        _ = CompareAsync();
+        IdeErrors.Observe(CompareAsync());
     }
 
     /// <summary>The next or previous difference from the right side's caret, shown on both sides.</summary>
@@ -193,7 +193,7 @@ public sealed class DiffView : DockPanel, IOwnKeys
             _ => $"{Hunks.Count} differences",
         };
         bands.InvalidateVisual();
-        _ = ShowWordsAsync(diff);
+        IdeErrors.Observe(ShowWordsAsync(diff));
     }
 
     /// <summary>Marks the words that differ inside the changed lines, worked out off the window's thread; a newer
