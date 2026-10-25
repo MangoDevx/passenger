@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Extensions;
 using Microsoft.CodeAnalysis.Text;
+using static Passenger.Roslyn.Extension.SyntaxReads;
 
 namespace Passenger.Roslyn.Extension;
 
@@ -397,16 +398,4 @@ internal static class LocalizationSource
         exact = written is LiteralExpressionSyntax literal && literal.IsKind(SyntaxKind.StringLiteralExpression) && literal.Token.Text == "\"" + key + "\"";
         return exact ? new TextSpan(written.SpanStart + 1, key.Length) : written.Span;
     }
-
-    private static string? Constant(ExpressionSyntax expression, SemanticModel model, CancellationToken cancel) =>
-        model.GetConstantValue(expression, cancel) is { HasValue: true, Value: string value } ? value : null;
-
-    private static Place PlaceAt(SourceText text, int offset)
-    {
-        LinePosition position = text.Lines.GetLinePosition(offset);
-        return new Place(position.Line, position.Character);
-    }
-
-    private static bool SamePath(string? left, string? right) => left is not null && right is not null
-        && string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
 }

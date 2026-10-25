@@ -6,6 +6,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Extensions;
 using Microsoft.CodeAnalysis.FindSymbols;
 using Microsoft.CodeAnalysis.Text;
+using Passenger.Core;
+using static Passenger.Roslyn.Extension.SyntaxReads;
 
 namespace Passenger.Roslyn.Extension;
 
@@ -42,13 +44,13 @@ internal static partial class RouteReading
     {
         List<WebRoute> routes = [];
         List<string> read = [];
-        HashSet<string> seen = new(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+        HashSet<string> seen = new(PathNames.Comparer);
         foreach (Project project in solution.Projects)
         {
             cancel.ThrowIfCancellationRequested();
             // A multi-targeted project is several of the server's projects of one file: its routes are read once.
             if (project.Language != LanguageNames.CSharp || project.FilePath is not { } file || !IsWeb(project)
-                || (asked.Count > 0 && !asked.Any(path => SamePath(path, file))) || !seen.Add(Path.GetFullPath(file)))
+                || (asked.Count > 0 && !asked.Any(path => SamePath(path, file))) || !seen.Add(PathNames.Canonical(file)))
             {
                 continue;
             }
@@ -66,15 +68,6 @@ internal static partial class RouteReading
     private static bool IsWeb(Project project) => project.MetadataReferences.Any(reference => reference.Display is { } display
         && Path.GetFileName(display) is { } name
         && (name.StartsWith("Microsoft.AspNetCore.", StringComparison.OrdinalIgnoreCase) || name.StartsWith("Grpc.AspNetCore", StringComparison.OrdinalIgnoreCase)));
-
-    private static bool SamePath(string? left, string? right) => left is not null && right is not null
-        && string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
-
-    private static Place PlaceAt(SourceText text, int offset)
-    {
-        LinePosition position = text.Lines.GetLinePosition(offset);
-        return new Place(position.Line, position.Character);
-    }
 
     /// <summary>Two templates as one: a group's prefix and its route, a controller's and its action's.</summary>
     internal static string Join(string left, string right) => Rooted(left.TrimEnd('/') + "/" + right.TrimStart('~').TrimStart('/'));
@@ -132,7 +125,7 @@ internal static partial class RouteReading
                 {
                     continue;
                 }
-                List<InvocationExpressionSyntax> maps = [.. root.DescendantNodes().OfType<InvocationExpressionSyntax>().Where(i => MapNames.Contains(NameOf(i) ?? string.Empty))];
+                List<InvocationExpressionSyntax> maps = [.. root.DescendantNodes().OfType<InvocationExpressionSyntax>().Where(i => MapNames.Contains(NameOf(i.Expression) ?? string.Empty))];
                 if (maps.Count == 0)
                 {
                     continue;
@@ -147,13 +140,6 @@ internal static partial class RouteReading
             ReadControllers();
             await ReadRazorAsync().ConfigureAwait(false);
         }
-
-        private static string? NameOf(InvocationExpressionSyntax invocation) => invocation.Expression switch
-        {
-            MemberAccessExpressionSyntax { Name: var name } => name.Identifier.ValueText,
-            SimpleNameSyntax name => name.Identifier.ValueText,
-            _ => null,
-        };
 
         private string Hash(string path, SourceText text)
         {
@@ -173,14 +159,14 @@ internal static partial class RouteReading
             }
             IMethodSymbol original = method.ReducedFrom ?? method;
             string container = original.ContainingType.ToDisplayString();
-            ExpressionSyntax? receiver = ReceiverOf(map, method);
+            ExpressionSyntax? receiver = Receiver(map, method);
             SimpleNameSyntax name = map.Expression is MemberAccessExpressionSyntax access ? access.Name : (SimpleNameSyntax)map.Expression;
             if (container == ControllerExtensions)
             {
                 // Conventional routes, which the controllers with no route of their own take.
                 string? pattern = method.Name == "MapDefaultControllerRoute" ? "{controller=Home}/{action=Index}/{id?}"
-                    : Constant(Argument(method, map, "pattern"), model);
-                string? area = method.Name == "MapAreaControllerRoute" ? Constant(Argument(method, map, "areaName"), model) : null;
+                    : Constant(Argument(map, method, "pattern"), model, cancel);
+                string? area = method.Name == "MapAreaControllerRoute" ? Constant(Argument(map, method, "areaName"), model, cancel) : null;
                 if (pattern is not null && (method.Name != "MapAreaControllerRoute" || area is not null))
                 {
                     conventional.Add((pattern, area));
@@ -195,11 +181,11 @@ internal static partial class RouteReading
             Place at = PlaceAt(text, name.SpanStart);
             if (container == HubExtensions && method.Name == "MapHub" && method.TypeArguments is [INamedTypeSymbol hub])
             {
-                if (Constant(Argument(method, map, "pattern"), model) is not { } pattern)
+                if (Constant(Argument(map, method, "pattern"), model, cancel) is not { } pattern)
                 {
                     return;
                 }
-                ExpressionSyntax written = Argument(method, map, "pattern")!;
+                ExpressionSyntax written = Argument(map, method, "pattern")!;
                 (string? hubPath, Place? hubAt) = DeclarationOf(hub);
                 List<string> operations = [.. hub.GetMembers().OfType<IMethodSymbol>()
                     .Where(m => m.MethodKind == MethodKind.Ordinary && m.DeclaredAccessibility == Accessibility.Public && !m.IsStatic)
@@ -219,17 +205,17 @@ internal static partial class RouteReading
             }
             IReadOnlyList<string>? methods = method.Name switch
             {
-                "MapMethods" => Methods(Argument(method, map, "httpMethods"), model),
+                "MapMethods" => Methods(Argument(map, method, "httpMethods"), model),
                 "Map" => [],
                 _ => MapVerbs.TryGetValue(method.Name, out string? verb) ? [verb] : null,
             };
-            ExpressionSyntax? patternArgument = Argument(method, map, "pattern");
-            if (methods is null || Constant(patternArgument, model) is not { } template)
+            ExpressionSyntax? patternArgument = Argument(map, method, "pattern");
+            if (methods is null || Constant(patternArgument, model, cancel) is not { } template)
             {
                 return;
             }
             string whole = Join(prefix, template);
-            ExpressionSyntax? handler = Argument(method, map, "handler") ?? Argument(method, map, "requestDelegate");
+            ExpressionSyntax? handler = Argument(map, method, "handler") ?? Argument(map, method, "requestDelegate");
             IMethodSymbol? handled = handler is null ? null : HandlerOf(handler, model);
             string handlerName = handled is null || handled.MethodKind == MethodKind.AnonymousFunction ? "lambda" : $"{handled.ContainingType.Name}.{handled.Name}";
             (string? handlerPath, Place? handlerAt) = handled is null ? (null, null)
@@ -262,11 +248,11 @@ internal static partial class RouteReading
                 case InvocationExpressionSyntax invocation when model.GetSymbolInfo(invocation, cancel).Symbol is IMethodSymbol called:
                 {
                     IMethodSymbol original = called.ReducedFrom ?? called;
-                    ExpressionSyntax? receiver = ReceiverOf(invocation, called);
+                    ExpressionSyntax? receiver = Receiver(invocation, called);
                     if (called.Name == "MapGroup" && original.ContainingType.ToDisplayString() == EndpointExtensions)
                     {
                         string? before = await PrefixAsync(receiver, model, depth + 1).ConfigureAwait(false);
-                        string? prefix = Constant(Argument(called, invocation, "prefix"), model);
+                        string? prefix = Constant(Argument(invocation, called, "prefix"), model, cancel);
                         return before is null || prefix is null ? null : Join(before, prefix);
                     }
                     // A convention (RequireAuthorization, WithTags, WithOpenApi) gives back the builder it was given.
@@ -336,35 +322,13 @@ internal static partial class RouteReading
                     {
                         return null;
                     }
-                    ExpressionSyntax? argument = called.ReducedFrom is not null && parameter.Ordinal == 0 ? ReceiverOf(call, called)
-                        : Argument(called, call, parameter.Name);
+                    ExpressionSyntax? argument = owner.IsExtensionMethod && parameter.Ordinal == 0 ? Receiver(call, called)
+                        : Argument(call, called, parameter.Name);
                     given.Add(await PrefixAsync(argument, model, depth + 1).ConfigureAwait(false));
                 }
             }
             return given.Count > 0 && given.All(g => g is not null && g == given[0]) ? given[0] : null;
         }
-
-        private static ExpressionSyntax? ReceiverOf(InvocationExpressionSyntax invocation, IMethodSymbol method) =>
-            method.ReducedFrom is not null && invocation.Expression is MemberAccessExpressionSyntax access ? access.Expression
-            : method.IsExtensionMethod && invocation.ArgumentList.Arguments.Count > 0 ? invocation.ArgumentList.Arguments[0].Expression
-            : invocation.Expression is MemberAccessExpressionSyntax instance ? instance.Expression
-            : null;
-
-        /// <summary>The argument a call gives a parameter, by its name or its place.</summary>
-        private static ExpressionSyntax? Argument(IMethodSymbol method, InvocationExpressionSyntax invocation, string name)
-        {
-            SeparatedSyntaxList<ArgumentSyntax> arguments = invocation.ArgumentList.Arguments;
-            if (arguments.FirstOrDefault(a => a.NameColon?.Name.Identifier.ValueText == name) is { } named)
-            {
-                return named.Expression;
-            }
-            // A reduced extension's own parameters leave out its receiver; one called as a static method keeps it.
-            int index = method.Parameters.IndexOf(method.Parameters.FirstOrDefault(p => p.Name == name)!);
-            return index >= 0 && index < arguments.Count && arguments[index].NameColon is null ? arguments[index].Expression : null;
-        }
-
-        private string? Constant(ExpressionSyntax? expression, SemanticModel model) =>
-            expression is not null && model.GetConstantValue(expression, cancel) is { HasValue: true, Value: string value } ? value : null;
 
         /// <summary>MapMethods' methods: string constants, or HttpMethods' fields.</summary>
         private IReadOnlyList<string>? Methods(ExpressionSyntax? expression, SemanticModel model)
@@ -384,7 +348,7 @@ internal static partial class RouteReading
             List<string> methods = [];
             foreach (ExpressionSyntax element in elements)
             {
-                if (Constant(element, model) is { } constant)
+                if (Constant(element, model, cancel) is { } constant)
                 {
                     methods.Add(constant.ToUpperInvariant());
                 }

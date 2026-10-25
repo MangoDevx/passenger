@@ -9,7 +9,14 @@
     <RootNamespace>Passenger.Roslyn.Extension</RootNamespace>
     <!-- Roslyn marks its extension message handlers experimental. -->
     <NoWarn>$(NoWarn);RSEXPERIMENTAL008</NoWarn>
+    <!-- PathNames asks Windows for a file's own name into a buffer it fixes. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Paths compared as the rest of Passenger compares them, compiled in since Passenger.Core's net11.0 is past the server's. -->
+    <Compile Include="../Passenger.Core/PathNames.cs" Link="PathNames.cs" />
+  </ItemGroup>
 
   <Import Project="../Passenger.Lsp/RoslynServer.targets" />
 

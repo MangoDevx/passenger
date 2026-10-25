@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Editing;
 using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Simplification;
+using Passenger.Core;
 
 namespace Passenger.Roslyn.Extension;
 
@@ -140,7 +141,7 @@ internal static class Interfaces
             return "The file is not on disk";
         }
         string target = Path.Combine(Path.GetDirectoryName(path)!, fileName);
-        if (File.Exists(target) || document.Project.Solution.Projects.SelectMany(p => p.Documents).Any(d => string.Equals(d.FilePath, target, StringComparison.OrdinalIgnoreCase)))
+        if (File.Exists(target) || document.Project.Solution.Projects.SelectMany(p => p.Documents).Any(d => d.FilePath is { } other && PathNames.Same(other, target)))
         {
             return $"Unable to move {what} because a file with the name '{fileName}' already exists";
         }

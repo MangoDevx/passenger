@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using static Passenger.Roslyn.Extension.SyntaxReads;
 
 namespace Passenger.Roslyn.Extension;
 
@@ -77,7 +78,7 @@ internal static class ConfigurationSource
                     method.Name == "GetSection", written);
                 break;
             case "GetValue" when type == Binder && Receiver(call, method) is { } receiver && Section(receiver, model, cancel) is { } prefix
-                && Argument(call, method, "key") is { } named && Constant(named, model, cancel) is { } key:
+                && Argument(call, method, "key") is { } named && Constant(named, model, cancel) is { Length: > 0 } key:
                 ITypeSymbol? read = method.TypeArguments.FirstOrDefault()
                     ?? (Argument(call, method, "type") is TypeOfExpressionSyntax typeOf ? model.GetTypeInfo(typeOf.Type, cancel).Type : null);
                 (string kind, IReadOnlyList<string>? values) = read is null ? (ConfigurationTypes.String, null) : Classify(read).Shape;
@@ -88,7 +89,7 @@ internal static class ConfigurationSource
                     defaulted || Checked(call, model, cancel), named, values);
                 break;
             case "GetConnectionString" when type == Extensions && Receiver(call, method) is { } receiver && Section(receiver, model, cancel) is { } prefix
-                && Argument(call, method, "name") is { } named && Constant(named, model, cancel) is { } name:
+                && Argument(call, method, "name") is { } named && Constant(named, model, cancel) is { Length: > 0 } name:
                 yield return Key(project, path, text, Join(prefix.Path, "ConnectionStrings:" + name), ConfigurationKinds.Read, ConfigurationTypes.String, "string",
                     Checked(call, model, cancel), named);
                 break;
@@ -107,7 +108,7 @@ internal static class ConfigurationSource
                 }
                 break;
             case "BindConfiguration" when type == OptionsBuilder && OptionsOf(call, method, model, cancel) is { } options
-                && Argument(call, method, "configSectionPath") is { } named && Constant(named, model, cancel) is { } sectionPath:
+                && Argument(call, method, "configSectionPath") is { } named && Constant(named, model, cancel) is { Length: > 0 } sectionPath:
                 foreach (ConfigurationKey each in Bound(project, path, text, sectionPath, options, named, model.Compilation))
                 {
                     yield return each;
@@ -116,7 +117,7 @@ internal static class ConfigurationSource
             case "Bind" when type == Binder && Receiver(call, method) is { } receiver && Section(receiver, model, cancel) is { } prefix
                 && Argument(call, method, "instance") is { } instance && model.GetTypeInfo(instance, cancel).Type is { } bound:
                 ExpressionSyntax? keyed = Argument(call, method, "key");
-                string? under = keyed is null ? prefix.Path : Constant(keyed, model, cancel) is { } within ? Join(prefix.Path, within) : null;
+                string? under = keyed is null ? prefix.Path : Constant(keyed, model, cancel) is { Length: > 0 } within ? Join(prefix.Path, within) : null;
                 if (under is not null)
                 {
                     foreach (ConfigurationKey found in Bound(project, path, text, under, bound, keyed ?? prefix.Written ?? receiver, model.Compilation))
@@ -271,7 +272,7 @@ internal static class ConfigurationSource
         if (access.ArgumentList.Arguments is not [{ Expression: { } argument }]
             || access.Parent is AssignmentExpressionSyntax assignment && assignment.Left == access
             || model.GetSymbolInfo(access, cancel).Symbol is not IPropertySymbol { IsIndexer: true } indexer || !Is(indexer.ContainingType, Configuration)
-            || Constant(argument, model, cancel) is not { } key || Section(access.Expression, model, cancel) is not { } prefix)
+            || Constant(argument, model, cancel) is not { Length: > 0 } key || Section(access.Expression, model, cancel) is not { } prefix)
         {
             return null;
         }
@@ -293,7 +294,7 @@ internal static class ConfigurationSource
         if (expression is InvocationExpressionSyntax call && model.GetSymbolInfo(call, cancel).Symbol is IMethodSymbol { Name: "GetSection" or "GetRequiredSection" } method)
         {
             return Receiver(call, method) is { } receiver && Section(receiver, model, cancel, depth + 1) is { } outer
-                && Argument(call, method, "key") is { } named && Constant(named, model, cancel) is { } key
+                && Argument(call, method, "key") is { } named && Constant(named, model, cancel) is { Length: > 0 } key
                 ? (Join(outer.Path, key), named) : null;
         }
         if (expression is IdentifierNameSyntax identifier && model.GetSymbolInfo(identifier, cancel).Symbol is ILocalSymbol local)
@@ -346,54 +347,10 @@ internal static class ConfigurationSource
         method.TypeArguments.FirstOrDefault()
         ?? (Receiver(call, method) is { } receiver && model.GetTypeInfo(receiver, cancel).Type is INamedTypeSymbol { TypeArguments: [{ } options] } ? options : null);
 
-    /// <summary>What a method is called on: the expression before its dot, or an extension method's first argument written as one.</summary>
-    private static ExpressionSyntax? Receiver(InvocationExpressionSyntax call, IMethodSymbol method)
-    {
-        if (call.Expression is MemberAccessExpressionSyntax member && (method.MethodKind == MethodKind.ReducedExtension || !method.IsStatic))
-        {
-            return member.Expression;
-        }
-        return method.IsExtensionMethod && call.ArgumentList.Arguments.FirstOrDefault() is { } first ? first.Expression : null;
-    }
-
-    /// <summary>The expression a call gives a parameter of the method's own (an extension's receiver aside).</summary>
-    private static ExpressionSyntax? Argument(InvocationExpressionSyntax call, IMethodSymbol method, string parameter)
-    {
-        // A reduced extension's parameters leave out its receiver; one called as a static method has it first.
-        bool unreduced = method.IsExtensionMethod && method.MethodKind != MethodKind.ReducedExtension;
-        foreach (ArgumentSyntax argument in call.ArgumentList.Arguments)
-        {
-            if (argument.NameColon is { } name)
-            {
-                if (name.Name.Identifier.ValueText == parameter)
-                {
-                    return argument.Expression;
-                }
-                continue;
-            }
-            int index = call.ArgumentList.Arguments.IndexOf(argument);
-            if (index < method.Parameters.Length && method.Parameters[index].Name == parameter && !(unreduced && index == 0))
-            {
-                return argument.Expression;
-            }
-        }
-        return null;
-    }
-
-    private static string? Constant(ExpressionSyntax expression, SemanticModel model, CancellationToken cancel) =>
-        model.GetConstantValue(expression, cancel) is { HasValue: true, Value: string value } && value.Length > 0 ? value : null;
-
     private static string Join(string prefix, string key) => prefix.Length == 0 ? key : prefix + ":" + key;
 
     private static bool Is(ITypeSymbol type, string face) =>
         type.ToDisplayString() == face || type.AllInterfaces.Any(i => i.ToDisplayString() == face);
-
-    private static string NameOf(ExpressionSyntax expression) => expression switch
-    {
-        MemberAccessExpressionSyntax member => member.Name.Identifier.ValueText,
-        SimpleNameSyntax simple => simple.Identifier.ValueText,
-        _ => string.Empty,
-    };
 
     /// <summary>A key where a string names it: its characters within a plainly written string, else the whole expression.</summary>
     private static ConfigurationKey Key(string project, string path, SourceText text, string key, string kind, string type, string typeName, bool guarded,
@@ -403,11 +360,5 @@ internal static class ConfigurationSource
             && literal.Token.Text == "\"" + literal.Token.ValueText + "\""
             ? new TextSpan(literal.SpanStart + 1, literal.Token.ValueText.Length) : written.Span;
         return new ConfigurationKey(project, key, kind, type, typeName, guarded, path, PlaceAt(text, span.Start), PlaceAt(text, span.End), values, owner);
-    }
-
-    private static Place PlaceAt(SourceText text, int offset)
-    {
-        LinePosition position = text.Lines.GetLinePosition(offset);
-        return new Place(position.Line, position.Character);
     }
 }
