@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -188,106 +187,6 @@ public sealed class AspireClient(string? program = null)
         return JsonSerializer.SerializeToElement(masked);
     }
 
-    public async Task<IReadOnlyList<AspireConsoleLog>> ReadConsoleLogsAsync(string appHost, string resource, int limit = LogLimit, CancellationToken cancel = default)
-    {
-        ValidateName(resource);
-        JsonElement json = await SnapshotAsync(["logs", resource, "--format", "json", "--timestamps", "--tail", Limit(limit, LogLimit)], appHost, cancel);
-        IReadOnlyList<JsonElement> rows = AspireJson.Array(json, "logs", required: true);
-        CheckCount(rows.Count, limit, "console log entries");
-        return rows.Select(row => new AspireConsoleLog(AspireJson.RequiredString(row, "resourceName"),
-            AspireJson.String(row, "content") ?? throw new InvalidDataException("Aspire console log is missing 'content'."),
-            AspireJson.Boolean(row, "isError"), AspireJson.String(row, "timestamp"))).ToArray();
-    }
-
-    public async Task<IReadOnlyList<AspireStructuredLog>> ReadStructuredLogsAsync(string appHost, string? resource = null, int limit = LogLimit, CancellationToken cancel = default)
-    {
-        List<string> arguments = ["otel", "logs"];
-        AddResource(arguments, resource);
-        arguments.AddRange(["--format", "json", "--limit", Limit(limit, LogLimit)]);
-        JsonElement json = await SnapshotAsync(arguments, appHost, cancel);
-        IReadOnlyList<JsonElement> rows = AspireJson.Array(json);
-        CheckCount(rows.Count, limit, "structured log entries");
-        AspireStructuredLog[] logs = rows.Select(row => new AspireStructuredLog(AspireJson.Object(row))).ToArray();
-        foreach (AspireStructuredLog log in logs)
-        {
-            _ = log.Message;
-            _ = log.TraceId;
-            _ = log.SpanId;
-            _ = AspireJson.String(log.Data, "exception");
-            _ = AspireJson.RequiredString(log.Data, "severity");
-            _ = AspireJson.RequiredString(log.Data, "resourceName");
-            _ = AspireJson.Properties(log.Data, "attributes").ToArray();
-        }
-        return logs;
-    }
-
-    public async Task<IReadOnlyList<AspireTrace>> ReadTracesAsync(string appHost, string? resource = null, int limit = TraceLimit, CancellationToken cancel = default, string? traceId = null)
-    {
-        if (traceId is not null && (traceId.Length != 32 || !traceId.All(Uri.IsHexDigit)))
-        {
-            throw new ArgumentException("An Aspire trace ID must contain 32 hexadecimal characters", nameof(traceId));
-        }
-        using CancellationTokenSource budget = CancellationTokenSource.CreateLinkedTokenSource(cancel);
-        budget.CancelAfter(TimeSpan.FromSeconds(60));
-        try
-        {
-            List<string> arguments = ["otel", "traces"];
-            AddResource(arguments, resource);
-            arguments.AddRange(["--format", "json", "--limit", Limit(limit, TraceLimit)]);
-            JsonElement json = await SnapshotAsync(traceId is null ? arguments
-                : ["otel", "traces", "--trace-id", traceId, "--format", "json"], appHost, budget.Token);
-            IReadOnlyList<JsonElement> rows = traceId is null ? AspireJson.Array(json) : [AspireJson.Object(json)];
-            CheckCount(rows.Count, limit, "traces");
-            List<AspireTrace> traces = [];
-            int spanCount = 0;
-            int retainedBytes = 0;
-            foreach (JsonElement row in rows)
-            {
-                string id = AspireJson.RequiredString(row, "traceId");
-                if (id.Length != 32 || !id.All(Uri.IsHexDigit))
-                {
-                    throw new InvalidDataException("Aspire returned an invalid trace ID.");
-                }
-                // The resource-filtered list can omit sibling services. Fetch each trace without a resource filter.
-                JsonElement full = traceId is null ? await SnapshotAsync(["otel", "traces", "--trace-id", id, "--format", "json"], appHost, budget.Token) : row;
-                retainedBytes += Encoding.UTF8.GetByteCount(full.GetRawText());
-                if (retainedBytes > ResponseByteLimit)
-                {
-                    throw new InvalidDataException("Aspire traces exceeded 8 MiB in total. Reduce the trace limit.");
-                }
-                if (AspireJson.RequiredString(full, "traceId") != id)
-                {
-                    throw new InvalidDataException("Aspire returned a different trace identity.");
-                }
-                IReadOnlyList<JsonElement> spanRows = AspireJson.Array(full, "spans", required: true);
-                spanCount += spanRows.Count;
-                CheckCount(spanCount, SpanLimit, "spans; reduce the trace limit");
-                AspireSpan[] spans = spanRows.Select(s => new AspireSpan(AspireJson.Object(s))).ToArray();
-                HashSet<string> ids = new(StringComparer.Ordinal);
-                foreach (AspireSpan span in spans)
-                {
-                    if (span.SpanId.Length != 16 || !span.SpanId.All(Uri.IsHexDigit)
-                        || !ids.Add(span.SpanId) || AspireJson.RequiredString(span.Data, "traceId") != id)
-                    {
-                        throw new InvalidDataException("Aspire returned invalid span identities.");
-                    }
-                    _ = span.ParentSpanId;
-                    _ = span.Source;
-                    _ = span.ToString();
-                    _ = AspireJson.Properties(span.Data, "attributes").ToArray();
-                }
-                AspireTrace trace = new(full, spans);
-                _ = trace.ToString();
-                traces.Add(trace);
-            }
-            return traces;
-        }
-        catch (OperationCanceledException) when (!cancel.IsCancellationRequested)
-        {
-            throw new TimeoutException("Aspire trace refresh exceeded 60 seconds. Reduce the trace limit and refresh.");
-        }
-    }
-
     public async Task ExecuteCommandAsync(string appHost, AspireResource resource, string command, CancellationToken cancel = default)
     {
         ValidateName(resource.Name);
@@ -321,15 +220,6 @@ public sealed class AspireClient(string? program = null)
 
     private string? Executable() => program ?? Programs.OnPath(OperatingSystem.IsWindows() ? "aspire.exe" : "aspire");
 
-    private static void AddResource(List<string> arguments, string? resource)
-    {
-        if (resource is not null)
-        {
-            ValidateName(resource);
-            arguments.Add(resource);
-        }
-    }
-
     private static void ValidateName(string name)
     {
         if (string.IsNullOrWhiteSpace(name) || name.StartsWith('-') || name.Any(char.IsControl))
@@ -337,9 +227,6 @@ public sealed class AspireClient(string? program = null)
             throw new ArgumentException("An Aspire resource or command name cannot be empty, a flag, or contain control characters.");
         }
     }
-
-    private static string Limit(int limit, int maximum) => limit >= 1 && limit <= maximum
-        ? limit.ToString(CultureInfo.InvariantCulture) : throw new ArgumentOutOfRangeException(nameof(limit), $"Use a limit between 1 and {maximum}.");
 
     private static void CheckCount(int count, int limit, string kind)
     {
