@@ -391,13 +391,19 @@ public sealed class ProfilerCommands
         }
         // A start that failed once recording had begun read its snapshot as it took its containers down, which the window shows.
         bool recorded = profiled.ContainerRun?.Profiled is not null;
-        string? why = failed ?? (recorded ? null : $"{chosen.Name} started no .NET service to profile");
+        string? why = failed ?? (recorded ? null : NoneProfiled(chosen.Name, profiled.ContainerRun));
         if (why is not null && !recorded)
         {
             View.Stopped(why);
         }
         return why;
     }
+
+    /// <summary>Why a container configuration's Profile recorded nothing: each service it held for the profiler that the
+    /// profiler could not reach, with why, else that it started none.</summary>
+    private static string NoneProfiled(string name, ContainerRun? run) => run?.Unreached is { Count: > 0 } unreached
+        ? $"{name} started no .NET service the profiler can reach ({string.Join("; ", unreached.Select(u => $"{u.Key}: {u.Value}"))})"
+        : $"{name} started no .NET service to profile";
 
     /// <summary>A run handed over to the window: the session's, the profiler window following it, and its snapshot read at its
     /// program's end (or its recording's, in a container) unless Get Snapshot read it first.</summary>

@@ -205,6 +205,11 @@ public sealed partial class BuildRunController
         {
             return Said(certified);
         }
+        if (debugged.Count > 0)
+        {
+            // Each held service's image is built to read whether its own environment turns its debugger off.
+            work.Say($"Building {string.Join(" and ", debugged.Select(d => d.Service))}'s {(debugged.Count == 1 ? "image" : "images")}…");
+        }
         try
         {
             await plan.WriteOverride([.. debugged.Select(d => d.Service)], [.. holding.Where(h => h.How != RunStart.Profile).Select(h => h.Service.Service)], certificate,
