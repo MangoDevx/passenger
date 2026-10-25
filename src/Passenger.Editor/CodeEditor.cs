@@ -432,7 +432,7 @@ public sealed partial class CodeEditor : Control
             EndSnippet();
             CancelChoices();
             pendingGoTo = null;
-            UsageHighlights = [];
+            usages.Clear();
             UsagesKept = false;
             InlineChanges = [];
             HoveredLink = null;
@@ -783,7 +783,7 @@ public sealed partial class CodeEditor : Control
         FollowLineShape(e);
         // What was offered to choose among is the text left behind.
         CancelChoices();
-        FollowUsages(e.Edits);
+        FollowUsages();
         FollowInlineChanges(e.Edits);
         FollowLinkEdits(e.Edits);
         HideFoldPreview();
