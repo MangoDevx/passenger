@@ -330,9 +330,14 @@ public sealed class McpProxy
             (NetworkStream stream, string socket) = await ConnectAsync(joiningCancel) ?? await StartAsync(call, joiningCancel);
             try
             {
-                // The agent's own name, which the window shows the person when it asks.
-                joined = await McpClient.CreateAsync(PeerTransport.Of(new StreamClientTransport(stream, stream)),
-                    new McpClientOptions { ClientInfo = agent ?? new Implementation { Name = "An agent", Version = "0" }, ProtocolVersion = protocol }, cancellationToken: joiningCancel);
+                joined = await McpClient.CreateAsync(PeerTransport.Of(new StreamClientTransport(stream, stream)), new McpClientOptions
+                {
+                    // The agent's own name, which the window shows the person when it asks.
+                    ClientInfo = agent ?? new Implementation { Name = "An agent", Version = "0" },
+                    ProtocolVersion = protocol,
+                    // This build's own server always answers the latest version's probe, so it is waited for, never given up on.
+                    DiscoverProbeTimeout = Timeout.InfiniteTimeSpan,
+                }, cancellationToken: joiningCancel);
                 joined.RegisterNotificationHandler(NotificationMethods.ProgressNotification, Heard);
                 joinedSocket = stream.Socket;
                 joinedPath = socket;

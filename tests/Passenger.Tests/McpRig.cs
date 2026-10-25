@@ -156,10 +156,17 @@ public abstract class McpRig : IDisposable
     }
 
     /// <summary>An agent's client to a Passenger this test started, over its standard input and output, asking for the
-    /// protocol version given (the SDK's latest else).</summary>
+    /// protocol version given (the SDK's latest else). Its probe of the latest waits as long as the start may, since one given
+    /// up while the server answers it leaves the initialize it falls back to refused.</summary>
     protected Task<McpClient> Connect(Process passenger, IList<string> arguments, string? protocol = null) =>
         Exchange($"Starting passenger {string.Join(' ', arguments)}", TimeSpan.FromMinutes(1),
-            cancel => McpClient.CreateAsync(new PassengerTransport(passenger), new McpClientOptions { ClientInfo = Agent, ProtocolVersion = protocol }, cancellationToken: cancel));
+            cancel => McpClient.CreateAsync(new PassengerTransport(passenger), new McpClientOptions
+            {
+                ClientInfo = Agent,
+                ProtocolVersion = protocol,
+                InitializationTimeout = TimeSpan.FromMinutes(1).Scaled(),
+                DiscoverProbeTimeout = Timeout.InfiniteTimeSpan,
+            }, cancellationToken: cancel));
 
     /// <summary>The agent as its client names itself, which a window asking to let it in shows the person.</summary>
     private static readonly Implementation Agent = new() { Name = "test-agent", Title = "Test Agent", Version = "1.0" };
