@@ -660,16 +660,15 @@ public sealed class McpWindowDebuggingTests : McpRig, IClassFixture<RestoredFold
                 waits.Stop();
                 longest = waits.Longest;
             }
-            JsonElement[] found = [.. usages.GetAwaiter().GetResult().EnumerateArray()];
+            IReadOnlyList<(string Path, int Line, int Column, string Text)> found = Used(usages.GetAwaiter().GetResult());
             Ui.Settle();
 
-            Assert.Equal(10_002, found.Length);
-            Assert.All(found, place => Assert.Contains("Twice(", place.GetProperty("text").GetString(), StringComparison.Ordinal));
-            Assert.Contains(found, place => place.GetProperty("path").GetString() == "Uses3.cs" && place.GetProperty("line").GetInt32() == 5005
-                && place.GetProperty("text").GetString() == "total += Helper.Twice(2499);");
+            Assert.Equal(10_002, found.Count);
+            Assert.All(found, place => Assert.Contains("Twice(", place.Text, StringComparison.Ordinal));
+            Assert.Contains(found, place => place.Path == "Uses3.cs" && place.Line == 5005 && place.Text == "total += Helper.Twice(2499);");
             Assert.Equal(new string('x', typed), window.EditorArea.Active!.Text.Snapshot.ToString());
             Assert.True(longest < TimeSpan.FromMilliseconds(250),
-                $"a key waited {longest.TotalMilliseconds:F0} ms for the window while the agent's {found.Length} usages were found");
+                $"a key waited {longest.TotalMilliseconds:F0} ms for the window while the agent's {found.Count} usages were found");
 
             JsonElement callers = Await(Task.Run(() => Call(client, "hierarchy", new() { ["path"] = "Helper.cs", ["line"] = 3, ["column"] = 23 })), "the callers");
             Assert.Equal(["Uses0.cs:7 total += Helper.Twice(0);", "Uses1.cs:7 total += Helper.Twice(0);", "Uses2.cs:7 total += Helper.Twice(0);", "Uses3.cs:7 total += Helper.Twice(0);"],
