@@ -1182,6 +1182,53 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
         window.Close();
     }
 
+    /// <summary>An Avalonia previewer that ends as it draws (a crash) has its end in passenger.log, with the last words the
+    /// pane says it ended with, as the WPF previewer's is.</summary>
+    [AvaloniaFact]
+    public void An_Avalonia_previewer_that_ends_leaves_its_end_and_last_words_in_the_log()
+    {
+        MainWindow window = app.Open(app.PathOf("MainWindow.axaml"));
+        OpenDocument document = window.EditorArea.Active!;
+        Ui.Run(window, AppActions.Build);
+        Ui.Settle();
+        int previewer = 0;
+        void OnStarted(object? sender, ChildStart start)
+        {
+            if (start.Command.Contains("Avalonia.Designer.HostApp", StringComparison.Ordinal))
+            {
+                Volatile.Write(ref previewer, start.ProcessId);
+            }
+        }
+        ChildProcesses.Started += OnStarted;
+        Passenger.App.Xaml.XamlPreview preview;
+        try
+        {
+            Assert.True(window.Perform(AppActions.XamlPreview), $"XAML Preview could not run: {window.Status}");
+            Ui.Settle();
+            preview = window.PreviewOf(document) ?? throw new InvalidOperationException("XAML Preview showed no preview beside the file");
+            Ui.WaitFor(() => preview.Frame is not null, "the previewer's first frame", TimeSpan.FromSeconds(60));
+        }
+        finally
+        {
+            ChildProcesses.Started -= OnStarted;
+        }
+        Assert.True(Volatile.Read(ref previewer) != 0, "No Avalonia.Designer.HostApp was started for the preview");
+
+        using (System.Diagnostics.Process host = System.Diagnostics.Process.GetProcessById(Volatile.Read(ref previewer)))
+        {
+            host.Kill();
+        }
+        const string Ended = "The previewer ended: ";
+        Ui.WaitFor(() => preview.Status.StartsWith(Ended, StringComparison.Ordinal), () => $"the pane saying the previewer ended, not '{preview.Status}'");
+        string last = preview.Status[Ended.Length..];
+        IdeErrors.Flush();
+        string log = Ui.Shared(IdeErrors.LogPath);
+        string? line = log.Split('\n').LastOrDefault(l => l.Contains("The Avalonia previewer of MainWindow.axaml ended: ", StringComparison.Ordinal));
+        Assert.True(line is not null && line.Contains(last, StringComparison.Ordinal),
+            $"passenger.log has {(line is null ? "nothing of the Avalonia previewer's end" : $"its end as '{line}'")}, where the pane says it ended with '{last}'");
+        window.Close();
+    }
+
     internal static Marker MarkerOn(CodeEditor editor, OpenDocument document, string stretch)
     {
         string text = editor.Document.Snapshot.ToString();

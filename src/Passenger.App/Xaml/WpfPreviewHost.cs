@@ -29,7 +29,7 @@ internal sealed class WpfPreviewHost : IPreviewHost
     private readonly Channel<Sent> outgoing = Channel.CreateUnbounded<Sent>(new UnboundedChannelOptions { SingleReader = true });
     /// <summary>The texts sent and not yet answered, by sequence: what an answer's boxes are placed on, read by the reader.</summary>
     private readonly ConcurrentDictionary<int, TextSnapshot> unanswered = new();
-    private readonly Queue<string> said = new();
+    private readonly XamlPreview.PreviewerLog log;
     private Process? process;
     private Stopwatch? starting;
     private int sequence;
@@ -38,6 +38,7 @@ internal sealed class WpfPreviewHost : IPreviewHost
     private WpfPreviewHost(XamlPreview preview, XamlProjectBuilder builder, string assembly, string shadow)
     {
         this.preview = preview;
+        log = new XamlPreview.PreviewerLog(preview, "WPF");
         this.builder = builder;
         this.assembly = assembly;
         this.shadow = shadow;
@@ -130,7 +131,7 @@ internal sealed class WpfPreviewHost : IPreviewHost
             started = await ChildProcesses.StartAsync(start);
         }
         process = started;
-        started.ErrorDataReceived += (_, e) => Heard(e.Data);
+        started.ErrorDataReceived += (_, e) => log.Heard(e.Data);
         started.Exited += (_, _) => UiThread.Post(() => Ended(started));
         started.BeginErrorReadLine();
         starting = Stopwatch.StartNew();
@@ -212,7 +213,7 @@ internal sealed class WpfPreviewHost : IPreviewHost
                 }
                 catch (JsonException)
                 {
-                    Heard(line);
+                    log.Heard(line);
                     continue;
                 }
                 if (reply is null)
@@ -318,37 +319,12 @@ internal sealed class WpfPreviewHost : IPreviewHost
         return $"pack://application:,,,/{Uri.EscapeDataString(inputs.AssemblyName)};component/{string.Join('/', relative.Split('/').Select(Uri.EscapeDataString))}";
     }
 
-    /// <summary>A line the previewer wrote to its log, kept for what is said if it ends.</summary>
-    private void Heard(string? line)
-    {
-        if (string.IsNullOrWhiteSpace(line))
-        {
-            return;
-        }
-        lock (said)
-        {
-            said.Enqueue(line);
-            while (said.Count > 5)
-            {
-                said.Dequeue();
-            }
-        }
-    }
-
     private void Ended(Process ended)
     {
-        if (disposed || ended != process)
+        if (!disposed && ended == process)
         {
-            return;
+            log.Ended();
         }
-        string last;
-        lock (said)
-        {
-            last = said.LastOrDefault() ?? "it said nothing";
-        }
-        IdeErrors.Write($"The WPF previewer of {Path.GetFileName(preview.Document.Document.Path)} ended: {string.Join(" | ", said)}");
-        preview.Let();
-        preview.Say($"The previewer ended: {last}");
     }
 
     /// <summary>A build's folder copied, its subfolders too (satellite assemblies, runtimes/), for the previewer to load from.</summary>

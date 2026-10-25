@@ -266,6 +266,46 @@ public sealed class XamlPreview : IDisposable
         document.Document.Text.Changed -= OnTextChanged;
         Stop();
     }
+
+    /// <summary>What a previewer's process last said, its last five lines, heard on any thread: once it ends, they go to
+    /// passenger.log with its end, and the pane says the last of them.</summary>
+    /// <param name="previewer">Whose previewer it is, as the log names it: Avalonia or WPF.</param>
+    internal sealed class PreviewerLog(XamlPreview preview, string previewer)
+    {
+        private readonly Queue<string> said = new();
+
+        /// <summary>A line the previewer wrote, kept for when it ends.</summary>
+        public void Heard(string? line)
+        {
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                return;
+            }
+            lock (said)
+            {
+                said.Enqueue(line);
+                while (said.Count > 5)
+                {
+                    said.Dequeue();
+                }
+            }
+        }
+
+        /// <summary>The previewer ended: its last lines written to passenger.log, its last said in the pane.</summary>
+        public void Ended()
+        {
+            string last;
+            string all;
+            lock (said)
+            {
+                last = said.LastOrDefault() ?? "it said nothing";
+                all = said.Count == 0 ? last : string.Join(" | ", said);
+            }
+            IdeErrors.Write($"The {previewer} previewer of {Path.GetFileName(preview.Document.Document.Path)} ended: {all}");
+            preview.Let();
+            preview.Say($"The previewer ended: {last}");
+        }
+    }
 }
 
 /// <summary>A previewer of one framework's XAML, run for one file: told when the file's text changes and when the

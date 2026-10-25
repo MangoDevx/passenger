@@ -23,7 +23,7 @@ internal sealed class AvaloniaPreviewHost : IPreviewHost
 {
     private readonly XamlPreview preview;
     private readonly string output;
-    private readonly Queue<string> said = new();
+    private readonly XamlPreview.PreviewerLog log;
     private IDisposable? listening;
     private IAvaloniaRemoteTransportConnection? connection;
     private Process? host;
@@ -38,6 +38,7 @@ internal sealed class AvaloniaPreviewHost : IPreviewHost
     private AvaloniaPreviewHost(XamlPreview preview, string output)
     {
         this.preview = preview;
+        log = new XamlPreview.PreviewerLog(preview, "Avalonia");
         this.output = output;
     }
 
@@ -89,8 +90,8 @@ internal sealed class AvaloniaPreviewHost : IPreviewHost
             started = await ChildProcesses.StartAsync(start);
         }
         host = started;
-        started.OutputDataReceived += (_, e) => Heard(e.Data);
-        started.ErrorDataReceived += (_, e) => Heard(e.Data);
+        started.OutputDataReceived += (_, e) => log.Heard(e.Data);
+        started.ErrorDataReceived += (_, e) => log.Heard(e.Data);
         started.Exited += (_, _) => UiThread.Post(() => Ended(started));
         started.BeginOutputReadLine();
         started.BeginErrorReadLine();
@@ -219,36 +220,12 @@ internal sealed class AvaloniaPreviewHost : IPreviewHost
         return result.Error.Split('\n')[0].Trim();
     }
 
-    /// <summary>A line the host printed, kept for what is said if it ends.</summary>
-    private void Heard(string? line)
-    {
-        if (string.IsNullOrWhiteSpace(line))
-        {
-            return;
-        }
-        lock (said)
-        {
-            said.Enqueue(line);
-            while (said.Count > 5)
-            {
-                said.Dequeue();
-            }
-        }
-    }
-
     private void Ended(Process ended)
     {
-        if (disposed || ended != host)
+        if (!disposed && ended == host)
         {
-            return;
+            log.Ended();
         }
-        string last;
-        lock (said)
-        {
-            last = said.LastOrDefault() ?? "it said nothing";
-        }
-        preview.Let();
-        preview.Say($"The previewer ended: {last}");
     }
 
     /// <summary>Avalonia's previewer host in the project's Avalonia package: the newest of its tools/ frameworks that is not
