@@ -7,8 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- What the app's part of the folder reads as it did inside one assembly (JsonText's layout, XmlText). -->
+    <!-- What the app's part of the folder and nuget.config's editing read as they did inside one assembly (JsonText's
+         layout, XmlText). -->
     <InternalsVisibleTo Include="Passenger" />
+    <InternalsVisibleTo Include="Passenger.Packages" />
   </ItemGroup>
 
   <ItemGroup>

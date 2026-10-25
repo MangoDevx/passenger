@@ -6,6 +6,7 @@ using Passenger.App.Packages;
 using Passenger.App.Run;
 using Passenger.App.ToolWindows;
 using Passenger.Core;
+using Passenger.Packages;
 using Passenger.Text;
 using Passenger.Workspace;
 
@@ -681,7 +682,7 @@ public sealed partial class MigrationsController(MigrationsParts parts)
         try
         {
             IPackageFeed feed = await parts.Feed();
-            foreach (string candidate in await feed.VersionsAsync(left.Id, Packages.VersionOrder.IsPrerelease(version), CancellationToken.None))
+            foreach (string candidate in await feed.VersionsAsync(left.Id, VersionOrder.IsPrerelease(version), CancellationToken.None))
             {
                 if (await EfProviders.RangeAsync(feed, left.Id, candidate, restore.Framework, CancellationToken.None) is { } range && EfRestore.InRange(range, version))
                 {

@@ -41,7 +41,8 @@
     <!-- The Model Context Protocol server (Mcp/), the official SDK's core, without its ASP.NET half. -->
     <PackageReference Include="ModelContextProtocol.Core" />
     <PackageReference Include="Microsoft.TestPlatform.TranslationLayer" />
-    <!-- The folder's nuget.config files as NuGet reads them: the NuGet window's feeds, credentials and source mapping. -->
+    <!-- NuGet's own reading of the machine's settings and of target frameworks: the global packages folder EF's tools are
+         found in (Migrations/EfTools.cs) and which framework takes another's (Aspire/AspireOrchestration.cs). -->
     <PackageReference Include="NuGet.Configuration" />
     <!-- Microsoft.Testing.Platform's test hosts speak JSON-RPC (Testing/TestingPlatformRunner.cs). -->
     <PackageReference Include="StreamJsonRpc" />
@@ -54,6 +55,7 @@
     <ProjectReference Include="../Passenger.Editor/Passenger.Editor.csproj" />
     <ProjectReference Include="../Passenger.Languages/Passenger.Languages.csproj" />
     <ProjectReference Include="../Passenger.Lsp/Passenger.Lsp.csproj" />
+    <ProjectReference Include="../Passenger.Packages/Passenger.Packages.csproj" />
     <ProjectReference Include="../Passenger.Text/Passenger.Text.csproj" />
     <ProjectReference Include="../Passenger.Terminal/Passenger.Terminal.csproj" />
     <ProjectReference Include="../Passenger.Vcs/Passenger.Vcs.csproj" />

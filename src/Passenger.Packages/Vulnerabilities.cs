@@ -1,8 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Passenger.Editor;
+using Passenger.Core;
 
-namespace Passenger.App.Packages;
+namespace Passenger.Packages;
 
 /// <summary>How grave an advisory says a vulnerability is: NuGet's four levels, 0 to 3 in a feed's data.</summary>
 public enum AdvisorySeverity
@@ -19,7 +19,7 @@ public enum AdvisorySeverity
 public sealed record Advisory(AdvisorySeverity Severity, string Address, string Versions)
 {
     /// <summary>The advisory's page to open, only where its address is http or https: a feed may name any scheme.</summary>
-    public Uri? Link { get; } = Updates.Releases.Web(Address);
+    public Uri? Link { get; } = WebAddress.Of(Address);
 
     /// <summary>Whether a version is in the range, in NuGet's notation: a bare version is the least version, a bracket
     /// includes its end and a parenthesis leaves it out, an end left empty is unbounded, and "[1.0]" is that version alone.

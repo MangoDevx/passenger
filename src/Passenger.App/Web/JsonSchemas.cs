@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Passenger.Core;
 
 namespace Passenger.App.Web;
 

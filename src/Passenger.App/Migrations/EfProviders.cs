@@ -1,4 +1,4 @@
-using Passenger.App.Packages;
+using Passenger.Packages;
 using Passenger.Workspace;
 
 namespace Passenger.App.Migrations;

@@ -5,7 +5,7 @@ using NuGet.Configuration;
 using Passenger.Text;
 using XmlText = Passenger.Workspace.XmlText;
 
-namespace Passenger.App.Packages;
+namespace Passenger.Packages;
 
 /// <summary>A feed as the Sources tab's dialog gives it: its name and URL, whether it is enabled and may use HTTP, and
 /// the credentials to keep for it (a password of null or empty keeps the one the file has; no user name takes the

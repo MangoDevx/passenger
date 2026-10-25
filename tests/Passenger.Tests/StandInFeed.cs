@@ -1,6 +1,6 @@
 using System.IO.Compression;
 using System.Text;
-using Passenger.App.Packages;
+using Passenger.Packages;
 
 namespace Passenger.Tests;
 

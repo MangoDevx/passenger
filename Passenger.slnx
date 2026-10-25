@@ -13,6 +13,7 @@
     <Project Path="src/Passenger.Inspector.Wpf/Passenger.Inspector.Wpf.csproj" />
     <Project Path="src/Passenger.Languages/Passenger.Languages.csproj" />
     <Project Path="src/Passenger.Lsp/Passenger.Lsp.csproj" />
+    <Project Path="src/Passenger.Packages/Passenger.Packages.csproj" />
     <Project Path="src/Passenger.Profiler/Passenger.Profiler.csproj" />
     <Project Path="src/Passenger.Roslyn.Extension/Passenger.Roslyn.Extension.csproj" />
     <Project Path="src/Passenger.Terminal/Passenger.Terminal.csproj" />

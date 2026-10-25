@@ -8,8 +8,8 @@ using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 using Passenger.App;
-using Passenger.App.Packages;
 using Passenger.App.ToolWindows;
+using Passenger.Packages;
 using Passenger.Workspace;
 
 namespace Passenger.Tests;

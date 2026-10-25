@@ -126,7 +126,7 @@ public sealed class McpWindowTests : McpRig, IClassFixture<RestoredFolders>
             window.Perform(AppActions.ShowNuGet);
             global::Passenger.App.ToolWindows.NuGetView nuget = window.NuGet;
             Ui.Landed(() => nuget.Selected is { Id: "Passenger.Sample", IsInstalled: true }, "the NuGet window, opened, to list the agent's package as installed");
-            Assert.True(nuget.FeedChoices.SequenceEqual([global::Passenger.App.Packages.FeedSet.All, "local"]),
+            Assert.True(nuget.FeedChoices.SequenceEqual([global::Passenger.Packages.FeedSet.All, "local"]),
                 $"The NuGet window opened after the agent read the feeds offers [{string.Join(", ", nuget.FeedChoices)}], not All Feeds and the folder's feed");
         }
         finally

@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 using System.Xml.Linq;
 using Passenger.Core;
 
-namespace Passenger.App.Packages;
+namespace Passenger.Packages;
 
 /// <summary>A package as a search lists it: its id, its newest version, what it says it is, who made it, how much it is
 /// used, and the feeds that have it.</summary>

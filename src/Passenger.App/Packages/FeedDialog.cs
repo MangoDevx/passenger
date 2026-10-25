@@ -4,6 +4,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Passenger.App.Welcome;
+using Passenger.Packages;
 
 namespace Passenger.App.Packages;
 

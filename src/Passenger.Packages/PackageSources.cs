@@ -5,7 +5,7 @@ using NuGet.Common;
 using NuGet.Configuration;
 using Passenger.Core;
 
-namespace Passenger.App.Packages;
+namespace Passenger.Packages;
 
 /// <summary>Where a nuget.config file stands in NuGet's order: the solution's folder, a folder above it, the user's own,
 /// or the machine's, which is never written.</summary>

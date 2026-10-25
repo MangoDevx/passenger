@@ -1,8 +1,7 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
-using Passenger.Core;
 
-namespace Passenger.App;
+namespace Passenger.Core;
 
 /// <summary>What this build of Passenger is, as its build wrote it into the assembly: the version (a vX.Y.Z tag's, which
 /// tools/package-mac.sh gives the build, else Directory.Build.props') and the commit it was built from (the SDK adds it to

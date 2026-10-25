@@ -4,7 +4,7 @@ using System.Text.Json;
 using NuGet.Common;
 using Passenger.Core;
 
-namespace Passenger.App.Packages;
+namespace Passenger.Packages;
 
 /// <summary>NuGet's credential providers (Azure Artifacts' and the rest), found where NuGet finds them and asked through
 /// its plugin protocol without a dialog; what one gives is kept in memory for the session, never written or logged.</summary>
@@ -37,7 +37,7 @@ public sealed class CredentialProviders
             catch (Exception failed) when (failed is IOException or InvalidOperationException or TimeoutException or JsonException or KeyNotFoundException
                 or System.ComponentModel.Win32Exception or FileNotFoundException)
             {
-                IdeLog.Write(IdeLog.Ide, $"NuGet: the credential provider {plugin} gave nothing for {feed}: {failed.Message}");
+                PassengerLog.Write($"NuGet: the credential provider {plugin} gave nothing for {feed}: {failed.Message}");
             }
         }
         return null;

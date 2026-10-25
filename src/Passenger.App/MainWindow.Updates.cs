@@ -1,9 +1,9 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
-using Passenger.App.Packages;
 using Passenger.App.Updates;
 using Passenger.Core;
+using Passenger.Packages;
 
 namespace Passenger.App;
 

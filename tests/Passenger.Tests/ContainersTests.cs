@@ -667,7 +667,7 @@ public sealed class ContainersTests
         try
         {
             string? refused = Ui.Await(window.AttachAsync(new DotnetProcess(0, "Spins", "dotnet /app/Spins.dll", "root", true) { Container = bare }), "the attach's answer");
-            Assert.True(refused?.Contains("is version", StringComparison.Ordinal) == true && refused.Contains($"not this Passenger's {Passenger.App.Product.Version}", StringComparison.Ordinal),
+            Assert.True(refused?.Contains("is version", StringComparison.Ordinal) == true && refused.Contains($"not this Passenger's {Product.Version}", StringComparison.Ordinal),
                 $"Attaching with only another version's tools here answered: {refused}");
             Assert.Contains("absent", Docker.Run("exec", bare, "sh", "-c", $"test -e {ContainerTools.Copied} && echo there || echo absent"), StringComparison.Ordinal);
 
@@ -735,7 +735,7 @@ public sealed class ContainersTests
         File.WriteAllText(script, string.Join('\n',
             "#!/bin/sh",
             "case \"$1\" in",
-            $"  version) echo {Passenger.App.Product.Version} ;;",
+            $"  version) echo {Product.Version} ;;",
             $"  processes) {listing ?? $"echo '{processes}'"} ;;",
             "  trace) echo recording >&2; cat > /dev/null ;;",
             "  heap) n=$(cat /tmp/heaps 2>/dev/null || echo 0); n=$((n+1)); echo $n > /tmp/heaps; read line; cat /tmp/frames/$n; cat > /dev/null ;;",

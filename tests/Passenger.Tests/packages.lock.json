@@ -516,6 +516,7 @@
           "Passenger.Editor": "[0.2.0, )",
           "Passenger.Languages": "[0.2.0, )",
           "Passenger.Lsp": "[0.2.0, )",
+          "Passenger.Packages": "[0.2.0, )",
           "Passenger.Profiler": "[0.2.0, )",
           "Passenger.Terminal": "[0.2.0, )",
           "Passenger.Text": "[0.2.0, )",
@@ -562,6 +563,15 @@
           "Passenger.Core": "[0.2.0, )",
           "Passenger.Text": "[0.2.0, )",
           "StreamJsonRpc": "[2.26.150, )"
+        }
+      },
+      "passenger.packages": {
+        "type": "Project",
+        "dependencies": {
+          "NuGet.Configuration": "[7.9.0, )",
+          "Passenger.Core": "[0.2.0, )",
+          "Passenger.Text": "[0.2.0, )",
+          "Passenger.Workspace": "[0.2.0, )"
         }
       },
       "passenger.profiler": {
