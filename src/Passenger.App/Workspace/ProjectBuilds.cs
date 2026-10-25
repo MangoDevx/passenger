@@ -395,7 +395,11 @@ public sealed record ProjectBuildCache : IStateDocument<ProjectBuildCache>
 
     public Dictionary<string, KeptBuild> Projects { get; init; } = [];
 
-    public static IReadOnlyList<Action<JsonObject>> Upgrades { get; } = [StateStore.Unversioned, ForgetWindowsTargeting, ForgetAll];
+    public static IReadOnlyList<Action<JsonObject>> Upgrades { get; } = [StateStore.Unversioned, ForgetWindowsTargeting, ForgetAll, ForgetUnrestored];
+
+    /// <summary>Builds kept before restore outputs were stamped before the build may lack package references even though
+    /// their stamps still hold.</summary>
+    private static void ForgetUnrestored(JsonObject document) => document.Remove("projects");
 
     /// <summary>Every build, kept before they stamped the Directory.Build.props, .targets and Directory.Packages.props
     /// MSBuild looks for above a project and the props and targets a restore writes, which may have come since unseen.</summary>
