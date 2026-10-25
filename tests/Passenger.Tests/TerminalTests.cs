@@ -19,18 +19,14 @@ namespace Passenger.Tests;
 /// them, typed commands and keys taken ahead of the IDE; floods of output and stuck pastes never hold the window, pastes
 /// stay text, accents and emoji take the columns the shell counts, lines reflow as it resizes, and a place or a selection
 /// holds as output streams. A run configuration that uses the terminal runs its program in a tab of its own, which reads
-/// what is typed there and draws as it likes, and which Stop ends with all it started.</summary>
+/// what is typed there and draws as it likes, and which Stop ends with all it started. What a program writes or reads
+/// comes from the TerminalCases debuggee, the same bytes on every system, so Windows checks what ConPTY makes of them.</summary>
 public sealed class TerminalTests
 {
     [AvaloniaFact]
     public void What_a_full_screen_program_draws_lands_where_it_puts_it_and_the_shells_screen_comes_back_after()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            // sh's printf writes the bytes.
-            return;
-        }
-        (MainWindow window, TerminalSession shell) = Open(TestFolders.Create("terminal-"), "/bin/sh");
+        (MainWindow window, TerminalSession shell) = Open(TestFolders.Create("terminal-"));
         TerminalScreen screen = shell.Screen;
         // Room for the program's twelve rows and the line it leaves the cursor on: the terminal given the frame.
         window.Perform(AppActions.MaximizeToolWindow);
@@ -38,13 +34,8 @@ public sealed class TerminalTests
         Run(window, "echo before");
         WaitForLine(shell, "before", "the line before the program");
 
-        // As vim or less draw: the alternate screen, cursor moves, partial erases, a scroll region, colours, a wide character.
-        string draw = "printf '\\033[?1049h\\033[H\\033[2J"
-            + "1111111111\\r\\n2222222222\\r\\n3333333333\\r\\n4444444444\\033[2;3H\\033[K\\033[3;5H\\033[1K\\033[4;1H\\033[2K!"
-            + "\\033[5;1Htop\\r\\na\\r\\nb\\r\\nc\\r\\nbottom\\033[6;8r\\033[8;1H\\nd\\033[r"
-            + "\\033[10;1H\\033[1;31mA\\033[38;5;208mB\\033[38;2;10;20;30mC\\033[38:2::40:50:60mD\\033[0;44mE\\033[0mF"
-            + $"\\033[11;{screen.Columns - 3}Habcd\\346\\274\\242'; read x; printf '\\033[?1049l'";
-        Run(window, draw);
+        string columns = screen.Columns.ToString(CultureInfo.InvariantCulture);
+        RunCase(window, "draw", columns);
         WaitForScreen(window, shell, s => s.IsAlternate && s.Lines[11].Cells[0].Rune == '漢', "the program to draw its screen");
         Assert.Equal(["1111111111", "22", "     33333", "!"], screen.Lines[..4].Select(l => l.Text()));
         Assert.True(screen.Lines[4..9].Select(l => l.Text()).SequenceEqual(["top", "b", "c", "d", "bottom"]),
@@ -64,7 +55,7 @@ public sealed class TerminalTests
         Ui.Press(window, "ENTER");
         WaitForScreen(window, shell, s => !s.IsAlternate && s.CursorColumn > 0 && s.Lines[s.CursorRow].Text().Trim().Length > 0, "the shell's screen back with its prompt");
         Assert.Contains("before", Lines(screen));
-        Assert.Contains(Lines(screen), l => l.EndsWith("printf '\\033[?1049l'", StringComparison.Ordinal));
+        Assert.Contains(Lines(screen), l => l.EndsWith($"draw {columns}", StringComparison.Ordinal));
         Assert.DoesNotContain(Lines(screen), l => l is "1111111111" or "     33333" or "bottom");
         window.Close();
     }
@@ -72,15 +63,9 @@ public sealed class TerminalTests
     [AvaloniaFact]
     public void A_programs_questions_about_the_terminal_are_answered()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            // bash reads the answers.
-            return;
-        }
-        (MainWindow window, TerminalSession shell) = Open(TestFolders.Create("terminal-"), "/bin/bash");
+        (MainWindow window, TerminalSession shell) = Open(TestFolders.Create("terminal-"));
         // Where the cursor is, as a program asks before drawing, and what the terminal is, each answer read back.
-        Run(window, "stty -echo; printf '\\033[5;10H\\033[6n'; IFS= read -r -d R at; printf '\\033[c'; IFS= read -r -d c is; stty echo; "
-            + "echo; echo \"at ${at#??} is ${is#??}\"");
+        RunCase(window, "ask");
         WaitForLine(shell, "at 5;10 is ?62;22", "the program's answers");
         window.Close();
     }
@@ -88,28 +73,22 @@ public sealed class TerminalTests
     [AvaloniaFact]
     public void Keys_reach_a_program_as_xterm_sends_them_in_either_cursor_mode()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            // sh and cat -v are Unix's.
-            return;
-        }
-        (MainWindow window, TerminalSession shell) = Open(TestFolders.Create("terminal-"), "/bin/sh");
-        Run(window, "cat -v");
-        WaitForScreen(window, shell, s => s.CursorColumn == 0, "cat to wait for its input");
+        (MainWindow window, TerminalSession shell) = Open(TestFolders.Create("terminal-"));
+        RunCase(window, "keys");
+        WaitForLine(shell, "keys?", "the program to wait for its keys");
         foreach (string key in (string[])["UP", "control RIGHT", "DELETE", "shift TAB", "ENTER"])
         {
             Ui.Press(window, key);
         }
-        // Twice: as the terminal echoes what was typed, and as cat read it.
-        WaitForScreen(window, shell, s => s.Lines.Count(l => l.Text() == "^[[A^[[1;5C^[[3~^[[Z") == 2, "the keys as cat read them");
+        WaitForLine(shell, "^[[A^[[1;5C^[[3~^[[Z", "the keys as the program read them");
         Ui.Press(window, "control C");
-        WaitForScreen(window, shell, s => s.CursorColumn > 0, "the prompt after cat");
+        WaitForScreen(window, shell, s => s.CursorColumn > 0, "the prompt after the program");
 
-        Run(window, "printf '\\033[?1h'; cat -v");
-        WaitForScreen(window, shell, s => s.ApplicationCursorKeys && s.CursorColumn == 0, "cat to wait in the application cursor mode");
+        RunCase(window, "keys", "application");
+        WaitForScreen(window, shell, s => s.ApplicationCursorKeys && s.Lines.Count(l => l.Text() == "keys?") == 2, "the program to wait in the application cursor mode");
         Ui.Press(window, "UP");
         Ui.Press(window, "ENTER");
-        WaitForScreen(window, shell, s => s.Lines.Count(l => l.Text() == "^[OA") == 2, "Up as cat read it in the application cursor mode");
+        WaitForLine(shell, "^[OA", "Up as the program read it in the application cursor mode");
         Ui.Press(window, "control C");
         window.Close();
     }
@@ -117,17 +96,12 @@ public sealed class TerminalTests
     [AvaloniaFact]
     public void Output_past_the_screen_goes_to_the_scrollback_and_clear_buffer_leaves_only_the_prompt_at_the_top()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            // sh and seq are Unix's.
-            return;
-        }
-        (MainWindow window, TerminalSession shell) = Open(TestFolders.Create("terminal-"), "/bin/sh");
+        (MainWindow window, TerminalSession shell) = Open(TestFolders.Create("terminal-"));
         TerminalScreen screen = shell.Screen;
-        Run(window, $"printf '%0{screen.Columns + 5}d\\n' 7; seq 1 200");
-        WaitForLine(shell, "200", "seq's lines");
+        RunCase(window, "long", (screen.Columns + 4).ToString(CultureInfo.InvariantCulture));
+        WaitForLine(shell, "200", "the program's lines");
         Assert.True(screen.Scrollback.Count > 0 && screen.LineAt(screen.FirstLine).Text() != "1",
-            $"seq's first lines left nothing in the scrollback: it holds {screen.Scrollback.Count}");
+            $"the program's first lines left nothing in the scrollback: it holds {screen.Scrollback.Count}");
         Assert.Contains(new string('0', screen.Columns + 4) + "7", Lines(screen));
 
         Ui.ChooseFromMenu(window.TerminalPanel.View, "Clear Buffer");
@@ -185,7 +159,7 @@ public sealed class TerminalTests
         string folder = TestFolders.Create("terminal-");
         try
         {
-            (MainWindow window, TerminalSession _) = Open(folder, OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh");
+            (MainWindow window, TerminalSession _) = Open(folder);
             // Run, Git and Bookmarks by their one-key shortcuts (Alt+4, Alt+9 and Ctrl+`; Cmd+4, Cmd+9 and Ctrl+` on macOS).
             foreach ((string action, string shown) in new[] { (AppActions.ShowRun, ToolWindowIds.Run), (AppActions.ShowGit, ToolWindowIds.Git), (AppActions.ShowBookmarks, ToolWindowIds.Bookmarks) })
             {
@@ -207,11 +181,8 @@ public sealed class TerminalTests
     [AvaloniaFact]
     public void A_paste_cannot_end_its_own_bracket_and_run_the_line_after_it()
     {
-        if (!File.Exists("/bin/zsh"))
-        {
-            // zsh's line editor brackets pastes (as the Mac's own shell, it is always there on a Mac).
-            return;
-        }
+        // zsh's line editor brackets pastes (as the Mac's own shell, it is always there on a Mac).
+        Assert.SkipUnless(File.Exists("/bin/zsh"), "zsh, whose line editor asks for bracketed pastes, is not installed here");
         string folder = TestFolders.Create("terminal-");
         try
         {
@@ -246,7 +217,7 @@ public sealed class TerminalTests
             // A space and a quote in its name, which the shell would split or end its word at, unquoted.
             string dropped = Path.Combine(folder, "it's here.txt");
             File.WriteAllText(dropped, "dropped-42\n");
-            (MainWindow window, TerminalSession shell) = Open(folder, OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh");
+            (MainWindow window, TerminalSession shell) = Open(folder);
             window.KeyTextInput(OperatingSystem.IsWindows() ? "type " : "cat ");
             Ui.Drop(window, window.TerminalPanel.View, dropped);
             Ui.Press(window, "ENTER");
@@ -263,18 +234,13 @@ public sealed class TerminalTests
     [AvaloniaFact]
     public void A_decomposed_accent_shows_on_its_letter_in_one_cell_and_copies_with_it()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            // sh's printf writes the bytes.
-            return;
-        }
         string folder = TestFolders.Create("terminal-");
         try
         {
-            (MainWindow window, TerminalSession shell) = Open(folder, "/bin/sh");
+            (MainWindow window, TerminalSession shell) = Open(folder);
             // Résumé.pdf as macOS's file system spells it, each é an e and a combining acute (CC 81), as ls prints it.
             string name = "Re\u0301sume\u0301.pdf";
-            Run(window, @"printf 'Re\314\201sume\314\201.pdf\n'");
+            RunCase(window, "accent");
             long line = WaitForLine(shell, text => text.StartsWith('R') && text.EndsWith(".pdf", StringComparison.Ordinal), "the name printed");
             TerminalLine row = shell.Screen.LineAt(line);
             Assert.True(row.Text() == name, $"Résumé.pdf printed as \"{row.Text()}\": its accents were dropped");
@@ -295,17 +261,12 @@ public sealed class TerminalTests
     [AvaloniaFact]
     public void An_emoji_takes_the_two_columns_the_shell_counts_so_the_text_after_it_stays_in_place()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            // sh's printf writes the bytes.
-            return;
-        }
         string folder = TestFolders.Create("terminal-");
         try
         {
-            (MainWindow window, TerminalSession shell) = Open(folder, "/bin/sh");
+            (MainWindow window, TerminalSession shell) = Open(folder);
             // A rocket (U+1F680), then a check mark (U+2705) and a lightning bolt (U+26A1), each two columns in zsh's count.
-            Run(window, @"printf '\360\237\232\200x\n\342\234\205\342\232\241y\n'");
+            RunCase(window, "emoji");
             long rocket = WaitForLine(shell, "\U0001F680x", "the rocket printed");
             Assert.True(shell.Screen.LineAt(rocket).Cells[2].Rune == 'x',
                 $"x printed after a rocket stands in column {Array.FindIndex(shell.Screen.LineAt(rocket).Cells, c => c.Rune == 'x')}, not 2: the rocket overlaps it");
@@ -323,21 +284,16 @@ public sealed class TerminalTests
     [AvaloniaFact]
     public void A_long_line_reads_whole_after_the_terminal_narrows_and_widens_again_and_the_prompt_keeps_its_cursor()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            // sh and seq are Unix's.
-            return;
-        }
         string folder = TestFolders.Create("terminal-");
         try
         {
-            (MainWindow window, TerminalSession shell) = Open(folder, "/bin/sh");
+            (MainWindow window, TerminalSession shell) = Open(folder);
             TerminalScreen screen = shell.Screen;
             int wide = screen.Columns;
             Assert.True(wide >= 100, $"the terminal has {wide} columns, too few for a line of 100");
             // The numbers 10 to 59 in a row: a line of 100 characters.
             string hundred = string.Concat(Enumerable.Range(10, 50));
-            Run(window, "printf '%s' $(seq 10 59); echo");
+            RunCase(window, "hundred");
             WaitForLine(shell, hundred, "the line of 100 printed");
             window.KeyTextInput("echo kept");
             Ui.WaitFor(() => screen.Lines[screen.CursorRow].Text().EndsWith("echo kept", StringComparison.Ordinal), "the command typed");
@@ -362,8 +318,8 @@ public sealed class TerminalTests
 
             dock.Move(dock[ToolWindowIds.Terminal], ToolAnchor.RightTop);
             Ui.WaitFor(() => screen.Columns < wide, "the terminal to narrow again");
-            Run(window, "stty size");
-            WaitForLine(shell, $"{screen.Rows} {screen.Columns}", $"stty to count the terminal's {screen.Rows} rows and {screen.Columns} columns");
+            RunCase(window, "size");
+            WaitForLine(shell, $"{screen.Rows} {screen.Columns}", $"the program to count the terminal's {screen.Rows} rows and {screen.Columns} columns");
             window.Close();
         }
         finally
@@ -375,20 +331,15 @@ public sealed class TerminalTests
     [AvaloniaFact]
     public void Scrolled_back_the_terminal_holds_its_place_as_output_arrives()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            // sh and seq are Unix's.
-            return;
-        }
         string folder = TestFolders.Create("terminal-");
         try
         {
-            (MainWindow window, TerminalSession shell) = Open(folder, "/bin/sh");
+            (MainWindow window, TerminalSession shell) = Open(folder);
             TerminalView view = window.TerminalPanel.View;
-            Run(window, "seq 1 300");
-            WaitForLine(shell, "300", "seq's lines");
-            // Output that comes once the person is reading back: the loop waits for a file the test makes.
-            Run(window, "while [ ! -e go ]; do sleep 0.05; done; seq 1001 1100");
+            RunCase(window, "lines", "1", "300");
+            WaitForLine(shell, "300", "the program's lines");
+            // Output that comes once the person is reading back: the program waits for a file the test makes.
+            RunCase(window, "wait", "go", "1001", "1100");
             Ui.WaitFor(() => shell.Screen.Lines[shell.Screen.CursorRow].Text().Length == 0, "the loop to start waiting");
 
             Point middle = view.TranslatePoint(new Point(view.Bounds.Width / 2, view.Bounds.Height / 2), window)!.Value;
@@ -417,24 +368,19 @@ public sealed class TerminalTests
     [AvaloniaFact]
     public void A_selection_stays_on_its_text_as_output_streams_past_the_scrollbacks_limit()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            // sh and seq are Unix's.
-            return;
-        }
         string folder = TestFolders.Create("terminal-");
         try
         {
-            (MainWindow window, TerminalSession shell) = Open(folder, "/bin/sh");
+            (MainWindow window, TerminalSession shell) = Open(folder);
             TerminalScreen screen = shell.Screen;
             string text = $"{TerminalScreen.ScrollbackLimit + 100}";
-            Run(window, $"seq 1 {text}");
-            WaitForLine(shell, text, "seq's lines");
+            RunCase(window, "lines", "1", text);
+            WaitForLine(shell, text, "the program's lines");
             Assert.True(screen.Scrollback.Count == TerminalScreen.ScrollbackLimit, $"the scrollback holds {screen.Scrollback.Count} lines, short of its limit");
-            Run(window, "while [ ! -e go ]; do sleep 0.05; done; seq 20001 20100");
+            RunCase(window, "wait", "go", "20001", "20100");
             Ui.WaitFor(() => screen.Lines[screen.CursorRow].Text().Length == 0, "the loop to start waiting");
 
-            long chosen = WaitForLine(shell, text, "seq's last line");
+            long chosen = WaitForLine(shell, text, "the program's last line");
             Drag(window, chosen, 0, chosen, text.Length - 1);
             Assert.Equal(text, window.TerminalPanel.View.SelectedText);
             File.WriteAllText(Path.Combine(folder, "go"), string.Empty);
@@ -518,14 +464,9 @@ public sealed class TerminalTests
     [AvaloniaFact]
     public void An_address_in_the_terminal_opens_with_a_click_or_cmd_click_and_a_files_path_with_cmd_click()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            // sh's echo writes the lines.
-            return;
-        }
         string folder = TestFolders.Create("terminal-");
         File.WriteAllText(Path.Combine(folder, "notes.txt"), "first\nsecond\nthird\n");
-        (MainWindow window, TerminalSession shell) = Open(folder, "/bin/sh");
+        (MainWindow window, TerminalSession shell) = Open(folder);
         TerminalView view = window.TerminalPanel.View;
         RawInputModifiers command = OperatingSystem.IsMacOS() ? RawInputModifiers.Meta : RawInputModifiers.Control;
         Run(window, "echo see https://example.com/terminal/docs. now");
@@ -610,6 +551,11 @@ public sealed class TerminalTests
         }
     }
 
+    /// <summary>Runs a case of the TerminalCases debuggee through the terminal's shell, as a command typed there, so its
+    /// program writes the same bytes on every system.</summary>
+    private static void RunCase(MainWindow window, params string[] words) =>
+        Run(window, $"\"{Dotnet.Host()}\" \"{Debugging.Helpers.Debuggees.Program("TerminalCases")}\" {string.Join(' ', words)}");
+
     /// <summary>Types a command into the terminal and presses Enter.</summary>
     private static void Run(MainWindow window, string command)
     {
@@ -680,6 +626,9 @@ public sealed class TerminalTests
         Ui.Settle();
     }
 
+    /// <summary>The window over a folder, its Terminal open on the system's plain shell (cmd.exe on Windows, sh elsewhere).</summary>
+    private static (MainWindow Window, TerminalSession Shell) Open(string folder) => Open(folder, OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh");
+
     /// <summary>The window over a folder, its Terminal open on a shell of the test's and the keys going to it.</summary>
     internal static (MainWindow Window, TerminalSession Shell) Open(string folder, string shell, params string[] arguments)
     {
@@ -730,11 +679,7 @@ public sealed class TerminalResponsivenessTests
     [AvaloniaFact]
     public void A_flood_of_output_leaves_the_window_taking_keys_and_Ctrl_C_stops_it()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            // sh, seq and a terminal's own Ctrl+C are Unix's.
-            return;
-        }
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "The flood is sh's seq, stopped by a Unix pseudo-terminal's own Ctrl+C, which ConPTY has none of");
         string folder = TestFolders.Create("terminal-");
         MainWindow? window = null;
         try
@@ -800,11 +745,8 @@ public sealed class TerminalResponsivenessTests
     [AvaloniaFact]
     public void A_paste_into_a_program_that_reads_nothing_leaves_the_window_taking_keys()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            // A Unix pseudo-terminal's input queue holds a kilobyte or so; past that, a write waits for the program.
-            return;
-        }
+        Assert.SkipWhen(OperatingSystem.IsWindows(),
+            "A Unix pseudo-terminal's input queue holds a kilobyte or so, past which a write waits for the program; ConPTY's has no such limit to hold");
         string folder = TestFolders.Create("terminal-");
         try
         {
@@ -834,11 +776,7 @@ public sealed class TerminalResponsivenessTests
     [AvaloniaFact]
     public void The_shell_echoes_what_is_typed_while_every_thread_of_the_pool_is_busy()
     {
-        if (OperatingSystem.IsWindows())
-        {
-            // sh is Unix's.
-            return;
-        }
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "The shell held to its answer is sh, a Unix one");
         string folder = TestFolders.Create("terminal-");
         using ManualResetEventSlim release = new();
         try

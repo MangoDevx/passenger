@@ -186,6 +186,7 @@
     <ProjectReference Include="../Debuggees/ReadsInputConsoleAppNoCet/ReadsInputConsoleAppNoCet.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../Debuggees/SteppingConsoleApp/SteppingConsoleApp.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../Debuggees/TerminalConsoleApp/TerminalConsoleApp.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../Debuggees/TerminalCases/TerminalCases.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../Debuggees/TopLevelStatementsConsoleApp/TopLevelStatementsConsoleApp.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 </Project>
