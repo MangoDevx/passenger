@@ -207,6 +207,11 @@ public sealed class RoslynSession : IAsyncDisposable, IDocumentHost
     public async Task<IReadOnlyList<SymbolInformation>> SymbolsAsync(string query, CancellationToken cancel = default) =>
         await Server.RequestAsync<List<SymbolInformation>>("workspace/symbol", new WorkspaceSymbolParams(query), cancel) ?? [];
 
+    /// <summary>The solution's own symbols a name names exactly (Passenger's extension's <see cref="Roslyn.Extension.SymbolsAsked"/>),
+    /// at most <paramref name="limit"/>.</summary>
+    public Task<Roslyn.Extension.SymbolsFound> SymbolsNamedAsync(string name, int limit, CancellationToken cancel = default) =>
+        ExtensionAsync<Roslyn.Extension.SymbolsFound>(Roslyn.Extension.Handlers.SymbolsNamed, new Roslyn.Extension.SymbolsAsked(name, limit), cancel);
+
     /// <summary>Closes the documents, on the caller's thread as they are its, then ends the server without holding it.</summary>
     public async ValueTask DisposeAsync()
     {
@@ -549,6 +554,11 @@ public sealed class LspDocument : IDisposable
     /// has no document of), which an edit placed by its lines and columns needs the disk to match.</summary>
     public async Task<IReadOnlyList<Roslyn.Extension.TextHeld>> HeldTextsAsync(IReadOnlyList<string> paths, CancellationToken cancel = default) =>
         (await RoslynExtension.AskWorkspaceAsync<Roslyn.Extension.TextsHeld>(Server, Roslyn.Extension.Handlers.DocumentTexts, new Roslyn.Extension.TextsAsked(paths), cancel).ConfigureAwait(false)).Texts;
+
+    /// <summary>The symbol at an offset, the one a name there refers to or a declaration there declares, with its
+    /// documentation id; none where there is no symbol.</summary>
+    public async Task<Roslyn.Extension.NamedSymbol?> SymbolAtAsync(int offset, CancellationToken cancel = default) =>
+        (await ExtensionAsync<Roslyn.Extension.SymbolsFound>(Roslyn.Extension.Handlers.SymbolAt, new Roslyn.Extension.Caret(PlaceOf(offset)), cancel).ConfigureAwait(false)).Symbols.FirstOrDefault();
 
     /// <summary>An offset as the extension's messages give a place.</summary>
     public Roslyn.Extension.Place PlaceOf(int offset)

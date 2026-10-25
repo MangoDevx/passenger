@@ -59,11 +59,13 @@ public static partial class McpHost
         "configuration (the chosen one by default); arguments, a command line in place of its own; waitSeconds, how long a call " +
         "waits for the program to stop, end or show its UI; session, a debugged program as debug_state's sessions name it (by " +
         "default the one paused, else the only one); resource, an Aspire resource (name or AppHostPath::name) or a compose " +
-        "service of the run, as workspace lists them.\n\n" +
+        "service of the run, as workspace lists them; symbol, in place of path, line and column, a C# symbol of the solution's " +
+        "own code by name: Name, Type.Member or Namespace.Type, an overload as Member(string, int), or its documentation id " +
+        "(M:Namespace.Type.Member(System.String)).\n\n" +
         "Begin with workspace: the folder and solution open, their projects, run configurations and open files (open opens another folder, " +
         "solution or file). Find your way by meaning rather than by text: find_symbol finds a type or member by name, outline lists a file's " +
         "types and members with their lines, and symbol_info, definition, usages and hierarchy follow the symbol at a line " +
-        "and column (in C#, else the one the line declares); find_in_files searches text. editor_text reads a file with its lines numbered; edit changes one as the editor does " +
+        "and column (in C#, else the one the line declares) or named by symbol; find_in_files searches text. editor_text reads a file with its lines numbered; edit changes one as the editor does " +
         "(an open file the editor has not changed also takes what is written on disk); diagnostics checks it. A file written a moment " +
         "before is waited for (up to 10 s) until the language server has read it, so rename, refactor and code actions work on what was " +
         "written: there is no need to wait or try again.\n\n" +

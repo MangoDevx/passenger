@@ -210,12 +210,17 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
 
     [McpServerTool(Name = "symbol_info", Title = "What a symbol is", ReadOnly = true), Description(
         "What the symbol at a position is, as the hover card says: its declaration and documentation (a JSON property's " +
-        "schema); in XAML the type, property, event, resource or element a name is; in an MSBuild file what the evaluation " +
+        "schema), in C# its documentation id too, by symbol every symbol the name names; in XAML the type, property, event, resource or element a name is; in an MSBuild file what the evaluation " +
         "makes of a name (a property's value and where it was set, an item's items, a target, an import's files).")]
-    public Task<string> SymbolInfo(string path, int line, int column, CancellationToken cancel = default) => OnUi(cancel, async () =>
+    public Task<string> SymbolInfo(string? path = null, int? line = null, int? column = null, string? symbol = null, CancellationToken cancel = default) => OnUi(cancel, async () =>
     {
-        Served served = await Serve(path, cancel);
-        int offset = Offset(served.Document, line, column);
+        if (symbol is not null && path is null && line is null && column is null)
+        {
+            return await SymbolsInfo(symbol, cancel);
+        }
+        CodePlace at = await AskedAt(path, line, column, symbol, cancel);
+        Served served = await Serve(at.Path, cancel);
+        int offset = Offset(served.Document, at.Line, at.Column);
         switch (served)
         {
             case XamlServed xaml:
@@ -227,9 +232,14 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         Hover? hover = await server.Lsp.HoverAsync(offset);
         if (hover is null && server.Web is null)
         {
-            hover = await server.Lsp.HoverAsync(await DeclaredOn(server, line, column));
+            hover = await server.Lsp.HoverAsync(offset = await DeclaredOn(server, at.Line, at.Column));
         }
-        return hover is null ? "Nothing is known about this position" : Shapes.Text(hover.Contents).Trim();
+        if (hover is null)
+        {
+            return "Nothing is known about this position";
+        }
+        string said = Shapes.Text(hover.Contents).Trim();
+        return served.Document.Language.Name == "C#" && await server.Lsp.SymbolAtAsync(offset) is { Id: { } id } ? $"{said}\n\nDocumentation id: {id}" : said;
     });
 
     [McpServerTool(Name = "definition", Title = "Go to definition", ReadOnly = true), Description(
@@ -239,10 +249,11 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         "run scripts; a compose file's build (Dockerfile, project), names, variables (.env) and env_files; Aspire's AddProject " +
         "and the resource names a service reads; an MSBuild file's properties (where set, the one in force first), item types, " +
         "targets, imports and SDKs.")]
-    public Task<IReadOnlyList<Place>> Definition(string path, int line, int column, CancellationToken cancel = default) => OnUi(cancel, async () =>
+    public Task<IReadOnlyList<Place>> Definition(string? path = null, int? line = null, int? column = null, string? symbol = null, CancellationToken cancel = default) => OnUi(cancel, async () =>
     {
-        Served served = await Serve(path, cancel);
-        int offset = Offset(served.Document, line, column);
+        CodePlace at = await AskedAt(path, line, column, symbol, cancel);
+        Served served = await Serve(at.Path, cancel);
+        int offset = Offset(served.Document, at.Line, at.Column);
         if (await ComposeDefinition(served, offset, cancel) is { } composed)
         {
             return composed;
@@ -265,17 +276,18 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
                 return await JsonDefinition(json, offset, cancel);
         }
         ServerServed server = (ServerServed)served;
-        return await Places(await server.Lsp.DefinitionAsync(await SymbolOffset(server, line, column, offset)), cancel);
+        return await Places(await server.Lsp.DefinitionAsync(await SymbolOffset(server, at.Line, at.Column, offset)), cancel);
     });
 
     [McpServerTool(Name = "usages", Title = "Find usages", ReadOnly = true), Description(
         "Every place the symbol at a position is used, its declaration included, each with its line's text, as Find Usages " +
         "finds them; in XAML, an element's name in its file and code-behind, or a resource's key across the project. JSON and " +
         "MSBuild files have none.")]
-    public Task<IReadOnlyList<Place>> Usages(string path, int line, int column, CancellationToken cancel = default) => OnUi(cancel, async () =>
+    public Task<IReadOnlyList<Place>> Usages(string? path = null, int? line = null, int? column = null, string? symbol = null, CancellationToken cancel = default) => OnUi(cancel, async () =>
     {
-        Served served = await Serve(path, cancel);
-        int offset = Offset(served.Document, line, column);
+        CodePlace at = await AskedAt(path, line, column, symbol, cancel);
+        Served served = await Serve(at.Path, cancel);
+        int offset = Offset(served.Document, at.Line, at.Column);
         switch (served)
         {
             case XamlServed xaml:
@@ -290,7 +302,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         // A symbol's usages hold its declaration, so none says no symbol is there.
         if (found.Count == 0 && server.Web is null)
         {
-            found = await server.Lsp.ReferencesAsync(await DeclaredOn(server, line, column));
+            found = await server.Lsp.ReferencesAsync(await DeclaredOn(server, at.Line, at.Column));
         }
         return Sorted(await Places(found, cancel));
     });
@@ -298,10 +310,12 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
     [McpServerTool(Name = "hierarchy", Title = "Call or type hierarchy", ReadOnly = true), Description(
         "One level of the hierarchy of the symbol at a position, as the Hierarchy window: direction callers (each at its " +
         "call), callees, supertypes, subtypes, or implementations (Go to Implementation's).")]
-    public Task<IReadOnlyList<HierarchyEntry>> Hierarchy(string path, int line, int column, string direction = "callers", CancellationToken cancel = default) => OnUi<IReadOnlyList<HierarchyEntry>>(cancel, async () =>
+    public Task<IReadOnlyList<HierarchyEntry>> Hierarchy(string? path = null, int? line = null, int? column = null, string direction = "callers", string? symbol = null,
+        CancellationToken cancel = default) => OnUi<IReadOnlyList<HierarchyEntry>>(cancel, async () =>
     {
-        (OpenDocument document, LspDocument lsp) = await Code(path, cancel);
-        int offset = await SymbolOffset(new ServerServed(document, document.Language.Name, lsp), line, column, Offset(document, line, column));
+        CodePlace at = await AskedAt(path, line, column, symbol, cancel);
+        (OpenDocument document, LspDocument lsp) = await Code(at.Path, cancel);
+        int offset = await SymbolOffset(new ServerServed(document, document.Language.Name, lsp), at.Line, at.Column, Offset(document, at.Line, at.Column));
         if (direction == "implementations")
         {
             return [.. (await Places(await lsp.ImplementationAsync(offset), cancel)).Select(p => new HierarchyEntry(null, null, p.Path, p.Line, p.Column, p.Text))];
@@ -330,12 +344,13 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         "after it too (Foo.cs, Foo.Designer.cs) unless renameFiles is false; an Aspire resource's name where its AppHost " +
         "declares it and its services read it; a XAML element's name with its code-behind's uses; a JSON property (in " +
         "package.json's scripts, every npm run of one); a compose file's names, its override's too. MSBuild files have none.")]
-    public Task<string> Rename(string path, int line, int column, string newName,
+    public Task<string> Rename(string newName, string? path = null, int? line = null, int? column = null, string? symbol = null,
         bool renameFiles = true,
         CancellationToken cancel = default) => OnUi(cancel, () => Patience.RunAsync(async patience =>
     {
-        Served served = await Serve(path, cancel);
-        int offset = Offset(served.Document, line, column);
+        CodePlace at = await AskedAt(path, line, column, symbol, cancel);
+        Served served = await Serve(at.Path, cancel);
+        int offset = Offset(served.Document, at.Line, at.Column);
         if (served is ServerServed { Web.Kind: WebServerKind.Yaml } yaml && ComposeDeclarations.IsCompose(yaml.Document.Path)
             && await CodeAssist.ComposeRenamingAsync(yaml.Lsp, yaml.Document, offset) is { } composed)
         {
@@ -551,9 +566,16 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
     public Task<IReadOnlyList<SymbolFound>> FindSymbol(
         string query,
         [Description("class, interface, struct, enum, method, property, field, event, constructor...")] string? kind = null,
-        int limit = 50, CancellationToken cancel = default) => OnUi(cancel, async () =>
+        int limit = 50,
+        [Description("Only the symbols query names exactly, as symbol does, each with its documentation id")] bool exact = false,
+        CancellationToken cancel = default) => OnUi(cancel, async () =>
     {
         RoslynSession session = await Server(cancel);
+        if (exact)
+        {
+            return (IReadOnlyList<SymbolFound>)[.. (await NamedAsync(session, query, kind, limit, cancel)).Symbols.Select(n =>
+                new SymbolFound(n.Name, n.Kind, n.Container, n.Path, n.Line, n.Column) { Id = n.Id })];
+        }
         IReadOnlyList<SymbolInformation> found = await session.SymbolsAsync(query);
         // The server's order is not by how well a name matches: the query's own name first, so a limit never cuts it.
         List<SymbolInformation> kept = [.. found
@@ -572,6 +594,67 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         : name.StartsWith(query, StringComparison.OrdinalIgnoreCase) ? 2
         : name.Contains(query, StringComparison.OrdinalIgnoreCase) ? 3
         : 4;
+
+    /// <summary>What a code tool asks about: a place an agent gave, or the one C# symbol it named (<see cref="NamedAsync"/>).</summary>
+    private sealed record CodePlace(string Path, int Line, int Column);
+
+    /// <summary>The place a code tool asks about: path, line and column, or where the one symbol a name names is declared;
+    /// a name that names several is refused, listing each to tell them apart.</summary>
+    private async Task<CodePlace> AskedAt(string? path, int? line, int? column, string? symbol, CancellationToken cancel)
+    {
+        if (symbol is null)
+        {
+            return path is not null && line is int l && column is int c ? new CodePlace(path, l, c)
+                : throw new ArgumentException("Give the symbol's path, line and column, or symbol, its name");
+        }
+        if (path is not null || line is not null || column is not null)
+        {
+            throw new ArgumentException("Give symbol, a name, or path, line and column, a place: not both");
+        }
+        SymbolsNamed named = await NamedAsync(await Server(cancel), symbol, null, 10, cancel);
+        return named.Symbols.Count == 1 ? new CodePlace(named.Symbols[0].Path, named.Symbols[0].Line, named.Symbols[0].Column)
+            : throw new InvalidOperationException($"{symbol} names {Plural.Of(named.Symbols.Count + named.More, "symbol")} of the solution's own code: "
+                + $"{string.Join("; ", named.Symbols.Select(n => n.ToString()))}{(named.More > 0 ? $"; and {named.More} more" : string.Empty)}. Name one by its container, "
+                + "its parameters' types or its documentation id");
+    }
+
+    /// <summary>A symbol a name names, its first declaration's place in the editor's lines, as an agent is shown it.</summary>
+    private sealed record NamedPlace(string Name, string Shown, string Kind, string? Id, string? Container, string Path, int Line, int Column)
+    {
+        public override string ToString() => $"{Shown} ({Kind}) at {Path}:{Line}:{Column}{(Id is null ? string.Empty : $", {Id}")}";
+    }
+
+    private sealed record SymbolsNamed(IReadOnlyList<NamedPlace> Symbols, int More);
+
+    /// <summary>The solution's own C# symbols a name names exactly, of a kind when one is given, at most limit; none is
+    /// refused, saying how to find a name like it.</summary>
+    private async Task<SymbolsNamed> NamedAsync(RoslynSession session, string name, string? kind, int limit, CancellationToken cancel)
+    {
+        Roslyn.Extension.SymbolsFound found = await session.SymbolsNamedAsync(name, kind is null ? limit : 1000, cancel);
+        List<Roslyn.Extension.NamedSymbol> kept = [.. found.Symbols.Where(s => kind is null || s.Kind.Equals(kind, StringComparison.OrdinalIgnoreCase))];
+        if (kept.Count == 0)
+        {
+            throw new InvalidOperationException($"No {kind ?? "symbol"} of the solution's own code is named {name}: find_symbol finds names like it");
+        }
+        IReadOnlyList<Place> places = await Lines([.. kept.Select(s => (DocumentUris.FromPath(s.Path!), new LspPosition(s.At!.Line, s.At.Character), true))], cancel);
+        List<NamedPlace> named = [.. kept.Select((s, i) => new NamedPlace(s.Name, s.Shown, s.Kind, s.Id, s.Container, places[i].Path, places[i].Line, places[i].Column))];
+        return new SymbolsNamed([.. named.Take(limit)], Math.Max(0, named.Count - limit) + (kind is null ? found.More : 0));
+    }
+
+    /// <summary>symbol_info of a name: each symbol it names, with its kind, place and documentation id, then what its hover
+    /// card says.</summary>
+    private async Task<string> SymbolsInfo(string symbol, CancellationToken cancel)
+    {
+        SymbolsNamed named = await NamedAsync(await Server(cancel), symbol, null, 10, cancel);
+        List<string> each = [];
+        foreach (NamedPlace place in named.Symbols)
+        {
+            (OpenDocument document, LspDocument lsp) = await Code(place.Path, cancel);
+            Hover? hover = await lsp.HoverAsync(Offset(document, place.Line, place.Column));
+            each.Add($"{place}\n{(hover is null ? string.Empty : Shapes.Text(hover.Contents).Trim())}".TrimEnd());
+        }
+        return string.Join("\n\n", each) + (named.More > 0 ? $"\n\nAnd {named.More} more: name one by its container, its parameters' types or its documentation id" : string.Empty);
+    }
 
     /// <summary>Usages in the order an agent reads them: by file, then line and column, a source generator's files last.</summary>
     private static IReadOnlyList<Place> Sorted(IReadOnlyList<Place> places) =>
@@ -596,7 +679,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         }
         string place = $"{Relative(served.Document.Path)}:{line}:{column}";
         throw new InvalidOperationException(declared.Count == 0
-            ? $"No symbol at {place}, and line {line} declares none: give the line and column of a name"
+            ? $"No symbol at {place}, and line {line} declares none: give the line and column of a name, or symbol, the name"
             : $"No symbol at {place}, and line {line} declares {string.Join(" and ", declared.Select(d => d.Name))}: give the column of the one meant");
 
         void Gather(IReadOnlyList<DocumentSymbol> symbols)
@@ -2054,4 +2137,8 @@ public sealed record TestFailure(string Test, string? Location, string Details);
 
 public sealed record TestInfoRow(string Test, string State, string? Location);
 
-public sealed record SymbolFound(string Name, string Kind, string? Container, string Path, int Line, int Column);
+public sealed record SymbolFound(string Name, string Kind, string? Container, string Path, int Line, int Column)
+{
+    /// <summary>Its documentation id, as an exact find gives it.</summary>
+    public string? Id { get; init; }
+}

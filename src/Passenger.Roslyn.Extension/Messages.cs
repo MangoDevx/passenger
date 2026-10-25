@@ -27,12 +27,14 @@ public static class Handlers
     public const string ConnectionReads = "Passenger.Roslyn.Extension.ConnectionReads";
     public const string WebRoutes = "Passenger.Roslyn.Extension.WebRoutes";
     public const string LocalizedReads = "Passenger.Roslyn.Extension.LocalizedReads";
+    public const string SymbolsNamed = "Passenger.Roslyn.Extension.SymbolsNamed";
+    public const string SymbolAt = "Passenger.Roslyn.Extension.SymbolAt";
 
     public static readonly IReadOnlyList<string> All =
     [
         DescribeSignature, ChangeSignature, DescribeInterface, ExtractInterface, DescribeType, MoveTypeToFile, MoveTypeToNamespace,
         DescribeHierarchy, PullMembersUp, PushMembersDown, DocumentTexts, AspireProjectDeclaration, AspireCodeHelp, AspireReferenceFix, AspireRunResources,
-        AspireRename, AspireParameters, ConnectionReads, WebRoutes, LocalizedReads,
+        AspireRename, AspireParameters, ConnectionReads, WebRoutes, LocalizedReads, SymbolsNamed, SymbolAt,
     ];
 }
 
@@ -55,6 +57,27 @@ public static class TextHash
     public static string Of(string text) =>
         Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.Unicode.GetBytes(text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n'))));
 }
+
+/// <summary>A name as an agent writes it: <c>Name</c>, the names it is in before it (<c>Type.Member</c>,
+/// <c>Namespace.Type</c>), an overload by its parameters' types (<c>Member(string, int)</c>, <c>Member()</c>), or a
+/// documentation id (<c>M:Namespace.Type.Member(System.String)</c>). A type's generic parameters may be written or left out.
+/// Only symbols declared in the solution's own files count, never only in generated ones.</summary>
+public sealed record SymbolsAsked([property: JsonPropertyName("name")] string Name, [property: JsonPropertyName("limit")] int Limit);
+
+/// <summary>The symbols found, at most the limit asked, and how many more there were.</summary>
+public sealed record SymbolsFound([property: JsonPropertyName("symbols")] IReadOnlyList<NamedSymbol> Symbols, [property: JsonPropertyName("more")] int More);
+
+/// <summary>A symbol as C# shows it (<paramref name="Shown"/>, with its parameters), its kind as LSP names it, its
+/// documentation id, the symbol it is in, and its first declaration's place in the solution's own files (null for one
+/// declared outside them, a package's or the framework's).</summary>
+public sealed record NamedSymbol(
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("shown")] string Shown,
+    [property: JsonPropertyName("kind")] string Kind,
+    [property: JsonPropertyName("id")] string? Id,
+    [property: JsonPropertyName("container")] string? Container,
+    [property: JsonPropertyName("path")] string? Path,
+    [property: JsonPropertyName("at")] Place? At);
 
 /// <summary>A place in a document as the server counts it: a line and a UTF-16 column, from zero.</summary>
 public sealed record Place([property: JsonPropertyName("line")] int Line, [property: JsonPropertyName("character")] int Character);
