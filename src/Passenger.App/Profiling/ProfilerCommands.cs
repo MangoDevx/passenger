@@ -673,55 +673,58 @@ public sealed class ProfilerCommands
         }
     }
 
-    /// <summary>The program Attach Profiler profiles: the selected Aspire service, else the one being debugged (in its
-    /// container, too), else the one Profile started that goes on after its snapshot, else the one Run runs, in the Run
-    /// console or the terminal (an Avalonia app by the process its inspector said it is; under Hot Reload, the app dotnet
-    /// watch started, found as the attach begins).</summary>
+    /// <summary>The program Attach Profiler profiles, of those the folder runs (<see cref="ProjectSession.Running"/>): the
+    /// selected Aspire service, else the chosen Debug tab's (in its container, too), else the container run's service Profile
+    /// records, else the one Profile started that goes on after its snapshot, else the one Run runs, in the Run console or the
+    /// terminal (an Avalonia app by the process its inspector said it is; under Hot Reload, the app dotnet watch started,
+    /// found as the attach begins).</summary>
     private AttachTarget? Attachable(out string? problem)
     {
         ProjectSession current = Session;
+        IReadOnlyList<RunningProgram> running = current.Running;
         problem = null;
         if (current.Aspire.SelectedService is { } selected)
         {
             if (selected.ProcessId is not > 0 || selected.Stopping.IsCancellationRequested
-                || current.Aspire.Apps.FirstOrDefault(app => !app.Stopping && app.Services.Contains(selected)) is not { } app)
+                || running.FirstOrDefault(p => p.Service == selected)?.Services is not { } app)
             {
                 problem = $"The selected Aspire service {selected.Plan.Name} is no longer available to profile";
                 return null;
             }
             return new(selected.ProcessId.Value, ((IRunService)selected).Name, FileName(selected.Plan.ProgramName)) { Run = app };
         }
-        // A container's program, by its id there, recorded there through the debugger's own map of its paths.
-        if (current.Debug.Session is { State: not Debugging.DebugState.Ended, Elsewhere: true, Place: { } place, ProcessStarted.IsCompletedSuccessfully: true } remote)
+        if (running.FirstOrDefault(p => p.Tab is { } tab && tab == current.Debug.Chosen) is { Tab.Session: { } debugging } debugged)
         {
-            string name = current.Debug.TabOf(remote)?.Name ?? $"process {remote.ProcessStarted.Result} in {place.Where}";
-            string program = place.Program ?? $"process {remote.ProcessStarted.Result}";
-            DotnetProcess there = new(remote.ProcessStarted.Result, program, string.Empty, string.Empty, true) { Container = place.Where };
-            return new AttachTarget(there.Id, name, FileName(Path.GetFileNameWithoutExtension(program))) { Elsewhere = there, Paths = place.Paths };
-        }
-        // The chosen session's, when its program is on this machine: a container's process id names none of this one's.
-        if (current.Debug.Session is { State: not Debugging.DebugState.Ended, IsLocal: true, ProcessStarted.IsCompletedSuccessfully: true } debugging)
-        {
-            int process = debugging.ProcessStarted.Result;
-            LiveApp? app = current.Debug.TabOf(debugging)?.App is { ProcessId: int inspected } live && inspected == process ? live : null;
-            string program = app?.Plan?.Built ?? debugging.Program;
-            return new(process, app?.Name ?? Path.GetFileNameWithoutExtension(program), FileName(Path.GetFileNameWithoutExtension(program)));
+            // A container's program, by its id there, recorded there through the debugger's own map of its paths.
+            if (debugging is { Elsewhere: true, Place: { } place, ProcessStarted.IsCompletedSuccessfully: true })
+            {
+                string program = place.Program ?? $"process {debugging.ProcessStarted.Result}";
+                DotnetProcess there = new(debugging.ProcessStarted.Result, program, string.Empty, string.Empty, true) { Container = place.Where };
+                return new AttachTarget(there.Id, debugged.Name, FileName(Path.GetFileNameWithoutExtension(program))) { Elsewhere = there, Paths = place.Paths };
+            }
+            // Its process on this machine: a container's process id names none of this one's.
+            if (debugged.Process is int process)
+            {
+                LiveApp? app = debugged.App is { ProcessId: int inspected } live && inspected == process ? live : null;
+                string program = app?.Plan?.Built ?? debugging.Program;
+                return new(process, app?.Name ?? Path.GetFileNameWithoutExtension(program), FileName(Path.GetFileNameWithoutExtension(program)));
+            }
         }
         // A container run's service as it runs (Run's log is the CLI's, no program of this machine's): the one Profile records.
-        if (current.ContainerRun is { IsStopped: false } containers && containers.Plan.Profiled() is { } service)
+        if (current.ServiceRuns.OfType<ContainerRun>().FirstOrDefault() is { } containers && containers.Plan.Profiled() is { } service)
         {
             return new(0, service.Service, FileName(service.Service)) { Run = containers };
         }
-        if (current.Profiled is { } profiled)
+        if (running.FirstOrDefault(p => p.Kind == RunningKind.Profile) is { Process: int profiling } profile && current.Profiled is { } profiled)
         {
-            return new(profiled.Run.ProcessId, profiled.Name, profiled.File);
+            return new(profiling, profile.Name, profiled.File);
         }
-        if (current.Running.FirstOrDefault(p => p.Kind == RunningKind.Run) is { Plan: { } plan } ran && (ran.App?.ProcessId ?? ran.Process) is int running)
+        if (running.FirstOrDefault(p => p.Kind == RunningKind.Run) is { Plan: { } plan } ran && (ran.App?.ProcessId ?? ran.Process) is int run)
         {
             string name = ran.App?.Name ?? plan.Name;
             string program = ran.App?.Plan?.Built is { } built ? Path.GetFileNameWithoutExtension(built) : plan.ProgramName;
             // Under Hot Reload the process Run started is dotnet watch's own, and the app one it started in turn.
-            return new(running, name, FileName(program), parts.Builds().WatchesHotReload ? program : null);
+            return new(run, name, FileName(program), parts.Builds().WatchesHotReload ? program : null);
         }
         return null;
     }

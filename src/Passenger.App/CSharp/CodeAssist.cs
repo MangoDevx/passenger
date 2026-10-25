@@ -293,7 +293,7 @@ public sealed partial class CodeAssist
     /// name): the server that answered may have been started again while they chose.</summary>
     private LspDocument Now(OpenDocument document) => service()?.For(document)?.Lsp ?? WebOf(document)?.Lsp ?? throw new LanguageServerFailed(
         WebOf(document) is not null ? "its language server is not running"
-        : service() is { } csharp ? $"the C# language server is not ready: {csharp.State}" : "no C# language server runs for this folder");
+        : service() is { } csharp ? $"the C# language server is not ready: {csharp.State}" : Refusals.NoCSharp);
 
     /// <summary>The folder the open file's places are named from: the C# server's, else the web servers'.</summary>
     private string? Root => service()?.Session?.Folder ?? Web?.Invoke()?.Folder;

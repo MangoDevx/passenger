@@ -301,7 +301,7 @@ public sealed class Navigator
         CSharpService? csharp = Session.CSharp;
         if (csharp?.Session is not { IsLoaded: true } server)
         {
-            throw new Lsp.LanguageServerFailed(csharp is null ? "no C# language server runs for this folder" : $"the C# language server is not ready: {csharp.State}");
+            throw new Lsp.LanguageServerFailed(csharp is null ? Refusals.NoCSharp : $"the C# language server is not ready: {csharp.State}");
         }
         IReadOnlyList<Lsp.SymbolInformation> found = await server.SymbolsAsync(query.Trim(), cancel);
         string? root = Session.Folder;
