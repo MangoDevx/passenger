@@ -332,6 +332,43 @@ public sealed class VcsTests : IDisposable
         window.Close();
     }
 
+    /// <summary>A diff's Next Difference is F7 everywhere and F8 too off the Mac, as Rider's Visual Studio keymap binds them
+    /// there, Shift with either going back; the Mac's keymap leaves F8 to the IDE.</summary>
+    [AvaloniaFact]
+    public void A_diffs_next_and_previous_difference_are_F7_and_F8_off_the_Mac_and_F7_alone_on_it()
+    {
+        MainWindow window = Open();
+        CodeEditor editor = window.EditorArea.CodeEditor;
+        editor.GoTo(new TextPosition(2, 4));
+        window.KeyTextInput("long ");
+        editor.GoTo(new TextPosition(4, 4));
+        window.KeyTextInput("public ");
+        window.Perform(AppActions.Save);
+        editor.GoTo(new TextPosition(0, 0));
+        Task<DiffWindow?> opening = window.ShowDiffAsync(window.EditorArea.Active!.Path);
+        Ui.Landed(() => opening.IsCompleted, "the diff open");
+        DiffWindow diff = opening.Result!;
+        DiffView view = diff.View;
+        Ui.Landed(() => view.Right.IsFocused, "the diff's side of the file to have the keys");
+        Assert.Equal([2, 4], view.Hunks.Select(h => h.NewStart));
+
+        Ui.Press(diff, "F7");
+        Assert.Equal(2, view.Right.CaretPosition.Line);
+        Ui.Press(diff, "F8");
+        if (OperatingSystem.IsMacOS())
+        {
+            Assert.True(view.Right.CaretPosition.Line == 2, "F8 stepped in a diff on the Mac, whose keymap leaves it to the IDE");
+        }
+        else
+        {
+            Assert.True(view.Right.CaretPosition.Line == 4, $"F8 left a diff's caret on line {view.Right.CaretPosition.Line + 1}, not at the next difference");
+            Ui.Press(diff, "shift F8");
+            Assert.True(view.Right.CaretPosition.Line == 2, $"Shift+F8 left a diff's caret on line {view.Right.CaretPosition.Line + 1}, not at the previous difference");
+        }
+        diff.Close();
+        window.Close();
+    }
+
     /// <summary>The diff's side of the open file takes the file's colours as they change: opened before the language server
     /// answered, the server's once it does; and once the server starts again, the new one's, which follow the text.</summary>
     [AvaloniaFact]

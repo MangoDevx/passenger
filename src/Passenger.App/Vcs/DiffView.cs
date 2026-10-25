@@ -1,7 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Layout;
 using Avalonia.Media;
 using Passenger.Editor;
 using Passenger.Text;
@@ -11,14 +10,15 @@ namespace Passenger.App.Vcs;
 /// <summary>The side-by-side diff: the last commit's text on the left (read-only), the file as it is on the right (the
 /// open file's own text, so an edit there is an edit to it), each change tinted on both sides and joined by a band
 /// between them, the words that changed inside its lines marked stronger, the two kept level as either scrolls. A band's
-/// arrow puts that change back; F7 and Shift+F7 go to the next and previous difference; the toolbar's Settings
-/// (Ctrl+Shift+D, Cmd+Shift+D on the Mac) chooses how differences are highlighted, by words at first.</summary>
+/// arrow puts that change back; F7 and Shift+F7 (F8 and Shift+F8 too off the Mac) go to the next and previous one; Settings
+/// (Ctrl+Shift+D, Cmd+Shift+D on the Mac) chooses how differences are highlighted, by words at first. Made by
+/// <see cref="DiffPanes"/>.</summary>
 public sealed class DiffView : DockPanel, IOwnKeys
 {
     /// <summary>How long editing pauses before the differences are worked out again.</summary>
     private static readonly TimeSpan RediffDelay = TimeSpan.FromMilliseconds(120);
 
-    private readonly Bands bands;
+    private readonly DiffStrip bands;
     private readonly TextBlock count;
     private readonly Button settings;
     private readonly Debounce rediff;
@@ -33,21 +33,21 @@ public sealed class DiffView : DockPanel, IOwnKeys
     /// <param name="editable">Whether the right side is the open file, which can be edited and have changes put back.</param>
     /// <param name="titles">What the sides are, above them: the last commit and the file by default.</param>
     /// <param name="highlighting">How differences inside changed lines are marked: words by default.</param>
-    public DiffView(string name, FileDiff diff, TextDocument mine, bool editable, IHighlighter? leftColours = null, IHighlighter? rightColours = null,
-        (string Left, string Right)? titles = null, DiffHighlighting highlighting = DiffHighlighting.Words)
+    public DiffView(string name, FileDiff diff, TextDocument mine, bool editable, (string Left, string Right)? titles = null,
+        DiffHighlighting highlighting = DiffHighlighting.Words)
     {
         shown = diff;
         this.highlighting = highlighting;
         IsEditable = editable;
-        Left = new CodeEditor { IsReadOnly = true, ChangeBackgrounds = true, Highlighter = leftColours };
+        Left = new CodeEditor { IsReadOnly = true, ChangeBackgrounds = true };
         Left.Show(new TextDocument(diff.Head), SelectionSet.Single(0), default);
-        Right = new CodeEditor { IsReadOnly = !editable, ChangeBackgrounds = true, Highlighter = rightColours };
+        Right = new CodeEditor { IsReadOnly = !editable, ChangeBackgrounds = true };
         Right.Show(mine, SelectionSet.Single(0), default);
-        bands = new Bands(this) { Width = 36 };
+        bands = new DiffStrip(Bands, MergeSide.Left, Left, () => IsEditable, ignores: false, (band, _, _) => Revert(Hunks[band.Index])) { Width = 36 };
 
         Grid sides = new() { ColumnDefinitions = new ColumnDefinitions("*,Auto,*"), RowDefinitions = new RowDefinitions("Auto,*") };
-        sides.Children.Add(Header(titles?.Left ?? "HEAD", 0));
-        sides.Children.Add(Header(titles?.Right ?? (editable ? "Your version" : "Your version (read-only)"), 2));
+        sides.Children.Add(DiffLines.Title(titles?.Left ?? "HEAD", 0));
+        sides.Children.Add(DiffLines.Title(titles?.Right ?? (editable ? "Your version" : "Your version (read-only)"), 2));
         Grid.SetRow(Left, 1);
         Grid.SetRow(bands, 1);
         Grid.SetColumn(bands, 1);
@@ -57,31 +57,10 @@ public sealed class DiffView : DockPanel, IOwnKeys
         sides.Children.Add(bands);
         sides.Children.Add(Right);
 
-        count = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0) };
-        count.Bind(TextBlock.ForegroundProperty, count.GetResourceObservable("Passenger.TextMuted"));
+        count = new TextBlock();
         settings = ToolButtons.Of("Icon.Settings", $"Settings ({(OperatingSystem.IsMacOS() ? "⌘⇧D" : "Ctrl+Shift+D")})", ShowSettings);
-        settings[DockProperty] = Dock.Right;
-        settings.Margin = new Thickness(0, 0, 6, 0);
-        settings.VerticalAlignment = VerticalAlignment.Center;
         settings.ContextMenu = SettingsMenu();
-        StackPanel tools = new()
-        {
-            Orientation = Orientation.Horizontal,
-            Spacing = 2,
-            Margin = new Thickness(6, 0),
-            VerticalAlignment = VerticalAlignment.Center,
-            Children =
-            {
-                ToolButtons.Of("Icon.ArrowUp", "Previous Difference (Shift+F7)", () => Step(-1)),
-                ToolButtons.Of("Icon.ArrowDown", "Next Difference (F7)", () => Step(1)),
-                new TextBlock { Text = name, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) },
-                count,
-            },
-        };
-        // A tool window's ground over the editors', told apart by shade.
-        Border bar = new() { [DockProperty] = Dock.Top, Height = 34, Child = new DockPanel { Children = { settings, tools } } };
-        bar.Bind(Border.BackgroundProperty, bar.GetResourceObservable("Passenger.Panel"));
-        Children.Add(bar);
+        Children.Add(DiffLines.Bar(name, Step, count, [], settings));
         Children.Add(sides);
 
         Left.ScrollChanged += (_, _) => Follow(Left, Right, toLeft: false);
@@ -100,9 +79,9 @@ public sealed class DiffView : DockPanel, IOwnKeys
         };
         AddHandler(KeyDownEvent, (_, e) =>
         {
-            if (IsStep(e))
+            if (DiffLines.Step(e) is not 0 and int step)
             {
-                Step(e.KeyModifiers == KeyModifiers.Shift ? -1 : 1);
+                Step(step);
                 e.Handled = true;
             }
             else if (IsSettings(e))
@@ -121,11 +100,9 @@ public sealed class DiffView : DockPanel, IOwnKeys
     /// <summary>The file's side.</summary>
     public CodeEditor Right { get; }
 
-    /// <summary>F7 and Shift+F7, Rider's next and previous difference there, ahead of Smart Step Into's Shift+F7 everywhere
-    /// else, and Rider's Diff.ShowSettingsPopup.</summary>
-    public bool TakesKey(KeyEventArgs e) => IsStep(e) || IsSettings(e);
-
-    private static bool IsStep(KeyEventArgs e) => e.Key == Key.F7 && e.KeyModifiers is KeyModifiers.None or KeyModifiers.Shift;
+    /// <summary>Next and Previous Difference's keys, ahead of what the IDE binds them to elsewhere (Smart Step Into's
+    /// Shift+F7), and Rider's Diff.ShowSettingsPopup.</summary>
+    public bool TakesKey(KeyEventArgs e) => DiffLines.Step(e) != 0 || IsSettings(e);
 
     private static bool IsSettings(KeyEventArgs e) =>
         e.Key == Key.D && e.KeyModifiers == ((OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control) | KeyModifiers.Shift);
@@ -277,121 +254,31 @@ public sealed class DiffView : DockPanel, IOwnKeys
             return;
         }
         following = true;
-        double line = from.ScrollOffset.Y / from.LineHeight;
-        to.ScrollTo(new Vector(from.ScrollOffset.X, MapLine(line, toLeft) * to.LineHeight));
+        DiffLines.ScrollTo(to, MapLine(DiffLines.Top(from), toLeft), from);
         following = false;
     }
 
     /// <summary>Where a line of one side (fractional, from zero) stands on the other.</summary>
-    public double MapLine(double line, bool toLeft)
+    public double MapLine(double line, bool toLeft) => DiffLines.Map(line, Hunks.Count, i =>
     {
-        double delta = 0;
-        foreach (DiffHunk h in Hunks)
-        {
-            (int fromStart, int fromCount, int toStart, int toCount) = toLeft
-                ? (h.NewStart, h.NewCount, h.OldStart, h.OldCount)
-                : (h.OldStart, h.OldCount, h.NewStart, h.NewCount);
-            if (line < fromStart)
-            {
-                break;
-            }
-            if (line < fromStart + fromCount)
-            {
-                return toStart + ((line - fromStart) * toCount / fromCount);
-            }
-            delta = toStart + toCount - (fromStart + fromCount);
-        }
-        return line + delta;
-    }
+        DiffHunk h = Hunks[i];
+        return toLeft ? new LinesAcross(h.NewStart, h.NewCount, h.OldStart, h.OldCount) : new LinesAcross(h.OldStart, h.OldCount, h.NewStart, h.NewCount);
+    });
 
-    private static Control Header(string text, int column)
+    /// <summary>Each difference's band, from its lines on the left to its lines on the right; none while highlighting is off.</summary>
+    private IEnumerable<DiffBand> Bands()
     {
-        TextBlock label = new() { Text = text, FontSize = 12, Margin = new Thickness(12, 4) };
-        label.Bind(TextBlock.ForegroundProperty, label.GetResourceObservable("Passenger.TextMuted"));
-        Grid.SetColumn(label, column);
-        return label;
-    }
-
-    /// <summary>The strip between the sides: each difference a band from its lines on the left to its lines on the
-    /// right, and an arrow at its left end that puts it back.</summary>
-    private sealed class Bands(DiffView view) : Control
-    {
-        private const double ArrowHit = 12;
-
-        public override void Render(DrawingContext context)
+        if (highlighting == DiffHighlighting.None)
         {
-            context.FillRectangle(Find("Passenger.Editor.Background", Brushes.Transparent), new Rect(Bounds.Size));
-            double width = Bounds.Width;
-            if (view.Highlighting == DiffHighlighting.None)
-            {
-                return;
-            }
-            foreach (DiffHunk hunk in view.Hunks)
-            {
-                (double leftTop, double leftBottom, double rightTop, double rightBottom) = Ends(hunk);
-                if (Math.Max(leftBottom, rightBottom) < 0 || Math.Min(leftTop, rightTop) > Bounds.Height)
-                {
-                    continue;
-                }
-                (string tint, string edge) = hunk.OldCount == 0 ? ("Passenger.Diff.Added", "Passenger.Vcs.Added")
-                    : hunk.NewCount == 0 ? ("Passenger.Diff.Deleted", "Passenger.Vcs.Deleted")
-                    : ("Passenger.Diff.Modified", "Passenger.Vcs.Modified");
-                StreamGeometry band = new();
-                using (StreamGeometryContext path = band.Open())
-                {
-                    path.BeginFigure(new Point(0, leftTop), true);
-                    path.CubicBezierTo(new Point(width / 2, leftTop), new Point(width / 2, rightTop), new Point(width, rightTop));
-                    path.LineTo(new Point(width, rightBottom));
-                    path.CubicBezierTo(new Point(width / 2, rightBottom), new Point(width / 2, leftBottom), new Point(0, leftBottom));
-                    path.EndFigure(true);
-                }
-                context.DrawGeometry(Find(tint, Brushes.Transparent), new Pen(Find(edge, Brushes.Transparent), 1), band);
-                if (view.IsEditable)
-                {
-                    // ">>": the left side's lines over the right's.
-                    Pen arrow = new(Find(edge, Brushes.Transparent), 1.6, lineCap: PenLineCap.Round);
-                    double y = leftTop + Math.Min(9, Math.Max(3, (leftBottom - leftTop) / 2));
-                    for (int i = 0; i < 2; i++)
-                    {
-                        double x = 5 + (i * 5);
-                        context.DrawLine(arrow, new Point(x, y - 4), new Point(x + 4, y));
-                        context.DrawLine(arrow, new Point(x + 4, y), new Point(x, y + 4));
-                    }
-                }
-            }
+            yield break;
         }
-
-        protected override void OnPointerPressed(PointerPressedEventArgs e)
+        for (int i = 0; i < Hunks.Count; i++)
         {
-            base.OnPointerPressed(e);
-            Point at = e.GetPosition(this);
-            if (!view.IsEditable || at.X > ArrowHit + 10)
-            {
-                return;
-            }
-            foreach (DiffHunk hunk in view.Hunks)
-            {
-                (double top, double bottom, _, _) = Ends(hunk);
-                if (at.Y >= top - 6 && at.Y <= Math.Max(bottom, top + ArrowHit))
-                {
-                    view.Revert(hunk);
-                    e.Handled = true;
-                    return;
-                }
-            }
+            DiffHunk hunk = Hunks[i];
+            double leftTop = (hunk.OldStart * Left.LineHeight) - Left.ScrollOffset.Y;
+            double rightTop = (hunk.NewStart * Right.LineHeight) - Right.ScrollOffset.Y;
+            ChangeMarkKind kind = hunk.OldCount == 0 ? ChangeMarkKind.Added : hunk.NewCount == 0 ? ChangeMarkKind.Deleted : ChangeMarkKind.Modified;
+            yield return new DiffBand(i, leftTop, leftTop + (hunk.OldCount * Left.LineHeight), rightTop, rightTop + (hunk.NewCount * Right.LineHeight), kind);
         }
-
-        /// <summary>A difference's top and bottom on each side, in this strip's coordinates.</summary>
-        private (double LeftTop, double LeftBottom, double RightTop, double RightBottom) Ends(DiffHunk hunk)
-        {
-            double leftHeight = view.Left.LineHeight;
-            double rightHeight = view.Right.LineHeight;
-            double leftTop = (hunk.OldStart * leftHeight) - view.Left.ScrollOffset.Y;
-            double rightTop = (hunk.NewStart * rightHeight) - view.Right.ScrollOffset.Y;
-            return (leftTop, leftTop + (hunk.OldCount * leftHeight), rightTop, rightTop + (hunk.NewCount * rightHeight));
-        }
-
-        private IBrush Find(string key, IBrush fallback) =>
-            this.TryFindResource(key, ActualThemeVariant, out object? found) && found is IBrush brush ? brush : fallback;
     }
 }

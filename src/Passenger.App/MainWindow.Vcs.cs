@@ -15,6 +15,7 @@ public partial class MainWindow
 {
     private ToolWindows.CommitView? commitView;
     private ToolWindows.GitView? gitView;
+    private DiffPanes? diffs;
 
     /// <summary>The Git tool window's log.</summary>
     public ToolWindows.GitLogView GitLog => GitWindow.Log;
@@ -309,15 +310,9 @@ public partial class MainWindow
         }
         string mineTitle = other is null ? "Your version" : InFolder(path);
         string title = other is null ? $"{Path.GetFileName(path)}: {version} and your version" : $"{Path.GetFileName(other)} vs {Path.GetFileName(path)}";
-        DiffView view = Highlighted(new(other is null ? Path.GetFileName(path) : title, diff, mine, editable: open is not null, rightColours: open?.Highlighter,
-            titles: (version, open is not null ? mineTitle : $"{mineTitle} (read-only)"), highlighting: settings.DiffHighlighting));
-        IHighlighter? left = Languages.Highlighters.For(Workspace.Language.ForPath(other ?? path).Name, view.Left.Document);
-        if (left is not null)
-        {
-            view.Left.Highlighter = left;
-        }
+        DiffView view = Diffs.ForFile(other is null ? Path.GetFileName(path) : title, diff, mine, open,
+            (version, open is not null ? mineTitle : $"{mineTitle} (read-only)"), other ?? path, path);
         DiffWindow window = new(title, view);
-        window.Closed += (_, _) => (left as IDisposable)?.Dispose();
         if (open is { } file)
         {
             // The file stays open while the diff edits it, so what is typed there is saved; closed for good, the diff goes too.
@@ -329,20 +324,10 @@ public partial class MainWindow
                     window.Close();
                 }
             }
-            // The file's colours as they are now: the language server's once it answers, another server's once it starts again.
-            void OnFileChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-            {
-                if (e.PropertyName == nameof(OpenDocument.Highlighter))
-                {
-                    view.Right.Highlighter = file.Highlighter;
-                }
-            }
             Editors.Closed += OnFileClosed;
-            file.PropertyChanged += OnFileChanged;
             window.Closed += (_, _) =>
             {
                 Editors.Closed -= OnFileClosed;
-                file.PropertyChanged -= OnFileChanged;
                 hold.Dispose();
             };
         }
@@ -350,12 +335,9 @@ public partial class MainWindow
         return window;
     }
 
-    /// <summary>A diff whose Highlighting Differences, once changed, is the one every diff after opens with.</summary>
-    private DiffView Highlighted(DiffView view)
-    {
-        view.HighlightingChanged += (_, chosen) => ApplySettings(settings with { DiffHighlighting = chosen });
-        return view;
-    }
+    /// <summary>How the window's diffs and merges are made: Highlighting Differences as Settings has it, kept when a diff
+    /// changes it.</summary>
+    private DiffPanes Diffs => diffs ??= new(() => settings.DiffHighlighting, way => ApplySettings(settings with { DiffHighlighting = way }));
 
     /// <summary>What a commit did to a file: its first parent's text beside its own, both read-only.</summary>
     public async Task<DiffWindow?> ShowCommitDiffAsync(CommitInfo commit, FileChange file)
@@ -371,17 +353,8 @@ public partial class MainWindow
         TextDocument mine = new(after);
         TextSnapshot text = mine.Snapshot;
         FileDiff diff = await BackgroundWork.Run(() => FileDiff.Compare(before, text));
-        DiffView view = Highlighted(new(file.Name, diff, mine, editable: false, titles: (leftTitle, commit.Short), highlighting: settings.DiffHighlighting));
-        List<IDisposable> colours = [];
-        string language = Workspace.Language.ForPath(file.Path).Name;
-        if (Languages.Highlighters.For(language, view.Left.Document) is { } left && Languages.Highlighters.For(language, view.Right.Document) is { } right)
-        {
-            view.Left.Highlighter = left;
-            view.Right.Highlighter = right;
-            colours.AddRange([.. new[] { left, right }.OfType<IDisposable>()]);
-        }
+        DiffView view = Diffs.ForFile(file.Name, diff, mine, null, (leftTitle, commit.Short), file.From ?? file.Path, file.Path);
         DiffWindow window = new($"{file.Name}: {commit.Short} {commit.Subject}", view);
-        window.Closed += (_, _) => colours.ForEach(c => c.Dispose());
         ShowOwn(window);
         return window;
     }

@@ -1,6 +1,5 @@
 using Avalonia.Controls;
 using Passenger.App.Vcs;
-using Passenger.Editor;
 
 namespace Passenger.App;
 
@@ -85,24 +84,10 @@ public partial class MainWindow
         {
             return false;
         }
-        MergeView view = new(texts, Path.GetFileName(path));
-        List<IDisposable> colours = [];
-        string language = Workspace.Language.ForPath(path).Name;
-        foreach (CodeEditor side in new[] { view.Left, view.Result, view.Right })
-        {
-            if (Languages.Highlighters.For(language, side.Document) is { } highlighter)
-            {
-                side.Highlighter = highlighter;
-                if (highlighter is IDisposable owned)
-                {
-                    colours.Add(owned);
-                }
-            }
-        }
+        MergeView view = DiffPanes.ForMerge(texts, path);
         MergeWindow window = null!;
         window = new MergeWindow($"Merge Revisions for {repository.Relative(path)}", view, async text => (await session.Vcs.ResolveAsync(path, text)).Succeeded,
             (title, text, yes, no) => AskAsync(window, title, text, yes, no));
-        window.Closed += (_, _) => colours.ForEach(c => c.Dispose());
         // A dialog, yet an editor of the IDE's: its keymap runs there as in a diff's window.
         windowKeys.Attach(window);
         Window owner = over is { IsVisible: true } ? over : this;

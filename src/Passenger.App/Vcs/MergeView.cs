@@ -1,7 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Layout;
 using Avalonia.Media;
 using Passenger.Editor;
 using Passenger.Text;
@@ -24,8 +23,8 @@ public sealed record MergeChange(MergeChunk Chunk, int ResultStart, int ResultEn
 /// arrow takes that side's lines into the result (a conflict's second arrow adds them after the first's, and a
 /// Ctrl+click on either resolves it with that side) and whose X ignores it; Apply All Non-Conflicting Changes takes
 /// every change only one side made, and Resolve Simple Conflicts those and every conflict whose sides changed different
-/// words. The result can be edited too; undo takes back a change taken. F7 and Shift+F7 go to the next and previous
-/// change; Accept Left Side and Accept Right Side take the one at the caret.</summary>
+/// words. The result can be edited too; undo takes back a change taken. F7 and Shift+F7 (F8 and Shift+F8 too off the
+/// Mac) go to the next and previous change; Accept Left Side and Accept Right Side take the one at the caret.</summary>
 public sealed class MergeView : DockPanel
 {
     private const double StripWidth = 48;
@@ -50,8 +49,8 @@ public sealed class MergeView : DockPanel
     private Resolution[] state;
     private Resolution[]? taking;
 
-    private readonly Strip leftStrip;
-    private readonly Strip rightStrip;
+    private readonly DiffStrip leftStrip;
+    private readonly DiffStrip rightStrip;
     private readonly TextBlock status;
     private readonly Button applyNonConflicting;
     private readonly Button resolveSimple;
@@ -80,13 +79,13 @@ public sealed class MergeView : DockPanel
         Right.Show(new TextDocument(texts.Right), SelectionSet.Single(0), default);
         state = [.. chunks.Select(c => new Resolution(c.BaseStart, c.BaseEnd, !c.LeftChanged, !c.RightChanged, false))];
         states[started] = state;
-        leftStrip = new Strip(this, MergeSide.Left) { Width = StripWidth };
-        rightStrip = new Strip(this, MergeSide.Right) { Width = StripWidth };
+        leftStrip = Strip(MergeSide.Left);
+        rightStrip = Strip(MergeSide.Right);
 
         Grid sides = new() { ColumnDefinitions = new ColumnDefinitions($"*,{StripWidth},*,{StripWidth},*"), RowDefinitions = new RowDefinitions("Auto,*") };
-        sides.Children.Add(Header(texts.Sides.LeftTitle, 0));
-        sides.Children.Add(Header("Result", 2));
-        sides.Children.Add(Header(texts.Sides.RightTitle, 4));
+        sides.Children.Add(DiffLines.Title(texts.Sides.LeftTitle, 0));
+        sides.Children.Add(DiffLines.Title("Result", 2));
+        sides.Children.Add(DiffLines.Title(texts.Sides.RightTitle, 4));
         Control[] panes = [Left, leftStrip, Result, rightStrip, Right];
         for (int i = 0; i < panes.Length; i++)
         {
@@ -95,8 +94,7 @@ public sealed class MergeView : DockPanel
             sides.Children.Add(panes[i]);
         }
 
-        status = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0) };
-        status.Bind(TextBlock.ForegroundProperty, status.GetResourceObservable("Passenger.TextMuted"));
+        status = new TextBlock();
         applyNonConflicting = ToolButtons.Of("Icon.ApplyNonConflicts", "Apply All Non-Conflicting Changes", ApplyNonConflicting);
         // Two arrows meeting in the middle: the vertical one turned on its side.
         applyNonConflicting.Content = new PathIcon { RenderTransform = new RotateTransform(90) };
@@ -104,27 +102,7 @@ public sealed class MergeView : DockPanel
         resolveSimple = ToolButtons.Of("Icon.Wand", "Resolve Simple Conflicts", ResolveSimpleConflicts);
         Border rule = new() { Width = 1, Height = 16, Margin = new Thickness(6, 0) };
         rule.Bind(Border.BackgroundProperty, rule.GetResourceObservable("Passenger.Divider"));
-        StackPanel tools = new()
-        {
-            Orientation = Orientation.Horizontal,
-            Spacing = 2,
-            Margin = new Thickness(6, 0),
-            VerticalAlignment = VerticalAlignment.Center,
-            Children =
-            {
-                applyNonConflicting,
-                resolveSimple,
-                rule,
-                ToolButtons.Of("Icon.ArrowUp", "Previous Difference (Shift+F7)", () => Step(-1)),
-                ToolButtons.Of("Icon.ArrowDown", "Next Difference (F7)", () => Step(1)),
-                new TextBlock { Text = name, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) },
-                status,
-            },
-        };
-        // A tool window's ground over the editors', told apart by shade.
-        Border bar = new() { [DockProperty] = Dock.Top, Height = 34, Child = tools };
-        bar.Bind(Border.BackgroundProperty, bar.GetResourceObservable("Passenger.Panel"));
-        Children.Add(bar);
+        Children.Add(DiffLines.Bar(name, Step, status, [applyNonConflicting, resolveSimple, rule]));
         Children.Add(sides);
 
         Left.ScrollChanged += (_, _) => Follow(Left);
@@ -295,7 +273,7 @@ public sealed class MergeView : DockPanel
     /// coordinates; null while that side has nothing to take.</summary>
     public Point? IconAt(int index, MergeSide side, bool ignore)
     {
-        Strip strip = side == MergeSide.Left ? leftStrip : rightStrip;
+        DiffStrip strip = side == MergeSide.Left ? leftStrip : rightStrip;
         return strip.Icon(index, ignore) is { } rect ? strip.TranslatePoint(rect.Center, this) : null;
     }
 
@@ -599,53 +577,35 @@ public sealed class MergeView : DockPanel
             return;
         }
         following = true;
-        double top = from.ScrollOffset.Y / from.LineHeight;
+        double top = DiffLines.Top(from);
         double middle = from == Result ? top : Map(top, from == Left ? MergeSide.Left : MergeSide.Right, toResult: true);
         if (from != Result)
         {
-            Result.ScrollTo(new Vector(Result.ScrollOffset.X, middle * Result.LineHeight));
+            DiffLines.ScrollTo(Result, middle, Result);
         }
         if (from != Left)
         {
-            Left.ScrollTo(new Vector(Left.ScrollOffset.X, Map(middle, MergeSide.Left, toResult: false) * Left.LineHeight));
+            DiffLines.ScrollTo(Left, Map(middle, MergeSide.Left, toResult: false), Left);
         }
         if (from != Right)
         {
-            Right.ScrollTo(new Vector(Right.ScrollOffset.X, Map(middle, MergeSide.Right, toResult: false) * Right.LineHeight));
+            DiffLines.ScrollTo(Right, Map(middle, MergeSide.Right, toResult: false), Right);
         }
         following = false;
     }
 
     /// <summary>Where a line of a side (fractional, from zero) stands in the result, or a line of the result on a side.</summary>
-    private double Map(double line, MergeSide side, bool toResult)
+    private double Map(double line, MergeSide side, bool toResult) => DiffLines.Map(line, chunks.Count, i =>
     {
-        double delta = 0;
-        for (int i = 0; i < chunks.Count; i++)
-        {
-            (int sideStart, int sideEnd) = (chunks[i].Start(side), chunks[i].End(side));
-            (int fromStart, int fromCount, int toStart, int toCount) = toResult
-                ? (sideStart, sideEnd - sideStart, state[i].Start, state[i].End - state[i].Start)
-                : (state[i].Start, state[i].End - state[i].Start, sideStart, sideEnd - sideStart);
-            if (line < fromStart)
-            {
-                break;
-            }
-            if (line < fromStart + fromCount)
-            {
-                return toStart + ((line - fromStart) * toCount / fromCount);
-            }
-            delta = toStart + toCount - (fromStart + fromCount);
-        }
-        return line + delta;
-    }
+        (int sideStart, int sideEnd) = (chunks[i].Start(side), chunks[i].End(side));
+        return toResult
+            ? new LinesAcross(sideStart, sideEnd - sideStart, state[i].Start, state[i].End - state[i].Start)
+            : new LinesAcross(state[i].Start, state[i].End - state[i].Start, sideStart, sideEnd - sideStart);
+    });
 
-    /// <summary>Whether a key is the merge's own, which the IDE's keymap leaves to it: Rider's Visual Studio keymaps' F7 and
-    /// Shift+F7 (F8 too on Windows) for the next and previous difference, and Accept Left Side and Accept Right Side,
-    /// Ctrl+Cmd+Right and Left on the Mac, Ctrl+Alt+R and A elsewhere.</summary>
-    public static bool TakesKey(KeyEventArgs e) => IsStep(e) || IsAccept(e);
-
-    private static bool IsStep(KeyEventArgs e) =>
-        (e.Key == Key.F7 || (!OperatingSystem.IsMacOS() && e.Key == Key.F8)) && e.KeyModifiers is KeyModifiers.None or KeyModifiers.Shift;
+    /// <summary>Whether a key is the merge's own, which the IDE's keymap leaves to it: Next and Previous Difference, and
+    /// Accept Left Side and Accept Right Side, Ctrl+Cmd+Right and Left on the Mac, Ctrl+Alt+R and A elsewhere.</summary>
+    public static bool TakesKey(KeyEventArgs e) => DiffLines.Step(e) != 0 || IsAccept(e);
 
     private static bool IsAccept(KeyEventArgs e) => OperatingSystem.IsMacOS()
         ? e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Meta) && e.Key is Key.Right or Key.Left
@@ -653,9 +613,9 @@ public sealed class MergeView : DockPanel
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (IsStep(e))
+        if (DiffLines.Step(e) is not 0 and int step)
         {
-            Step(e.KeyModifiers == KeyModifiers.Shift ? -1 : 1);
+            Step(step);
             e.Handled = true;
         }
         else if (IsAccept(e))
@@ -683,14 +643,6 @@ public sealed class MergeView : DockPanel
         }
     }
 
-    private static Control Header(string text, int column)
-    {
-        TextBlock label = new() { Text = text, FontSize = 12, Margin = new Thickness(12, 4), TextTrimming = TextTrimming.CharacterEllipsis };
-        label.Bind(TextBlock.ForegroundProperty, label.GetResourceObservable("Passenger.TextMuted"));
-        Grid.SetColumn(label, column);
-        return label;
-    }
-
     /// <summary>A change's place in the result, and its sides dealt with; <see cref="Taken"/> once a conflict's side is in.</summary>
     private readonly record struct Resolution(int Start, int End, bool Left, bool Right, bool Taken)
     {
@@ -699,122 +651,39 @@ public sealed class MergeView : DockPanel
 
     /// <summary>The strip between a side and the result: each change of that side not dealt with is a band from its lines
     /// to the result's, with the arrow that takes it and the X that ignores it at the side's end.</summary>
-    private sealed class Strip(MergeView view, MergeSide side) : Control
+    private DiffStrip Strip(MergeSide side) =>
+        new(() => Bands(side), side, side == MergeSide.Left ? Left : Right, () => true, ignores: true, (band, ignore, keys) =>
+        {
+            if (ignore)
+            {
+                Ignore(band.Index, side);
+            }
+            else
+            {
+                Accept(band.Index, side, resolve: keys.HasFlag(KeyModifiers.Control));
+            }
+        })
+        { Width = StripWidth };
+
+    /// <summary>Each change of a side not dealt with, from its lines on the left of its strip to its lines on the right.</summary>
+    private IEnumerable<DiffBand> Bands(MergeSide side)
     {
-        private const double IconSize = 9;
-
-        public override void Render(DrawingContext context)
+        CodeEditor editor = side == MergeSide.Left ? Left : Right;
+        for (int i = 0; i < chunks.Count; i++)
         {
-            context.FillRectangle(Find("Passenger.Editor.Background", Brushes.Transparent), new Rect(Bounds.Size));
-            double width = Bounds.Width;
-            for (int i = 0; i < view.chunks.Count; i++)
-            {
-                if (Ends(i) is not { } ends)
-                {
-                    continue;
-                }
-                (double sideTop, double sideBottom, double resultTop, double resultBottom) = ends;
-                if (Math.Max(sideBottom, resultBottom) < -IconSize || Math.Min(sideTop, resultTop) > Bounds.Height + IconSize)
-                {
-                    continue;
-                }
-                MergeChunk chunk = view.chunks[i];
-                (string tint, string edge) = Kind(chunk, side) switch
-                {
-                    ChangeMarkKind.Conflict => ("Passenger.Diff.Conflict", "Passenger.Vcs.Conflict"),
-                    ChangeMarkKind.Added => ("Passenger.Diff.Added", "Passenger.Vcs.Added"),
-                    ChangeMarkKind.Deleted => ("Passenger.Diff.Deleted", "Passenger.Vcs.Deleted"),
-                    _ => ("Passenger.Diff.Modified", "Passenger.Vcs.Modified"),
-                };
-                (double leftTop, double leftBottom, double rightTop, double rightBottom) = side == MergeSide.Left
-                    ? (sideTop, sideBottom, resultTop, resultBottom)
-                    : (resultTop, resultBottom, sideTop, sideBottom);
-                StreamGeometry band = new();
-                using (StreamGeometryContext path = band.Open())
-                {
-                    path.BeginFigure(new Point(0, leftTop), true);
-                    path.CubicBezierTo(new Point(width / 2, leftTop), new Point(width / 2, rightTop), new Point(width, rightTop));
-                    path.LineTo(new Point(width, rightBottom));
-                    path.CubicBezierTo(new Point(width / 2, rightBottom), new Point(width / 2, leftBottom), new Point(0, leftBottom));
-                    path.EndFigure(true);
-                }
-                IBrush line = Find(edge, Brushes.Transparent);
-                context.DrawGeometry(Find(tint, Brushes.Transparent), new Pen(line, 1), band);
-                Pen pen = new(line, 1.6, lineCap: PenLineCap.Round);
-                if (Icon(i, ignore: false) is { } arrow)
-                {
-                    // ">>" on the left, "<<" on the right: the side's lines toward the result.
-                    double point = side == MergeSide.Left ? 1 : -1;
-                    for (int k = 0; k < 2; k++)
-                    {
-                        double x = side == MergeSide.Left ? arrow.X + (k * 4.5) : arrow.Right - (k * 4.5);
-                        context.DrawLine(pen, new Point(x, arrow.Y), new Point(x + (point * 4), arrow.Center.Y));
-                        context.DrawLine(pen, new Point(x + (point * 4), arrow.Center.Y), new Point(x, arrow.Bottom));
-                    }
-                }
-                if (Icon(i, ignore: true) is { } cross)
-                {
-                    Rect x = cross.Deflate(1);
-                    context.DrawLine(pen, x.TopLeft, x.BottomRight);
-                    context.DrawLine(pen, x.TopRight, x.BottomLeft);
-                }
-            }
-        }
-
-        protected override void OnPointerPressed(PointerPressedEventArgs e)
-        {
-            base.OnPointerPressed(e);
-            Point at = e.GetPosition(this);
-            for (int i = 0; i < view.chunks.Count; i++)
-            {
-                if (Icon(i, ignore: false) is { } arrow && arrow.Inflate(3).Contains(at))
-                {
-                    view.Accept(i, side, resolve: e.KeyModifiers.HasFlag(KeyModifiers.Control));
-                    e.Handled = true;
-                    return;
-                }
-                if (Icon(i, ignore: true) is { } cross && cross.Inflate(3).Contains(at))
-                {
-                    view.Ignore(i, side);
-                    e.Handled = true;
-                    return;
-                }
-            }
-        }
-
-        /// <summary>Where a change's arrow or X is, beside its first line at the side's end of the strip; null while the
-        /// side has nothing to take.</summary>
-        public Rect? Icon(int index, bool ignore)
-        {
-            if (Ends(index) is not { } ends)
-            {
-                return null;
-            }
-            double y = ends.SideTop + Math.Min(view.Left.LineHeight / 2, Math.Max(IconSize / 2 + 1, (ends.SideBottom - ends.SideTop) / 2));
-            // The arrow nearest the side, the X after it.
-            double offset = ignore ? 18 : 4;
-            double x = side == MergeSide.Left ? offset : Bounds.Width - offset - IconSize;
-            return new Rect(x, y - (IconSize / 2), IconSize, IconSize);
-        }
-
-        /// <summary>A change's top and bottom on its side and in the result, in this strip's coordinates; null when the
-        /// side made no change there or it is dealt with.</summary>
-        private (double SideTop, double SideBottom, double ResultTop, double ResultBottom)? Ends(int index)
-        {
-            MergeChunk chunk = view.chunks[index];
-            Resolution now = view.state[index];
+            MergeChunk chunk = chunks[i];
+            Resolution now = state[i];
             if (!chunk.Changed(side) || now.Has(side))
             {
-                return null;
+                continue;
             }
-            CodeEditor editor = side == MergeSide.Left ? view.Left : view.Right;
             double sideTop = (chunk.Start(side) * editor.LineHeight) - editor.ScrollOffset.Y;
-            double resultTop = (now.Start * view.Result.LineHeight) - view.Result.ScrollOffset.Y;
-            return (sideTop, sideTop + ((chunk.End(side) - chunk.Start(side)) * editor.LineHeight),
-                resultTop, resultTop + ((now.End - now.Start) * view.Result.LineHeight));
+            double sideBottom = sideTop + ((chunk.End(side) - chunk.Start(side)) * editor.LineHeight);
+            double resultTop = (now.Start * Result.LineHeight) - Result.ScrollOffset.Y;
+            double resultBottom = resultTop + ((now.End - now.Start) * Result.LineHeight);
+            yield return side == MergeSide.Left
+                ? new DiffBand(i, sideTop, sideBottom, resultTop, resultBottom, Kind(chunk, side))
+                : new DiffBand(i, resultTop, resultBottom, sideTop, sideBottom, Kind(chunk, side));
         }
-
-        private IBrush Find(string key, IBrush fallback) =>
-            this.TryFindResource(key, ActualThemeVariant, out object? found) && found is IBrush brush ? brush : fallback;
     }
 }

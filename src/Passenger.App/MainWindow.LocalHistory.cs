@@ -111,7 +111,7 @@ public partial class MainWindow
         bool isFolder = Directory.Exists(full);
         ShowToolWindow(ToolWindowIds.LocalHistory);
         return LocalHistoryWindow.Show(full, Path.GetFileName(Path.TrimEndingDirectorySeparator(full)),
-            () => new HistoryTab(history, new HistoryHost(Editors, RevertAsync), full, isFolder));
+            () => new HistoryTab(history, new HistoryHost(Editors, RevertAsync, Diffs), full, isFolder));
     }
 
     /// <summary>Recent Changes: the folder's change sets, newest first; the one chosen opens in the project's

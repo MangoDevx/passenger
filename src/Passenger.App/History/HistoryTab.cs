@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -17,9 +16,9 @@ using Passenger.Text;
 namespace Passenger.App.History;
 
 /// <summary>What the window lends a history: its editors, whose document of a file the diff's right side is (borrowed
-/// when the file is not open, so a change put back there is the file's), and the revert of files to versions, made under
-/// an activity's name.</summary>
-public sealed record HistoryHost(EditorArea Editors, Func<IReadOnlyList<(string Path, string? Version)>, string, Task> Revert);
+/// when the file is not open, so a change put back there is the file's), the revert of files to versions, made under
+/// an activity's name, and how its diffs are made.</summary>
+public sealed record HistoryHost(EditorArea Editors, Func<IReadOnlyList<(string Path, string? Version)>, string, Task> Revert, DiffPanes Diffs);
 
 /// <summary>One of the Local History window's tabs: what a file or folder went through, newest first, each change set
 /// with its name and time and the labels among them, narrowed by content (a file's) or by file name (a folder's). A
@@ -46,13 +45,12 @@ public sealed class HistoryTab : DockPanel
     private IReadOnlyList<HistoryRow> rows = [];
     private IReadOnlyList<HistoryDifference> files = [];
     private (string Path, OpenDocument Document, IDisposable Hold)? borrowed;
-    private IDisposable? leftColours;
-    private Action? unfollow;
     private (long Set, string Path, string? Version)? shownDiff;
     private int loads;
     private int filtering;
     private int shows;
     private bool closed;
+    private bool away;
 
     public HistoryTab(LocalHistory store, HistoryHost host, string path, bool isFolder)
     {
@@ -129,6 +127,17 @@ public sealed class HistoryTab : DockPanel
         onStoreChanged = (_, _) => _ = LoadAsync();
         store.Changed += onStoreChanged;
         host.Editors.Closed += OnFileClosed;
+        // A diff that left the window (another tab shown, the tool window hidden or moved) let go of its panes: back, it is shown anew.
+        DetachedFromVisualTree += (_, _) => away = true;
+        AttachedToVisualTree += (_, _) =>
+        {
+            if (away && !closed)
+            {
+                away = false;
+                shownDiff = null;
+                _ = ShowAsync();
+            }
+        };
         _ = LoadAsync();
     }
 
@@ -324,37 +333,14 @@ public sealed class HistoryTab : DockPanel
         TextDocument mine = document?.Text ?? new TextDocument(string.Empty);
         TextSnapshot text = mine.Snapshot;
         FileDiff diff = await BackgroundWork.Run(() => FileDiff.Compare(before, text));
-        if (show != shows || closed || document is not null && !host.Editors.Documents.Contains(document))
+        // Out of the window, a diff is made as it comes back.
+        if (show != shows || closed || away || document is not null && !host.Editors.Documents.Contains(document))
         {
             lent?.Hold.Dispose();
             return;
         }
         string right = document is not null ? "Current" : "File does not exist";
-        DiffView view = new(System.IO.Path.GetFileName(path), diff, mine, editable: document is not null, rightColours: document?.Highlighter,
-            titles: (version is null ? "File does not exist" : title, right));
-        leftColours?.Dispose();
-        leftColours = null;
-        if (Language.ForPath(path).Name == "C#")
-        {
-            Languages.CSharp.CSharpHighlighter colours = new(view.Left.Document);
-            view.Left.Highlighter = colours;
-            leftColours = colours;
-        }
-        unfollow?.Invoke();
-        unfollow = null;
-        if (document is not null)
-        {
-            // The file's colours as they are now: the language server's once it answers.
-            void OnDocumentChanged(object? sender, PropertyChangedEventArgs e)
-            {
-                if (e.PropertyName == nameof(OpenDocument.Highlighter))
-                {
-                    view.Right.Highlighter = document.Highlighter;
-                }
-            }
-            document.PropertyChanged += OnDocumentChanged;
-            unfollow = () => document.PropertyChanged -= OnDocumentChanged;
-        }
+        DiffView view = host.Diffs.ForFile(System.IO.Path.GetFileName(path), diff, mine, document, (version is null ? "File does not exist" : title, right), path, path);
         diffHost.Content = view;
         shownDiff = (set, path, version);
         if (diff.Hunks.Count > 0)
@@ -382,13 +368,9 @@ public sealed class HistoryTab : DockPanel
         Forget();
     }
 
-    /// <summary>Lets go of the diff's colours and of the file it borrowed, which closes unless a tab has it.</summary>
+    /// <summary>Lets go of the file the diff borrowed, which closes unless a tab has it.</summary>
     private void Forget()
     {
-        leftColours?.Dispose();
-        leftColours = null;
-        unfollow?.Invoke();
-        unfollow = null;
         borrowed?.Hold.Dispose();
         borrowed = null;
     }

@@ -86,6 +86,42 @@ public sealed class LocalHistoryTests : IDisposable
         window.Close();
     }
 
+    /// <summary>A XAML file's version is coloured as the file is on both sides; its diff opens as Settings' Highlighting
+    /// Differences says and keeps a change to it for every diff after; and shown again after another history's tab, it is
+    /// the version still, coloured.</summary>
+    [AvaloniaFact]
+    public void A_XAML_files_version_is_coloured_on_both_sides_and_its_diff_highlights_as_Settings_says()
+    {
+        const string Xaml = "<Window xmlns=\"https://github.com/avaloniaui\">\n    <TextBlock Text=\"Hello\" />\n</Window>\n";
+        Write("MainWindow.axaml", Xaml);
+        string shop = Write("Shop.cs", Original);
+        MainWindow window = Open("MainWindow.axaml");
+        window.ApplySettings(window.Settings with { DiffHighlighting = DiffHighlighting.Lines });
+        Save(window, 1, 21, "Hi, ");
+
+        HistoryTab history = ShowFromFileMenu(window, "Show History…");
+        Ui.Landed(() => history.Diff?.Left.Document.Snapshot.ToString() == Xaml, "the file before its save");
+        DiffView diff = history.Diff!;
+        Ui.WaitFor(() => Tagged(diff.Left) && Tagged(diff.Right), () => $"the element's name coloured as a tag on both sides: left {Tagged(diff.Left)}, right {Tagged(diff.Right)}");
+        Assert.True(diff.Highlighting == DiffHighlighting.Lines, $"The history's diff opened highlighting {diff.Highlighting}, not as Settings has it (Lines)");
+
+        Ui.ChooseFromMenu(diff.SettingsButton, "Characters");
+        Assert.True(window.Settings.DiffHighlighting == DiffHighlighting.Characters,
+            $"Characters, chosen in the history's diff, left Settings at {window.Settings.DiffHighlighting}");
+
+        window.ShowLocalHistory(shop);
+        Ui.Settle();
+        Assert.Same(history, window.ShowLocalHistory(Path.Combine(folder, "MainWindow.axaml")));
+        Ui.Landed(() => history.Diff?.Left.Document.Snapshot.ToString() == Xaml && history.Diff.Right.Document.Snapshot.LineCount > 1,
+            "the version shown again beside the file once its tab is back");
+        Ui.WaitFor(() => Tagged(history.Diff!.Left) && Tagged(history.Diff.Right), "the element's name coloured on both sides again");
+        Assert.Equal(DiffHighlighting.Characters, history.Diff!.Highlighting);
+        window.Close();
+
+        static bool Tagged(CodeEditor pane) =>
+            pane.Highlighter?.GetSpans(pane.Document.Snapshot, 1, 6).Any(s => s.Start == 1 && s.Kind == TokenKind.Tag) == true;
+    }
+
     [AvaloniaFact]
     public void A_diff_of_a_file_that_fits_opens_at_its_top_though_its_change_is_near_its_end()
     {
