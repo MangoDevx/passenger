@@ -9,8 +9,9 @@ namespace Passenger.Core;
 /// runs as it would unheld.</summary>
 public static class HeldStart
 {
-    /// <summary>How long a program is given to open its diagnostic port: a runtime loads slowly on a busy machine.</summary>
-    public static readonly TimeSpan PortLimit = TimeSpan.FromSeconds(10);
+    /// <summary>How long a program is given to open its diagnostic port: a runtime loads slowly on a busy machine, and a
+    /// longer wait costs nothing where the port opens at once.</summary>
+    public static readonly TimeSpan PortLimit = TimeSpan.FromSeconds(30);
 
     private static readonly TimeSpan Poll = TimeSpan.FromMilliseconds(50);
 
