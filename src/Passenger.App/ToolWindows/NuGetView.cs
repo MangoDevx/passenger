@@ -254,7 +254,8 @@ public sealed class NuGetView : DockPanel
     {
         // Held to the list shown next, so a screenshot waits for it rather than for the sources alone.
         using IDisposable held = BackgroundWork.Scope();
-        if (await model.ReloadSourcesAsync() && list)
+        // Sources read with no folder open are never current, so listing then would read them again without end.
+        if (await model.ReloadSourcesAsync() && list && model.IsCurrent)
         {
             await RefreshAsync();
         }
