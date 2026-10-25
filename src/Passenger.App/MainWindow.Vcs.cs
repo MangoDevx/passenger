@@ -93,7 +93,7 @@ public partial class MainWindow
         Activated += (_, _) =>
         {
             session.Vcs.ReloadOpenFiles();
-            _ = session.Vcs.RefreshAsync();
+            IdeErrors.Observe(session.Vcs.RefreshAsync());
         };
     }
 
@@ -400,7 +400,7 @@ public partial class MainWindow
             rollback: () => Then(() =>
             {
                 editor.GoTo(new TextPosition(Math.Min(change.Line, document.Text.Snapshot.LineCount - 1), 0));
-                _ = RollbackLinesAsync();
+                IdeErrors.Observe(RollbackLinesAsync());
             }),
             diff: () => Then(() => IdeErrors.Observe(ShowDiffAsync(document.Path))));
         bool open = true;
@@ -470,7 +470,7 @@ public partial class MainWindow
             // Every file is saved before a commit, so the window lists what the editors show.
             Editors.SaveAll();
             ShowToolWindow(ToolWindowIds.Commit);
-            _ = session.Vcs.RefreshAsync();
+            IdeErrors.Observe(session.Vcs.RefreshAsync());
             CommitView.FocusMessage();
         }, new("Git", 0, 0));
         Add(AppActions.Push, "Push…", context => IdeErrors.Observe(session.Vcs.PushAsync()), new("Git", 0, 1));

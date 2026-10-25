@@ -66,7 +66,7 @@ public sealed class TerminalPanel : DockPanel
         {
             if (tabs.Count == 0)
             {
-                _ = NewSessionAsync();
+                IdeErrors.Observe(NewSessionAsync());
             }
             FocusView();
         };

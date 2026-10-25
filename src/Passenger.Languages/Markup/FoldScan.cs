@@ -55,7 +55,7 @@ public sealed class FoldScan : IFoldFinder, IDisposable
         version++;
         if (!scanning)
         {
-            _ = ScanAsync();
+            UnawaitedWork.Observe(ScanAsync());
         }
     }
 

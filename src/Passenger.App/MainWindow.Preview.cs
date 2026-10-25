@@ -66,7 +66,7 @@ public partial class MainWindow
                 // A preview that found no previewer may have read the project before its restore landed.
                 foreach (XamlPreview preview in previews.Values.Select(p => p.Preview).Where(p => !p.Running))
                 {
-                    _ = preview.RestartAsync();
+                    IdeErrors.Observe(preview.RestartAsync());
                 }
             }
         };

@@ -359,7 +359,7 @@ public sealed class OutputView : DockPanel
         }
         else if (AppActions.Keymap().ActionFor(new Shortcut(Keystroke.From(e))) == EditorActions.Paste)
         {
-            _ = PasteAsync();
+            IdeErrors.Observe(PasteAsync());
         }
         else
         {

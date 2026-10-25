@@ -46,7 +46,7 @@ public sealed class MergeWindow : Window, IOwnKeys
         {
             if (e.Key == Key.Escape && e.KeyModifiers == KeyModifiers.None)
             {
-                _ = CancelAsync();
+                IdeErrors.Observe(CancelAsync());
                 e.Handled = true;
             }
         };
@@ -57,7 +57,7 @@ public sealed class MergeWindow : Window, IOwnKeys
             if (!finished && e.CloseReason == WindowCloseReason.WindowClosing && View.IsModified)
             {
                 e.Cancel = true;
-                _ = CancelAsync();
+                IdeErrors.Observe(CancelAsync());
             }
         };
     }

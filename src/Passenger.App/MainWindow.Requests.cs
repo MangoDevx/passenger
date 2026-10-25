@@ -68,7 +68,7 @@ public partial class MainWindow
             {
                 WantRoutes();
             }
-            _ = FollowRequestsAsync();
+            IdeErrors.Observe(FollowRequestsAsync());
         };
         view.RequestOpened += (_, request) => OpenRequest(request);
         view.CommandOpened += (_, command) => OpenCommand(command);
@@ -85,21 +85,21 @@ public partial class MainWindow
         {
             if (session == next)
             {
-                _ = FollowRequestsAsync();
+                IdeErrors.Observe(FollowRequestsAsync());
             }
         };
         next.Debug.StateChanged += (_, _) =>
         {
             if (session == next)
             {
-                _ = FollowRequestsAsync();
+                IdeErrors.Observe(FollowRequestsAsync());
             }
         };
         next.ProfiledChanged += (_, _) =>
         {
             if (session == next)
             {
-                _ = FollowRequestsAsync();
+                IdeErrors.Observe(FollowRequestsAsync());
             }
         };
         _ = FollowRequestsAsync();

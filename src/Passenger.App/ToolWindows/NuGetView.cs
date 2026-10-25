@@ -66,7 +66,7 @@ public sealed class NuGetView : DockPanel
         {
             if (!choosing)
             {
-                _ = RefreshAsync();
+                IdeErrors.Observe(RefreshAsync());
             }
         };
         prerelease = new CheckBox { Content = "Prerelease", VerticalAlignment = VerticalAlignment.Center };
@@ -181,7 +181,7 @@ public sealed class NuGetView : DockPanel
     private void OnChanged(object? sender, PackageOutcome outcome)
     {
         status.Text = outcome.Done ? "Done" : "The change failed; the log says why";
-        _ = RefreshAsync();
+        IdeErrors.Observe(RefreshAsync());
     }
 
     /// <summary>An advisory's link clicked, for the browser.</summary>

@@ -187,7 +187,7 @@ public sealed class LiveTreeController
     {
         UiThread.Check();
         ShowWatched();
-        _ = SyncWatchesAsync();
+        IdeErrors.Observe(SyncWatchesAsync());
     }
 
     /// <summary>Break When Value Changes on a property of the chosen element: a property breakpoint set, or the one there
@@ -405,8 +405,8 @@ public sealed class LiveTreeController
         if (app!.State == LiveAppState.Connected)
         {
             parts.Dock.Show(window.Id);
-            _ = RefreshAsync();
-            _ = SyncWatchesAsync();
+            IdeErrors.Observe(RefreshAsync());
+            IdeErrors.Observe(SyncWatchesAsync());
         }
     }
 
@@ -414,7 +414,7 @@ public sealed class LiveTreeController
     {
         if (sender == app)
         {
-            _ = RefreshAsync();
+            IdeErrors.Observe(RefreshAsync());
         }
     }
 
@@ -426,7 +426,7 @@ public sealed class LiveTreeController
         }
         if (window.IsShown && stale)
         {
-            _ = RefreshAsync();
+            IdeErrors.Observe(RefreshAsync());
         }
         else if (!window.IsShown && WhyNotAsk() is null)
         {
@@ -633,7 +633,7 @@ public sealed class LiveTreeController
         {
             Choose(element);
             parts.Dock.Show(window.Id);
-            _ = RefreshAsync();
+            IdeErrors.Observe(RefreshAsync());
         }
     }
 

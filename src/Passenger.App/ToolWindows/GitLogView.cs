@@ -175,7 +175,7 @@ public sealed class GitLogView : DockPanel, IOwnKeys
             stale = true;
             if (VisualRoot is not null)
             {
-                _ = LoadAsync();
+                IdeErrors.Observe(LoadAsync());
             }
         };
         vcs.HistoryChanged += onHistoryChanged;
@@ -183,7 +183,7 @@ public sealed class GitLogView : DockPanel, IOwnKeys
         {
             if (stale)
             {
-                _ = LoadAsync();
+                IdeErrors.Observe(LoadAsync());
             }
         };
     }

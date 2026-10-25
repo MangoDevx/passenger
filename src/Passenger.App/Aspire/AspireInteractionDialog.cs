@@ -62,15 +62,15 @@ public sealed class AspireInteractionDialog : Window
             e.Cancel = e.CloseReason is not (WindowCloseReason.OwnerWindowClosing or WindowCloseReason.ApplicationShutdown or WindowCloseReason.OSShutdown);
             if (this.interaction.PromptTerminal is not null)
             {
-                _ = RunActionAsync(() => AnswerAsync(false));
+                IdeErrors.Observe(RunActionAsync(() => AnswerAsync(false)));
             }
             else if (this.interaction.ShowDismiss)
             {
-                _ = RunActionAsync(() => respond(new WatchInteractionsRequestUpdate
+                IdeErrors.Observe(RunActionAsync(() => respond(new WatchInteractionsRequestUpdate
                 {
                     InteractionId = InteractionId,
                     Complete = new InteractionComplete(),
-                }));
+                })));
             }
         };
         Content = DialogFooter.Page(new ScrollViewer

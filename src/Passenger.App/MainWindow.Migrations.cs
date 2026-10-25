@@ -93,7 +93,7 @@ public partial class MainWindow
         {
             if (migrationsView?.Chosen is { } chosen)
             {
-                _ = controller.UpdateAsync(A.UpdateDatabaseTo, chosen.Id);
+                IdeErrors.Observe(controller.UpdateAsync(A.UpdateDatabaseTo, chosen.Id));
             }
         })
         {
@@ -118,7 +118,7 @@ public partial class MainWindow
         {
             if (FirstFix() is { } fix)
             {
-                _ = controller.FixAsync(fix);
+                IdeErrors.Observe(controller.FixAsync(fix));
             }
         })
         {
@@ -178,7 +178,7 @@ public partial class MainWindow
                     }
                     controller.ChooseContext(p.Context);
                     // Not awaited: its name is asked of the person, which no fix's own work waits on.
-                    _ = AddMigrationAsync();
+                    IdeErrors.Observe(AddMigrationAsync());
                     return Task.FromResult(new CSharp.RefactorOutcome($"Add Migration: a name for {p.Context}'s migration", null, [], []));
                 },
             })];

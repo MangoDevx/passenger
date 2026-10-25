@@ -23,7 +23,7 @@ public partial class MainWindow
     {
         if (conflicted.Add(document))
         {
-            _ = ResolveConflictAsync(document);
+            IdeErrors.Observe(ResolveConflictAsync(document));
         }
     };
 

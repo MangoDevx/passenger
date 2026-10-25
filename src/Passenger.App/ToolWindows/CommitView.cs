@@ -163,7 +163,7 @@ public sealed class CommitView : DockPanel, IOwnKeys
         {
             if (e.Key == Key.Enter && e.KeyModifiers == Keystroke.Command)
             {
-                _ = CommitAsync(push: false);
+                IdeErrors.Observe(CommitAsync(push: false));
                 e.Handled = true;
             }
         }, RoutingStrategies.Tunnel);

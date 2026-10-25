@@ -76,7 +76,7 @@ public sealed class ConflictsDialog : Window
         {
             if (e.Key == Key.Enter && e.KeyModifiers == KeyModifiers.None)
             {
-                _ = MergeAsync();
+                IdeErrors.Observe(MergeAsync());
                 e.Handled = true;
             }
         }, RoutingStrategies.Tunnel);

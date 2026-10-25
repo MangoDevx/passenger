@@ -128,7 +128,7 @@ public sealed class HistoryTab : DockPanel
             {
                 away = false;
                 shownDiff = null;
-                _ = ShowAsync();
+                IdeErrors.Observe(ShowAsync());
             }
         };
         _ = LoadAsync();

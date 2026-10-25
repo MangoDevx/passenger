@@ -350,7 +350,7 @@ public partial class FindBar : UserControl
             return;
         }
         finding = true;
-        _ = FindAgainAsync();
+        IdeErrors.Observe(FindAgainAsync());
     }
 
     /// <summary>Searches the text as it stands off the UI thread, again while it changed meanwhile, one search at a time;

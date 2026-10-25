@@ -284,7 +284,7 @@ public partial class MainWindow
             }
             else
             {
-                _ = RerunAsync();
+                IdeErrors.Observe(RerunAsync());
             }
         }, _ => session.Debug.Session is { } debugged && debugged == attachSession ? null : Unconfigured("run"), ("Run", 0, 6));
         Add(A.Stop, "Stop", "Run", _ => buildRun.Stop(), _ => buildRun.WhyNotStop(), ("Run", 0, 7));

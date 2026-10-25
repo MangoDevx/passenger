@@ -138,7 +138,7 @@ public sealed class BranchesPanel : DockPanel
             {
                 if (Selected is { Branch: { Kind: RefKind.Local } branch })
                 {
-                    _ = vcs.UpdateBranchAsync(branch);
+                    IdeErrors.Observe(vcs.UpdateBranchAsync(branch));
                 }
             }),
             ToolButtons.Of("Icon.Clear", "Delete", () => Request(DeleteRequested)),

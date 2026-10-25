@@ -41,7 +41,7 @@ public partial class MainWindow
     {
         runMarksLater = new Debounce(TimeSpan.FromMilliseconds(300), () =>
         {
-            _ = ReadRunMarksAsync();
+            IdeErrors.Observe(ReadRunMarksAsync());
             return Task.CompletedTask;
         });
         Closed += (_, _) =>

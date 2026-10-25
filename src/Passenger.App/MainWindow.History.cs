@@ -23,7 +23,7 @@ public partial class MainWindow
         actions!.Add(new IdeAction(AppActions.ShowHistoryForSelection, "Show History for Selection…", "Git", context =>
         {
             (int first, int last) = SelectedLines(context.Editor);
-            _ = ShowSelectionHistoryAsync(context.File!.Path, first, last);
+            IdeErrors.Observe(ShowSelectionHistoryAsync(context.File!.Path, first, last));
         })
         {
             WhyNot = context => NeedsFolder(context) ?? (session.Vcs.Repository is null ? Refusals.NoRepository : Refusals.NeedsFile(context)),
@@ -178,7 +178,7 @@ public partial class MainWindow
         {
             if (chosen?.Value is GitRef named)
             {
-                _ = CompareWithAsync(path, named.FullName, named.Name, path);
+                IdeErrors.Observe(CompareWithAsync(path, named.FullName, named.Name, path));
             }
         });
         return popup;
@@ -200,7 +200,7 @@ public partial class MainWindow
         {
             if (chosen?.Value is HistoryCommit revision)
             {
-                _ = CompareWithAsync(path, revision.Commit.Hash, revision.Commit.Short, revision.Changes.FirstOrDefault()?.Path ?? path);
+                IdeErrors.Observe(CompareWithAsync(path, revision.Commit.Hash, revision.Commit.Short, revision.Changes.FirstOrDefault()?.Path ?? path));
             }
         });
         return popup;

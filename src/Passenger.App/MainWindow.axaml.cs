@@ -154,7 +154,7 @@ public partial class MainWindow : Window
         {
             if (Editors.Active is { } active && session.Debug.Session is { State: DebugState.Paused } paused)
             {
-                _ = session.Debug.SetNextStatementAsync(paused, active.Path, line);
+                IdeErrors.Observe(session.Debug.SetNextStatementAsync(paused, active.Path, line));
             }
         });
         Editors.ForEachEditor(editor => editor.GutterClicked += (_, click) =>
@@ -184,12 +184,12 @@ public partial class MainWindow : Window
             }
             if (!click.Context && editor.IsInAnnotationColumn(click.Position))
             {
-                _ = ShowBlamedCommitAsync(active, click.Line);
+                IdeErrors.Observe(ShowBlamedCommitAsync(active, click.Line));
                 return;
             }
             if (!click.Context && editor.IsInChangeColumn(click.Position) && ChangeAt(active, click.Line) is { } change)
             {
-                _ = ShowChangePopupAsync(editor, active, change);
+                IdeErrors.Observe(ShowChangePopupAsync(editor, active, change));
                 return;
             }
             if (click.Context)

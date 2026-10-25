@@ -153,12 +153,12 @@ public sealed class UnstashPopup : UserControl
                 e.Handled = true;
                 break;
             case Key.Enter:
-                _ = PopAsync();
+                IdeErrors.Observe(PopAsync());
                 e.Handled = true;
                 break;
             case Key.Delete:
                 // Not Backspace, the Mac's delete key, which is pressed in passing too easily to throw a stash away.
-                _ = DropAsync();
+                IdeErrors.Observe(DropAsync());
                 e.Handled = true;
                 break;
         }

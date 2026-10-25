@@ -418,7 +418,7 @@ public sealed class ProfilerCommands
         {
             if (profiled.Profiling == running && profiled == Session)
             {
-                _ = SnapshotAsync();
+                IdeErrors.Observe(SnapshotAsync());
             }
             else if (profiled.IsEnded)
             {

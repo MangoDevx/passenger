@@ -340,7 +340,7 @@ public sealed class ContainersView : DockPanel
                 });
             }
         });
-        _ = RefreshAsync();
+        IdeErrors.Observe(RefreshAsync());
         ShowChosen();
     }
 

@@ -34,7 +34,7 @@ public partial class MainWindow
     {
         routesLater = new Debounce(TimeSpan.FromMilliseconds(400), () =>
         {
-            _ = ReadRoutesAsync();
+            IdeErrors.Observe(ReadRoutesAsync());
             return Task.CompletedTask;
         });
         Closed += (_, _) => routesLater.Stop();

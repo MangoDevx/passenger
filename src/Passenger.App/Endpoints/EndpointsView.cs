@@ -89,7 +89,7 @@ public sealed class EndpointsView : DockPanel
             }
             if (e.Key == Key.Enter && e.KeyModifiers == KeyModifiers.None)
             {
-                _ = TestAsync(chosen);
+                IdeErrors.Observe(TestAsync(chosen));
                 e.Handled = true;
             }
             else if (e.Key == Key.F4)

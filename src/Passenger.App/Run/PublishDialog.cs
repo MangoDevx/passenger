@@ -146,7 +146,7 @@ public sealed class PublishDialog : Window
         {
             if (!filling)
             {
-                _ = LoadAsync(Chosen);
+                IdeErrors.Observe(LoadAsync(Chosen));
             }
         };
         nameBox.TextChanged += (_, _) => Changed();

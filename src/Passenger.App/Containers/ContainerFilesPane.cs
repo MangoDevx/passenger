@@ -43,7 +43,7 @@ public sealed class ContainerFilesPane : DockPanel
         {
             if (e.Key == Key.Enter)
             {
-                _ = ActivateAsync(list.SelectedItem as ContainerFile);
+                IdeErrors.Observe(ActivateAsync(list.SelectedItem as ContainerFile));
                 e.Handled = true;
             }
         };

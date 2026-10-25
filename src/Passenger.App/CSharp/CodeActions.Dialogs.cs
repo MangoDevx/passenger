@@ -77,7 +77,7 @@ internal sealed partial class CodeActions
                     return Task.CompletedTask;
                 }
                 // Not awaited: the list's choice is work a screenshot waits for, and the dialog waits for the person.
-                _ = MoveAsync(type, document, new FollowedCaret(new ChangeTracker(document.Text), caret.Offset), toFile);
+                IdeErrors.Observe(MoveAsync(type, document, new FollowedCaret(new ChangeTracker(document.Text), caret.Offset), toFile));
                 return Task.CompletedTask;
             });
         // The list's own let go as it closes, however it closes: a choice follows the caret on from there with one of its own.

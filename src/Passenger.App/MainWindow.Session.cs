@@ -351,7 +351,7 @@ public partial class MainWindow
                 // A package installed, updated or removed shows so in the NuGet window once the project's evaluation says so.
                 if (evaluated.PackagesChanged && nuget is { Rows.Count: > 0 })
                 {
-                    _ = nuget.RefreshAsync();
+                    IdeErrors.Observe(nuget.RefreshAsync());
                 }
             }
         };

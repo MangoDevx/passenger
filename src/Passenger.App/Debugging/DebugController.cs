@@ -1168,7 +1168,7 @@ public sealed class DebugController : IDisposable
                 actions.Run(AppActions.Debug, c);
                 return;
             }
-            _ = d.ResumeAsync(session => session.ContinueAsync(), "resume");
+            IdeErrors.Observe(d.ResumeAsync(session => session.ContinueAsync(), "resume"));
         }, (d, c) => d.IsDebugging ? d.NotPaused() : actions.WhyNot(AppActions.Debug, c), new("Run", 1, 0));
         Add(AppActions.Pause, "Pause Program", (d, c) => IdeErrors.Observe(d.Session!.PauseAsync()),
             (d, _) => d.NotLive() ?? d.Session!.State switch
@@ -1307,7 +1307,7 @@ public sealed class DebugController : IDisposable
         {
             if (chosen is int index && Session == session && session.State == DebugState.Paused && stop == shown)
             {
-                _ = ResumeAsync(paused => paused.StepIntoTargetAsync(placed[index].Target.Id), "smart step into");
+                IdeErrors.Observe(ResumeAsync(paused => paused.StepIntoTargetAsync(placed[index].Target.Id), "smart step into"));
             }
         });
         Message?.Invoke(this, "Smart Step Into: choose a call with the arrow keys or Tab, Enter to step into it, Escape to leave");
@@ -1439,7 +1439,7 @@ public sealed class DebugController : IDisposable
             applyOnSave = false;
             if (!disposed && Session == savedSession)
             {
-                _ = SavedAsync();
+                IdeErrors.Observe(SavedAsync());
             }
         });
 
