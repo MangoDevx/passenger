@@ -1345,9 +1345,7 @@ public sealed class AspireAppRun : ServiceRun
 
     /// <summary>Why no debugger or profiler can reach a program its environment starts with its runtime's diagnostics off
     /// (never held at its start, then, since nothing could let it go); null when they are on.</summary>
-    internal static string? DiagnosticsOff(IReadOnlyDictionary<string, string> environment) =>
-        environment.GetValueOrDefault("DOTNET_EnableDiagnostics") == "0" || environment.GetValueOrDefault("DOTNET_EnableDiagnostics_Debugger") == "0"
-            ? "Its runtime was started with DOTNET_EnableDiagnostics=0, which turns its debugger off: nothing can attach to it" : null;
+    internal static string? DiagnosticsOff(IReadOnlyDictionary<string, string> environment) => HeldStart.DebuggerOff(environment.GetValueOrDefault);
 
     /// <summary>Where a service answers: its project resource's URL as the AppHost's resource service gives it, HTTP first;
     /// null before the AppHost's resource service is reached, and for a resource with none.</summary>
