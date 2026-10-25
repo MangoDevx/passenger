@@ -167,8 +167,8 @@ public partial class MainWindow
                 {
                     return Named([]);
                 }
-                string[] nested = [.. Projects.Where(p => PathNames.IsUnder(p.Folder, project.Folder)).Select(p => p.Folder)];
-                return new SearchPlace(false, [project.Folder], true, nested, [], mask);
+                IReadOnlyList<ProjectModel> projects = Projects;
+                return new SearchPlace(false, [], true, [], FolderWalk.ProjectFiles(project, projects), mask);
             case SearchScopeKind.Directory when !string.IsNullOrWhiteSpace(scope.Directory):
                 string directory = PathNames.Canonical(Path.IsPathRooted(scope.Directory) ? scope.Directory : Path.Combine(Folder!, scope.Directory));
                 return new SearchPlace(false, [directory], scope.Recursive, [], [], mask);

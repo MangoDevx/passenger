@@ -97,8 +97,9 @@ public sealed class FileMask
 
 /// <summary>The files a search reads, as the window resolves a scope: every file of the folder's index, or those under
 /// any of the folders (only a folder's own files unless recursive) but those under a folder left out, then the files
-/// named; each must pass the mask. A folder outside the index is walked for its files.</summary>
-public sealed record SearchPlace(bool All, IReadOnlyList<string> Folders, bool Recursive, IReadOnlyList<string> LeftOut, IReadOnlyList<string> Files, FileMask? Mask)
+/// named (a project's walked as the search reads them); each must pass the mask. A folder outside the index is walked
+/// for its files.</summary>
+public sealed record SearchPlace(bool All, IReadOnlyList<string> Folders, bool Recursive, IReadOnlyList<string> LeftOut, IEnumerable<string> Files, FileMask? Mask)
 {
     public static SearchPlace Everything(FileMask? mask) => new(true, [], true, [], [], mask);
 

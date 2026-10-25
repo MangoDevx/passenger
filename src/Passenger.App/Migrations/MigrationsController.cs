@@ -156,18 +156,19 @@ public sealed partial class MigrationsController(MigrationsParts parts)
     /// <summary>The project's contexts' declarations read off the UI thread, kept while it is still the one chosen.</summary>
     private async Task FindDeclaredAsync(ProjectModel project)
     {
-        IReadOnlyList<EfPending> found = await Task.Run(() => DeclaredIn(project.Folder));
+        IReadOnlyList<ProjectModel> all = bound?.Projects ?? [];
+        IReadOnlyList<EfPending> found = await Task.Run(() => DeclaredIn(project, all));
         if (Project == project)
         {
             Declared = found;
         }
     }
 
-    /// <summary>The classes a project's C# files declare deriving from a DbContext (bin and obj passed over), each at its name.</summary>
-    private static IReadOnlyList<EfPending> DeclaredIn(string folder)
+    /// <summary>The classes a project's own C# files declare deriving from a DbContext, each at its name.</summary>
+    private static IReadOnlyList<EfPending> DeclaredIn(ProjectModel project, IReadOnlyList<ProjectModel> all)
     {
         List<EfPending> found = [];
-        foreach (string file in CodeFiles(folder))
+        foreach (string file in FolderWalk.ProjectFiles(project, all, ".cs"))
         {
             string[] lines;
             try
@@ -182,26 +183,11 @@ public sealed partial class MigrationsController(MigrationsParts parts)
             {
                 if (ContextClass().Match(lines[line]) is { Success: true } declared)
                 {
-                    found.Add(new EfPending(declared.Groups[1].Value, PathNames.Canonical(file), new Passenger.Text.TextPosition(line, declared.Groups[1].Index)));
+                    found.Add(new EfPending(declared.Groups[1].Value, file, new Passenger.Text.TextPosition(line, declared.Groups[1].Index)));
                 }
             }
         }
         return found;
-    }
-
-    /// <summary>A project's C# files, but those under its bin and obj.</summary>
-    private static IEnumerable<string> CodeFiles(string folder)
-    {
-        IEnumerable<string> files;
-        try
-        {
-            files = [.. Directory.EnumerateFiles(folder, "*.cs", SearchOption.AllDirectories)];
-        }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-        {
-            return [];
-        }
-        return files.Where(file => Path.GetRelativePath(folder, file).Split(Path.DirectorySeparatorChar)[0] is not ("bin" or "obj"));
     }
 
     /// <summary>A class declared on one line deriving from a DbContext (IdentityDbContext&lt;User&gt; too), its name captured.</summary>
@@ -1077,7 +1063,8 @@ public sealed partial class MigrationsController(MigrationsParts parts)
         List<EfPending> pending = [.. Pending.Where(p => p.Context != context)];
         if (changed)
         {
-            (string? file, Passenger.Text.TextPosition at) = await BackgroundWork.Run(() => Declaration(setting.Project.Folder, context));
+            IReadOnlyList<ProjectModel> all = bound?.Projects ?? [];
+            (string? file, Passenger.Text.TextPosition at) = await BackgroundWork.Run(() => Declaration(setting.Project, all, context));
             pending.Add(new EfPending(context, file, at));
         }
         Pending = pending;
@@ -1085,13 +1072,13 @@ public sealed partial class MigrationsController(MigrationsParts parts)
             PendingCode, p.File, p.Position, setting.Project.Name))]);
     }
 
-    /// <summary>Where a context's class is declared in its project, looked for in its C# files (bin and obj passed over); none
-    /// when no file declares it.</summary>
-    private static (string? File, Passenger.Text.TextPosition At) Declaration(string folder, string context)
+    /// <summary>Where a context's class is declared in its project, looked for in the project's own C# files; none when no
+    /// file declares it.</summary>
+    private static (string? File, Passenger.Text.TextPosition At) Declaration(ProjectModel project, IReadOnlyList<ProjectModel> all, string context)
     {
         string name = context.Split('.').Last();
         System.Text.RegularExpressions.Regex declared = new($@"\bclass\s+{System.Text.RegularExpressions.Regex.Escape(name)}\b");
-        foreach (string file in CodeFiles(folder))
+        foreach (string file in FolderWalk.ProjectFiles(project, all, ".cs"))
         {
             string[] lines;
             try
@@ -1106,7 +1093,7 @@ public sealed partial class MigrationsController(MigrationsParts parts)
             {
                 if (declared.Match(lines[line]) is { Success: true } found)
                 {
-                    return (PathNames.Canonical(file), new Passenger.Text.TextPosition(line, found.Index + found.Length - name.Length));
+                    return (file, new Passenger.Text.TextPosition(line, found.Index + found.Length - name.Length));
                 }
             }
         }

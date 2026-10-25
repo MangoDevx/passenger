@@ -280,7 +280,10 @@ public partial class MainWindow
         // The open .http files' text as the editor has it, the rest read from disk off the UI thread.
         Dictionary<string, string> open = Editors.Documents.Where(d => HttpFile.Is(d.Path) && PathNames.IsUnder(d.Path, folder))
             .ToDictionary(d => d.Path, d => d.Text.Snapshot.ToString(), PathNames.Comparer);
-        (EndpointRequest Request, HttpFile File)? found = await BackgroundWork.Run(() => CallerIn(folder, open, route));
+        IEnumerable<string> files = Projects.FirstOrDefault(p => PathNames.Same(p.Path, route.Project)) is { } project
+            ? FolderWalk.ProjectFiles(project, Projects).Where(HttpFile.Is)
+            : HttpFilesUnder(folder);
+        (EndpointRequest Request, HttpFile File)? found = await BackgroundWork.Run(() => CallerIn(files, open, route));
         if (session != current || current.IsEnded)
         {
             return null;
@@ -309,9 +312,9 @@ public partial class MainWindow
     }
 
     /// <summary>The first request of a project's .http files that calls a route, with its file as it reads now.</summary>
-    private static (EndpointRequest Request, HttpFile File)? CallerIn(string folder, Dictionary<string, string> open, WebRoute route)
+    private static (EndpointRequest Request, HttpFile File)? CallerIn(IEnumerable<string> files, Dictionary<string, string> open, WebRoute route)
     {
-        foreach (string path in HttpFilesUnder(folder).Concat(open.Keys).Distinct(PathNames.Comparer).Order(StringComparer.OrdinalIgnoreCase))
+        foreach (string path in files.Concat(open.Keys).Distinct(PathNames.Comparer).Order(StringComparer.OrdinalIgnoreCase))
         {
             try
             {
@@ -328,17 +331,8 @@ public partial class MainWindow
         return null;
     }
 
-    /// <summary>A folder's .http and .rest files, its build output passed over.</summary>
-    private static IEnumerable<string> HttpFilesUnder(string folder)
-    {
-        if (!Directory.Exists(folder))
-        {
-            return [];
-        }
-        return Directory.EnumerateFiles(folder, "*", new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true, MaxRecursionDepth = 6 })
-            .Where(HttpFile.Is).Where(p => !IgnoredFolders.AnyOf(folder, Path.GetRelativePath(folder, p).Split(Path.DirectorySeparatorChar).AsSpan(..^1)))
-            .Select(PathNames.Canonical);
-    }
+    /// <summary>A folder's .http and .rest files, as the folder's walk finds them.</summary>
+    private static IEnumerable<string> HttpFilesUnder(string folder) => FolderWalk.Files(folder).Where(HttpFile.Is);
 
     /// <summary>A route's request written at the end of its project's .http file (made beside the project when it has
     /// none): in the editor as its own undo step when the file is open, else as a command Undo takes back whole.</summary>

@@ -158,7 +158,7 @@ public sealed class TestFinder
         {
             mine[project.Path] = asked[project.Path] = ++asks;
         }
-        HashSet<string> others = new([.. every.Select(p => p.Folder)], StringComparer.Ordinal);
+        IReadOnlyList<ProjectModel> others = every;
         long began = Stopwatch.GetTimestamp();
         listings++;
         _ = ReadAsync();
@@ -191,14 +191,13 @@ public sealed class TestFinder
 
     /// <summary>Each project's C# files, but those of build output, dependencies, hidden folders and projects inside it,
     /// each read once it has changed since it was last read. A worker's.</summary>
-    private Dictionary<string, IReadOnlyList<string>> List(IReadOnlyList<ProjectModel> projects, HashSet<string> projectFolders)
+    private Dictionary<string, IReadOnlyList<string>> List(IReadOnlyList<ProjectModel> projects, IReadOnlyList<ProjectModel> solution)
     {
         Dictionary<string, IReadOnlyList<string>> found = new(StringComparer.Ordinal);
         List<string> all = [];
         foreach (ProjectModel project in projects)
         {
-            List<string> files = [.. FolderWalk.Files(project.Folder, built: true, enters: folder => !projectFolders.Contains(folder))
-                .Where(file => file.EndsWith(".cs", PathNames.Comparison))];
+            List<string> files = [.. FolderWalk.ProjectFiles(project, solution, ".cs")];
             found[project.Path] = files;
             all.AddRange(files);
         }

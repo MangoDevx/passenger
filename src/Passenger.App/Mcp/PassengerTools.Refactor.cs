@@ -453,8 +453,7 @@ public sealed partial class PassengerTools
     }
 
     /// <summary>The C# files of a project (the one a path names or holds) or of the solution, as Find in Files' scopes
-    /// have them: under each project's folder, not a nested project's, nor what builds write. Taken off the UI thread from
-    /// the folder's index (a project outside the folder, or a folder still being walked, walked there as the index walks).</summary>
+    /// have them: each project's own (<see cref="FolderWalk.ProjectFiles"/>), walked off the UI thread.</summary>
     private async Task<IReadOnlyList<string>> CodeFilesAsync(string scope, string? path, CancellationToken cancel)
     {
         IReadOnlyList<ProjectModel> projects = Session.Projects;
@@ -466,35 +465,17 @@ public sealed partial class PassengerTools
         if (scope == "project")
         {
             string full = path is null ? throw new ArgumentException("A project scope needs path: the .csproj, or a file in it") : Resolve(path);
-            chosen = [projects.Where(p => p.Path == full || PathNames.IsUnder(full, p.Folder)).OrderByDescending(p => p.Folder.Length).FirstOrDefault()
+            chosen = [projects.FirstOrDefault(p => p.Path == full) ?? ProjectModel.Owning(projects, full)
                 ?? throw new ArgumentException($"{Relative(full)} is in none of the solution's projects")];
         }
-        (string Folder, string[] Nested)[] wanted = [.. chosen.Select(project => (project.Folder,
-            (string[])[.. projects.Where(p => p.Folder != project.Folder && PathNames.IsUnder(p.Folder, project.Folder)).Select(p => p.Folder)]))];
-        string? root = Session.Index.IsWalking ? null : Session.Index.Root;
-        IReadOnlyList<string> indexed = Session.Index.Files;
+        List<ProjectModel> wanted = [.. chosen];
         return await BackgroundWork.Run(() =>
         {
             SortedSet<string> files = new(StringComparer.Ordinal);
-            foreach ((string folder, string[] nested) in wanted)
+            foreach (ProjectModel project in wanted)
             {
                 cancel.ThrowIfCancellationRequested();
-                if (!Directory.Exists(folder))
-                {
-                    continue;
-                }
-                IEnumerable<string> under = root is not null && PathNames.IsUnder(folder, root)
-                    ? indexed.Select(relative => Path.Combine(root, relative)).Where(file => PathNames.IsUnder(file, folder))
-                    : FileIndex.Walk(folder).Select(relative => Path.Combine(folder, relative));
-                foreach (string file in under)
-                {
-                    if (file.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)
-                        && !Path.GetRelativePath(folder, file).Split(Path.DirectorySeparatorChar).Any(part => part is "bin" or "obj")
-                        && !nested.Any(n => PathNames.IsUnder(file, n)))
-                    {
-                        files.Add(PathNames.Canonical(file));
-                    }
-                }
+                files.UnionWith(FolderWalk.ProjectFiles(project, projects, ".cs"));
             }
             return (IReadOnlyList<string>)[.. files];
         }, cancel);

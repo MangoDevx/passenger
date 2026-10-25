@@ -131,6 +131,28 @@ public sealed class MigrationsTests
     }
 
     [AvaloniaFact]
+    public void Only_the_projects_own_contexts_are_taken_for_its_own_not_a_nested_projects_nor_a_dependencys()
+    {
+        string folder = ShopApp.Make(design: false, tool: null);
+        TestFolders.Write(folder, "Audit/Audit.csproj", TestProjects.Library());
+        TestFolders.Write(folder, "Audit/AuditContext.cs", "public sealed class AuditContext : Microsoft.EntityFrameworkCore.DbContext\n{\n}\n");
+        TestFolders.Write(folder, "node_modules/kit/KitContext.cs", "public sealed class KitContext : Microsoft.EntityFrameworkCore.DbContext\n{\n}\n");
+        TestFolders.Write(folder, "src/obj/Old/OldContext.cs", "public sealed class OldContext : Microsoft.EntityFrameworkCore.DbContext\n{\n}\n");
+        MainWindow window = Ui.OpenFolder(folder, languageServer: false);
+        try
+        {
+            Ui.WaitFor(() => window.Migrations.Gaps.Count > 0 && window.Migrations.Declared.Count > 0, () => $"the shop's gaps and its context's declaration found (gaps: {window.Migrations.Gaps.Count})");
+            string[] declared = [.. window.Migrations.Declared.Select(d => $"{d.Context} in {Path.GetRelativePath(Passenger.Core.PathNames.Canonical(folder), d.File!)}")];
+            Assert.True(declared.SequenceEqual(["ShopContext in Program.cs"]),
+                $"The shop's contexts were found as [{string.Join(", ", declared)}]: Show Context Actions on another project's or a dependency's context would offer the shop's fixes");
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
     public void A_tool_of_another_version_is_said_with_both_versions_and_pinned_to_the_runtimes_before_the_command()
     {
         string folder = ShopApp.Make(design: true, tool: ShopApp.Older);
