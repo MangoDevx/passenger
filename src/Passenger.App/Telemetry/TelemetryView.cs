@@ -205,7 +205,7 @@ public sealed class TelemetryView : IDisposable
             return;
         }
         reading = new CancellationTokenSource();
-        _ = WatchAsync(stream.Item1, stream.Item2, stream.Item3, reading.Token);
+        IdeErrors.Observe(WatchAsync(stream.Item1, stream.Item2, stream.Item3, reading.Token));
     }
 
     /// <summary>Empties both pages and stops streaming.</summary>

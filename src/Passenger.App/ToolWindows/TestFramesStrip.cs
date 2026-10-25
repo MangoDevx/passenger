@@ -67,7 +67,7 @@ public sealed class TestFramesStrip : Border
             return;
         }
         bool several = frames.Select(f => f.Result).Distinct().Count() > 1;
-        _ = ShowAsync(test, [.. frames.Select(f => (several ? $"{TestNode.ResultName(f.Result)}: {f.Frame.Name}" : f.Frame.Name, f.Frame.Path))], frames);
+        IdeErrors.Observe(ShowAsync(test, [.. frames.Select(f => (several ? $"{TestNode.ResultName(f.Result)}: {f.Frame.Name}" : f.Frame.Name, f.Frame.Path))], frames));
     }
 
     private async Task ShowAsync(string test, IReadOnlyList<(string Name, string Path)> frames, IReadOnlyList<(TestOutcome, TestAttachment)> showing)

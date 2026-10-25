@@ -268,7 +268,7 @@ public sealed partial class BuildRunController
     {
         if (buildKind == BuildKind.Publish && published is { } again)
         {
-            _ = PublishAsync(again with { Folder = null });
+            IdeErrors.Observe(PublishAsync(again with { Folder = null }));
             return;
         }
         Start(buildKind, lastProjects, null, buildFramework, BuildCause.Explicit, null, null, buildOutput, lastTogether);
@@ -857,7 +857,7 @@ public sealed partial class BuildRunController
         session.InTerminal = run;
         RunningChanged?.Invoke(this, EventArgs.Empty);
         parts.Say(running);
-        _ = Ended();
+        IdeErrors.Observe(Ended());
         return null;
 
         async Task Ended()
@@ -1222,7 +1222,7 @@ public sealed partial class BuildRunController
     {
         if (app is not null)
         {
-            _ = EndWithAsync(app, ended);
+            IdeErrors.Observe(EndWithAsync(app, ended));
         }
 
         static async Task EndWithAsync(LiveApp app, Task ended)
@@ -1345,8 +1345,8 @@ public sealed partial class BuildRunController
     public void Stop()
     {
         parts.Work.Stop();
-        _ = session.Debug.StopAsync();
-        _ = StopRest();
+        IdeErrors.Observe(session.Debug.StopAsync());
+        IdeErrors.Observe(StopRest());
     }
 
     /// <summary>Stop All, the window's and an agent's stop: as Stop, every program debugged ended rather than the chosen one;
@@ -1379,7 +1379,7 @@ public sealed partial class BuildRunController
     public void StopRun()
     {
         parts.Work.Of(AppActions.RunProgram)?.Cancel();
-        _ = session.StopContainersAsync();
+        IdeErrors.Observe(session.StopContainersAsync());
         session.RunProgram.Stop();
     }
 

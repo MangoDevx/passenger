@@ -31,7 +31,7 @@ public sealed class VariablesList : ListBox
             // A double-click opens what has members, and sets what has none; a query's SQL opens its text.
             if (SelectedItem is VariableNode node && node.HasChildren)
             {
-                _ = Toggle(node);
+                IdeErrors.Observe(Toggle(node));
             }
             else if (SelectedItem is VariableNode { IsQueryText: true } text)
             {
@@ -202,7 +202,7 @@ public sealed class VariablesList : ListBox
             ToolTip.SetShowOnDisabled(watch, true);
             items.Add(new Separator());
             items.Add(watch);
-            _ = Offer(watch, offer(node));
+            IdeErrors.Observe(Offer(watch, offer(node)));
             // Asked again each time the menu opens: the row may have been watched, or let go, since it was chosen.
             watch.AttachedToVisualTree += (_, _) => IdeErrors.Observe(Offer(watch, offer(node)));
         }
@@ -241,7 +241,7 @@ public sealed class VariablesList : ListBox
         {
             if (node.HasChildren)
             {
-                _ = Toggle(node);
+                IdeErrors.Observe(Toggle(node));
                 e.Handled = true;
             }
         };

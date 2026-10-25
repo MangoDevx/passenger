@@ -188,7 +188,7 @@ public sealed class PublishDialog : Window
             box.IsCheckedChanged += (_, _) => Changed();
         }
         ListProfiles(chosen);
-        _ = LoadAsync(Chosen);
+        IdeErrors.Observe(LoadAsync(Chosen));
     }
 
     /// <summary>The project's profiles as the dialog found them.</summary>
@@ -530,7 +530,7 @@ public sealed class PublishDialog : Window
         }
         else if (evaluate && loaded is not null && !reading)
         {
-            _ = DefaultFolderAsync();
+            IdeErrors.Observe(DefaultFolderAsync());
         }
         ShowDestination();
         if (!reading && !saving)

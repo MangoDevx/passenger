@@ -61,7 +61,7 @@ public partial class MainWindow
                 RunConfigurationsDialog = null;
             }
         };
-        _ = dialog.ShowDialog(this);
+        IdeErrors.Observe(dialog.ShowDialog(this));
         return dialog;
     }
 
@@ -175,7 +175,7 @@ public partial class MainWindow
     /// <summary>Debug, from its key or the toolbar: what stopped it, if anything, goes to the status bar.</summary>
     public void DebugSelected()
     {
-        _ = Debug();
+        IdeErrors.Observe(Debug());
 
         async Task Debug()
         {

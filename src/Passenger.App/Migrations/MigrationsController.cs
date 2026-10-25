@@ -1314,7 +1314,7 @@ public sealed partial class MigrationsController(MigrationsParts parts)
     {
         if (built.Succeeded && running is null && Listed && Gaps.All(g => !g.Blocks) && parts.Session().Folder is not null)
         {
-            _ = ListAsync(AppActions.MigrationsRefresh, build: false, rereads: false);
+            IdeErrors.Observe(ListAsync(AppActions.MigrationsRefresh, build: false, rereads: false));
         }
     }
 

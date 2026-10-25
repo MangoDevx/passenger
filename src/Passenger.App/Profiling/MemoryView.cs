@@ -330,7 +330,7 @@ public sealed class MemoryView : DockPanel
     {
         if (Current is SnapshotPage { Snapshot: var snapshot } && types.SelectedItem is HeapType type)
         {
-            _ = OpenSetAsync(() => snapshot.ObjectsOf(type), 0);
+            IdeErrors.Observe(OpenSetAsync(() => snapshot.ObjectsOf(type), 0));
         }
     }
 
@@ -338,12 +338,12 @@ public sealed class MemoryView : DockPanel
     {
         if (Current is ComparisonPage { Comparison: var comparison } && deltas.SelectedItem is TypeDelta type)
         {
-            _ = OpenSetAsync(kind switch
+            IdeErrors.Observe(OpenSetAsync(kind switch
             {
                 Kind.New => () => comparison.NewObjectsOf(type),
                 Kind.Dead => () => comparison.DeadObjectsOf(type),
                 _ => () => comparison.SurvivedObjectsOf(type),
-            }, 0);
+            }, 0));
         }
     }
 
@@ -351,7 +351,7 @@ public sealed class MemoryView : DockPanel
     {
         if (Current is SetPage { Set: var set } && objects.SelectedItem is HeapObject item)
         {
-            _ = OpenSetAsync(() => set.Snapshot.ObjectAt(item.Address)!, 1);
+            IdeErrors.Observe(OpenSetAsync(() => set.Snapshot.ObjectAt(item.Address)!, 1));
         }
     }
 

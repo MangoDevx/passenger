@@ -66,7 +66,7 @@ public partial class MainWindow
     {
         InteractiveTestDialog dialog = new(request, endpoints!);
         InteractiveTest = dialog;
-        _ = dialog.ShowDialog(this);
+        IdeErrors.Observe(dialog.ShowDialog(this));
         return dialog;
     }
 }

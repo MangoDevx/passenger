@@ -71,7 +71,7 @@ public partial class MainWindow
                 AttachToProcessDialog = null;
             }
         };
-        _ = Chosen();
+        IdeErrors.Observe(Chosen());
         return dialog;
 
         async Task Chosen()

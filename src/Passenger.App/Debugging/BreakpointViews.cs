@@ -403,7 +403,7 @@ public sealed class BreakpointsWindow : UserControl
         addPane.IsVisible = true;
         typed.Text = string.Empty;
         ShowFound();
-        _ = LoadTypes();
+        IdeErrors.Observe(LoadTypes());
         Avalonia.Threading.Dispatcher.UIThread.Post(() => typed.Focus(), Avalonia.Threading.DispatcherPriority.Loaded);
     }
 

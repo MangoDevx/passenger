@@ -192,7 +192,7 @@ public sealed class EndpointsView : DockPanel
         {
             return;
         }
-        _ = ReadAsync(folder, read);
+        IdeErrors.Observe(ReadAsync(folder, read));
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)

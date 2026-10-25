@@ -117,7 +117,7 @@ public sealed class DebugController : IDisposable
         EventHandler<string> unwatched = (_, expression) =>
         {
             watches.Remove(expression);
-            _ = ShowVariables();
+            IdeErrors.Observe(ShowVariables());
         };
         view.ActionRequested += asked;
         view.FrameChosen += framed;
@@ -760,8 +760,8 @@ public sealed class DebugController : IDisposable
         tab.Following = process;
         ConsoleSink sink = console.Sink;
         // For the program's life, as its output is: no screenshot waits on it. Its last words land as its follower ends.
-        _ = Task.Run(() => sink.PumpAsync(process.StandardOutput, ConsoleStream.Output));
-        _ = Task.Run(() => sink.PumpAsync(process.StandardError, ConsoleStream.Error));
+        IdeErrors.Observe(Task.Run(() => sink.PumpAsync(process.StandardOutput, ConsoleStream.Output)));
+        IdeErrors.Observe(Task.Run(() => sink.PumpAsync(process.StandardError, ConsoleStream.Error)));
     }
 
     /// <summary>Ends a tab's following of its program's output a moment after its session ended, its last words in.</summary>
@@ -772,7 +772,7 @@ public sealed class DebugController : IDisposable
             return;
         }
         tab.Following = null;
-        _ = Task.Delay(TimeSpan.FromSeconds(2)).ContinueWith(_ => ChildProcesses.Kill(process), TaskScheduler.Default);
+        IdeErrors.Observe(Task.Delay(TimeSpan.FromSeconds(2)).ContinueWith(_ => ChildProcesses.Kill(process), TaskScheduler.Default));
     }
 
     /// <summary>A program run with Hot Reload through the debugger rather than dotnet watch (a container run's service, whose

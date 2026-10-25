@@ -82,7 +82,7 @@ public sealed class ContainerFilesPane : DockPanel
         said.Text = "Listing /…";
         if (next is not null)
         {
-            _ = ListAsync("/");
+            IdeErrors.Observe(ListAsync("/"));
         }
     }
 

@@ -333,7 +333,7 @@ internal abstract class EngineCheck : IDisposable
         CancellationTokenSource cancel = new();
         running = cancel;
         Starting();
-        _ = RunAsync(Document.Text.Snapshot, Document.Text.Version, cancel, Document.Checking());
+        IdeErrors.Observe(RunAsync(Document.Text.Snapshot, Document.Text.Version, cancel, Document.Checking()));
     }
 
     /// <summary>Checks the text again once typing (or another program's writes) pauses.</summary>

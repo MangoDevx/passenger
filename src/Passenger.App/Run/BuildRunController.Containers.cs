@@ -106,7 +106,7 @@ public sealed partial class BuildRunController
             // Another run (or this one's, its backing services kept) is wholly down before this one comes: one log at a time.
             if (!before.IsStopped)
             {
-                _ = session.StopContainersAsync();
+                IdeErrors.Observe(session.StopContainersAsync());
             }
             try
             {

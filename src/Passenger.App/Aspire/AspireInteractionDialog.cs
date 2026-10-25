@@ -389,7 +389,7 @@ public sealed class AspireInteractionDialog : Window
             changesPending = true;
             if (!sendingChanges)
             {
-                _ = SendChangesAsync();
+                IdeErrors.Observe(SendChangesAsync());
             }
         }
     }

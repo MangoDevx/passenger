@@ -473,7 +473,7 @@ public sealed class AspireView : DockPanel, IDisposable
             IAsyncEnumerable<IReadOnlyList<AspireConsoleLog>>? stream = provider(selected, reading.Token);
             if (stream is not null)
             {
-                _ = ReadConsoleAsync(stream, consoleGeneration, selected, reading.Token);
+                IdeErrors.Observe(ReadConsoleAsync(stream, consoleGeneration, selected, reading.Token));
             }
         }
     }

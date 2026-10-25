@@ -159,7 +159,7 @@ public sealed class TestFinder
         IReadOnlyList<ProjectModel> others = every;
         long began = Stopwatch.GetTimestamp();
         listings++;
-        _ = ReadAsync();
+        IdeErrors.Observe(ReadAsync());
 
         async Task ReadAsync()
         {

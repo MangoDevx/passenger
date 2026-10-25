@@ -431,7 +431,7 @@ public sealed class LiveTreeController
         else if (!window.IsShown && WhyNotAsk() is null)
         {
             // Nothing outlined in the app while the window that chose it is away.
-            _ = Unoutline(app!);
+            IdeErrors.Observe(Unoutline(app!));
         }
     }
 
@@ -453,12 +453,12 @@ public sealed class LiveTreeController
         ShowBanner(paused ? $"{app!.Name} is paused: its tree and values are as it last ran, and are asked again once it runs." : null);
         if (!paused && stale)
         {
-            _ = RefreshAsync();
+            IdeErrors.Observe(RefreshAsync());
         }
         // Any app's session may have run on since its watches changed, the one followed or another.
         if (watchesStale)
         {
-            _ = SyncWatchesAsync();
+            IdeErrors.Observe(SyncWatchesAsync());
         }
     }
 
@@ -617,7 +617,7 @@ public sealed class LiveTreeController
         }
         Choose(id);
         parts.Dock.Show(window.Id);
-        _ = RefreshAsync();
+        IdeErrors.Observe(RefreshAsync());
         return true;
     }
 

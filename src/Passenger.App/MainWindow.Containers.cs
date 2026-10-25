@@ -131,7 +131,7 @@ public partial class MainWindow
         }
         ProjectSession asking = session;
         ContainerEngine engine = Engine;
-        _ = ShowOnceRead();
+        IdeErrors.Observe(ShowOnceRead());
 
         async Task ShowOnceRead()
         {
@@ -179,7 +179,7 @@ public partial class MainWindow
         {
             if (OperatingSystem.IsMacOS())
             {
-                _ = ChildProcesses.RunAsync(ChildProcesses.Command("/usr/bin/open", ["-a", desktop]), limit: TimeSpan.FromSeconds(30));
+                IdeErrors.Observe(ChildProcesses.RunAsync(ChildProcesses.Command("/usr/bin/open", ["-a", desktop]), limit: TimeSpan.FromSeconds(30)));
             }
             else
             {

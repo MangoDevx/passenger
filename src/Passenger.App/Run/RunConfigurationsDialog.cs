@@ -324,7 +324,7 @@ public sealed class RunConfigurationsDialog : Window
             return;
         }
         AspireTable.Say("Reading the AppHost's resources…");
-        _ = Read();
+        IdeErrors.Observe(Read());
 
         async Task Read()
         {
@@ -430,7 +430,7 @@ public sealed class RunConfigurationsDialog : Window
         }
         ServicesTable.Say("Reading its services from Compose…");
         int mine = ++reading;
-        _ = Fill();
+        IdeErrors.Observe(Fill());
 
         async Task Fill()
         {

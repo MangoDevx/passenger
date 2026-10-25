@@ -126,7 +126,7 @@ public partial class MainWindow
             }
         };
         BuildRunController publishing = buildRun;
-        _ = PublishAfterAsync();
+        IdeErrors.Observe(PublishAfterAsync());
         return dialog;
 
         async Task PublishAfterAsync()

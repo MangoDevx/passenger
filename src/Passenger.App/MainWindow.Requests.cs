@@ -102,7 +102,7 @@ public partial class MainWindow
                 IdeErrors.Observe(FollowRequestsAsync());
             }
         };
-        _ = FollowRequestsAsync();
+        IdeErrors.Observe(FollowRequestsAsync());
     }
 
     /// <summary>The programs whose requests are followed now: what the folder runs (<see cref="ProjectSession.Running"/>) on
@@ -122,7 +122,7 @@ public partial class MainWindow
                 else if (program.Starting is { } started && waitedStarts.Add(started))
                 {
                     // Its program is followed once the debugger says it has started.
-                    _ = started.ContinueWith(_ => UiThread.Post(() => IdeErrors.Observe(FollowRequestsAsync())), TaskScheduler.Default);
+                    IdeErrors.Observe(started.ContinueWith(_ => UiThread.Post(() => IdeErrors.Observe(FollowRequestsAsync())), TaskScheduler.Default));
                 }
                 continue;
             }
@@ -201,14 +201,14 @@ public partial class MainWindow
                     ? await LiveRequests.AttachAsync(target.Process, place, told => log.Hear(told, target.Name, target.Project))
                     : await LiveRequests.AttachAsync(target.Process, told => log.Hear(told, target.Name, target.Project));
                 followedRequests[target.Key] = (target, live);
-                _ = live.Ended.ContinueWith(_ => UiThread.Post(() =>
+                IdeErrors.Observe(live.Ended.ContinueWith(_ => UiThread.Post(() =>
                 {
                     if (followedRequests.TryGetValue(target.Key, out (RequestTarget Target, LiveRequests Live) now) && now.Live == live)
                     {
                         followedRequests.Remove(target.Key);
                         SayFollowed($"{target.Name} ended");
                     }
-                }), TaskScheduler.Default);
+                }), TaskScheduler.Default));
                 return;
             }
             catch (ProfilingException failed)

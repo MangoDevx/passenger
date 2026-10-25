@@ -301,7 +301,7 @@ public sealed class ProfilerCommands
             profiled.Profiled = program;
             ConsoleInput? input = running.Input is { } writer ? ProgramInput.Of(writer) : null;
             // Only its end puts the run away, however that comes: a snapshot leaves the program running.
-            _ = running.ExitedAsync().ContinueWith(_ => UiThread.Post(() => Ended(profiled, program, inspected, input, landed)), TaskScheduler.Default);
+            IdeErrors.Observe(running.ExitedAsync().ContinueWith(_ => UiThread.Post(() => Ended(profiled, program, inspected, input, landed)), TaskScheduler.Default));
             if (profiled.IsEnded)
             {
                 // Its folder was left as it started: it ends with the folder's other programs.
@@ -414,7 +414,7 @@ public sealed class ProfilerCommands
         View.Running(name, () => running.Elapsed, killable);
         parts.Dock.Show(ToolWindowIds.Profiler);
         parts.Say($"Profiling {name} from now: Get Snapshot when it has done what is to be measured");
-        _ = running.ExitedAsync().ContinueWith(_ => UiThread.Post(() =>
+        IdeErrors.Observe(running.ExitedAsync().ContinueWith(_ => UiThread.Post(() =>
         {
             if (profiled.Profiling == running && profiled == Session)
             {
@@ -425,7 +425,7 @@ public sealed class ProfilerCommands
                 // Its folder's end let go of the run, read by no one.
                 BackgroundWork.Track(running.DisposeAsync().AsTask());
             }
-        }), TaskScheduler.Default);
+        }), TaskScheduler.Default));
     }
 
     /// <summary>A program Profile started has ended (by itself, killed, or with its folder) and the Run console has the last
@@ -449,7 +449,7 @@ public sealed class ProfilerCommands
             if (profiled.Profiling == program.Run && profiled == Session)
             {
                 // Read, then put away.
-                _ = SnapshotAsync();
+                IdeErrors.Observe(SnapshotAsync());
                 return;
             }
             BackgroundWork.Track(program.Run.DisposeAsync().AsTask());

@@ -218,7 +218,7 @@ public sealed class ContainerDetailsPane : DetailsTables
             Details = null;
             Say($"Reading what the engine says of {next.Name}…");
         }
-        _ = ReadAsync(next, reads);
+        IdeErrors.Observe(ReadAsync(next, reads));
     }
 
     private async Task ReadAsync(ContainerInfo shown, int read)

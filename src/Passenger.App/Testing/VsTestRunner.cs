@@ -79,7 +79,7 @@ public sealed class VsTestRunner : ITestRunner
         if (cancellation.IsCancellationRequested)
         {
             // Stopped while it started: it ends now, rather than run idle until the IDE does.
-            _ = Task.Run(runner.Dispose);
+            IdeErrors.Observe(Task.Run(runner.Dispose));
             cancellation.ThrowIfCancellationRequested();
         }
         return runner;
@@ -94,7 +94,7 @@ public sealed class VsTestRunner : ITestRunner
         Discovery handler = new(log);
         // The blocking call returns once VSTest has told the handler discovery is complete, stopped or not.
         Task discovering = BackgroundWork.Run(() => console.DiscoverTests([.. assemblies.Select(a => a.Path)], RunSettings, new TestPlatformOptions(), handler));
-        using (cancel.Register(() => Task.Run(console.CancelDiscovery)))
+        using (cancel.Register(() => IdeErrors.Observe(Task.Run(console.CancelDiscovery))))
         {
             try
             {
@@ -139,7 +139,7 @@ public sealed class VsTestRunner : ITestRunner
             }
         }
         Run handler = new(running, outcomes, log);
-        using (cancel.Register(() => Task.Run(console.CancelTestRun)))
+        using (cancel.Register(() => IdeErrors.Observe(Task.Run(console.CancelTestRun))))
         {
             // Not held: a debugged run waits here while stopped at a breakpoint.
             await Told(Task.Run(() =>

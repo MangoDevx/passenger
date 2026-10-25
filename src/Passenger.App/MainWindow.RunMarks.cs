@@ -329,11 +329,11 @@ public partial class MainWindow
             }
             string from = here.Length > 1 && target.Service is not null ? $" ({target.Configuration.Name})" : string.Empty;
             MenuItem run = new() { Header = $"Run '{what}'{from}" };
-            run.Click += (_, _) => RunTarget(target);
+            run.Click += (_, _) => IdeErrors.Observe(RunTarget(target));
             MenuItem debug = new() { Header = $"Debug '{what}'{from}" };
-            debug.Click += (_, _) => RunTarget(target, RunStart.Debug);
+            debug.Click += (_, _) => IdeErrors.Observe(RunTarget(target, RunStart.Debug));
             MenuItem profile = new() { Header = $"Profile '{what}'{from}" };
-            profile.Click += (_, _) => RunTarget(target, RunStart.Profile);
+            profile.Click += (_, _) => IdeErrors.Observe(RunTarget(target, RunStart.Profile));
             menu.Items.Add(run);
             menu.Items.Add(debug);
             menu.Items.Add(profile);
