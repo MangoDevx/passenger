@@ -262,7 +262,7 @@ public sealed class IdeErrorsTests : IDisposable
             (Xunit.v3.IXunitTest)TestContext.Current.Test!);
 
         Assert.True(Processes.Gone(server), $"The language server (process {server}) still runs after the window test that opened it failed, loading a folder for nobody into the next test");
-        Assert.True(Editor.BackgroundWork.Pending == 0, $"{Editor.BackgroundWork.Pending} pieces of the failed test's work were still held for the next test to wait out");
+        Assert.True(Core.BackgroundWork.Pending == 0, $"{Core.BackgroundWork.Pending} pieces of the failed test's work were still held for the next test to wait out");
     }
 
     [AvaloniaFact]

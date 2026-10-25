@@ -6,7 +6,6 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
-using Passenger.Editor;
 using Passenger.Profiler;
 using Passenger.Core;
 using Passenger.App.ToolWindows;

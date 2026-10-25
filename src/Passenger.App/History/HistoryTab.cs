@@ -10,7 +10,6 @@ using Passenger.App.ToolWindows;
 using Passenger.App.Vcs;
 using Passenger.App.Workspace;
 using Passenger.Core;
-using Passenger.Editor;
 using Passenger.Text;
 
 namespace Passenger.App.History;

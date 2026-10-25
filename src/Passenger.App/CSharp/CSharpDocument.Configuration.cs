@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Passenger.App.Workspace;
-using Passenger.Editor;
 using Passenger.Core;
 using Passenger.Lsp;
 using Passenger.Roslyn.Extension;

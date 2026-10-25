@@ -2,7 +2,7 @@ using System.Text.Json;
 using Passenger.App.Editors;
 using Passenger.App.Workspace;
 using Passenger.App.Xaml;
-using Passenger.Editor;
+using Passenger.Core;
 using Passenger.Lsp;
 using Passenger.Text;
 using Passenger.Xaml;

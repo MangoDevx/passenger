@@ -1,5 +1,6 @@
 using System.Text;
 using Avalonia;
+using Passenger.Core;
 using Passenger.Editor;
 using Passenger.Languages.CSharp;
 using Passenger.Languages.Markup;

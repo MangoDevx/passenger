@@ -4,7 +4,7 @@ using System.Text.Json;
 using Avalonia.Headless.XUnit;
 using Passenger.App;
 using Passenger.App.Containers;
-using Passenger.Editor;
+using Passenger.Core;
 
 namespace Passenger.Tests;
 

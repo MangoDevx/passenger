@@ -9,7 +9,6 @@ using Avalonia.Remote.Protocol.Designer;
 using Avalonia.Remote.Protocol.Viewport;
 using RemoteFormat = Avalonia.Remote.Protocol.Viewport.PixelFormat;
 using Passenger.Core;
-using Passenger.Editor;
 using Passenger.Text;
 using Passenger.Xaml.Projects;
 

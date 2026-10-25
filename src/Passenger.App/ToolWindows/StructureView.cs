@@ -4,6 +4,7 @@ using Avalonia.Controls.Templates;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Passenger.App.Navigation;
+using Passenger.Core;
 using Passenger.Editor;
 using Passenger.Lsp;
 using Passenger.Text;

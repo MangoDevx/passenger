@@ -2,7 +2,6 @@ using System.Diagnostics;
 using Passenger.App.Settings;
 using Passenger.App.Workspace;
 using Passenger.Core;
-using Passenger.Editor;
 using Passenger.Lsp;
 
 namespace Passenger.App.Web;

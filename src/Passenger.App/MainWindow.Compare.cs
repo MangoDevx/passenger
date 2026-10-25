@@ -3,7 +3,6 @@ using Passenger.App.Explorer;
 using Passenger.App.Vcs;
 using Passenger.App.Workspace;
 using Passenger.Core;
-using Passenger.Editor;
 using Passenger.Text;
 
 namespace Passenger.App;

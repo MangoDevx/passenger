@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Text;
 using Passenger.App.ToolWindows;
 using Passenger.Core;
-using Passenger.Editor;
 using Passenger.Text;
 
 namespace Passenger.App.Run;

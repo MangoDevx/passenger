@@ -1,4 +1,4 @@
-using Passenger.Editor;
+using Passenger.Core;
 
 namespace Passenger.App.Testing;
 

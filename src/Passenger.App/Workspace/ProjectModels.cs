@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using Passenger.App.State;
 using Passenger.Core;
-using Passenger.Editor;
 using Passenger.Host;
 
 namespace Passenger.App.Workspace;

@@ -2,7 +2,6 @@ using Passenger.App.CSharp;
 using Passenger.App.ToolWindows;
 using Passenger.App.Workspace;
 using Passenger.Core;
-using Passenger.Editor;
 using Passenger.Languages.CSharp;
 using Passenger.Lsp;
 using Passenger.Text;

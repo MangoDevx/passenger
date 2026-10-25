@@ -9,6 +9,7 @@ using Avalonia.Media;
 using Passenger.App.Run;
 using Passenger.App.Telemetry;
 using Passenger.App.ToolWindows;
+using Passenger.Core;
 using Passenger.Editor;
 
 namespace Passenger.App.Containers;

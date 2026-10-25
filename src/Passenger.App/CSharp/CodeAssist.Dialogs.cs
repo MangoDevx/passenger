@@ -2,7 +2,6 @@ using Avalonia.Controls;
 using Passenger.App.Editors;
 using Passenger.App.Workspace;
 using Passenger.Core;
-using Passenger.Editor;
 using Passenger.Lsp;
 using Passenger.Roslyn.Extension;
 using Passenger.Text;

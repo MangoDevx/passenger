@@ -4,7 +4,7 @@ using Google.Protobuf;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Passenger.App.Aspire.Protocol;
-using Passenger.Editor;
+using Passenger.Core;
 
 namespace Passenger.App.Aspire;
 

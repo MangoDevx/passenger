@@ -3,7 +3,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Passenger.App.Packages;
 using Passenger.App.Updates;
-using Passenger.Editor;
+using Passenger.Core;
 
 namespace Passenger.App;
 

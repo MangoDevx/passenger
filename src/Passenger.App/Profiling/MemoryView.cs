@@ -7,7 +7,7 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Styling;
-using Passenger.Editor;
+using Passenger.Core;
 using Passenger.Profiler;
 
 namespace Passenger.App.Profiling;

@@ -7,7 +7,6 @@ using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Passenger.Core;
-using Passenger.Editor;
 
 namespace Passenger.App.Vcs;
 

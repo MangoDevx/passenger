@@ -2,7 +2,7 @@ using System.Collections.ObjectModel;
 using System.Text.Json;
 using Passenger.App.Telemetry;
 using Passenger.App.ToolWindows;
-using Passenger.Editor;
+using Passenger.Core;
 
 namespace Passenger.App.Aspire;
 

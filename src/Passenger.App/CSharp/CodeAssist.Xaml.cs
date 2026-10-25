@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using Passenger.App.Editors;
 using Passenger.App.Workspace;
 using Passenger.App.Xaml;
+using Passenger.Core;
 using Passenger.Editor;
 using Passenger.Lsp;
 using Passenger.Text;

@@ -7,7 +7,6 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Passenger.Core;
-using Passenger.Editor;
 
 namespace Passenger.App.Containers;
 

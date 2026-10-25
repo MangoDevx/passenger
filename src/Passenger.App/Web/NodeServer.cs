@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using Passenger.Core;
-using Passenger.Editor;
 using Passenger.Lsp;
 
 namespace Passenger.App.Web;

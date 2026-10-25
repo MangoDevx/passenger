@@ -6,7 +6,6 @@ using Avalonia;
 using Avalonia.Media.Imaging;
 using Passenger.App.State;
 using Passenger.Core;
-using Passenger.Editor;
 using Passenger.Text;
 using Passenger.WpfPreview;
 using Passenger.Xaml.Projects;

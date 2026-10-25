@@ -5,7 +5,6 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json.Nodes;
 using Passenger.Core;
-using Passenger.Editor;
 using StreamJsonRpc;
 
 namespace Passenger.App.Testing;

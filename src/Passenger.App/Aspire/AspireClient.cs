@@ -253,7 +253,7 @@ public sealed class AspireClient(string? program = null)
     /// <summary>A CLI command's output, found and started off the caller's thread (finding the CLI may wait out the login
     /// shell, and an agent's tools ask from the UI thread).</summary>
     private Task<string> RunAsync(IEnumerable<string> arguments, string? appHost, CancellationToken cancel, TimeSpan? timeout = null) =>
-        Passenger.Editor.BackgroundWork.Run(() => RunHereAsync(arguments, appHost, cancel, timeout));
+        BackgroundWork.Run(() => RunHereAsync(arguments, appHost, cancel, timeout));
 
     private async Task<string> RunHereAsync(IEnumerable<string> arguments, string? appHost, CancellationToken cancel, TimeSpan? timeout)
     {

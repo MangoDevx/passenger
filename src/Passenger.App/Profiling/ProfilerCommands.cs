@@ -6,7 +6,6 @@ using Passenger.App.LiveTree;
 using Passenger.App.Run;
 using Passenger.App.ToolWindows;
 using Passenger.Core;
-using Passenger.Editor;
 using Passenger.Profiler;
 using Passenger.Text;
 

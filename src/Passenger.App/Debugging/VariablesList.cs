@@ -6,7 +6,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Passenger.App.ToolWindows;
-using Passenger.Editor;
+using Passenger.Core;
 
 namespace Passenger.App.Debugging;
 

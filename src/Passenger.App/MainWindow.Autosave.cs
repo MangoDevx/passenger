@@ -1,7 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Threading;
 using Passenger.App.Workspace;
-using Passenger.Editor;
+using Passenger.Core;
 
 namespace Passenger.App;
 

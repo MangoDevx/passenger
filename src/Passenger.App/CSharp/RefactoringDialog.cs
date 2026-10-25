@@ -3,7 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
-using Passenger.Editor;
+using Passenger.Core;
 
 namespace Passenger.App.CSharp;
 

@@ -6,7 +6,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using Passenger.Editor;
+using Passenger.Core;
 
 namespace Passenger.App;
 

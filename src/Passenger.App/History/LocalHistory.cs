@@ -6,7 +6,6 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Passenger.App.Workspace;
 using Passenger.Core;
-using Passenger.Editor;
 
 namespace Passenger.App.History;
 

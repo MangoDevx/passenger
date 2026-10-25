@@ -228,7 +228,7 @@ public sealed class VariablesTree
         if (node.Children is null)
         {
             // Held until the rows are in, so a picture taken after a row is opened shows what it opened into.
-            using IDisposable held = Passenger.Editor.BackgroundWork.Scope();
+            using IDisposable held = Passenger.Core.BackgroundWork.Scope();
             try
             {
                 node.Children = [.. (await Load!(node.Reference)).Select(v => VariableNode.From(v, node.Depth + 1, node))];
@@ -258,7 +258,7 @@ public sealed class VariablesTree
         try
         {
             // Held until the row is in, so a picture taken after a row is opened shows what it read.
-            using IDisposable held = Passenger.Editor.BackgroundWork.Scope();
+            using IDisposable held = Passenger.Core.BackgroundWork.Scope();
             try
             {
                 read = VariableNode.Read(lazy, (await Load!(lazy.Reference)).FirstOrDefault(), null);

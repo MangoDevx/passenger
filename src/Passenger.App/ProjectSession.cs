@@ -14,7 +14,6 @@ using Passenger.App.ToolWindows;
 using Passenger.App.Vcs;
 using Passenger.App.Workspace;
 using Passenger.Core;
-using Passenger.Editor;
 using Passenger.Inspector;
 using Passenger.Profiler;
 using Passenger.Xaml.Projects;

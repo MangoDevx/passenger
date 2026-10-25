@@ -4,7 +4,6 @@ using System.Text.RegularExpressions;
 using Passenger.App.Endpoints;
 using Passenger.App.Run;
 using Passenger.Core;
-using Passenger.Editor;
 using Passenger.Profiler;
 using Passenger.Roslyn.Extension;
 using Passenger.Text;

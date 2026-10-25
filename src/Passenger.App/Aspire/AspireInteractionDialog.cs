@@ -8,7 +8,7 @@ using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Grpc.Core;
 using Passenger.App.Aspire.Protocol;
-using Passenger.Editor;
+using Passenger.Core;
 
 namespace Passenger.App.Aspire;
 

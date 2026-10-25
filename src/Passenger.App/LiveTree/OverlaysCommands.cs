@@ -1,6 +1,5 @@
 using Passenger.App.Run;
 using Passenger.App.ToolWindows;
-using Passenger.Editor;
 using Passenger.Inspector;
 using Passenger.Core;
 

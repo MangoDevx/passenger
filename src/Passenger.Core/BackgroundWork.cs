@@ -1,8 +1,6 @@
 using System.Runtime.CompilerServices;
-using Avalonia.Threading;
-using Passenger.Core;
 
-namespace Passenger.Editor;
+namespace Passenger.Core;
 
 /// <summary>Counts background work still to land on the UI thread, so a screenshot can wait for it rather than capture
 /// a half-finished frame. Anything that runs off the UI thread and changes what is drawn enters here, best through
@@ -21,6 +19,8 @@ public static class BackgroundWork
     /// file (a pull begun in one method ends in the next); each with the line that took it and when.</summary>
     private static readonly HashSet<Hold> Scopes = [];
     private static readonly Dictionary<string, List<(int Line, long Since)>> Begun = new(StringComparer.Ordinal);
+
+    private static volatile Action<Action>? toUiThread;
 
     public static int Pending => (int)Volatile.Read(ref state);
 
@@ -119,9 +119,15 @@ public static class BackgroundWork
     /// <summary>Work held until a task ends, however it ends; released after what the UI thread was given to do on it.</summary>
     public static void Track(Task task, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
     {
+        Action<Action> landing = toUiThread
+            ?? throw new InvalidOperationException("BackgroundWork.Track needs the UI thread's post, which the app gives as it starts (BackgroundWork.Install)");
         IDisposable held = Scope(file, line);
-        _ = task.ContinueWith(_ => Dispatcher.UIThread.Post(held.Dispose), TaskScheduler.Default);
+        _ = task.ContinueWith(_ => landing(held.Dispose), TaskScheduler.Default);
     }
+
+    /// <summary>Gives <see cref="Track"/> the way onto the UI thread, which only the app knows: what it is given runs
+    /// there later, after what the UI thread was given to do before it.</summary>
+    public static void Install(Action<Action> postToUiThread) => toUiThread = postToUiThread;
 
     /// <summary>Work for the thread pool (Task.Run's), held until its answer is back on the caller's thread: an await
     /// on the UI thread lets go only there, so what it then draws is in the frame a screenshot waits for. Not for what

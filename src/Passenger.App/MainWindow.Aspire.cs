@@ -5,7 +5,6 @@ using Passenger.App.Debugging;
 using Passenger.App.Run;
 using Passenger.App.ToolWindows;
 using Passenger.Core;
-using Passenger.Editor;
 using Avalonia.Controls;
 
 namespace Passenger.App;

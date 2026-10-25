@@ -8,7 +8,6 @@ using System.Text.Json.Serialization;
 using Passenger.App.Containers;
 using Passenger.App.State;
 using Passenger.Core;
-using Passenger.Editor;
 
 namespace Passenger.App.Aspire;
 

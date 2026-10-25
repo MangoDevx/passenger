@@ -2,7 +2,6 @@ using System.Text;
 using System.Text.Json;
 using Passenger.App.Web;
 using Passenger.App.Workspace;
-using Passenger.Editor;
 using Passenger.Lsp;
 using Passenger.Text;
 using Passenger.Core;

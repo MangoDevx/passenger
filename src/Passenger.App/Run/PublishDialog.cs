@@ -5,7 +5,6 @@ using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Passenger.App.Workspace;
 using Passenger.Core;
-using Passenger.Editor;
 using Passenger.Host;
 
 namespace Passenger.App.Run;

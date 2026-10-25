@@ -5,7 +5,6 @@ using NuGet.Frameworks;
 using Passenger.App.Templates;
 using Passenger.App.Workspace;
 using Passenger.Core;
-using Passenger.Editor;
 
 namespace Passenger.App.Aspire;
 

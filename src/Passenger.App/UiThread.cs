@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 using Avalonia.Threading;
-using Passenger.Editor;
+using Passenger.Core;
 
 namespace Passenger.App;
 

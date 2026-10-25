@@ -438,7 +438,7 @@ public sealed class RunConfigurationsDialog : Window
             IReadOnlyList<(Containers.ComposeService, string?, bool)> services = [];
             try
             {
-                services = await Editor.BackgroundWork.Run(() => read(shown, CancellationToken.None));
+                services = await Core.BackgroundWork.Run(() => read(shown, CancellationToken.None));
             }
             catch (Exception failed) when (failed is Containers.ContainerCommandException or TimeoutException or IOException or System.Text.Json.JsonException
                 or System.ComponentModel.Win32Exception)

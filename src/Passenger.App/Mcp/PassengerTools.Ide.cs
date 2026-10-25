@@ -9,7 +9,6 @@ using Passenger.App.Settings;
 using Passenger.App.State;
 using Passenger.App.Workspace;
 using Passenger.Core;
-using Passenger.Editor;
 using Passenger.Text;
 
 namespace Passenger.App.Mcp;

@@ -8,7 +8,6 @@ using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client.Interfaces;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
 using Passenger.Core;
-using Passenger.Editor;
 using VsOutcome = Microsoft.VisualStudio.TestPlatform.ObjectModel.TestOutcome;
 using VsResult = Microsoft.VisualStudio.TestPlatform.ObjectModel.TestResult;
 

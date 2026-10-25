@@ -1,6 +1,6 @@
 using Avalonia;
 using Avalonia.Media.Imaging;
-using Passenger.Editor;
+using Passenger.Core;
 using Passenger.Text;
 using Passenger.Xaml.Dialects;
 using Passenger.Xaml.Projects;

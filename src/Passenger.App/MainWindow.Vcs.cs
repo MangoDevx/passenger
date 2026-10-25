@@ -5,6 +5,7 @@ using Avalonia.VisualTree;
 using Passenger.App.Editors;
 using Passenger.App.Vcs;
 using Passenger.App.Workspace;
+using Passenger.Core;
 using Passenger.Editor;
 using Passenger.Text;
 

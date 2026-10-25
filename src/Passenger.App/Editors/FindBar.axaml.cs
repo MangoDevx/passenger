@@ -3,6 +3,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Passenger.App.Tables;
+using Passenger.Core;
 using Passenger.Editor;
 using Passenger.Text;
 

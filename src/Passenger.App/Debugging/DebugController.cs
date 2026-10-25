@@ -2108,7 +2108,7 @@ public sealed class DebugController : IDisposable
     {
         UiThread.Check();
         // Held until the breakpoint is in the store, so a picture taken after the choice shows it.
-        using IDisposable held = Editor.BackgroundWork.Scope();
+        using IDisposable held = BackgroundWork.Scope();
         DebugSession? session = Session;
         (DataBreakpointInfoResponse? info, string? whyNot) = await DataInfoAsync(node);
         if (info?.DataId is not { } dataId || session is null)

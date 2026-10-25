@@ -2,7 +2,6 @@ using Passenger.App.Containers;
 using Passenger.App.Debugging;
 using Passenger.App.ToolWindows;
 using Passenger.Core;
-using Passenger.Editor;
 
 namespace Passenger.App.Run;
 

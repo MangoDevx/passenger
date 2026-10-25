@@ -4,7 +4,6 @@ using Passenger.App.Docking;
 using Passenger.App.Editors;
 using Passenger.App.ToolWindows;
 using Passenger.Core;
-using Passenger.Editor;
 using Passenger.Inspector;
 using Passenger.Text;
 

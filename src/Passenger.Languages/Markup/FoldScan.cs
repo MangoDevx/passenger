@@ -1,4 +1,5 @@
 using System.Buffers;
+using Passenger.Core;
 using Passenger.Editor;
 using Passenger.Text;
 

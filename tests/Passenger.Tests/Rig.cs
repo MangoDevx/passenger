@@ -7,6 +7,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Passenger.Core;
 using Passenger.Editor;
 using Passenger.Text;
 using Xunit.v3;

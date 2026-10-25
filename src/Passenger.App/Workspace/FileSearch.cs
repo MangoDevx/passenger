@@ -1,6 +1,5 @@
 using System.Text;
 using Passenger.Core;
-using Passenger.Editor;
 using Passenger.Text;
 
 namespace Passenger.App.Workspace;

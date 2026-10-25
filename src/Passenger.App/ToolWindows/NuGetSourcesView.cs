@@ -6,7 +6,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Passenger.App.Packages;
 using Passenger.App.Welcome;
-using Passenger.Editor;
+using Passenger.Core;
 
 namespace Passenger.App.ToolWindows;
 

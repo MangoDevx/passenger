@@ -569,7 +569,7 @@ public sealed class DebugSession
     /// that took docker exec and the adapter with the program, which has ended, said so; else the debugger's own end.</summary>
     private async Task PlaceEndedAsync(Func<Task<bool>> running, int code, Action<string> log)
     {
-        using IDisposable held = Passenger.Editor.BackgroundWork.Scope();
+        using IDisposable held = BackgroundWork.Scope();
         bool stopped;
         try
         {

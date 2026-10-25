@@ -2,7 +2,6 @@ using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Text.Json;
 using Passenger.Core;
-using Passenger.Editor;
 
 namespace Passenger.App.Xaml;
 

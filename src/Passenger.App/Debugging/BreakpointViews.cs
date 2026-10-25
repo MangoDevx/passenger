@@ -410,7 +410,7 @@ public sealed class BreakpointsWindow : UserControl
     private async Task LoadTypes()
     {
         // Held until the list shows them, so a screenshot taken as it opens shows them too.
-        using IDisposable held = Editor.BackgroundWork.Scope();
+        using IDisposable held = Core.BackgroundWork.Scope();
         known = await exceptionTypes();
         if (addPane.IsVisible)
         {

@@ -5,7 +5,7 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Passenger.App.ToolWindows;
-using Passenger.Editor;
+using Passenger.Core;
 using Passenger.Roslyn.Extension;
 
 namespace Passenger.App.Endpoints;

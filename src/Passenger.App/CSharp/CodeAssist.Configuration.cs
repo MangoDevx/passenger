@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Passenger.App.Web;
 using Passenger.App.Workspace;
-using Passenger.Editor;
+using Passenger.Core;
 using Passenger.Lsp;
 using Passenger.Roslyn.Extension;
 using Passenger.Text;

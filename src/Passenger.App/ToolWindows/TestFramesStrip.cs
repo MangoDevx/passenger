@@ -4,7 +4,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Passenger.App.Testing;
-using Passenger.Editor;
+using Passenger.Core;
 
 namespace Passenger.App.ToolWindows;
 

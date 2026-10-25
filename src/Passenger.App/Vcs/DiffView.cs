@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
+using Passenger.Core;
 using Passenger.Editor;
 using Passenger.Text;
 

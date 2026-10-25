@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using Avalonia.Threading;
-using Passenger.Editor;
+using Passenger.Core;
 
 namespace Passenger.App.ToolWindows;
 

@@ -9,6 +9,8 @@ using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Styling;
 using Avalonia.Themes.Fluent;
+using Avalonia.Threading;
+using Passenger.Core;
 
 namespace Passenger.App;
 
@@ -40,6 +42,8 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        // Whichever dispatcher is the UI thread's when a tracked task ends: a headless session can bring its own.
+        BackgroundWork.Install(work => Dispatcher.UIThread.Post(work));
         IdeErrors.Install();
         // The screenshot mode has no lifetime and makes its own window.
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
