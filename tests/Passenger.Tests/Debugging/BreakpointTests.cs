@@ -23,7 +23,7 @@ public class BreakpointTests(ITestOutputHelper testOutputHelper)
             .WithConfigurationDoneRequest()
             .WithOptionalResumeRuntime(p2.Id, startSuspended);
 
-        var expectedBreakpointEvent1 = new BreakpointEvent
+        BreakpointEvent expectedBreakpointEvent1 = new BreakpointEvent
         {
             Reason = "changed",
             Breakpoint = new DapBreakpoint
@@ -37,7 +37,7 @@ public class BreakpointTests(ITestOutputHelper testOutputHelper)
         BreakpointEvent breakpointEvent = await debugProtocolHost.WaitForEvent<BreakpointEvent>();
         Assert.Equivalent(expectedBreakpointEvent1, breakpointEvent, strict: true);
 
-        var expectedBreakpointEvent2 = new BreakpointEvent
+        BreakpointEvent expectedBreakpointEvent2 = new BreakpointEvent
         {
             Reason = "changed",
             Breakpoint = new DapBreakpoint

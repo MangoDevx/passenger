@@ -62,7 +62,7 @@ public class ExceptionTests(ITestOutputHelper testOutputHelper)
         debugProtocolHost.WithEvaluateRequest(stackTraceResponse2.StackFrames.First().Id, "$exception", out EvaluateResponse? evaluateResponse2);
         Assert.Equal(expectedVariables[0].Value, evaluateResponse2.Result);
 
-        var expectedExceptionInfoResponse = new ExceptionInfoResponse
+        ExceptionInfoResponse expectedExceptionInfoResponse = new ExceptionInfoResponse
         {
             ExceptionId = "CLR/System.InvalidOperationException",
             Description = "Exception thrown: 'System.InvalidOperationException' in DebuggableConsoleApp.dll: 'Test exception'",
@@ -148,7 +148,7 @@ public class ExceptionTests(ITestOutputHelper testOutputHelper)
         debugProtocolHost.WithEvaluateRequest(stackTraceResponse2.StackFrames.First().Id, "$exception", out EvaluateResponse? evaluateResponse2);
         Assert.Equal(expectedVariables[0].Value, evaluateResponse2.Result);
 
-        var expectedExceptionInfoResponse = new ExceptionInfoResponse
+        ExceptionInfoResponse expectedExceptionInfoResponse = new ExceptionInfoResponse
         {
             ExceptionId = "CLR/System.FormatException",
             Description = "Exception thrown: 'System.FormatException' in System.Private.CoreLib.dll: 'The input string 'x' was not in a correct format.'",

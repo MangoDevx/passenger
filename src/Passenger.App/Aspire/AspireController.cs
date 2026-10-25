@@ -172,8 +172,8 @@ public sealed partial class AspireController(ProjectSession workspace, string st
         if (!disposed && !workspace.IsEnded && !lifetime.IsCancellationRequested && !app.Stopping
             && !app.Lifetime.IsCancellationRequested && processId is > 0 && selection.Resource.Uid is { Length: > 0 } uid)
         {
-            var identity = (Name: selection.Resource.Name, Project: matched.Project, IdentityKey: matched.IdentityKey);
-            if (app.OwnedResourceIdentities.TryGetValue(uid, out var previous)
+            (string Name, string Project, string IdentityKey) identity = (Name: selection.Resource.Name, Project: matched.Project, IdentityKey: matched.IdentityKey);
+            if (app.OwnedResourceIdentities.TryGetValue(uid, out (string Name, string Project, string IdentityKey)? previous)
                 && (previous is not { } known || known.Name != identity.Name
                     || !PathNames.Same(known.Project, identity.Project) || known.IdentityKey != identity.IdentityKey))
             {
@@ -208,7 +208,7 @@ public sealed partial class AspireController(ProjectSession workspace, string st
         }
         if (selection.Resource.State is not ("NotStarted" or "Exited" or "Finished" or "FailedToStart")
             || selection.Resource.Uid is not { Length: > 0 } uid
-            || !app.OwnedResourceIdentities.TryGetValue(uid, out var remembered) || remembered is not { } identity
+            || !app.OwnedResourceIdentities.TryGetValue(uid, out (string Name, string Project, string IdentityKey)? remembered) || remembered is not { } identity
             || identity.Name != selection.Resource.Name || selection.Resource.Source is not { } source
             || !Path.IsPathFullyQualified(source) || !PathNames.Same(identity.Project, source))
         {

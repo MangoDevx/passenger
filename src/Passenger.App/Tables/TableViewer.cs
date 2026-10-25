@@ -85,7 +85,7 @@ public sealed class TableViewer
         file.Changed += OnChanged;
         choices.Children.Clear();
         Paint();
-        if (kept.TryGetValue(shown, out var view))
+        if (kept.TryGetValue(shown, out ((int, int) Anchor, (int, int) Caret, Vector Scroll) view))
         {
             View.Choose(view.Anchor, view.Caret);
             View.ScrollTo(view.Scroll);

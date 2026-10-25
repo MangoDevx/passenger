@@ -501,7 +501,7 @@ public sealed class TestController : IAsyncDisposable
         runner ??= await startRunner(workspace, cancel);
         // Only what was built again since it was last looked through is looked through again.
         Dictionary<string, DateTime> written = built.ToDictionary(a => a.Path, a => File.GetLastWriteTimeUtc(a.Path), StringComparer.Ordinal);
-        List<TestAssembly> stale = [.. built.Where(a => !discovered.TryGetValue(a.Path, out var known) || known.Written != written[a.Path])];
+        List<TestAssembly> stale = [.. built.Where(a => !discovered.TryGetValue(a.Path, out (DateTime Written, IReadOnlyList<TestItem> Tests) known) || known.Written != written[a.Path])];
         if (stale.Count > 0)
         {
             IReadOnlyList<TestItem> found = await runner.DiscoverAsync(stale, UiThread.Marshal(log), cancel);

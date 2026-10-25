@@ -63,8 +63,8 @@ public sealed record EfRestore(string? Runtime, string? Design, IReadOnlyList<Ef
                     libraries[named[0]] = (named[1], library.Value);
                 }
             }
-            string? runtime = libraries.TryGetValue(Core, out var core) ? core.Version : null;
-            string? design = libraries.TryGetValue(DesignPackage, out var designed) ? designed.Version : null;
+            string? runtime = libraries.TryGetValue(Core, out (string Version, JsonElement Library) core) ? core.Version : null;
+            string? design = libraries.TryGetValue(DesignPackage, out (string Version, JsonElement Library) designed) ? designed.Version : null;
             List<EfProvider> providers = [];
             foreach ((string id, (string version, JsonElement library)) in libraries)
             {

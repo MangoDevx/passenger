@@ -20,6 +20,7 @@ using Passenger.App.Aspire.Protocol;
 using Passenger.App.Debugging;
 using Passenger.App.Run;
 using Passenger.App.ToolWindows;
+using Passenger.App.Workspace;
 using Passenger.Core;
 using Passenger.Dap;
 using Passenger.Text;
@@ -886,7 +887,7 @@ public sealed class AspireTests : IClassFixture<AspireApp>, IDisposable
     {
         Assert.Null(window.OpenFile(path));
         Ui.Settle();
-        var document = window.EditorArea.Active;
+        OpenDocument? document = window.EditorArea.Active;
         Assert.NotNull(document);
         Assert.True(PathNames.Same(path, document.Path), $"Requested {path}, but the active document is {document.Path}");
         Assert.Same(document.Text, window.EditorArea.CodeEditor.Document);

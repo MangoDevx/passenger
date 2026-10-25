@@ -30,7 +30,7 @@ public partial class MainWindow
             CheckAspireToolTarget(current, app);
             matches.AddRange(resources.Where(resource => resource.Name == name || !qualified && resource.DisplayName == name)
                 .Select(resource => new AspireSelection(app.Configuration.Project, resource)));
-            if (allowMissing && configuration is not null && startingAspireToolTargets.TryGetValue(app, out var starting)
+            if (allowMissing && configuration is not null && startingAspireToolTargets.TryGetValue(app, out (string Name, AspireResourceRun Service) starting)
                 && starting.Name == name)
             {
                 matches.RemoveAll(selection => PathNames.Same(selection.AppHostPath, app.Configuration.Project));

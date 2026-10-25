@@ -320,7 +320,7 @@ public sealed class TerminalView : Control
         TerminalScreen screen = session.Screen;
         Typeface plain = new(FontFamily);
         long first = TopLine;
-        var range = Ordered();
+        ((long Line, int Column) Start, (long Line, int Column) End)? range = Ordered();
         List<TerminalLink> shown = ShownLinks(screen, first);
         for (int row = 0; row < screen.Rows; row++)
         {

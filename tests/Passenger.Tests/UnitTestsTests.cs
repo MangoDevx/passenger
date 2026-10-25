@@ -101,8 +101,8 @@ public sealed class UnitTestsTests : UnitTestsFolders, IClassFixture<RestoredFol
         Assert.Equal(PathNames.Canonical(Source), window.EditorArea.Active?.Path);
         Assert.Equal(new TextPosition(16, 0), window.EditorArea.CodeEditor.CaretPosition);
 
-        var four = Method(window, "Two_and_two_make_four")!.Results[0];
-        var five = Method(window, "Two_and_two_make_five")!.Results[0];
+        TestOutcome four = Method(window, "Two_and_two_make_four")!.Results[0];
+        TestOutcome five = Method(window, "Two_and_two_make_five")!.Results[0];
         window.EditorArea.CodeEditor.GoTo(new TextPosition(9, 8));
         Ui.Run(window, AppActions.RunTests);
         Ui.WaitFor(() => !window.Tests.IsBusy && Method(window, "Two_and_two_make_four")!.Results.FirstOrDefault() is { } fresh && fresh != four, "the run of one test", TimeSpan.FromSeconds(60));

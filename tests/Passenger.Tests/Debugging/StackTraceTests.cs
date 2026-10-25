@@ -82,7 +82,7 @@ public class StackTraceTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(20, stopInfo3.line);
 
         debugProtocolHost.WithStackTraceRequest(stoppedEvent3.ThreadId!.Value, out StackTraceResponse? stackTraceResponse3, null);
-        var userFrameNames = stackTraceResponse3.StackFrames
+        List<string> userFrameNames = stackTraceResponse3.StackFrames
             .Select(frame => frame.Name)
             .Where(name => name.StartsWith("DebuggableConsoleApp.dll!"))
             .ToList();

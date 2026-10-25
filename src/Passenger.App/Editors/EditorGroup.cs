@@ -371,7 +371,7 @@ public sealed class EditorGroup : DockPanel
             FollowMarkdown();
             return;
         }
-        (SelectionSet selections, Vector scroll) = views.TryGetValue(document, out var view) ? view : (document.Selections, document.Scroll);
+        (SelectionSet selections, Vector scroll) = views.TryGetValue(document, out (SelectionSet Selections, Vector Scroll) view) ? view : (document.Selections, document.Scroll);
         Editor.LineCommentPrefix = document.Language.LineComment;
         Editor.BlockComment = document.Language.BlockComment;
         Editor.Markup = document.Language.Markup;
@@ -524,11 +524,11 @@ public sealed class EditorGroup : DockPanel
 
     /// <summary>Where a tab's carets are in this group: the editor's for the one shown, else as it was left.</summary>
     public SelectionSet SelectionsOf(OpenDocument document) =>
-        active?.Document == document && InEditor(document) ? Editor.Selections : views.TryGetValue(document, out var view) ? view.Selections : document.Selections;
+        active?.Document == document && InEditor(document) ? Editor.Selections : views.TryGetValue(document, out (SelectionSet Selections, Vector Scroll) view) ? view.Selections : document.Selections;
 
     /// <summary>Where a tab's editor was scrolled in this group: the editor's for the one shown, else as it was left.</summary>
     public Vector ScrollOf(OpenDocument document) =>
-        active?.Document == document && InEditor(document) ? Editor.ScrollOffset : views.TryGetValue(document, out var view) ? view.Scroll : document.Scroll;
+        active?.Document == document && InEditor(document) ? Editor.ScrollOffset : views.TryGetValue(document, out (SelectionSet Selections, Vector Scroll) view) ? view.Scroll : document.Scroll;
 
     /// <summary>Puts a tab's carets (and scroll) where they were kept, for when it is shown.</summary>
     public void Remember(OpenDocument document, SelectionSet selections, Vector scroll = default) => views[document] = (selections, scroll);

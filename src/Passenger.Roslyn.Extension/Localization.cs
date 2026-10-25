@@ -298,7 +298,7 @@ internal static class LocalizationSource
             foreach (Document document in each.Documents)
             {
                 VersionStamp version = await document.GetTextVersionAsync(cancel).ConfigureAwait(false);
-                if (!ResourcesPaths.TryGetValue(document.Id, out var known) || known.Version != version)
+                if (!ResourcesPaths.TryGetValue(document.Id, out (VersionStamp Version, string? Path) known) || known.Version != version)
                 {
                     known = (version, await DocumentResourcesPathAsync(document, cancel).ConfigureAwait(false));
                     ResourcesPaths[document.Id] = known;

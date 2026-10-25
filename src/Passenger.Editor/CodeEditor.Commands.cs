@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input.Platform;
+using Passenger.Core;
 using Passenger.Text;
 
 namespace Passenger.Editor;
@@ -212,7 +213,7 @@ public sealed partial class CodeEditor
                 Apply(TextEditing.Cut(text, selections, Folding.Hidden));
                 return true;
             case EditorActions.Paste:
-                PasteFromClipboard();
+                BackgroundWork.Track(PasteFromClipboardAsync());
                 return true;
         }
         return false;
@@ -350,7 +351,7 @@ public sealed partial class CodeEditor
         }
     }
 
-    private async void PasteFromClipboard()
+    private async Task PasteFromClipboardAsync()
     {
         if (TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard || await clipboard.TryGetTextAsync() is not { Length: > 0 } pasted)
         {

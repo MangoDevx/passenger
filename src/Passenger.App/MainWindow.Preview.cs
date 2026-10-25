@@ -18,14 +18,14 @@ public partial class MainWindow
     /// <summary>How long typing pauses before the previewer is sent the text.</summary>
     private static readonly TimeSpan PreviewSettle = TimeSpan.FromMilliseconds(400);
 
-    private readonly Dictionary<OpenDocument, (XamlPreview Preview, XamlPreviewPane Pane, Debounce Typing, EventHandler<DocumentChangedEventArgs> Changed)> previews = [];
+    private readonly Dictionary<OpenDocument, ShownPreview> previews = [];
     private bool previewing;
 
     /// <summary>The preview of a file while it is shown.</summary>
-    public XamlPreview? PreviewOf(OpenDocument document) => previews.TryGetValue(document, out var shown) ? shown.Preview : null;
+    public XamlPreview? PreviewOf(OpenDocument document) => previews.TryGetValue(document, out ShownPreview shown) ? shown.Preview : null;
 
     /// <summary>The preview pane of a file while it is shown.</summary>
-    public XamlPreviewPane? PreviewPaneOf(OpenDocument document) => previews.TryGetValue(document, out var shown) ? shown.Pane : null;
+    public XamlPreviewPane? PreviewPaneOf(OpenDocument document) => previews.TryGetValue(document, out ShownPreview shown) ? shown.Pane : null;
 
     private void AddPreview()
     {
@@ -114,7 +114,7 @@ public partial class MainWindow
 
     private XamlPreviewPane PaneFor(OpenDocument shown, XamlDocument document)
     {
-        if (previews.TryGetValue(shown, out var kept))
+        if (previews.TryGetValue(shown, out ShownPreview kept))
         {
             return kept.Pane;
         }
@@ -129,7 +129,7 @@ public partial class MainWindow
         });
         EventHandler<DocumentChangedEventArgs> changed = (_, _) => typing.Restart();
         shown.Text.Changed += changed;
-        previews[shown] = (preview, pane, typing, changed);
+        previews[shown] = new(preview, pane, typing, changed);
         _ = preview.StartAsync();
         return pane;
     }
@@ -138,7 +138,7 @@ public partial class MainWindow
     private void OutlineAtCaret(CodeEditor editor)
     {
         if (previews.Count > 0 && Editors.Groups.FirstOrDefault(g => g.Editor == editor) is { Side: XamlPreviewPane pane, Active: { } shown }
-            && previews.TryGetValue(shown, out var kept) && kept.Pane == pane)
+            && previews.TryGetValue(shown, out ShownPreview kept) && kept.Pane == pane)
         {
             pane.ShowOutline(kept.Preview.ElementAround(editor.Selections.Primary.Caret));
         }
@@ -179,7 +179,7 @@ public partial class MainWindow
 
     private void EndPreview(OpenDocument document)
     {
-        if (!previews.Remove(document, out var shown))
+        if (!previews.Remove(document, out ShownPreview shown))
         {
             return;
         }
@@ -191,4 +191,8 @@ public partial class MainWindow
             group.Side = null;
         }
     }
+
+    /// <summary>A file's preview while it is shown: its pane, the pause in typing that sends the previewer the text, and
+    /// the handler of the text's changes that restarts it.</summary>
+    private readonly record struct ShownPreview(XamlPreview Preview, XamlPreviewPane Pane, Debounce Typing, EventHandler<DocumentChangedEventArgs> Changed);
 }

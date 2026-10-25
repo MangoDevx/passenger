@@ -202,14 +202,18 @@ public sealed class XamlService : IDisposable
         }
     }
 
+    private void OnParsed(object? sender, Languages.CSharp.ParsedText parsed)
+    {
+        if (sender is OpenDocument document)
+        {
+            BackgroundWork.Track(ShowColoursAsync(document, parsed));
+        }
+    }
+
     /// <summary>A C# file parsed: its colours (Color.Parse, FromRgb and the rest) found off the UI thread, and its
     /// swatches shown when the text is still the one parsed.</summary>
-    private async void OnParsed(object? sender, Languages.CSharp.ParsedText parsed)
+    private async Task ShowColoursAsync(OpenDocument document, Languages.CSharp.ParsedText parsed)
     {
-        if (sender is not OpenDocument document)
-        {
-            return;
-        }
         try
         {
             IReadOnlyList<Passenger.Xaml.Features.ColourUse> colours = await BackgroundWork.Run(() => Passenger.Xaml.Features.Colours.InCSharp(parsed.Root));

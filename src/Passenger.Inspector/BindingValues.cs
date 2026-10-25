@@ -89,7 +89,7 @@ internal static class BindingReader
             }
             if (Details.Place(made) is { } place && string.Equals(Path.GetFileName(place.File), name, StringComparison.OrdinalIgnoreCase))
             {
-                Dictionary<(int, int), List<AvaloniaObject>> places = byFile.TryGetValue(place.File, out var known) ? known : byFile[place.File] = [];
+                Dictionary<(int, int), List<AvaloniaObject>> places = byFile.TryGetValue(place.File, out Dictionary<(int, int), List<AvaloniaObject>>? known) ? known : byFile[place.File] = [];
                 (places.TryGetValue((place.Line, place.Column), out List<AvaloniaObject>? there) ? there : places[(place.Line, place.Column)] = []).Add(made);
             }
         }

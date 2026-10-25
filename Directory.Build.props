@@ -8,7 +8,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-    <AnalysisLevel>latest</AnalysisLevel>
+    <!-- The rules of global.json's SDK, .NET 11's: latest would take each newer SDK's own, failing a build that passed. -->
+    <AnalysisLevel>11.0</AnalysisLevel>
     <!-- Every build lands under artifacts/, never beside the sources. -->
     <UseArtifactsOutput>true</UseArtifactsOutput>
     <!-- Passenger is in English; Roslyn's translated messages would only add folders. -->

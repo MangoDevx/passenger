@@ -29,8 +29,7 @@ public sealed class TestFinder
 
     /// <summary>What was last told of each project: its tests, each file's read they came from, the list of its tests
     /// (<see cref="CodeTests.Tests"/>, whose items a move of lines replaces in place) and where each file's begin in it.</summary>
-    private readonly Dictionary<string, (CodeTests Tests, Dictionary<string, FileTests> Files, List<TestItem> Items, Dictionary<string, int> Starts)> told =
-        new(StringComparer.Ordinal);
+    private readonly Dictionary<string, ToldTests> told = new(StringComparer.Ordinal);
 
     private IReadOnlyList<ProjectModel> every = [];
     private int asks;
@@ -93,7 +92,7 @@ public sealed class TestFinder
             return;
         }
         // Lines put in or taken out above or among its tests: they move where they are told, the project told again nowhere.
-        if (told.TryGetValue(project.Path, out var record) && record.Files.TryGetValue(path, out FileTests? toldRead)
+        if (told.TryGetValue(project.Path, out ToldTests record) && record.Files.TryGetValue(path, out FileTests? toldRead)
             && toldRead.OnlyMoved(tests) && record.Starts.TryGetValue(path, out int start))
         {
             record.Files[path] = tests;
@@ -175,7 +174,7 @@ public sealed class TestFinder
                 Tell(latest, always: true);
                 if (timed && latest.Count > 0)
                 {
-                    int tests = latest.Sum(p => told.TryGetValue(p.Path, out var was) ? was.Tests.Tests.Count : 0);
+                    int tests = latest.Sum(p => told.TryGetValue(p.Path, out ToldTests was) ? was.Tests.Tests.Count : 0);
                     IdeErrors.Write($"Unit tests: {tests} found in the code of {Core.Plural.Of(latest.Count, "test project")} in {Stopwatch.GetElapsedTime(began).TotalSeconds:0.00} s");
                 }
             }
@@ -234,7 +233,7 @@ public sealed class TestFinder
                     files[path] = typed;
                 }
             }
-            if (told.TryGetValue(project.Path, out var was) && Same(was.Files, files))
+            if (told.TryGetValue(project.Path, out ToldTests was) && Same(was.Files, files))
             {
                 continue;
             }
@@ -250,7 +249,7 @@ public sealed class TestFinder
                     Traits = t.Traits,
                 }));
             }
-            told[project.Path] = (new CodeTests(tests, files.ToDictionary(f => f.Key, f => f.Value.Methods, StringComparer.Ordinal)), files, tests, starts);
+            told[project.Path] = new(new CodeTests(tests, files.ToDictionary(f => f.Key, f => f.Value.Methods, StringComparer.Ordinal)), files, tests, starts);
             changed = true;
         }
         if (changed || always)
@@ -261,4 +260,7 @@ public sealed class TestFinder
         static bool Same(Dictionary<string, FileTests> before, Dictionary<string, FileTests> now) =>
             before.Count == now.Count && now.All(f => before.TryGetValue(f.Key, out FileTests? was) && (ReferenceEquals(was, f.Value) || was.SameAs(f.Value)));
     }
+
+    /// <summary>What was told of a project (<see cref="told"/>).</summary>
+    private readonly record struct ToldTests(CodeTests Tests, Dictionary<string, FileTests> Files, List<TestItem> Items, Dictionary<string, int> Starts);
 }

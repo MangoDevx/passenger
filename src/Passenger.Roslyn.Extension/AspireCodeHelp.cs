@@ -587,7 +587,7 @@ internal static class AspireSource
             foreach (Project project in solution.Projects.Where(p => SamePath(p.FilePath, path)))
             {
                 VersionStamp version = await project.GetDependentVersionAsync(cancel).ConfigureAwait(false);
-                if (!ConnectionsRead.TryGetValue(project.Id, out var known) || known.Version != version)
+                if (!ConnectionsRead.TryGetValue(project.Id, out (VersionStamp Version, IReadOnlyList<ConnectionRead> Reads, IReadOnlyList<ConfigurationKey> Keys) known) || known.Version != version)
                 {
                     List<ConnectionRead> found = [];
                     List<ConfigurationKey> named = [];
