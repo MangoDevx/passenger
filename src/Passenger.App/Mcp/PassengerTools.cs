@@ -223,7 +223,12 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
             case MSBuildServed msbuild:
                 return await msbuild.MSBuild.DescribeAsync(offset) ?? "Nothing is known about this position";
         }
-        Hover? hover = await ((ServerServed)served).Lsp.HoverAsync(offset);
+        ServerServed server = (ServerServed)served;
+        Hover? hover = await server.Lsp.HoverAsync(offset);
+        if (hover is null && server.Web is null)
+        {
+            hover = await server.Lsp.HoverAsync(await DeclaredOn(server, line, column));
+        }
         return hover is null ? "Nothing is known about this position" : Shapes.Text(hover.Contents).Trim();
     });
 
@@ -259,7 +264,8 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
             case ServerServed json when !json.Provides("definitionProvider"):
                 return await JsonDefinition(json, offset, cancel);
         }
-        return await Places(await ((ServerServed)served).Lsp.DefinitionAsync(offset), cancel);
+        ServerServed server = (ServerServed)served;
+        return await Places(await server.Lsp.DefinitionAsync(await SymbolOffset(server, line, column, offset)), cancel);
     });
 
     [McpServerTool(Name = "usages", Title = "Find usages", ReadOnly = true), Description(
@@ -273,13 +279,20 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         switch (served)
         {
             case XamlServed xaml:
-                return await XamlUsages(xaml, offset, cancel);
+                return Sorted(await XamlUsages(xaml, offset, cancel));
             case MSBuildServed:
                 throw Lacks(served, "Find Usages", MSBuildHas);
             case ServerServed unfound when !unfound.Provides("referencesProvider"):
                 throw new InvalidOperationException($"{unfound.Language} has no usages: its language server finds none, so Find Usages finds nothing in {Path.GetFileName(unfound.Document.Path)}");
         }
-        return await Places(await ((ServerServed)served).Lsp.ReferencesAsync(offset), cancel);
+        ServerServed server = (ServerServed)served;
+        IReadOnlyList<LspLocation> found = await server.Lsp.ReferencesAsync(offset);
+        // A symbol's usages hold its declaration, so none says no symbol is there.
+        if (found.Count == 0 && server.Web is null)
+        {
+            found = await server.Lsp.ReferencesAsync(await DeclaredOn(server, line, column));
+        }
+        return Sorted(await Places(found, cancel));
     });
 
     [McpServerTool(Name = "hierarchy", Title = "Call or type hierarchy", ReadOnly = true), Description(
@@ -288,7 +301,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
     public Task<IReadOnlyList<HierarchyEntry>> Hierarchy(string path, int line, int column, string direction = "callers", CancellationToken cancel = default) => OnUi<IReadOnlyList<HierarchyEntry>>(cancel, async () =>
     {
         (OpenDocument document, LspDocument lsp) = await Code(path, cancel);
-        int offset = Offset(document, line, column);
+        int offset = await SymbolOffset(new ServerServed(document, document.Language.Name, lsp), line, column, Offset(document, line, column));
         if (direction == "implementations")
         {
             return [.. (await Places(await lsp.ImplementationAsync(offset), cancel)).Select(p => new HierarchyEntry(null, null, p.Path, p.Line, p.Column, p.Text))];
@@ -544,7 +557,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         IReadOnlyList<SymbolInformation> found = await session.SymbolsAsync(query);
         // The server's order is not by how well a name matches: the query's own name first, so a limit never cuts it.
         List<SymbolInformation> kept = [.. found
-            .Where(s => kind is null || SymbolKinds.Name(s.Kind).Equals(kind, StringComparison.OrdinalIgnoreCase))
+            .Where(s => DocumentUris.GeneratedName(s.Location.Uri) is null && (kind is null || SymbolKinds.Name(s.Kind).Equals(kind, StringComparison.OrdinalIgnoreCase)))
             .OrderBy(s => NameMatch(s.Name, query))
             .Take(limit)];
         IReadOnlyList<Place> places = await Places([.. kept.Select(s => s.Location)], cancel);
@@ -559,6 +572,45 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         : name.StartsWith(query, StringComparison.OrdinalIgnoreCase) ? 2
         : name.Contains(query, StringComparison.OrdinalIgnoreCase) ? 3
         : 4;
+
+    /// <summary>Usages in the order an agent reads them: by file, then line and column, a source generator's files last.</summary>
+    private static IReadOnlyList<Place> Sorted(IReadOnlyList<Place> places) =>
+        [.. places.OrderBy(p => p.Text.Length == 0 && p.Path.EndsWith(" (generated)", StringComparison.Ordinal)).ThenBy(p => p.Path, StringComparer.Ordinal)
+            .ThenBy(p => p.Line).ThenBy(p => p.Column)];
+
+    /// <summary>The offset a C# code tool asks about: the place given when a symbol is there (its hover says what one), else
+    /// the one its line declares (<see cref="DeclaredOn"/>).</summary>
+    private async Task<int> SymbolOffset(ServerServed served, int line, int column, int offset) =>
+        served.Web is not null || await served.Lsp.HoverAsync(offset) is not null ? offset : await DeclaredOn(served, line, column);
+
+    /// <summary>The offset of the one symbol a C# line declares, for a place on it where no symbol is (a column off the
+    /// name, the line's start), else why there is none to ask about.</summary>
+    private async Task<int> DeclaredOn(ServerServed served, int line, int column)
+    {
+        TextSnapshot text = served.Lsp.Text.Snapshot;
+        List<DocumentSymbol> declared = [];
+        Gather(await served.Lsp.OutlineAsync());
+        if (declared.Count == 1)
+        {
+            return served.Lsp.OffsetOf(declared[0].SelectionRange.Start);
+        }
+        string place = $"{Relative(served.Document.Path)}:{line}:{column}";
+        throw new InvalidOperationException(declared.Count == 0
+            ? $"No symbol at {place}, and line {line} declares none: give the line and column of a name"
+            : $"No symbol at {place}, and line {line} declares {string.Join(" and ", declared.Select(d => d.Name))}: give the column of the one meant");
+
+        void Gather(IReadOnlyList<DocumentSymbol> symbols)
+        {
+            foreach (DocumentSymbol symbol in symbols)
+            {
+                if (ServerPlaces.PositionOf(text, symbol.SelectionRange.Start).Line == line - 1)
+                {
+                    declared.Add(symbol);
+                }
+                Gather(symbol.Children ?? []);
+            }
+        }
+    }
 
     [McpServerTool(Name = "outline", Title = "A file's structure", ReadOnly = true), Description(
         "A file's structure, indented, each part with its line: C#'s types and members, a web language's symbols, XAML's " +
@@ -1773,6 +1825,11 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
             return (IReadOnlyList<Place>)[.. places.Select(place =>
             {
                 cancel.ThrowIfCancellationRequested();
+                // A source generator's file is on no disk: named for what it is, in its own lines, with no text to read.
+                if (DocumentUris.GeneratedName(place.Uri) is { } generated)
+                {
+                    return new Place($"{generated} (generated)", place.At.Line + 1, place.At.Character + 1, string.Empty);
+                }
                 string path = byUri[place.Uri];
                 if (!texts.TryGetValue(path, out TextSnapshot? text))
                 {

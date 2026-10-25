@@ -63,7 +63,7 @@ public static partial class McpHost
         "Begin with workspace: the folder and solution open, their projects, run configurations and open files (open opens another folder, " +
         "solution or file). Find your way by meaning rather than by text: find_symbol finds a type or member by name, outline lists a file's " +
         "types and members with their lines, and symbol_info, definition, usages and hierarchy follow the symbol at a line " +
-        "and column; find_in_files searches text. editor_text reads a file with its lines numbered; edit changes one as the editor does " +
+        "and column (in C#, else the one the line declares); find_in_files searches text. editor_text reads a file with its lines numbered; edit changes one as the editor does " +
         "(an open file the editor has not changed also takes what is written on disk); diagnostics checks it. A file written a moment " +
         "before is waited for (up to 10 s) until the language server has read it, so rename, refactor and code actions work on what was " +
         "written: there is no need to wait or try again.\n\n" +
