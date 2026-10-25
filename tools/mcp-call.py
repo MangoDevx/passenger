@@ -4,8 +4,8 @@ own client's server runs over, a git worktree's (`just mcp-call FOLDER TOOL ['{"
 
 The first call over a folder starts a keeper: a headless `Passenger --mcp FOLDER` through tools/mcp.sh (a clone of this
 checkout's last build, else the main checkout's), held for later calls over a Unix socket, so the language server loads
-once. It ends after IDLE_MINUTES with no call, or at --stop; mcp.sh removes its clone once the server has ended. A call
-told its progress prints it to standard error. It never opens a window.
+once; its state is its own, under artifacts/mcp-call. It ends after IDLE_MINUTES with no call, or at --stop; mcp.sh
+removes its clone once the server has ended. A call told its progress prints it to standard error. It opens no window.
 
 python3 -I tools/mcp-call.py [--from DIR] FOLDER [TOOL [JSON | -] | --list | --stop]
 """
@@ -254,9 +254,13 @@ class Keeper:
             self.end()
 
     def start(self):
+        # A state of its own beside the logs, so a worktree's server never writes into the person's Passenger.
+        state = os.path.join(ROOT, "artifacts", "mcp-call", "state-" + os.path.basename(self.sock).removesuffix(".sock"))
         try:
+            os.makedirs(state, exist_ok=True)
             self.server = subprocess.Popen([os.path.join(self.serving, "tools", "mcp.sh"), self.folder], stdin=subprocess.PIPE,
-                                           stdout=subprocess.PIPE, process_group=0, bufsize=0)
+                                           stdout=subprocess.PIPE, process_group=0, bufsize=0,
+                                           env={**os.environ, "PASSENGER_SETTINGS": state})
             threading.Thread(target=self.read, daemon=True).start()
             _, answer = self.ask({"method": "initialize", "params": {"protocolVersion": PROTOCOL, "capabilities": {},
                                                                   "clientInfo": {"name": "mcp-call", "version": "1"}}})
