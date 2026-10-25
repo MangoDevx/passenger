@@ -122,8 +122,7 @@ public sealed class FolderWatchTests : IDisposable
         Ui.Press(window, Ui.Shortcut(AppActions.GoToFile));
         window.KeyTextInput("Shop");
         Ui.Settle();
-        Avalonia.Controls.ListBox results = Avalonia.Controls.ControlExtensions.FindControl<Avalonia.Controls.ListBox>(window.Popup!, "Results")!;
-        string[] offered = [.. results.Items.OfType<Passenger.App.Navigation.FileHit>().Select(h => h.Name)];
+        string[] offered = [.. Assert.IsType<Passenger.App.Navigation.GoToFilePopup>(window.Popup).Rows.Select(h => h.Name)];
         Assert.True(offered.SequenceEqual(["Shop.cs"]), $"Go to File offers [{string.Join(", ", offered)}] for Shop, a save's temporary file among them");
         Ui.Press(window, "ESCAPE");
 
