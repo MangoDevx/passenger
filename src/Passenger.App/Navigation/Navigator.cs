@@ -58,11 +58,7 @@ public sealed class Navigator
             }
             shownLast = Editors.Active;
         };
-        Editors.Opened += (_, document) => document.Text.Changed += (_, change) =>
-        {
-            Places.Follow(document.Path, change);
-            NoteEdit(document);
-        };
+        Editors.Opened += (_, document) => document.Text.Changed += (_, _) => NoteEdit(document);
     }
 
     private EditorArea Editors => parts.Editors;
