@@ -12,10 +12,12 @@ if [ ! -x "$build/Passenger" ]; then
 fi
 copies="$root/artifacts/mcp"
 mkdir -p "$copies"
-# A copy named for a shell no longer running is left from a server that was killed.
+# A copy named for a shell no longer running is left from a server that was killed, unless a Passenger still runs from it.
 for old in "$copies"/*; do
     [ -d "$old" ] || continue
-    kill -0 "$(basename "$old")" 2>/dev/null || rm -rf "$old"
+    kill -0 "$(basename "$old")" 2>/dev/null && continue
+    pgrep -f "$old/Passenger" >/dev/null 2>&1 && continue
+    rm -rf "$old"
 done
 copy="$copies/$$"
 if [ "$(uname)" = Darwin ]; then
@@ -23,6 +25,13 @@ if [ "$(uname)" = Darwin ]; then
 else
     cp -R --reflink=auto "$build" "$copy"
 fi
+# A signal to this shell is passed on to the server, and the copy goes only once the server has ended.
+"$copy/Passenger" --mcp "${1:-$PWD}" <&0 &
+server=$!
+trap 'kill -TERM "$server" 2>/dev/null || true' INT TERM HUP
 trap 'rm -rf "$copy"' EXIT
-trap 'exit 1' INT TERM HUP
-"$copy/Passenger" --mcp "${1:-$PWD}"
+status=0
+while kill -0 "$server" 2>/dev/null; do
+    wait "$server" && status=0 || status=$?
+done
+exit "$status"
