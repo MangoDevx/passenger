@@ -26,8 +26,6 @@ public sealed class PublishDialog : Window
     private const string Portable = "Portable";
     private const string FrameworkDependent = "Framework-dependent";
     private const string SelfContainedMode = "Self-contained";
-    private const double LabelWidth = 140;
-
     private readonly ProjectModel project;
     private readonly string open;
     private readonly bool multi;
@@ -43,8 +41,8 @@ public sealed class PublishDialog : Window
     private readonly ComboBox runtimeBox = new() { HorizontalAlignment = HorizontalAlignment.Stretch };
     private readonly TextBox folderBox = new() { Classes = { "search" } };
     private readonly Button browse = new() { Content = "Browse…", Margin = new Thickness(8, 0, 0, 0) };
-    private readonly TextBlock destination = new() { Classes = { "muted" }, FontSize = 12, TextTrimming = TextTrimming.PathSegmentEllipsis, Margin = new Thickness(LabelWidth, 4, 0, 0) };
-    private readonly TextBlock copied = new() { Classes = { "muted" }, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(LabelWidth, 2, 0, 0), IsVisible = false };
+    private readonly TextBlock destination = new() { Classes = { "muted" }, FontSize = 12, TextTrimming = TextTrimming.PathSegmentEllipsis, Margin = new Thickness(0, 4, 0, 0) };
+    private readonly TextBlock copied = new() { Classes = { "muted" }, FontSize = 12, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0), IsVisible = false };
     private readonly CheckBox singleFileBox = new() { Content = "Produce a single file" };
     private readonly CheckBox readyToRunBox = new() { Content = "Compile ReadyToRun" };
     private readonly CheckBox trimBox = new() { Content = "Trim unused code" };
@@ -78,6 +76,7 @@ public sealed class PublishDialog : Window
     public PublishDialog(ProjectModel project, string open, string? chosen, Func<string?, string?, string?, string?, CancellationToken, Task<PropertiesAnswer>> read,
         Func<PublishChoice, Task<string?>> save)
     {
+        FormRows.Scope(this);
         this.project = project;
         this.open = open;
         this.read = read;
@@ -118,7 +117,7 @@ public sealed class PublishDialog : Window
         }
         fields.Children.Add(Row("Deployment:", deploymentBox));
         fields.Children.Add(Row("Target runtime:", runtimeBox));
-        fields.Children.Add(new StackPanel { Children = { Row("Output folder:", BrowseRow.Of(folderBox, browse)), destination, copied } });
+        fields.Children.Add(new StackPanel { Children = { Row("Output folder:", BrowseRow.Of(folderBox, browse)), FormRows.Of(null, destination), FormRows.Of(null, copied) } });
         fields.Children.Add(Row("Options:", options, top: true));
 
         StackPanel header = new()
@@ -618,14 +617,5 @@ public sealed class PublishDialog : Window
         }
     }
 
-    /// <summary>A label and what it names, the label in a column of its own.</summary>
-    private static Control Row(string label, Control editor, bool top = false)
-    {
-        TextBlock name = new() { Text = label, Width = LabelWidth, VerticalAlignment = top ? VerticalAlignment.Top : VerticalAlignment.Center };
-        DockPanel row = new();
-        DockPanel.SetDock(name, Dock.Left);
-        row.Children.Add(name);
-        row.Children.Add(editor);
-        return row;
-    }
+    private static Control Row(string label, Control editor, bool top = false) => FormRows.Of(label, editor, top);
 }

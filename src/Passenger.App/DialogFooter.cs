@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
+using Avalonia.Media;
 
 namespace Passenger.App;
 
@@ -50,6 +51,28 @@ public static class DialogFooter
         DockPanel.SetDock(bar, Dock.Bottom);
         return new DockPanel { Children = { bar, page } };
     }
+
+    /// <summary>How wide a question is (<see cref="Question"/>).</summary>
+    public const double QuestionWidth = 520;
+
+    /// <summary>A question's whole window, laid out one way: its title in bold over its paragraphs (words from
+    /// <see cref="Paragraph"/>, or what it is about, as a list), each wrapping, at one width and as tall as they are; its
+    /// answers in the footer's bar, and what goes beside them (Don't ask again) at the bar's left.</summary>
+    public static void Question(Window dialog, string title, IEnumerable<Control> paragraphs, StackPanel answers, Control? left = null)
+    {
+        dialog.Title = title;
+        dialog.Width = QuestionWidth;
+        dialog.SizeToContent = SizeToContent.Height;
+        dialog.CanResize = false;
+        dialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        StackPanel page = new() { Margin = new Thickness(20), Spacing = 12 };
+        page.Children.Add(new TextBlock { Text = title, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap });
+        page.Children.AddRange(paragraphs);
+        dialog.Content = Page(page, Bar(answers, left));
+    }
+
+    /// <summary>A question's paragraph of words, wrapping to its width.</summary>
+    public static TextBlock Paragraph(string text) => new() { Text = text, TextWrapping = TextWrapping.Wrap };
 
     private static StackPanel Buttons(IEnumerable<Button> buttons)
     {

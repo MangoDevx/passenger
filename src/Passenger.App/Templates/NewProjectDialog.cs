@@ -29,8 +29,6 @@ public sealed record CreatedProjects(string? Solution, IReadOnlyList<string> Pro
 /// it runs dotnet new, takes Accelerate's tools out and closes with it (<see cref="Created"/>), or removes what it made.</summary>
 public sealed class NewProjectDialog : Window
 {
-    private const double LabelWidth = 170;
-
     private readonly ProjectTarget? target;
     private readonly string readFrom;
     private readonly TextBox search = new() { Classes = { "search" }, PlaceholderText = "Search", Margin = new Thickness(8, 8, 8, 6) };
@@ -100,6 +98,7 @@ public sealed class NewProjectDialog : Window
     /// <param name="target">The solution a project is added to; null for New Solution.</param>
     public NewProjectDialog(string folder, ProjectTarget? target)
     {
+        FormRows.Scope(this);
         this.target = target;
         Title = target is null ? "New Solution" : "New Project";
         Width = 920;
@@ -1154,16 +1153,11 @@ public sealed class NewProjectDialog : Window
     /// <summary>A row of the right side: its label (none for a checkbox, which carries its own) and what sets it.</summary>
     private static Control Row(string? label, Control editor)
     {
-        DockPanel row = new();
-        TextBlock name = new() { Text = label ?? string.Empty, Width = LabelWidth, Padding = new Thickness(0, 0, 12, 0), TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
-        DockPanel.SetDock(name, Dock.Left);
-        row.Children.Add(name);
         if (editor is ComboBox)
         {
             editor.HorizontalAlignment = HorizontalAlignment.Left;
         }
-        row.Children.Add(editor);
-        return row;
+        return FormRows.Of(label, editor);
     }
 
     private async Task BrowseAsync()

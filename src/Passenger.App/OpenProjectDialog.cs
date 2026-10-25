@@ -1,7 +1,4 @@
-using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Layout;
-using Avalonia.Media;
 
 namespace Passenger.App;
 
@@ -17,31 +14,14 @@ public sealed class OpenProjectDialog : Window
 
     public OpenProjectDialog(string name)
     {
-        Title = "Open Solution";
-        Width = 540;
-        SizeToContent = SizeToContent.Height;
-        CanResize = false;
-        WindowStartupLocation = WindowStartupLocation.CenterOwner;
         Question = $"Where would you like to open the solution '{name}'?";
-
         Button here = new() { Content = ThisWindow, IsDefault = true, Classes = { "primary" } };
         Button apart = new() { Content = NewWindow };
         Button cancel = new() { Content = "Cancel", IsCancel = true };
         cancel.Click += (_, _) => Close();
         here.Click += (_, _) => Choose(OpenTarget.ThisWindow);
         apart.Click += (_, _) => Choose(OpenTarget.NewWindow);
-
-        StackPanel choices = DialogFooter.Answers(here, apart, cancel);
-        Content =DialogFooter.Page(new StackPanel
-        {
-            Margin = new Thickness(20),
-            Spacing = 16,
-            Children =
-            {
-                new TextBlock { Text = Title, FontWeight = FontWeight.SemiBold },
-                new TextBlock { Text = Question, TextWrapping = TextWrapping.Wrap },
-            },
-        }, DialogFooter.Bar(choices, remember));
+        DialogFooter.Question(this, "Open Solution", [DialogFooter.Paragraph(Question)], DialogFooter.Answers(here, apart, cancel), remember);
     }
 
     /// <summary>What it asks.</summary>

@@ -1,6 +1,4 @@
-using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Media;
 
 namespace Passenger.App.Mcp;
 
@@ -17,35 +15,19 @@ public sealed class AgentAdmissionDialog : Window
 
     public AgentAdmissionDialog(string agent, string? folder)
     {
-        Title = $"{agent} wants to work in this window";
-        Width = 480;
-        SizeToContent = SizeToContent.Height;
-        CanResize = false;
-        WindowStartupLocation = WindowStartupLocation.CenterOwner;
-
         Button allow = new() { Content = Allow, IsDefault = true, Classes = { "primary" } };
         Button dontAllow = new() { Content = DontAllow, IsCancel = true };
         allow.Click += (_, _) => Close(Admission.Allowed);
         dontAllow.Click += (_, _) => Close(Admission.NotAllowed);
 
         string where = folder is null ? "this window" : Path.GetFileName(folder.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
-        Content = DialogFooter.Page(new StackPanel
-        {
-            Margin = new Thickness(20),
-            Spacing = 16,
-            Children =
-            {
-                new TextBlock { Text = Title, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap },
-                new TextBlock
-                {
-                    Text = $"It asked through Passenger's MCP server. Allowed, it can read and search {where}, see the window, save files, stop "
-                        + "what runs and step through what is debugged; Passenger asks you before it first makes each other kind of change, such "
-                        + "as an edit, a build, a run, a breakpoint or code run in the debugged program. Enable MCP Server in Settings lets agents in "
-                        + "without asking, and Settings' MCP Server page lists the folders allowed always, each to take back.",
-                    TextWrapping = TextWrapping.Wrap,
-                },
-            },
-        }, DialogFooter.Bar(DialogFooter.Answers(allow, dontAllow), always));
+        DialogFooter.Question(this, $"{agent} wants to work in this window",
+        [
+            DialogFooter.Paragraph($"It asked through Passenger's MCP server. Allowed, it can read and search {where}, see the window, save files, stop "
+                + "what runs and step through what is debugged; Passenger asks you before it first makes each other kind of change, such "
+                + "as an edit, a build, a run, a breakpoint or code run in the debugged program. Enable MCP Server in Settings lets agents in "
+                + "without asking, and Settings' MCP Server page lists the folders allowed always, each to take back."),
+        ], DialogFooter.Answers(allow, dontAllow), always);
     }
 
     /// <summary>Whether Always for this folder is ticked, which keeps an Allow.</summary>

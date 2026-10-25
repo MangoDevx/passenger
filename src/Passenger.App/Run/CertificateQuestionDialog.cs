@@ -1,6 +1,4 @@
-using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Media;
 
 namespace Passenger.App.Run;
 
@@ -15,38 +13,17 @@ public sealed class CertificateQuestionDialog : Window
 
     public CertificateQuestionDialog(string configuration, string services, bool missing)
     {
-        Title = missing ? "No HTTPS development certificate" : "The HTTPS development certificate is not trusted";
-        Width = 480;
-        SizeToContent = SizeToContent.Height;
-        CanResize = false;
-        WindowStartupLocation = WindowStartupLocation.CenterOwner;
-
         CreateButton = new Button { Content = CreateAndTrust, IsDefault = true, Classes = { "primary" } };
         HttpButton = new Button { Content = RunOverHttp, IsCancel = true };
         CreateButton.Click += (_, _) => Close(true);
         HttpButton.Click += (_, _) => Close(false);
-
-        Content = DialogFooter.Page(new StackPanel
-        {
-            Margin = new Thickness(20),
-            Spacing = 12,
-            Children =
-            {
-                new TextBlock { Text = Title, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap },
-                new TextBlock
-                {
-                    Text = $"{services} of {configuration} {(services.Contains(',', StringComparison.Ordinal) ? "serve" : "serves")} HTTPS, and this computer's "
-                        + $"ASP.NET Core development certificate {(missing ? "is not there" : "is not trusted")}, so a browser would refuse it.",
-                    TextWrapping = TextWrapping.Wrap,
-                },
-                new TextBlock
-                {
-                    Text = "Create and Trust has dotnet dev-certs make the certificate and trust it, which the system may ask you to allow. "
-                        + "Run over HTTP serves HTTP on the same ports for this run, where HTTPS would have been served.",
-                    TextWrapping = TextWrapping.Wrap,
-                },
-            },
-        }, DialogFooter.Bar(DialogFooter.Answers(CreateButton, HttpButton)));
+        DialogFooter.Question(this, missing ? "No HTTPS development certificate" : "The HTTPS development certificate is not trusted",
+        [
+            DialogFooter.Paragraph($"{services} of {configuration} {(services.Contains(',', StringComparison.Ordinal) ? "serve" : "serves")} HTTPS, and this computer's "
+                + $"ASP.NET Core development certificate {(missing ? "is not there" : "is not trusted")}, so a browser would refuse it."),
+            DialogFooter.Paragraph("Create and Trust has dotnet dev-certs make the certificate and trust it, which the system may ask you to allow. "
+                + "Run over HTTP serves HTTP on the same ports for this run, where HTTPS would have been served."),
+        ], DialogFooter.Answers(CreateButton, HttpButton));
     }
 
     public Button CreateButton { get; }

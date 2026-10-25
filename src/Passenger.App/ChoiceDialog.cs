@@ -1,7 +1,4 @@
-using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Layout;
-using Avalonia.Media;
 
 namespace Passenger.App;
 
@@ -13,12 +10,6 @@ public sealed class ChoiceDialog : Window
     /// file.</param>
     public ChoiceDialog(string title, string text, IReadOnlyList<string> choices, string? chosen)
     {
-        Title = title;
-        Width = 480;
-        SizeToContent = SizeToContent.Height;
-        CanResize = false;
-        WindowStartupLocation = WindowStartupLocation.CenterOwner;
-
         List<Button> answers = [];
         foreach (string choice in choices)
         {
@@ -33,16 +24,6 @@ public sealed class ChoiceDialog : Window
         {
             button.Classes.Add("primary");
         }
-        StackPanel buttons = DialogFooter.Listed([.. answers]);
-        Content = DialogFooter.Page(new StackPanel
-        {
-            Margin = new Thickness(20),
-            Spacing = 16,
-            Children =
-            {
-                new TextBlock { Text = title, FontWeight = FontWeight.SemiBold },
-                new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap },
-            },
-        }, DialogFooter.Bar(buttons));
+        DialogFooter.Question(this, title, [DialogFooter.Paragraph(text)], DialogFooter.Listed([.. answers]));
     }
 }

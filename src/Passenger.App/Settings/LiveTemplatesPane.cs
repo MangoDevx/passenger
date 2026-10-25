@@ -29,8 +29,6 @@ public sealed class LiveTemplatesPane : DockPanel
         (TemplateAvailability.Everywhere, "Everywhere", "Everywhere"),
     ];
 
-    private const double LabelWidth = 100;
-
     private readonly Action<IReadOnlyList<LiveTemplate>> changed;
     private readonly List<LiveTemplate> templates;
     private readonly ListBox list = new() { Classes = { "tree" } };
@@ -44,6 +42,7 @@ public sealed class LiveTemplatesPane : DockPanel
 
     public LiveTemplatesPane(IReadOnlyList<LiveTemplate> templates, Action<IReadOnlyList<LiveTemplate>> changed)
     {
+        FormRows.Scope(this);
         this.templates = [.. templates];
         this.changed = changed;
         Height = 560;
@@ -461,15 +460,7 @@ public sealed class LiveTemplatesPane : DockPanel
         }
     }
 
-    private static Control Row(string label, Control content)
-    {
-        TextBlock name = new() { Text = label, Width = LabelWidth, VerticalAlignment = VerticalAlignment.Center };
-        DockPanel row = new();
-        SetDock(name, Dock.Left);
-        row.Children.Add(name);
-        row.Children.Add(content);
-        return row;
-    }
+    private static Control Row(string label, Control content) => FormRows.Of(label, content);
 
     private static Control Docked(Control control, Dock dock)
     {

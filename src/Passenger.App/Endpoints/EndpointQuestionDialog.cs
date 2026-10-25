@@ -1,6 +1,4 @@
-using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Media;
 
 namespace Passenger.App.Endpoints;
 
@@ -15,13 +13,7 @@ public sealed class EndpointQuestionDialog : Window
 
     public EndpointQuestionDialog(string request, string host, IReadOnlyList<EndpointRead> reads)
     {
-        Title = $"Send to {host} what this request reads from your computer?";
-        Width = 520;
-        SizeToContent = SizeToContent.Height;
-        CanResize = false;
-        WindowStartupLocation = WindowStartupLocation.CenterOwner;
         Reads = reads;
-
         AllowButton = new Button { Content = Allow, IsDefault = true, Classes = { "primary" } };
         DontAllowButton = new Button { Content = DontAllow, IsCancel = true };
         AllowButton.Click += (_, _) => Close(true);
@@ -30,25 +22,15 @@ public sealed class EndpointQuestionDialog : Window
         StackPanel listed = new() { Spacing = 4 };
         foreach (EndpointRead read in reads)
         {
-            listed.Children.Add(new TextBlock { Text = $"• {read}", TextWrapping = TextWrapping.Wrap });
+            listed.Children.Add(DialogFooter.Paragraph($"• {read}"));
         }
-        Content = DialogFooter.Page(new StackPanel
-        {
-            Margin = new Thickness(20),
-            Spacing = 12,
-            Children =
-            {
-                new TextBlock { Text = Title, FontWeight = FontWeight.SemiBold, TextWrapping = TextWrapping.Wrap },
-                new TextBlock { Text = $"“{request}” sends to {host}:", TextWrapping = TextWrapping.Wrap },
-                listed,
-                new TextBlock
-                {
-                    Text = $"A folder's .http and env files can name anything on your computer. Allowed, these go to {host} from this "
-                        + "folder until it closes; Always for this folder keeps that, and anything else asks again.",
-                    TextWrapping = TextWrapping.Wrap,
-                },
-            },
-        }, DialogFooter.Bar(DialogFooter.Answers(AllowButton, DontAllowButton), Always));
+        DialogFooter.Question(this, $"Send to {host} what this request reads from your computer?",
+        [
+            DialogFooter.Paragraph($"“{request}” sends to {host}:"),
+            listed,
+            DialogFooter.Paragraph($"A folder's .http and env files can name anything on your computer. Allowed, these go to {host} from this "
+                + "folder until it closes; Always for this folder keeps that, and anything else asks again."),
+        ], DialogFooter.Answers(AllowButton, DontAllowButton), Always);
     }
 
     /// <summary>What the request reads, as the question lists it.</summary>

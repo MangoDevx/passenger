@@ -16,8 +16,6 @@ namespace Passenger.App.Run;
 /// makes it. It edits copies, which Apply and OK hand back with the one chosen.</summary>
 public sealed class RunConfigurationsDialog : Window
 {
-    private const double LabelWidth = 170;
-
     private readonly IReadOnlyList<Entry> generated;
     private readonly List<Entry> mine;
     private readonly IReadOnlyList<ProjectModel> projects;
@@ -57,6 +55,7 @@ public sealed class RunConfigurationsDialog : Window
         IReadOnlyList<ProjectModel> projects, string? chosen, Action<IReadOnlyList<RunConfiguration>, IReadOnlyList<RunConfiguration>, string?> apply,
         Func<string, bool>? isRunning = null)
     {
+        FormRows.Scope(this);
         IsRunning = isRunning ?? (_ => false);
         this.generated = [.. generated.Select(c => new Entry(c with { Source = null }, c.Source ?? c with { Source = null }))];
         mine = [.. own.Select(c => new Entry(c))];
@@ -1096,11 +1095,7 @@ public sealed class RunConfigurationsDialog : Window
     /// no label <paramref name="marked"/>, its own words) when a generated configuration has one changed.</summary>
     private Control Row(string label, Control editor, bool top = false, TextBlock? marked = null, string[]? fields = null)
     {
-        TextBlock name = new() { Text = label, Width = LabelWidth, VerticalAlignment = top ? VerticalAlignment.Top : VerticalAlignment.Center, Margin = new Thickness(0, top ? 4 : 0, 0, 0) };
-        DockPanel row = new();
-        DockPanel.SetDock(name, Dock.Left);
-        row.Children.Add(name);
-        row.Children.Add(editor);
+        Grid row = FormRows.Of(label, editor, out TextBlock name, top);
         editor.HorizontalAlignment = editor is TextBox or StackPanel or ComposeServicesTable ? HorizontalAlignment.Stretch : HorizontalAlignment.Left;
         if (fields is not null)
         {
