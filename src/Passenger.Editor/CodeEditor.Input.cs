@@ -280,7 +280,7 @@ public sealed partial class CodeEditor
         hoverTimer.Stop();
         EndHover();
         HideFoldPreview();
-        HoveredLink = null;
+        hovered.Release();
     }
 
     /// <summary>Whether Ctrl+wheel (Cmd+wheel on macOS) asks for a bigger or smaller font rather than scrolling.</summary>

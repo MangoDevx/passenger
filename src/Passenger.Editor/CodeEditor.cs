@@ -435,8 +435,8 @@ public sealed partial class CodeEditor : Control
             usages.Clear();
             UsagesKept = false;
             InlineChanges = [];
-            HoveredLink = null;
-            pressedLink = null;
+            hovered.Release();
+            pressed.Release();
             HideFoldPreview();
             folds = [];
             EndComposition();
@@ -785,7 +785,7 @@ public sealed partial class CodeEditor : Control
         CancelChoices();
         FollowUsages();
         FollowInlineChanges(e.Edits);
-        FollowLinkEdits(e.Edits);
+        FollowLinkEdits();
         HideFoldPreview();
         if (!editing)
         {
