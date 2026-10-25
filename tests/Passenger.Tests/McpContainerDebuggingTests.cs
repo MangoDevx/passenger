@@ -7,9 +7,10 @@ namespace Passenger.Tests;
 /// <summary>An agent debugging in containers on a real engine: debug_start on a compose configuration debugs each .NET
 /// service in a session of its own, answering with each one's state, and its container_action on a debugged service goes
 /// through the run; debug_state of processes lists a program in a container Passenger did not start, and debug_attach attaches to
-/// it there. Skipped, saying why, where no Linux engine runs.</summary>
+/// it there. Skipped, saying why, where no Linux engine runs; the tools are the run's one publish, made before the class's
+/// first test (<see cref="ContainerRunDebuggingTests.Tools"/>).</summary>
 [Collection(Alone.Name)]
-public sealed class McpContainerDebuggingTests : McpRig
+public sealed class McpContainerDebuggingTests(ContainerRunDebuggingTests.Tools tools) : McpRig, IClassFixture<ContainerRunDebuggingTests.Tools>
 {
     /// <summary>debug_start of a compose configuration debugs each service; container_action's restart of a debugged one
     /// ends its session, restarts it held and attaches again, so it stops in Main again, and its stop ends the session
@@ -17,9 +18,8 @@ public sealed class McpContainerDebuggingTests : McpRig
     [Fact]
     public async Task An_agents_debug_start_debugs_each_service_of_a_compose_configuration_its_container_action_goes_through_the_run_and_debug_attach_reaches_a_program_in_a_container()
     {
-        Assert.SkipWhen(Docker.WhyNot is not null, Docker.WhyNot ?? string.Empty);
+        Assert.SkipWhen(tools.WhyNot is not null, tools.WhyNot ?? string.Empty);
         CancellationToken test = TestContext.Current.CancellationToken;
-        await Task.Run(() => ContainerPrograms.Publish($"linux-{ContainerPrograms.Processor()}"), test);
         (string shop, string project) = ContainerRunsTests.Shop("agentdebug");
         DeleteAtEnd(shop);
         // A second Compose configuration whose files run web too, so a resource no run has names two.
@@ -160,9 +160,8 @@ public sealed class McpContainerDebuggingTests : McpRig
     [Fact]
     public async Task An_agents_debug_start_of_a_service_marked_Dont_start_starts_it_later_in_the_run_and_stop_takes_it_down()
     {
-        Assert.SkipWhen(Docker.WhyNot is not null, Docker.WhyNot ?? string.Empty);
+        Assert.SkipWhen(tools.WhyNot is not null, tools.WhyNot ?? string.Empty);
         CancellationToken test = TestContext.Current.CancellationToken;
-        await Task.Run(() => ContainerPrograms.Publish($"linux-{ContainerPrograms.Processor()}"), test);
         (string shop, string project) = ContainerRunsTests.Shop("agentlater");
         DeleteAtEnd(shop);
         File.Move(Path.Combine(shop, "compose.yaml"), Path.Combine(shop, "docker-compose.yml"));
@@ -228,9 +227,8 @@ public sealed class McpContainerDebuggingTests : McpRig
     [Fact]
     public async Task A_compose_start_an_agent_gives_up_on_or_stops_comes_down_and_a_run_up_goes_with_the_ides_end()
     {
-        Assert.SkipWhen(Docker.WhyNot is not null, Docker.WhyNot ?? string.Empty);
+        Assert.SkipWhen(tools.WhyNot is not null, tools.WhyNot ?? string.Empty);
         CancellationToken test = TestContext.Current.CancellationToken;
-        await Task.Run(() => ContainerPrograms.Publish($"linux-{ContainerPrograms.Processor()}"), test);
         (string shop, string project) = ContainerRunsTests.Shop("agentgone");
         DeleteAtEnd(shop);
         bool Up() => Docker.Said("ps", "-aq", "--filter", $"label=com.docker.compose.project={project}") is { Length: > 0 };

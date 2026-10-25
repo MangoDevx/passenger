@@ -6,9 +6,10 @@ namespace Passenger.Tests;
 
 /// <summary>An agent's profile of a program in a container (attach with container): recorded there, its hot method named at
 /// its line from the PDB in the container, and the heap's types from a memory snapshot taken there. Skips, saying why,
-/// where no Linux engine runs.</summary>
+/// where no Linux engine runs; the tools are the run's one publish, made before the class's first test
+/// (<see cref="ContainerRunDebuggingTests.Tools"/>).</summary>
 [Collection(Alone.Name)]
-public sealed class McpContainerProfileTests : McpRig
+public sealed class McpContainerProfileTests(ContainerRunDebuggingTests.Tools tools) : McpRig, IClassFixture<ContainerRunDebuggingTests.Tools>
 {
     [Fact]
     public async Task An_agent_profiles_a_program_in_a_container_its_hot_method_at_its_line_and_its_heap()
@@ -37,8 +38,7 @@ public sealed class McpContainerProfileTests : McpRig
     [Fact]
     public async Task An_agent_profiles_a_compose_configuration_its_services_hot_method_at_its_line_and_its_heap()
     {
-        Assert.SkipWhen(Docker.WhyNot is not null, Docker.WhyNot ?? string.Empty);
-        await Task.Run(() => ContainerPrograms.Publish($"linux-{ContainerPrograms.Processor()}"), TestContext.Current.CancellationToken);
+        Assert.SkipWhen(tools.WhyNot is not null, tools.WhyNot ?? string.Empty);
         (string shop, string project) = ContainerRunProfilingTests.Shop("agent");
         // Whichever service it launches spins.
         TestFolders.Write(shop, "Api/Program.cs", ContainerRunProfilingTests.Spinning);
