@@ -27,7 +27,7 @@ public sealed class TestFramesStrip : Border
     {
         IsVisible = false;
         BorderThickness = new Thickness(0, 0, 0, 1);
-        this.Bind(BorderBrushProperty, this.GetResourceObservable("Passenger.Divider"));
+        this.Bind(BorderBrushProperty, this.GetResourceObservable(TokenKeys.Divider));
         // Held to half the room above the details (Fit), the thumbnails draw smaller rather than leaving the details a line.
         Child = new ScrollViewer
         {
@@ -150,7 +150,7 @@ public sealed class TestFramesStrip : Border
     private static Border Outlined(Image picture)
     {
         Border outline = new() { BorderThickness = new Thickness(1), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Child = picture };
-        outline.Bind(Border.BorderBrushProperty, outline.GetResourceObservable("Passenger.Divider"));
+        outline.Bind(Border.BorderBrushProperty, outline.GetResourceObservable(TokenKeys.Divider));
         return outline;
     }
 

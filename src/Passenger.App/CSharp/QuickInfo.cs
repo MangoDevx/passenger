@@ -131,8 +131,8 @@ internal sealed class QuickInfo
         {
             hoverCard.AddText(marker.Message, marker.Kind switch
             {
-                MarkerKind.Error => InfoCard.Brush("Passenger.Error"),
-                MarkerKind.Warning => InfoCard.Brush("Passenger.Warning"),
+                MarkerKind.Error => InfoCard.Brush(TokenKeys.Error),
+                MarkerKind.Warning => InfoCard.Brush(TokenKeys.Warning),
                 _ => null,
             });
         }
@@ -151,7 +151,7 @@ internal sealed class QuickInfo
             }
             if (debuggerValue.Problem is { } problem)
             {
-                hoverCard.AddText(problem, InfoCard.Brush("Passenger.Error"));
+                hoverCard.AddText(problem, InfoCard.Brush(TokenKeys.Error));
             }
             if (debuggerValue.Values is { } rows)
             {

@@ -6,3 +6,4 @@
 Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
 PSG0001 | Passenger | Warning | IdentifierLiterals
+PSG9001 | Passenger | Error | ResourceKeys

@@ -46,10 +46,10 @@ public sealed class LiveTemplatesPane : DockPanel
         this.templates = [.. templates];
         this.changed = changed;
         Height = 560;
-        NewButton = ToolButtons.Of("Icon.Add", "New Template");
-        CloneButton = ToolButtons.Of("Icon.Copy", "Clone And Edit Template");
-        DeleteButton = ToolButtons.Of("Icon.Minimize", "Delete Template");
-        RestoreButton = ToolButtons.Of("Icon.Rollback", "Restore Default");
+        NewButton = ToolButtons.Of(IconKeys.Add, "New Template");
+        CloneButton = ToolButtons.Of(IconKeys.Copy, "Clone And Edit Template");
+        DeleteButton = ToolButtons.Of(IconKeys.Minimize, "Delete Template");
+        RestoreButton = ToolButtons.Of(IconKeys.Rollback, "Restore Default");
         NewButton.Click += (_, _) => New();
         CloneButton.Click += (_, _) => Clone();
         DeleteButton.Click += (_, _) => Delete();

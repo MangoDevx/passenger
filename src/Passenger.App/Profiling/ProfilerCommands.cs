@@ -67,7 +67,7 @@ public sealed class ProfilerCommands
     public ProfilerCommands(ProfilerParts parts)
     {
         this.parts = parts;
-        window = new ToolWindow(ToolWindowIds.Profiler, "Performance Profiler", "Icon.Profile", Make, ToolAnchor.BottomLeft)
+        window = new ToolWindow(ToolWindowIds.Profiler, "Performance Profiler", IconKeys.Profile, Make, ToolAnchor.BottomLeft)
         {
             Action = AppActions.ShowProfiler,
             Menus = [new MenuPlace("Tools", 0, 1)],

@@ -124,12 +124,12 @@ public sealed class DebugView : DockPanel, IOwnKeys
                 debuggerTab,
                 consoleTab,
                 new Border { Width = 12 },
-                Tool(AppActions.StepOver, "Icon.StepOver", "Step Over"),
-                Tool(AppActions.StepInto, "Icon.StepInto", "Step Into"),
-                Tool(AppActions.SmartStepInto, "Icon.SmartStepInto", "Smart Step Into"),
-                Tool(AppActions.StepOut, "Icon.StepOut", "Step Out"),
-                Tool(AppActions.RunToCursor, "Icon.RunToCursor", "Run to Cursor"),
-                Tool(AppActions.Evaluate, "Icon.Evaluate", "Evaluate Expression"),
+                Tool(AppActions.StepOver, IconKeys.StepOver, "Step Over"),
+                Tool(AppActions.StepInto, IconKeys.StepInto, "Step Into"),
+                Tool(AppActions.SmartStepInto, IconKeys.SmartStepInto, "Smart Step Into"),
+                Tool(AppActions.StepOut, IconKeys.StepOut, "Step Out"),
+                Tool(AppActions.RunToCursor, IconKeys.RunToCursor, "Run to Cursor"),
+                Tool(AppActions.Evaluate, IconKeys.Evaluate, "Evaluate Expression"),
                 new Border { Width = 12 },
                 model.Overlays,
             },
@@ -137,7 +137,7 @@ public sealed class DebugView : DockPanel, IOwnKeys
         Border topBar = ToolBars.Top(top);
 
         // Under the program's own buttons: pressed while every breakpoint is muted.
-        mute = ToolButtons.Toggle("Icon.MuteBreakpoints", "Mute Breakpoints");
+        mute = ToolButtons.Toggle(IconKeys.MuteBreakpoints, "Mute Breakpoints");
         ActionTips.Set(mute, AppActions.MuteBreakpoints, "Mute Breakpoints");
         mute.Click += (_, _) =>
         {
@@ -146,14 +146,14 @@ public sealed class DebugView : DockPanel, IOwnKeys
         };
 
         Border leftBar = ToolBars.Side(
-            Tool(AppActions.Rerun, "Icon.Rerun", "Rerun"),
-            Tool(AppActions.Resume, "Icon.Resume", "Resume Program"),
-            Tool(AppActions.Pause, "Icon.Pause", "Pause Program"),
-            Tool(AppActions.Stop, "Icon.Stop", "Stop"),
-            Tool(AppActions.Detach, "Icon.Detach", "Detach"),
+            Tool(AppActions.Rerun, IconKeys.Rerun, "Rerun"),
+            Tool(AppActions.Resume, IconKeys.Resume, "Resume Program"),
+            Tool(AppActions.Pause, IconKeys.Pause, "Pause Program"),
+            Tool(AppActions.Stop, IconKeys.Stop, "Stop"),
+            Tool(AppActions.Detach, IconKeys.Detach, "Detach"),
             HotReloadTool(),
             ToolBars.Gap(),
-            Tool(AppActions.ViewBreakpoints, "Icon.Breakpoints", "View Breakpoints and Exceptions"),
+            Tool(AppActions.ViewBreakpoints, IconKeys.Breakpoints, "View Breakpoints and Exceptions"),
             mute);
 
         Children.Add(leftBar);
@@ -302,8 +302,8 @@ public sealed class DebugView : DockPanel, IOwnKeys
     /// <summary>Apply Hot Reload Changes, a flame: shown while the session has Hot Reload.</summary>
     private Button HotReloadTool()
     {
-        Button button = Tool(AppActions.ApplyHotReloadChanges, "Icon.HotReload", "Apply Hot Reload Changes");
-        ((PathIcon)button.Content!).Bind(PathIcon.ForegroundProperty, button.GetResourceObservable("Passenger.HotReload"));
+        Button button = Tool(AppActions.ApplyHotReloadChanges, IconKeys.HotReload, "Apply Hot Reload Changes");
+        ((PathIcon)button.Content!).Bind(PathIcon.ForegroundProperty, button.GetResourceObservable(TokenKeys.HotReload));
         button.IsVisible = false;
         return button;
     }

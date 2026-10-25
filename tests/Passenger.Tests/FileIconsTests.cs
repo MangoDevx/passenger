@@ -72,16 +72,16 @@ public sealed class FileIconsTests : IDisposable
             {
                 PathIcon icon = Drawn(window, name);
                 Assert.True(ReferenceEquals(Resource($"FileIcon.{shape}"), icon.Data), $"The Explorer does not draw {name} as its {shape}");
-                Assert.True(ReferenceEquals(Resource(colour is null ? "Passenger.File.Plain" : $"Passenger.FileIcon.{colour}"), icon.Foreground),
+                Assert.True(ReferenceEquals(Resource(colour is null ? TokenKeys.File_Plain : $"Passenger.FileIcon.{colour}"), icon.Foreground),
                     $"The Explorer does not draw {name} in the {colour ?? "plain"} file colour");
             }
-            Assert.True(ReferenceEquals(Resource("Icon.Explorer"), Drawn(window, "src").Data), "A plain folder lost the folder icon");
-            Assert.True(Icons(window.EditorArea).Any(i => ReferenceEquals(i.Data, Resource("FileIcon.CSharp")) && ReferenceEquals(i.Foreground, Resource("Passenger.FileIcon.Blue"))),
+            Assert.True(ReferenceEquals(Resource(IconKeys.Explorer), Drawn(window, "src").Data), "A plain folder lost the folder icon");
+            Assert.True(Icons(window.EditorArea).Any(i => ReferenceEquals(i.Data, Resource("FileIcon.CSharp")) && ReferenceEquals(i.Foreground, Resource(TokenKeys.FileIcon_Blue))),
                 "The open C# file's tab is not drawn with the C# icon");
 
             Ui.Landed(() => window.Vcs is { } vcs && vcs.Changes.Any(c => c.Name == "package.json"), "package.json listed as changed");
             window.DockHost.Show(ToolWindowIds.Commit);
-            Ui.Landed(() => Icons(window.CommitView).Any(i => ReferenceEquals(i.Data, Resource("FileIcon.Npm")) && ReferenceEquals(i.Foreground, Resource("Passenger.FileIcon.Red"))),
+            Ui.Landed(() => Icons(window.CommitView).Any(i => ReferenceEquals(i.Data, Resource("FileIcon.Npm")) && ReferenceEquals(i.Foreground, Resource(TokenKeys.FileIcon_Red))),
                 "the Commit window's package.json drawn with npm's icon");
         }
         finally

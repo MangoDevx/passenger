@@ -126,7 +126,7 @@ public sealed partial class SettingsDialog : Window
         left.Children.Add(search);
         left.Children.Add(new Panel { Children = { pages, nothing } });
         Border leftPane = new() { BorderThickness = new Thickness(0, 0, 1, 0), Child = left };
-        leftPane.Bind(Border.BorderBrushProperty, leftPane.GetResourceObservable("Passenger.Divider"));
+        leftPane.Bind(Border.BorderBrushProperty, leftPane.GetResourceObservable(TokenKeys.Divider));
         Border bottom = DialogFooter.Bar(DialogFooter.Of(ok, cancel, applyButton));
         DockPanel right = new() { Margin = new Thickness(20, 16, 20, 0) };
         DockPanel.SetDock(heading, Dock.Top);

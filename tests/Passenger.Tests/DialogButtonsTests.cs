@@ -137,7 +137,7 @@ public sealed class DialogButtonsTests : IDisposable
         }
 
         // A plain button: its own ground (white in light) inside a field's edge.
-        Color plain = Token(dialog, "Passenger.Button");
+        Color plain = Token(dialog, TokenKeys.Button);
         foreach (Button button in text.Where(b => !b.Classes.Contains("primary") && b.IsEffectivelyEnabled))
         {
             ContentPresenter frame = button.GetVisualDescendants().OfType<ContentPresenter>().First(p => p.Name == "PART_ContentPresenter");
@@ -146,7 +146,7 @@ public sealed class DialogButtonsTests : IDisposable
         }
 
         // A default button that cannot be used looks disabled, not like the default it would be.
-        Color accent = Token(dialog, "Passenger.Accent");
+        Color accent = Token(dialog, TokenKeys.Accent);
         foreach (Button idle in shown.Where(b => (b.IsDefault || b.Classes.Contains("primary")) && !b.IsEffectivelyEnabled))
         {
             ContentPresenter frame = idle.GetVisualDescendants().OfType<ContentPresenter>().First(p => p.Name == "PART_ContentPresenter");
@@ -155,7 +155,7 @@ public sealed class DialogButtonsTests : IDisposable
         }
 
         // The page is a tool window's ground; a list framed in it stands on the list's (Border.framed).
-        Assert.True(dialog.Background is ISolidColorBrush page && page.Color == Token(dialog, "Passenger.Panel"),
+        Assert.True(dialog.Background is ISolidColorBrush page && page.Color == Token(dialog, TokenKeys.Panel),
             $"{title}'s page is not a tool window's ground, as every dialog's page is");
         // A dialog's buttons stand on its footer's bar, never straight on its page.
         foreach (StackPanel footer in dialog.GetVisualDescendants().OfType<StackPanel>().Where(s => s.Classes.Contains("footer") && s.IsEffectivelyVisible))
@@ -166,10 +166,10 @@ public sealed class DialogButtonsTests : IDisposable
         // The footer stands on the frame's ground, told from the page by shade, with no rule between them.
         foreach (Border bar in dialog.GetVisualDescendants().OfType<Border>().Where(b => b.Classes.Contains("footerBar") && b.IsEffectivelyVisible))
         {
-            Assert.True(bar.BorderThickness == default && bar.Background is ISolidColorBrush ground && ground.Color == Token(dialog, "Passenger.Frame"),
+            Assert.True(bar.BorderThickness == default && bar.Background is ISolidColorBrush ground && ground.Color == Token(dialog, TokenKeys.Frame),
                 $"{title}'s footer is drawn on {(bar.Background as ISolidColorBrush)?.Color} with a rule of {bar.BorderThickness}, where a footer is the frame's ground and no rule");
         }
-        Color editor = Token(dialog, "Passenger.Editor.Background");
+        Color editor = Token(dialog, TokenKeys.Editor_Background);
         double area = dialog.Bounds.Width * dialog.Bounds.Height;
         foreach (Border pane in dialog.GetVisualDescendants().OfType<Border>().Where(b => b.IsEffectivelyVisible && b.Background is ISolidColorBrush ground && ground.Color == editor
             && b.TemplatedParent is null && !b.Classes.Contains("framed") && b.FindAncestorOfType<Passenger.Editor.CodeEditor>() is null))

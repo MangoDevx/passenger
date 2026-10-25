@@ -72,7 +72,7 @@ public sealed class NuGetView : DockPanel
         prerelease = new CheckBox { Content = "Prerelease", VerticalAlignment = VerticalAlignment.Center };
         status = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0), TextTrimming = TextTrimming.CharacterEllipsis };
         status.Classes.Add("muted");
-        Button refresh = ToolButtons.Of("Icon.Rerun", "Refresh", () => IdeErrors.Observe(ReloadSourcesAsync()));
+        Button refresh = ToolButtons.Of(IconKeys.Rerun, "Refresh", () => IdeErrors.Observe(ReloadSourcesAsync()));
         refresh.Margin = new Thickness(6, 0, 0, 0);
         typing = new Debounce(Pause, RefreshAsync);
         search.TextChanged += (_, _) => typing.Restart();
@@ -107,7 +107,7 @@ public sealed class NuGetView : DockPanel
             IsVisible = false,
             [DockProperty] = Dock.Bottom,
         };
-        log.Bind(TextBox.BorderBrushProperty, log.GetResourceObservable("Passenger.Divider"));
+        log.Bind(TextBox.BorderBrushProperty, log.GetResourceObservable(TokenKeys.Divider));
         DockPanel right = new();
         right.Children.Add(log);
         right.Children.Add(new ScrollViewer { Content = details });
@@ -561,8 +561,8 @@ public sealed class NuGetView : DockPanel
     private Border Vulnerability(IReadOnlyList<Advisory> advisories, string version, string? fix)
     {
         PathIcon warning = new() { Width = 14, Height = 14, Margin = new Thickness(0, 1, 8, 0), VerticalAlignment = VerticalAlignment.Top, [DockProperty] = Dock.Left };
-        warning.Bind(PathIcon.DataProperty, warning.GetResourceObservable("Icon.Problems"));
-        warning.Bind(PathIcon.ForegroundProperty, warning.GetResourceObservable("Passenger.Warning"));
+        warning.Bind(PathIcon.DataProperty, warning.GetResourceObservable(IconKeys.Problems));
+        warning.Bind(PathIcon.ForegroundProperty, warning.GetResourceObservable(TokenKeys.Warning));
         StackPanel said = new() { Spacing = 4 };
         said.Children.Add(new TextBlock
         {
@@ -598,7 +598,7 @@ public sealed class NuGetView : DockPanel
             Padding = new Thickness(10, 8),
             Child = new DockPanel { Children = { warning, said } },
         };
-        block.Bind(Border.BackgroundProperty, block.GetResourceObservable("Passenger.Banner"));
+        block.Bind(Border.BackgroundProperty, block.GetResourceObservable(TokenKeys.Banner));
         return block;
     }
 
@@ -615,7 +615,7 @@ public sealed class NuGetView : DockPanel
             bool has = row.Installed.TryGetValue(project.Path, out string? at);
             IReadOnlyList<Advisory> affecting = at is null ? [] : Known.Of(row.Id, at);
             TextBlock version = new() { Text = has ? at ?? "installed" : string.Empty, Width = 110, VerticalAlignment = VerticalAlignment.Center };
-            version.Bind(TextBlock.ForegroundProperty, version.GetResourceObservable(affecting.Count > 0 ? "Passenger.Warning" : "Passenger.TextMuted"));
+            version.Bind(TextBlock.ForegroundProperty, version.GetResourceObservable(affecting.Count > 0 ? TokenKeys.Warning : TokenKeys.TextMuted));
             // A slot of its own, so the buttons stand in one column whichever lines have the mark.
             Panel mark = new() { Width = 14, VerticalAlignment = VerticalAlignment.Center };
             if (affecting.Count > 0)
@@ -656,7 +656,7 @@ public sealed class NuGetView : DockPanel
         TextBlock version = new() { Text = row.Version, FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) };
         version.Classes.Add("muted");
         PathIcon icon = new() { Width = 14, Height = 14, Margin = new Thickness(6, 0, 6, 0) };
-        icon.Bind(PathIcon.DataProperty, icon.GetResourceObservable("Icon.Package"));
+        icon.Bind(PathIcon.DataProperty, icon.GetResourceObservable(IconKeys.Package));
         StackPanel line = new()
         {
             Orientation = Orientation.Horizontal,
@@ -680,8 +680,8 @@ public sealed class NuGetView : DockPanel
     private static PathIcon Warning(string tip)
     {
         PathIcon warning = new() { Width = 12, Height = 12, VerticalAlignment = VerticalAlignment.Center };
-        warning.Bind(PathIcon.DataProperty, warning.GetResourceObservable("Icon.Problems"));
-        warning.Bind(PathIcon.ForegroundProperty, warning.GetResourceObservable("Passenger.Warning"));
+        warning.Bind(PathIcon.DataProperty, warning.GetResourceObservable(IconKeys.Problems));
+        warning.Bind(PathIcon.ForegroundProperty, warning.GetResourceObservable(TokenKeys.Warning));
         ToolTip.SetTip(warning, tip);
         return warning;
     }

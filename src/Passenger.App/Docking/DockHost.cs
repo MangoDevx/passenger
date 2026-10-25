@@ -74,7 +74,7 @@ public sealed class DockHost : Grid
         Place(rightSeam, 1, 5);
         foreach (Border seam in (Border[])[leftSeam, rightSeam])
         {
-            seam.Bind(Border.BackgroundProperty, seam.GetResourceObservable("Passenger.Divider"));
+            seam.Bind(Border.BackgroundProperty, seam.GetResourceObservable(TokenKeys.Divider));
         }
         foreach (ToolAnchor anchor in Enum.GetValues<ToolAnchor>())
         {

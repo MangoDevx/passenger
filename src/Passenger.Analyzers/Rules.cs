@@ -19,4 +19,12 @@ internal static class Rules
         description: "An identifier ([IdentifierHome]: an action's id, a tool window's, a theme key, an environment variable, "
             + "an MCP tool's name) is written once, in its home, so a misspelt one is a build error rather than something "
             + "that silently finds nothing.");
+
+    public static readonly DiagnosticDescriptor KeysUnread = new(
+        "PSG9001",
+        "A resource keys file is not read",
+        "{0}'s keys are not all in {1}: {2}",
+        Category,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
 }

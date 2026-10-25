@@ -161,7 +161,7 @@ public sealed class MenuTests : IDisposable
 
             Assert.True(place.MenusShown == titles.Length, $"At 1800 wide the bar shows {place.MenusShown} of its {titles.Length} menus");
             Assert.True(button.Opacity == 0 && !button.IsHitTestVisible, "The main menu's button still shows beside a bar that holds every menu");
-            Color words = window.TryFindResource("Passenger.TitleBar.Text", window.ActualThemeVariant, out object? token) && token is ISolidColorBrush own
+            Color words = window.TryFindResource(TokenKeys.TitleBar_Text, window.ActualThemeVariant, out object? token) && token is ISolidColorBrush own
                 ? own.Color : throw new Xunit.Sdk.XunitException("The theme has no title bar words");
             Assert.All(titles, t => Assert.True(t.Foreground is ISolidColorBrush ink && ink.Color == words, $"The bar's {t.Content} is not in the title bar's own words"));
 

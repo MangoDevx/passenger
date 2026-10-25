@@ -68,8 +68,8 @@ public sealed class TelemetryView : IDisposable
         StructuredLogs.SelectionChanged += (_, _) => ShowLog();
         TraceList.SelectionChanged += (_, _) => ShowTrace();
         SpanList.SelectionChanged += (_, _) => ShowSpan();
-        logTrace = PageTool("Icon.Locate", "Show the structured log's trace and span", showTrace, "telemetryShowTrace", ShowSelectedTrace, request);
-        spanLogs = PageTool("Icon.DocumentText", "Show a retained log of this trace and span", showLogs, "telemetryShowLogs", ShowRelatedLogs, request);
+        logTrace = PageTool(IconKeys.Locate, "Show the structured log's trace and span", showTrace, "telemetryShowTrace", ShowSelectedTrace, request);
+        spanLogs = PageTool(IconKeys.DocumentText, "Show a retained log of this trace and span", showLogs, "telemetryShowLogs", ShowRelatedLogs, request);
         logTrace.IsEnabled = false;
         spanLogs.IsEnabled = false;
         foreach (OutputView output in new[] { logDetails, spanDetails })

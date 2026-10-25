@@ -19,7 +19,7 @@ public partial class MainWindow
 
     private void AddFind()
     {
-        Dock.Add(new Docking.ToolWindow(ToolWindowIds.Find, "Find", "Icon.Search", () =>
+        Dock.Add(new Docking.ToolWindow(ToolWindowIds.Find, "Find", IconKeys.Search, () =>
         {
             find = new FindView(path => Editors.TextOf(path)?.ToString());
             find.GoToRequested += (_, usage) => NavigateTo(usage.Path, new TextPosition(usage.Line, usage.Column));

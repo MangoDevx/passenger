@@ -49,7 +49,7 @@ public partial class MainWindow
     private void AddRequests()
     {
         requestLog = new RequestLog(RouteReached);
-        Dock.Add(new Docking.ToolWindow(ToolWindowIds.Requests, "Requests", "Icon.Endpoints", MakeRequests, Docking.ToolAnchor.BottomRight)
+        Dock.Add(new Docking.ToolWindow(ToolWindowIds.Requests, "Requests", IconKeys.Endpoints, MakeRequests, Docking.ToolAnchor.BottomRight)
         {
             Action = AppActions.ShowRequests,
             Menus = [new MenuPlace("Tools", 0, 4)],

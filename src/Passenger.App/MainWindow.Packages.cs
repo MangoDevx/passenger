@@ -14,7 +14,7 @@ public partial class MainWindow
 
     private void AddPackages()
     {
-        Dock.Add(new Docking.ToolWindow(ToolWindowIds.NuGet, "NuGet", "Icon.Package", () =>
+        Dock.Add(new Docking.ToolWindow(ToolWindowIds.NuGet, "NuGet", IconKeys.Package, () =>
         {
             ToolWindows.NuGetView view = nuget = new ToolWindows.NuGetView(session.Packages);
             view.LinkClicked += (_, link) => Browse(link);

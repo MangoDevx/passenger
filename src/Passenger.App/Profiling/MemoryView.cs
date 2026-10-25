@@ -83,7 +83,7 @@ public sealed class MemoryView : DockPanel
             }
         };
         Border left = new() { [DockProperty] = Dock.Left, Width = 230, Child = snapshotList, BorderThickness = new Thickness(0, 0, 1, 0) };
-        left.Bind(Border.BorderBrushProperty, left.GetResourceObservable("Passenger.Divider"));
+        left.Bind(Border.BorderBrushProperty, left.GetResourceObservable(TokenKeys.Divider));
         Children.Add(left);
 
         crumbs = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
@@ -516,14 +516,14 @@ public sealed class MemoryView : DockPanel
     private static DockPanel Framed(Control header, ListBox list)
     {
         Border band = new() { [DockProperty] = Dock.Top, BorderThickness = new Thickness(0, 0, 0, 1), Child = header, Padding = new Thickness(0, 0, 0, 3) };
-        band.Bind(Border.BorderBrushProperty, band.GetResourceObservable("Passenger.Divider"));
+        band.Bind(Border.BorderBrushProperty, band.GetResourceObservable(TokenKeys.Divider));
         return new DockPanel { Children = { band, list } };
     }
 
     private Control PathStep(RetentionRow row)
     {
         PathIcon chevron = new() { Classes = { "chevron" }, IsVisible = row.Node.Children.Count > 0, RenderTransformOrigin = RelativePoint.Center };
-        chevron.Bind(PathIcon.DataProperty, chevron.GetResourceObservable("Icon.ChevronRight"));
+        chevron.Bind(PathIcon.DataProperty, chevron.GetResourceObservable(IconKeys.ChevronRight));
         chevron.RenderTransform = new RotateTransform(row.IsExpanded ? 90 : 0);
         row.FollowWhileShown(chevron, (_, _) => chevron.RenderTransform = new RotateTransform(row.IsExpanded ? 90 : 0));
         Border toggle = new() { Width = 18, Height = ListRow.Height, Background = Brushes.Transparent, Child = chevron };
@@ -572,7 +572,7 @@ public sealed class MemoryView : DockPanel
     {
         TextBlock block = Cell(item.Type);
         Avalonia.Controls.Documents.Run address = new($"  0x{item.Address:x}") { FontFamily = CSharp.Fonts.Mono, FontSize = 12 };
-        address.Bind(Avalonia.Controls.Documents.TextElement.ForegroundProperty, block.GetResourceObservable("Passenger.TextMuted"));
+        address.Bind(Avalonia.Controls.Documents.TextElement.ForegroundProperty, block.GetResourceObservable(TokenKeys.TextMuted));
         block.Text = null;
         block.Inlines = new Avalonia.Controls.Documents.InlineCollection { new Avalonia.Controls.Documents.Run(item.Type), address };
         return block;

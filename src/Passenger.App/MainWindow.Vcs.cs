@@ -74,13 +74,13 @@ public partial class MainWindow
     private void AddVcs()
     {
         // Each built as it is first shown or asked for, over the session's Git then.
-        Dock.Add(new Docking.ToolWindow(ToolWindowIds.Commit, "Commit", "Icon.Commit", MakeCommit, Docking.ToolAnchor.LeftTop)
+        Dock.Add(new Docking.ToolWindow(ToolWindowIds.Commit, "Commit", IconKeys.Commit, MakeCommit, Docking.ToolAnchor.LeftTop)
         {
             Action = AppActions.ShowCommit,
             ActionTitle = "Commit Tool Window",
             Menus = [new MenuPlace("Git", 3, 0)],
         });
-        Dock.Add(new Docking.ToolWindow(ToolWindowIds.Git, "Git", "Icon.Branch", MakeGit, Docking.ToolAnchor.BottomLeft)
+        Dock.Add(new Docking.ToolWindow(ToolWindowIds.Git, "Git", IconKeys.Branch, MakeGit, Docking.ToolAnchor.BottomLeft)
         {
             Action = AppActions.ShowGit,
             Menus = [new MenuPlace("Git", 3, 1)],

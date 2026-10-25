@@ -227,7 +227,7 @@ public sealed class VariablesList : ListBox
             return new TextBlock();
         }
         PathIcon chevron = new() { Classes = { "chevron" }, IsVisible = node.HasChildren, RenderTransformOrigin = RelativePoint.Center };
-        chevron.Bind(PathIcon.DataProperty, chevron.GetResourceObservable("Icon.ChevronRight"));
+        chevron.Bind(PathIcon.DataProperty, chevron.GetResourceObservable(IconKeys.ChevronRight));
         chevron.RenderTransform = new RotateTransform(node.ChevronAngle);
         node.FollowWhileShown(chevron, (_, e) =>
         {
@@ -249,11 +249,11 @@ public sealed class VariablesList : ListBox
         // Marks for what the debugger adds to a frame's values: a call's value, the exception stopped at, a query's SQL.
         string iconKey = node switch
         {
-            { Role: VariableRole.Watch } => "Icon.Evaluate",
-            { IsReturnValue: true } => "Icon.StepOut",
-            { IsException: true } => "Icon.Error",
-            { IsQuerySql: true } => "Icon.Database",
-            _ => "Icon.Variable",
+            { Role: VariableRole.Watch } => IconKeys.Evaluate,
+            { IsReturnValue: true } => IconKeys.StepOut,
+            { IsException: true } => IconKeys.Error,
+            { IsQuerySql: true } => IconKeys.Database,
+            _ => IconKeys.Variable,
         };
         icon.Bind(PathIcon.DataProperty, icon.GetResourceObservable(iconKey));
         TextBlock type = new() { Text = node.TypeLabel, VerticalAlignment = VerticalAlignment.Center };
@@ -261,7 +261,7 @@ public sealed class VariablesList : ListBox
         TextBlock value = new() { Text = node.Shown, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 900 };
         if (node.Role == VariableRole.Error)
         {
-            value.Bind(TextBlock.ForegroundProperty, value.GetResourceObservable("Passenger.Error"));
+            value.Bind(TextBlock.ForegroundProperty, value.GetResourceObservable(TokenKeys.Error));
         }
         ToolTip.SetTip(value, node.Lines);
         TextBox editor = new() { Classes = { "search" }, MinHeight = 22, Height = 22, MinWidth = 240, Padding = new Thickness(6, 0), IsVisible = false, VerticalAlignment = VerticalAlignment.Center };

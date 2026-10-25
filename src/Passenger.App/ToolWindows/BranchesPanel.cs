@@ -125,7 +125,7 @@ public sealed class BranchesPanel : DockPanel
         ListMenus.Attach(list, () => Selected is { Branch: { } branch } ? Menu(branch) : []);
         search = new TextBox { Classes = { "search" }, PlaceholderText = "Branch or tag", Margin = new Thickness(6, 0, 4, 0), VerticalAlignment = VerticalAlignment.Center };
         search.TextChanged += (_, _) => Show();
-        favorite = ToolButtons.Of("Icon.Star", "Mark/Unmark As Favorite", () =>
+        favorite = ToolButtons.Of(IconKeys.Star, "Mark/Unmark As Favorite", () =>
         {
             if (Selected is { Branch: { } branch })
             {
@@ -133,17 +133,17 @@ public sealed class BranchesPanel : DockPanel
             }
         });
         Border strip = ToolBars.Side(
-            ToolButtons.Of("Icon.Add", "New Branch…", () => Request(NewBranchRequested)),
-            ToolButtons.Of("Icon.Update", "Update Selected", () =>
+            ToolButtons.Of(IconKeys.Add, "New Branch…", () => Request(NewBranchRequested)),
+            ToolButtons.Of(IconKeys.Update, "Update Selected", () =>
             {
                 if (Selected is { Branch: { Kind: RefKind.Local } branch })
                 {
                     IdeErrors.Observe(vcs.UpdateBranchAsync(branch));
                 }
             }),
-            ToolButtons.Of("Icon.Clear", "Delete", () => Request(DeleteRequested)),
+            ToolButtons.Of(IconKeys.Clear, "Delete", () => Request(DeleteRequested)),
             favorite,
-            ToolButtons.Of("Icon.Locate", "Navigate Log to Selected Branch Head", () => Request(NavigateRequested)));
+            ToolButtons.Of(IconKeys.Locate, "Navigate Log to Selected Branch Head", () => Request(NavigateRequested)));
         Border top = ToolBars.Top(search);
         Children.Add(strip);
         Children.Add(top);
@@ -526,7 +526,7 @@ public sealed class BranchesPanel : DockPanel
         if (node.IsGroup)
         {
             PathIcon chevron = new() { Classes = { "chevron" }, Width = 10, Height = 10, Margin = new Thickness(4, 0, 4, 0) };
-            node.FollowWhileShown(chevron, (_, _) => chevron.Bind(PathIcon.DataProperty, chevron.GetResourceObservable(node.IsExpanded ? "Icon.ChevronDown" : "Icon.ChevronRight")));
+            node.FollowWhileShown(chevron, (_, _) => chevron.Bind(PathIcon.DataProperty, chevron.GetResourceObservable(node.IsExpanded ? IconKeys.ChevronDown : IconKeys.ChevronRight)));
             Border hit = new() { Background = Brushes.Transparent, Child = chevron, VerticalAlignment = VerticalAlignment.Center };
             hit.PointerPressed += (_, e) =>
             {
@@ -541,16 +541,16 @@ public sealed class BranchesPanel : DockPanel
         }
         if (node.Kind is BranchNodeKind.Ref or BranchNodeKind.Head)
         {
-            string icon = node.Branch?.Kind == RefKind.Tag ? "Icon.Label" : node.IsFavorite ? "Icon.StarFilled" : "Icon.Branch";
+            string icon = node.Branch?.Kind == RefKind.Tag ? IconKeys.Label : node.IsFavorite ? IconKeys.StarFilled : IconKeys.Branch;
             PathIcon mark = new() { Width = 13, Height = 13, Margin = new Thickness(0, 0, 6, 0) };
             mark.Bind(PathIcon.DataProperty, mark.GetResourceObservable(icon));
             if (node.IsFavorite)
             {
-                mark.Bind(PathIcon.ForegroundProperty, mark.GetResourceObservable("Passenger.Vcs.Favorite"));
+                mark.Bind(PathIcon.ForegroundProperty, mark.GetResourceObservable(TokenKeys.Vcs_Favorite));
             }
             else if (node.Branch?.IsCurrent == true || node.Kind == BranchNodeKind.Head)
             {
-                mark.Bind(PathIcon.ForegroundProperty, mark.GetResourceObservable("Passenger.Accent"));
+                mark.Bind(PathIcon.ForegroundProperty, mark.GetResourceObservable(TokenKeys.Accent));
             }
             row.Children.Add(mark);
         }

@@ -87,7 +87,7 @@ public sealed class PublishDialog : Window
         SizeToContent = SizeToContent.Height;
         CanResize = false;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        problem.Bind(TextBlock.ForegroundProperty, problem.GetResourceObservable("Passenger.Error"));
+        problem.Bind(TextBlock.ForegroundProperty, problem.GetResourceObservable(TokenKeys.Error));
 
         Button cancel = new() { Content = "Cancel", IsCancel = true };
         cancel.Click += (_, _) => Close(null);
@@ -130,7 +130,7 @@ public sealed class PublishDialog : Window
             },
         };
         Border top = new() { BorderThickness = new Thickness(0, 0, 0, 1), Child = header };
-        top.Bind(Border.BorderBrushProperty, top.GetResourceObservable("Passenger.Divider"));
+        top.Bind(Border.BorderBrushProperty, top.GetResourceObservable(TokenKeys.Divider));
         Border bottom = DialogFooter.Bar(DialogFooter.Of(publish, cancel, saveButton), problem);
         // Inset as the page above it is, so Publish ends where its fields do and a problem starts where its labels do.
         bottom.Padding = new Thickness(20, 10);

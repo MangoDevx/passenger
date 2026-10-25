@@ -254,7 +254,7 @@ internal sealed partial class CodeActions
                 Text = used,
                 FontFamily = Fonts.Mono,
                 FontSize = 12,
-                Foreground = InfoCard.Brush("Passenger.TextMuted"),
+                Foreground = InfoCard.Brush(TokenKeys.TextMuted),
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 VerticalAlignment = VerticalAlignment.Center,
             };

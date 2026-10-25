@@ -128,7 +128,7 @@ public sealed class NewProjectDialog : Window
         leftPanel.Children.Add(search);
         leftPanel.Children.Add(new Panel { Children = { list, loading } });
         Border left = new() { Width = 260, BorderThickness = new Thickness(0, 0, 1, 0), Child = leftPanel };
-        left.Bind(Border.BorderBrushProperty, left.GetResourceObservable("Passenger.Divider"));
+        left.Bind(Border.BorderBrushProperty, left.GetResourceObservable(TokenKeys.Divider));
         typeChooser.ItemTemplate = new FuncDataTemplate<ProjectTemplate?>((type, _) => type is null ? new Panel() : TypeItem(type), supportsRecycling: false);
         typeChooser.SelectionChanged += (_, _) =>
         {
@@ -191,7 +191,7 @@ public sealed class NewProjectDialog : Window
         };
         Border rightPane = new() { Child = new ScrollViewer { Content = right } };
 
-        problem.Bind(TextBlock.ForegroundProperty, problem.GetResourceObservable("Passenger.Error"));
+        problem.Bind(TextBlock.ForegroundProperty, problem.GetResourceObservable(TokenKeys.Error));
         working = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, IsVisible = false, Children = { bar, progress } };
         Button cancel = new() { Content = "Cancel", IsCancel = true };
         cancel.Click += (_, _) => Cancel();
@@ -1143,7 +1143,7 @@ public sealed class NewProjectDialog : Window
     private Control Rule()
     {
         Border rule = new() { Height = 1, Margin = new Thickness(0, 6) };
-        rule.Bind(Border.BackgroundProperty, rule.GetResourceObservable("Passenger.Separator"));
+        rule.Bind(Border.BackgroundProperty, rule.GetResourceObservable(TokenKeys.Separator));
         return rule;
     }
 

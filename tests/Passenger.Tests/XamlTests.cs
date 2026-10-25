@@ -170,12 +170,12 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
         CodeEditor editor = window.EditorArea.CodeEditor;
         Ui.PlaceAfter(editor, "Background=\"{DynamicResource Passenger.");
         Ui.Run(window, AppActions.Complete);
-        Ui.WaitFor(() => window.Assist.CompletionLabels.Contains("Passenger.Panel"), "Tokens.axaml's keys, which App.axaml merges in");
-        Assert.Contains("Passenger.Editor.Background", window.Assist.CompletionLabels);
+        Ui.WaitFor(() => window.Assist.CompletionLabels.Contains(TokenKeys.Panel), "Tokens.axaml's keys, which App.axaml merges in");
+        Assert.Contains(TokenKeys.Editor_Background, window.Assist.CompletionLabels);
         Ui.Press(window, "ESCAPE");
         Ui.PlaceAfter(editor, "<PathIcon Data=\"{StaticResource Icon.");
         Ui.Run(window, AppActions.Complete);
-        Ui.WaitFor(() => window.Assist.CompletionLabels.Contains("Icon.Menu"), "Icons.axaml's geometries");
+        Ui.WaitFor(() => window.Assist.CompletionLabels.Contains(IconKeys.Menu), "Icons.axaml's geometries");
         Ui.Press(window, "ESCAPE");
 
         Ui.PlaceAfter(editor, "<Button Name=\"MenuButton\" Classes=\"");

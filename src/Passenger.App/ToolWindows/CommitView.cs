@@ -184,7 +184,7 @@ public sealed class CommitView : DockPanel, IOwnKeys
             BorderThickness = new Thickness(0, 1, 0, 0),
             Child = new StackPanel { Children = { amend, message, buttons } },
         };
-        bottom.Bind(Border.BorderBrushProperty, bottom.GetResourceObservable("Passenger.Divider"));
+        bottom.Bind(Border.BorderBrushProperty, bottom.GetResourceObservable(TokenKeys.Divider));
 
         StackPanel tools = new()
         {
@@ -194,9 +194,9 @@ public sealed class CommitView : DockPanel, IOwnKeys
             VerticalAlignment = VerticalAlignment.Center,
             Children =
             {
-                ToolButtons.Of("Icon.Rerun", "Refresh", () => IdeErrors.Observe(vcs.RefreshAsync())),
-                ToolButtons.Of("Icon.Rollback", "Rollback", () => RollbackRequested?.Invoke(this, ChosenOrSelected())),
-                ToolButtons.Of(AppActions.ShowDiff, "Icon.Diff", "Show Diff", _ =>
+                ToolButtons.Of(IconKeys.Rerun, "Refresh", () => IdeErrors.Observe(vcs.RefreshAsync())),
+                ToolButtons.Of(IconKeys.Rollback, "Rollback", () => RollbackRequested?.Invoke(this, ChosenOrSelected())),
+                ToolButtons.Of(AppActions.ShowDiff, IconKeys.Diff, "Show Diff", _ =>
                 {
                     if (list.SelectedItem is CommitRow row)
                     {
@@ -496,7 +496,7 @@ public sealed class CommitView : DockPanel, IOwnKeys
     private Control ConflictsRow(CommitGroup group)
     {
         TextBlock name = new() { Text = group.Name, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(26, 0, 0, 0) };
-        name.Bind(TextBlock.ForegroundProperty, name.GetResourceObservable("Passenger.Vcs.File.Conflicted"));
+        name.Bind(TextBlock.ForegroundProperty, name.GetResourceObservable(TokenKeys.Vcs_File_Conflicted));
         TextBlock count = new()
         {
             Text = Core.Plural.Of(group.Rows.Count, "file"),
@@ -584,10 +584,10 @@ public sealed class CommitView : DockPanel, IOwnKeys
     /// <summary>A changed file's colour by how it changed (modified, added, deleted, new).</summary>
     internal static string KindToken(ChangeKind kind) => kind switch
     {
-        ChangeKind.Added => "Passenger.Vcs.File.Added",
-        ChangeKind.Deleted => "Passenger.Vcs.File.Deleted",
-        ChangeKind.Unversioned => "Passenger.Vcs.File.Unversioned",
-        ChangeKind.Conflicted => "Passenger.Vcs.File.Conflicted",
-        _ => "Passenger.Vcs.File.Modified",
+        ChangeKind.Added => TokenKeys.Vcs_File_Added,
+        ChangeKind.Deleted => TokenKeys.Vcs_File_Deleted,
+        ChangeKind.Unversioned => TokenKeys.Vcs_File_Unversioned,
+        ChangeKind.Conflicted => TokenKeys.Vcs_File_Conflicted,
+        _ => TokenKeys.Vcs_File_Modified,
     };
 }

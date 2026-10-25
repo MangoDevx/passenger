@@ -841,7 +841,7 @@ public sealed class VcsTests : IDisposable
     }
 
     private static Avalonia.Media.Color Modified() =>
-        Avalonia.Controls.ResourceNodeExtensions.TryFindResource(Avalonia.Application.Current!, "Passenger.Vcs.Modified", Avalonia.Styling.ThemeVariant.Dark, out object? brush) && brush is Avalonia.Media.ISolidColorBrush solid
+        Avalonia.Controls.ResourceNodeExtensions.TryFindResource(Avalonia.Application.Current!, TokenKeys.Vcs_Modified, Avalonia.Styling.ThemeVariant.Dark, out object? brush) && brush is Avalonia.Media.ISolidColorBrush solid
             ? solid.Color
             : throw new InvalidOperationException("The theme has no modified bar's colour");
 

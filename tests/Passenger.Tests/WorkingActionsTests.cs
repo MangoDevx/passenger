@@ -50,7 +50,7 @@ public sealed class WorkingActionsTests : WorkingActionsFolders, IClassFixture<R
         Dispatcher.UIThread.RunJobs();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick(1);
         Assert.True(run.TranslatePoint(default, window) == placed, "Run should stay where it was clicked, so a second click lands on it and not on what moved under the pointer");
-        Color accent = ((ISolidColorBrush)window.FindResource(window.ActualThemeVariant, "Passenger.Accent")!).Color;
+        Color accent = ((ISolidColorBrush)window.FindResource(window.ActualThemeVariant, TokenKeys.Accent)!).Color;
         int drawn = Ring(window, run).Count(c => Math.Abs(c.R - accent.R) + Math.Abs(c.G - accent.G) + Math.Abs(c.B - accent.B) < 90);
         Assert.True(drawn >= 9, $"Run's ring should be drawn round its icon in the accent in the frame after the click, but {drawn} of 16 points round it were");
 

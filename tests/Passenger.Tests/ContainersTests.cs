@@ -873,8 +873,8 @@ public sealed class ContainersTests
             ContainersView view = Shown(window);
             Ui.WaitFor(() => Row(view, "crashy") is not null && Row(view, "halted") is not null, "the stand-in's containers listed");
             foreach ((string name, string colour, string said) in (ReadOnlySpan<(string, string, string)>)[
-                ("crashy", "Passenger.Error", "Restarting (1) 3 seconds ago"), ("broken", "Passenger.Error", "Exited (1) 2 minutes ago"),
-                ("halted", "Passenger.TextMuted", "Exited (137) 1 minute ago"), ("solo", "Passenger.TextMuted", "Exited (0) 2 minutes ago")])
+                ("crashy", TokenKeys.Error, "Restarting (1) 3 seconds ago"), ("broken", TokenKeys.Error, "Exited (1) 2 minutes ago"),
+                ("halted", TokenKeys.TextMuted, "Exited (137) 1 minute ago"), ("solo", TokenKeys.TextMuted, "Exited (0) 2 minutes ago")])
             {
                 RunRowView row = view.GetVisualDescendants().OfType<RunRowView>().Single(r => r.Shown?.Label == name);
                 Ui.Click(row.GetVisualDescendants().OfType<TextBlock>().First(text => text.Text == name));

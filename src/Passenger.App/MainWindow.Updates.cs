@@ -389,7 +389,7 @@ public partial class MainWindow
     {
         UpdateShown = release with { Link = link };
         string opens = link == release.Link && release.Asset is { } asset ? $"Download {asset}" : $"Open the release page of {release.Tag}";
-        Notice(UpdateNotice.Available, "Icon.ArrowDown", "Passenger.Link", $"Passenger {release.Version} available",
+        Notice(UpdateNotice.Available, IconKeys.ArrowDown, TokenKeys.Link, $"Passenger {release.Version} available",
             $"{(why is null ? string.Empty : why + "\n")}{opens}\n{link}");
     }
 
@@ -397,7 +397,7 @@ public partial class MainWindow
     private void ShowDownloading(LatestRelease release, int percent)
     {
         UpdateShown = release;
-        Notice(UpdateNotice.Downloading, "Icon.ArrowDown", "Passenger.Link",
+        Notice(UpdateNotice.Downloading, IconKeys.ArrowDown, TokenKeys.Link,
             percent < 100 ? $"Downloading Passenger {release.Version}: {percent}%" : $"Checking Passenger {release.Version}…",
             $"Passenger {release.Version} is downloading from GitHub, to be checked and installed when Passenger restarts.\nClick to open its release page.");
     }
@@ -405,7 +405,7 @@ public partial class MainWindow
     private void ShowReady(LatestRelease release)
     {
         UpdateShown = release;
-        Notice(UpdateNotice.Ready, "Icon.Rerun", "Passenger.Link", $"Restart to update to Passenger {release.Version}",
+        Notice(UpdateNotice.Ready, IconKeys.Rerun, TokenKeys.Link, $"Restart to update to Passenger {release.Version}",
             $"Passenger {release.Version} is downloaded and checked. Click to restart into it;\notherwise it installs when Passenger closes.");
     }
 
@@ -414,7 +414,7 @@ public partial class MainWindow
     private void ShowRefused(LatestRelease release, string why)
     {
         UpdateShown = release with { Link = release.Page };
-        Notice(UpdateNotice.Refused, "Icon.Error", "Passenger.Warning", $"Passenger {release.Version} not installed",
+        Notice(UpdateNotice.Refused, IconKeys.Error, TokenKeys.Warning, $"Passenger {release.Version} not installed",
             $"{why}\nOpen the release page of {release.Tag}\n{release.Page}");
     }
 

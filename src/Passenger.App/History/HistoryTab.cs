@@ -79,7 +79,7 @@ public sealed class HistoryTab : DockPanel
 
         filter = new TextBox { Classes = { "search" }, PlaceholderText = isFolder ? "Search by file name" : "Search by content", Width = 240, Margin = new Thickness(8, 0) };
         filter.TextChanged += (_, _) => IdeErrors.Observe(FilterAsync());
-        Button revert = ToolButtons.Of("Icon.Rollback", "Revert Selected and Later Changes", () => IdeErrors.Observe(RevertAsync()));
+        Button revert = ToolButtons.Of(IconKeys.Rollback, "Revert Selected and Later Changes", () => IdeErrors.Observe(RevertAsync()));
         Border top = ToolBars.Top(new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Children = { filter, revert } });
 
         Control right = diffHost;
@@ -97,7 +97,7 @@ public sealed class HistoryTab : DockPanel
             {
                 [DockProperty] = Dock.Top,
                 Height = 30,
-                Child = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(4, 0), Children = { ToolButtons.Of("Icon.Rollback", "Revert Selection", () => IdeErrors.Observe(RevertSelectionAsync())) } },
+                Child = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(4, 0), Children = { ToolButtons.Of(IconKeys.Rollback, "Revert Selection", () => IdeErrors.Observe(RevertSelectionAsync())) } },
             };
             Grid split = new() { RowDefinitions = new RowDefinitions("*,1,2*") };
             DockPanel changes = new() { Children = { fileBar, fileList } };
@@ -395,8 +395,8 @@ public sealed class HistoryTab : DockPanel
         {
             // The IDE's own labels (Tests Passed) muted beside the person's.
             PathIcon tag = new() { Width = 12, Height = 12, Margin = new Thickness(0, 0, 6, 0), [DockProperty] = Dock.Left };
-            tag.Bind(PathIcon.DataProperty, tag.GetResourceObservable("Icon.Label"));
-            tag.Bind(PathIcon.ForegroundProperty, tag.GetResourceObservable(row.System ? "Passenger.TextMuted" : "Passenger.Accent"));
+            tag.Bind(PathIcon.DataProperty, tag.GetResourceObservable(IconKeys.Label));
+            tag.Bind(PathIcon.ForegroundProperty, tag.GetResourceObservable(row.System ? TokenKeys.TextMuted : TokenKeys.Accent));
             line.Children.Add(tag);
         }
         TextBlock title = new() { Text = row.Title, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };

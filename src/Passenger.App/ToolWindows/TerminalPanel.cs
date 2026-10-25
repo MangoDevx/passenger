@@ -61,7 +61,7 @@ public sealed class TerminalPanel : DockPanel
             ItemTemplate = new FuncDataTemplate<TerminalTab>((tab, _) => tab is null ? new TextBlock() : Tab(tab), supportsRecycling: false),
         };
         Children.Add(view);
-        Bind(BackgroundProperty, this.GetResourceObservable("Passenger.Terminal.Background"));
+        Bind(BackgroundProperty, this.GetResourceObservable(TokenKeys.Terminal_Background));
         AttachedToVisualTree += (_, _) =>
         {
             if (tabs.Count == 0)
@@ -70,7 +70,7 @@ public sealed class TerminalPanel : DockPanel
             }
             FocusView();
         };
-        Button add = ToolButtons.Of("Icon.Add", "New Session", () => IdeErrors.Observe(NewSessionAsync()));
+        Button add = ToolButtons.Of(IconKeys.Add, "New Session", () => IdeErrors.Observe(NewSessionAsync()));
         HeaderTools = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { strip, add } };
     }
 

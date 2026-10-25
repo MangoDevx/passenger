@@ -340,8 +340,8 @@ public sealed class ContainerFilesPane : DockPanel
     private Control Row(ContainerFile file)
     {
         PathIcon icon = new() { Width = 14, Height = 14, Margin = new Thickness(0, 0, 6, 0) };
-        icon.Bind(PathIcon.DataProperty, icon.GetResourceObservable(file.IsFolder ? open.Contains(file.Path) ? "Icon.FolderOpen" : "Icon.Explorer" : "Icon.DocumentText"));
-        icon.Bind(PathIcon.ForegroundProperty, icon.GetResourceObservable("Passenger.TextMuted"));
+        icon.Bind(PathIcon.DataProperty, icon.GetResourceObservable(file.IsFolder ? open.Contains(file.Path) ? IconKeys.FolderOpen : IconKeys.Explorer : IconKeys.DocumentText));
+        icon.Bind(PathIcon.ForegroundProperty, icon.GetResourceObservable(TokenKeys.TextMuted));
         TextBlock name = new() { Text = file.Name, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
         ToolTip.SetTip(name, file.Path);
         return new StackPanel { Orientation = Orientation.Horizontal, Height = ListRow.Height, Margin = new Thickness(8 + (file.Depth * 16), 0, 8, 0), Children = { icon, name } };

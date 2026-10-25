@@ -47,7 +47,7 @@ public sealed partial class CloneDialog : Window
         progress = new TextBlock { Classes = { "muted" }, FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis };
         working = new StackPanel { Spacing = 6, IsVisible = false, Children = { bar, progress } };
         problem = new TextBlock { TextWrapping = TextWrapping.Wrap, IsVisible = false };
-        problem.Bind(TextBlock.ForegroundProperty, problem.GetResourceObservable("Passenger.Error"));
+        problem.Bind(TextBlock.ForegroundProperty, problem.GetResourceObservable(TokenKeys.Error));
 
         clone = new Button { Content = "Clone", IsDefault = true, Classes = { "primary" } };
         Button cancel = new() { Content = "Cancel", IsCancel = true };

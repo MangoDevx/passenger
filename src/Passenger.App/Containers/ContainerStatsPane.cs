@@ -45,8 +45,8 @@ public sealed class ContainerStatsPane : DockPanel
 
     private readonly Func<ContainerEngine> engine;
     private readonly StackPanel table = new() { Margin = new Thickness(8, 6) };
-    private readonly Sparkline cpu = new("Passenger.Link");
-    private readonly Sparkline memory = new("Passenger.Test.Passed");
+    private readonly Sparkline cpu = new(TokenKeys.Link);
+    private readonly Sparkline memory = new(TokenKeys.Test_Passed);
     private readonly TextBlock waiting = new() { Classes = { "emptyText" }, Text = "Waiting for the engine's first reading…" };
     private readonly Dictionary<string, ContainerStatsSample> latest = new(StringComparer.Ordinal);
     private Process? streaming;

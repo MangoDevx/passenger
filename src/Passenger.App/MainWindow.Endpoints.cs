@@ -19,7 +19,7 @@ public partial class MainWindow
     private void AddEndpoints()
     {
         // Built as it is first shown or asked for (a route's request sent), over the session's files and routes then.
-        Dock.Add(new Docking.ToolWindow(ToolWindowIds.Endpoints, "Endpoints", "Icon.Endpoints", () =>
+        Dock.Add(new Docking.ToolWindow(ToolWindowIds.Endpoints, "Endpoints", IconKeys.Endpoints, () =>
         {
             EndpointsView view = new(new EndpointsParts(work, () => session.EndpointGrants, text => status.Text = text));
             endpoints = view;

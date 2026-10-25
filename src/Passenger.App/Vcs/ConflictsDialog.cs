@@ -62,7 +62,7 @@ public sealed class ConflictsDialog : Window
             Children = { Column("Name", 0), yoursColumn, theirsColumn },
         };
         Border underHeader = new() { Child = header, BorderThickness = new Thickness(0, 0, 0, 1), [DockPanel.DockProperty] = Avalonia.Controls.Dock.Top };
-        underHeader.Bind(Border.BorderBrushProperty, underHeader.GetResourceObservable("Passenger.Separator"));
+        underHeader.Bind(Border.BorderBrushProperty, underHeader.GetResourceObservable(TokenKeys.Separator));
         list = new ListBox
         {
             Classes = { "tree" },
@@ -213,7 +213,7 @@ public sealed class ConflictsDialog : Window
             Margin = new Thickness(0, 0, 6, 0),
         };
         TextBlock name = new() { Text = row.Conflict.Name, VerticalAlignment = VerticalAlignment.Center };
-        name.Bind(TextBlock.ForegroundProperty, name.GetResourceObservable("Passenger.Vcs.File.Conflicted"));
+        name.Bind(TextBlock.ForegroundProperty, name.GetResourceObservable(TokenKeys.Vcs_File_Conflicted));
         TextBlock folder = new() { Text = row.Folder, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0), FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis };
         folder.Classes.Add("muted");
         StackPanel file = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(6, 0, 0, 0), Children = { icon, name, folder } };

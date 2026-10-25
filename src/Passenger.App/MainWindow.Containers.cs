@@ -87,7 +87,7 @@ public partial class MainWindow
         });
 
         AddServiceActions();
-        Dock.Add(new Docking.ToolWindow(ToolWindowIds.Containers, "Containers", "Icon.Containers", MakeContainers, Docking.ToolAnchor.BottomLeft)
+        Dock.Add(new Docking.ToolWindow(ToolWindowIds.Containers, "Containers", IconKeys.Containers, MakeContainers, Docking.ToolAnchor.BottomLeft)
         {
             Action = AppActions.ShowContainers,
             Menus = [new MenuPlace("Tools", 0, 4)],

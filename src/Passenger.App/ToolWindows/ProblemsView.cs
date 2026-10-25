@@ -134,8 +134,8 @@ public sealed class ProblemsView : DockPanel
             return panel;
         }
         PathIcon icon = new() { Margin = new Thickness(0, 0, 8, 0) };
-        icon.Bind(PathIcon.DataProperty, icon.GetResourceObservable(problem.Severity == ProblemSeverity.Error ? "Icon.Error" : "Icon.Problems"));
-        icon.Bind(PathIcon.ForegroundProperty, icon.GetResourceObservable(problem.Severity == ProblemSeverity.Error ? "Passenger.Error" : "Passenger.Warning"));
+        icon.Bind(PathIcon.DataProperty, icon.GetResourceObservable(problem.Severity == ProblemSeverity.Error ? IconKeys.Error : IconKeys.Problems));
+        icon.Bind(PathIcon.ForegroundProperty, icon.GetResourceObservable(problem.Severity == ProblemSeverity.Error ? TokenKeys.Error : TokenKeys.Warning));
         void Where() => detail.Text = problem.Code is { Length: > 0 } code ? $"{row.Detail}  {code}" : row.Detail;
         Where();
         // Followed only while shown, so a row let go of by the list holds nothing it showed.

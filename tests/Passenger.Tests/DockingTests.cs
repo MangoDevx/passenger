@@ -297,7 +297,7 @@ public sealed class DockingTests
     {
         MainWindow window = Open();
         DockHost dock = window.DockHost;
-        Avalonia.Media.Color line = Application.Current!.TryFindResource("Passenger.Divider", window.ActualThemeVariant, out object? brush) && brush is Avalonia.Media.ISolidColorBrush solid
+        Avalonia.Media.Color line = Application.Current!.TryFindResource(TokenKeys.Divider, window.ActualThemeVariant, out object? brush) && brush is Avalonia.Media.ISolidColorBrush solid
             ? solid.Color
             : throw new InvalidOperationException("The theme has no divider colour");
         foreach (string id in new[] { ToolWindowIds.Tests, ToolWindowIds.Debug, ToolWindowIds.Git })

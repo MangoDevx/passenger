@@ -65,13 +65,13 @@ public sealed class MigrationsView : DockPanel
         Border topBar = ToolBars.Top(top);
 
         Border leftBar = ToolBars.Side(
-            ToolButtons.Of(AppActions.MigrationsRefresh, "Icon.Rerun", "Refresh Migrations", Request),
-            ToolButtons.Of(AppActions.AddMigration, "Icon.Add", "Add Migration…", Request),
-            ToolButtons.Of(AppActions.UpdateDatabase, "Icon.Update", "Update Database", Request),
-            ToolButtons.Of(AppActions.RemoveLastMigration, "Icon.Clear", "Remove Last Migration", Request),
+            ToolButtons.Of(AppActions.MigrationsRefresh, IconKeys.Rerun, "Refresh Migrations", Request),
+            ToolButtons.Of(AppActions.AddMigration, IconKeys.Add, "Add Migration…", Request),
+            ToolButtons.Of(AppActions.UpdateDatabase, IconKeys.Update, "Update Database", Request),
+            ToolButtons.Of(AppActions.RemoveLastMigration, IconKeys.Clear, "Remove Last Migration", Request),
             ToolBars.Gap(),
-            ToolButtons.Of(AppActions.ScriptMigrations, "Icon.DocumentText", "Script Migrations…", Request),
-            ToolButtons.Of(AppActions.BundleMigrations, "Icon.Package", "Bundle Migrations", Request));
+            ToolButtons.Of(AppActions.ScriptMigrations, IconKeys.DocumentText, "Script Migrations…", Request),
+            ToolButtons.Of(AppActions.BundleMigrations, IconKeys.Package, "Bundle Migrations", Request));
 
         gaps = new StackPanel { [DockProperty] = Dock.Top, Name = "MigrationsGaps", Spacing = 4, Margin = new Thickness(8, 6, 8, 0) };
         list = new ListBox
@@ -153,7 +153,7 @@ public sealed class MigrationsView : DockPanel
     private Control GapRow(EfGap gap)
     {
         PathIcon icon = new() { Width = 16, Height = 16, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 2, 6, 0) };
-        icon.Bind(PathIcon.DataProperty, icon.GetResourceObservable(gap.Blocks ? "Icon.Error" : "Icon.Problems"));
+        icon.Bind(PathIcon.DataProperty, icon.GetResourceObservable(gap.Blocks ? IconKeys.Error : IconKeys.Problems));
         StackPanel fixes = new() { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(0, 4, 0, 0) };
         foreach (EfFix fix in gap.Fixes)
         {

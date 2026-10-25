@@ -210,7 +210,7 @@ public sealed class HierarchyView : DockPanel
         row.FollowWhileShown(chevron, (_, _) =>
         {
             chevron.IsVisible = row.Expands;
-            chevron.Bind(PathIcon.DataProperty, chevron.GetResourceObservable(row.IsExpanded ? "Icon.ChevronDown" : "Icon.ChevronRight"));
+            chevron.Bind(PathIcon.DataProperty, chevron.GetResourceObservable(row.IsExpanded ? IconKeys.ChevronDown : IconKeys.ChevronRight));
         });
         chevron.PointerPressed += (_, e) =>
         {

@@ -62,7 +62,7 @@ public sealed class TerminalView : Control
         // A theme laid over the application's resources (Settings) changes the brushes, not the variant.
         ResourcesChanged += (_, _) =>
         {
-            if (Find("Passenger.Terminal.Background") != background || Find("Passenger.Terminal.Foreground") != foreground)
+            if (Find(TokenKeys.Terminal_Background) != background || Find(TokenKeys.Terminal_Foreground) != foreground)
             {
                 Refresh();
             }
@@ -254,12 +254,12 @@ public sealed class TerminalView : Control
     private void Refresh()
     {
         palette.Clear();
-        foreground = Find("Passenger.Terminal.Foreground") ?? Brushes.Transparent;
-        background = Find("Passenger.Terminal.Background") ?? Brushes.Transparent;
-        cursor = Find("Passenger.Terminal.Cursor") ?? foreground;
-        selection = Find("Passenger.Terminal.Selection") ?? Brushes.Transparent;
-        link = Find("Passenger.Syntax.Link") ?? Brushes.Transparent;
-        linkUnderline = Find("Passenger.Editor.LinkUnderline") ?? link;
+        foreground = Find(TokenKeys.Terminal_Foreground) ?? Brushes.Transparent;
+        background = Find(TokenKeys.Terminal_Background) ?? Brushes.Transparent;
+        cursor = Find(TokenKeys.Terminal_Cursor) ?? foreground;
+        selection = Find(TokenKeys.Terminal_Selection) ?? Brushes.Transparent;
+        link = Find(TokenKeys.Syntax_Link) ?? Brushes.Transparent;
+        linkUnderline = Find(TokenKeys.Editor_LinkUnderline) ?? link;
         Measure();
         FitSize();
         InvalidateVisual();

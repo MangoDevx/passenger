@@ -69,7 +69,7 @@ public sealed class StructureView : DockPanel
             ListMenus.Item("Copy Name", null, () => IdeErrors.Observe(ListMenus.CopyAsync(this, chosen.Name))),
         ]);
         Children.Add(new Panel { Children = { list, placeholder } });
-        this.Bind(BackgroundProperty, this.GetResourceObservable("Passenger.Panel"));
+        this.Bind(BackgroundProperty, this.GetResourceObservable(TokenKeys.Panel));
     }
 
     /// <summary>A member to go to.</summary>
