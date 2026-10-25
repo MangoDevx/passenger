@@ -121,7 +121,7 @@ public static class MSBuildCompletion
     {
         string text = context.Tree.Text;
         int at = offset;
-        while (at > 0 && XmlTree.IsNameChar(text[at - 1]))
+        while (at > 0 && MarkupNames.IsNameChar(text[at - 1]))
         {
             at--;
         }

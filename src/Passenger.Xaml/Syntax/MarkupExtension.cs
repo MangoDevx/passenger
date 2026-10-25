@@ -82,7 +82,7 @@ public sealed class MarkupExtension
         at++;
         SkipSpace(text, ref at, end);
         extension.NameStart = at;
-        while (at < end && (XmlTree.IsNameChar(text[at]) || text[at] == '+'))
+        while (at < end && (MarkupNames.IsNameChar(text[at]) || text[at] == '+'))
         {
             at++;
         }
@@ -132,7 +132,7 @@ public sealed class MarkupExtension
         {
             // A key is a name before '='; a positional value is anything up to ',' or '}'.
             int scan = at;
-            while (scan < end && (XmlTree.IsNameChar(text[scan]) || text[scan] == '+'))
+            while (scan < end && (MarkupNames.IsNameChar(text[scan]) || text[scan] == '+'))
             {
                 scan++;
             }

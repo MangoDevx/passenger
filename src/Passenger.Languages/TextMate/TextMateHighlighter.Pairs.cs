@@ -16,14 +16,6 @@ public sealed partial class TextMateHighlighter
     /// at each key.</summary>
     private const int NearLines = 2_000;
 
-    private static readonly HashSet<string> VoidElements = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr",
-    };
-
-    /// <summary>The void elements by a name read in place, with no string made for it.</summary>
-    private static readonly HashSet<string>.AlternateLookup<ReadOnlySpan<char>> VoidNames = VoidElements.GetAlternateLookup<ReadOnlySpan<char>>();
-
     /// <summary>A line's characters, copied here to be read without a string each.</summary>
     private char[] lineChars = new char[256];
 
@@ -82,17 +74,17 @@ public sealed partial class TextMateHighlighter
         ReadOnlySpan<char> chars = LineChars(text, line, out int lineStart);
         int column = caret - lineStart;
         int start = column;
-        while (start > 0 && IsNameChar(chars[start - 1]))
+        while (start > 0 && MarkupNames.IsNameChar(chars[start - 1]))
         {
             start--;
         }
         int end = column;
-        while (end < chars.Length && IsNameChar(chars[end]))
+        while (end < chars.Length && MarkupNames.IsNameChar(chars[end]))
         {
             end++;
         }
         bool closing;
-        if (start == end || !IsNameStart(chars[start]))
+        if (start == end || !MarkupNames.IsNameStart(chars[start]))
         {
             return null;
         }
@@ -201,11 +193,11 @@ public sealed partial class TextMateHighlighter
         bool closing = column < chars.Length && chars[column] == '/';
         int start = closing ? column + 1 : column;
         int end = start;
-        while (end < chars.Length && IsNameChar(chars[end]))
+        while (end < chars.Length && MarkupNames.IsNameChar(chars[end]))
         {
             end++;
         }
-        return end > start && IsNameStart(chars[start]) ? (lineStart + start, end - start, line, closing) : null;
+        return end > start && MarkupNames.IsNameStart(chars[start]) ? (lineStart + start, end - start, line, closing) : null;
     }
 
     /// <summary>A tag's name, read where it stands.</summary>
@@ -259,9 +251,9 @@ public sealed partial class TextMateHighlighter
         return null;
     }
 
-    private bool Void(ReadOnlySpan<char> name) => grammar.Tags == Tags.Html && VoidNames.Contains(name);
+    private bool Void(ReadOnlySpan<char> name) => grammar.Tags == Tags.Html && MarkupNames.IsVoid(name);
 
-    private bool Void(TextSnapshot text, (int Start, int Length, int Line, bool Closing) tag) => grammar.Tags == Tags.Html && VoidNames.Contains(NameOf(text, tag));
+    private bool Void(TextSnapshot text, (int Start, int Length, int Line, bool Closing) tag) => grammar.Tags == Tags.Html && MarkupNames.IsVoid(NameOf(text, tag));
 
     private bool SameName(ReadOnlySpan<char> a, string b) => a.Equals(b, grammar.Tags == Tags.Html ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
 
@@ -314,8 +306,4 @@ public sealed partial class TextMateHighlighter
         lineStart = copied.Start;
         return lineChars.AsSpan(0, copied.Length);
     }
-
-    private static bool IsNameStart(char c) => char.IsLetter(c) || c is '_' or ':';
-
-    private static bool IsNameChar(char c) => char.IsLetterOrDigit(c) || c is '_' or ':' or '.' or '-';
 }

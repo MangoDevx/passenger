@@ -426,7 +426,7 @@ public sealed class XmlTree
 
         private void SkipName()
         {
-            while (at < text.Length && IsNameChar(text[at]))
+            while (at < text.Length && MarkupNames.IsNameChar(text[at]))
             {
                 at++;
             }
@@ -440,8 +440,6 @@ public sealed class XmlTree
             }
         }
     }
-
-    public static bool IsNameChar(char c) => char.IsLetterOrDigit(c) || c is '_' or '-' or '.' or ':';
 }
 
 /// <summary>An element: its name as written (<c>prefix:Name</c>, or <c>Owner.Property</c> for a property element), its

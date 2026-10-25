@@ -75,7 +75,7 @@ public static class XamlCompletion
     {
         string text = file.Text;
         int start = offset;
-        while (start > 0 && XmlTree.IsNameChar(text[start - 1]))
+        while (start > 0 && Passenger.Text.MarkupNames.IsNameChar(text[start - 1]))
         {
             start--;
         }

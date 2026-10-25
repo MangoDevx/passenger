@@ -328,7 +328,7 @@ public sealed class MSBuildDocument : IDisposable
             return attribute.HasValue && attribute.ValueRange.Length > 0 ? attribute.ValueRange : attribute.NameRange;
         }
         int end = at;
-        while (end < line.End && XmlTree.IsNameChar(text[end]))
+        while (end < line.End && MarkupNames.IsNameChar(text[end]))
         {
             end++;
         }

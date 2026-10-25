@@ -327,7 +327,7 @@ public sealed class FoldScan : IFoldFinder, IDisposable
                         {
                             state = State.Instruction;
                         }
-                        else if (IsNameStart(c))
+                        else if (MarkupNames.IsNameStart(c))
                         {
                             Append(c);
                             state = State.StartName;
@@ -338,7 +338,7 @@ public sealed class FoldScan : IFoldFinder, IDisposable
                         }
                         break;
                     case State.StartName:
-                        if (IsNameChar(c))
+                        if (MarkupNames.IsNameChar(c))
                         {
                             Append(c);
                             break;
@@ -352,7 +352,7 @@ public sealed class FoldScan : IFoldFinder, IDisposable
                         Attribute(c);
                         break;
                     case State.EndName:
-                        if (IsNameChar(c))
+                        if (MarkupNames.IsNameChar(c))
                         {
                             Append(c);
                         }
@@ -400,8 +400,7 @@ public sealed class FoldScan : IFoldFinder, IDisposable
                         run = c == ']' ? run + 1 : 0;
                         break;
                     case State.Declaration:
-                        brackets += c == '[' ? 1 : c == ']' ? -1 : 0;
-                        if (c == '>' && brackets <= 0)
+                        if (MarkupNames.EndsDeclaration(c, ref brackets))
                         {
                             state = State.Text;
                         }
@@ -474,10 +473,6 @@ public sealed class FoldScan : IFoldFinder, IDisposable
                 }
                 names[namesLength++] = c;
             }
-
-            private static bool IsNameStart(char c) => char.IsLetter(c) || c is '_' or ':';
-
-            private static bool IsNameChar(char c) => char.IsLetterOrDigit(c) || c is '_' or ':' or '-' or '.';
         }
     }
 

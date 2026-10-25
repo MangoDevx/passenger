@@ -221,7 +221,7 @@ public sealed class XamlDocument : IDisposable
             at++;
         }
         int end = at;
-        while (end < line.End && XmlTree.IsNameChar(text[end]))
+        while (end < line.End && MarkupNames.IsNameChar(text[end]))
         {
             end++;
         }

@@ -18,11 +18,6 @@ internal static class MarkupIndent
     /// reaches the elements that hold the caret: a key costs the elements it is in, not the file before it.</summary>
     private const int FirstReach = 4096;
 
-    private static readonly HashSet<string> VoidElements = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr",
-    };
-
     private static readonly HashSet<string> RawTextElements = new(StringComparer.OrdinalIgnoreCase) { "script", "style", "textarea", "title" };
 
     /// <summary>The start tags that close an open p (HTML's "close a p element" in button scope).</summary>
@@ -88,14 +83,12 @@ internal static class MarkupIndent
     private static string? EndTagAt(TextSnapshot text, int at, int limit)
     {
         int end = at + 2;
-        while (end < limit && end - at < 256 && IsNameChar(text[end]))
+        while (end < limit && end - at < 256 && MarkupNames.IsNameChar(text[end]))
         {
             end++;
         }
         return end > at + 2 ? text.GetText(at + 2, end - at - 2) : null;
     }
-
-    private static bool IsNameChar(char c) => char.IsLetterOrDigit(c) || c is '_' or '-' or '.' or ':';
 
     /// <summary>An XML file's place read back from the caret, a stretch at a time, as far as the elements that hold it; read
     /// from the file's start as a whole where what it found back there does not pair up (an end tag with no start).</summary>
@@ -197,7 +190,7 @@ internal static class MarkupIndent
             if (s.AsSpan(lt).StartsWith("<!"))
             {
                 // A declaration (DOCTYPE), whose '>' ends it before what was read after it.
-                if (s.IndexOf('>', lt + 2, p - lt - 2) < 0)
+                if (MarkupNames.DeclarationEnd(s.AsSpan(0, p), lt) < 0)
                 {
                     return p == s.Length ? new Place(PlaceKind.Other) : null;
                 }
@@ -207,7 +200,7 @@ internal static class MarkupIndent
             bool endTag = lt + 1 < p && s[lt + 1] == '/';
             int nameStart = lt + (endTag ? 2 : 1);
             int nameEnd = nameStart;
-            while (nameEnd < p && IsNameChar(s[nameEnd]))
+            while (nameEnd < p && MarkupNames.IsNameChar(s[nameEnd]))
             {
                 nameEnd++;
             }
@@ -338,7 +331,7 @@ internal static class MarkupIndent
                 i = comment;
                 continue;
             }
-            if ((Skip(s, lt, "<![CDATA[", "]]>") ?? Skip(s, lt, "<?", "?>") ?? Skip(s, lt, "<!", ">")) is { } declaration)
+            if ((Skip(s, lt, "<![CDATA[", "]]>") ?? Skip(s, lt, "<?", "?>") ?? (s.AsSpan(lt).StartsWith("<!") ? MarkupNames.DeclarationEnd(s, lt) : null)) is { } declaration)
             {
                 if (declaration < 0)
                 {
@@ -350,7 +343,7 @@ internal static class MarkupIndent
             bool endTag = lt + 1 < s.Length && s[lt + 1] == '/';
             int nameStart = lt + (endTag ? 2 : 1);
             int nameEnd = nameStart;
-            while (nameEnd < s.Length && IsNameChar(s[nameEnd]))
+            while (nameEnd < s.Length && MarkupNames.IsNameChar(s[nameEnd]))
             {
                 nameEnd++;
             }
@@ -385,7 +378,7 @@ internal static class MarkupIndent
             {
                 CloseImplied(open, name);
             }
-            if (s[gt - 1] == '/' || kind == MarkupKind.Html && VoidElements.Contains(name))
+            if (s[gt - 1] == '/' || kind == MarkupKind.Html && MarkupNames.IsVoid(name))
             {
                 continue;
             }
