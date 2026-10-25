@@ -102,9 +102,9 @@ public sealed class DiscordPresence(DiscordIpc ipc, Action<string> log)
             while (true)
             {
                 DiscordActivity? now = Wanted();
-                if (connection is { Lost.IsCompleted: true })
+                if (connection is { Lost: { IsCompleted: true } lost })
                 {
-                    Say(ref quiet, connection.Lost.Result);
+                    Say(ref quiet, lost.Result);
                     await connection.DisposeAsync().ConfigureAwait(false);
                     connection = null;
                     await WaitAsync(ipc.Retry, end).ConfigureAwait(false);

@@ -74,11 +74,18 @@ public sealed class SymbolCache
         }
     }
 
-    /// <summary>Decompiles an assembly into its entry, written whole as it is made. False when it could not be decompiled
-    /// or the session ended first (<paramref name="cancel"/>), its temporary file then deleted.</summary>
-    public bool Write(string assemblyPath, string name, Guid mvid, IReadOnlyList<string> references, CancellationToken cancel)
+    /// <summary>Decompiles an assembly into its entry once the prune has ended, on a thread of its own (CoreLib's takes many
+    /// seconds), written whole as it is made. False when it could not be decompiled or the session ended first
+    /// (<paramref name="cancel"/>), its temporary file then deleted.</summary>
+    public async Task<bool> WriteAsync(string assemblyPath, string name, Guid mvid, IReadOnlyList<string> references, CancellationToken cancel)
     {
-        pruned.Wait();
+        await pruned.ConfigureAwait(false);
+        return await Task.Factory.StartNew(() => Write(assemblyPath, name, mvid, references, cancel), CancellationToken.None,
+            TaskCreationOptions.LongRunning, TaskScheduler.Default).ConfigureAwait(false);
+    }
+
+    private bool Write(string assemblyPath, string name, Guid mvid, IReadOnlyList<string> references, CancellationToken cancel)
+    {
         string pdb = PathOf(name, mvid);
         try
         {

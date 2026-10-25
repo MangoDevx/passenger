@@ -702,10 +702,10 @@ public sealed class ProfilerCommands
         if (running.FirstOrDefault(p => p.Tab is { } tab && tab == current.Debug.Chosen) is { Tab.Session: { } debugging } debugged)
         {
             // A container's program, by its id there, recorded there through the debugger's own map of its paths.
-            if (debugging is { Elsewhere: true, Place: { } place, ProcessStarted.IsCompletedSuccessfully: true })
+            if (debugging is { Elsewhere: true, Place: { } place, ProcessStarted: { IsCompletedSuccessfully: true } started })
             {
-                string program = place.Program ?? $"process {debugging.ProcessStarted.Result}";
-                DotnetProcess there = new(debugging.ProcessStarted.Result, program, string.Empty, string.Empty, true) { Container = place.Where };
+                string program = place.Program ?? $"process {started.Result}";
+                DotnetProcess there = new(started.Result, program, string.Empty, string.Empty, true) { Container = place.Where };
                 return new AttachTarget(there.Id, debugged.Name, FileName(Path.GetFileNameWithoutExtension(program))) { Elsewhere = there, Paths = place.Paths };
             }
             // Its process on this machine: a container's process id names none of this one's.

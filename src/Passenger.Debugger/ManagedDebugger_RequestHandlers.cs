@@ -147,7 +147,8 @@ public partial class ManagedDebugger
         {
             _logger?.Invoke($"Taking hold of process {processId} failed: {error}");
             // A program that ended meanwhile is why, whatever the debugger was refused on the way.
-            string ended = launchExit.Wait(TimeSpan.FromMilliseconds(500)) && launchExit.Result is int code ? $" (the program had ended, with exit code {code})" : "";
+            await Task.WhenAny(launchExit, Task.Delay(TimeSpan.FromMilliseconds(500)));
+            string ended = launchExit.IsCompletedSuccessfully && launchExit.Result is int code ? $" (the program had ended, with exit code {code})" : "";
             // A program the debugger could not take hold of (not .NET, or failed first) is not left behind, held.
             launch.Kill();
             throw new InvalidOperationException($"Could not take hold of process {processId} as it started: {error.Message}{ended}", error);

@@ -56,7 +56,7 @@ public sealed class XamlDocument : IDisposable
     public Task<XamlProject?> Loaded => Loading.Loaded;
 
     /// <summary>Whether the project's types have been read and are XAML Passenger reads.</summary>
-    public bool IsLoaded => Loading.Loaded.IsCompletedSuccessfully && Loading.Loaded.Result is not null;
+    public bool IsLoaded => Loading.Loaded is { IsCompletedSuccessfully: true } loaded && loaded.Result is not null;
 
     /// <summary>The problems last found in the file, each with its fix when it has one.</summary>
     public IReadOnlyList<XamlDiagnostic> Diagnostics { get; private set; } = [];

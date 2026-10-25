@@ -30,14 +30,14 @@ public abstract class Updater
         }
         catch (UpdateRefusedException refused)
         {
-            Discard();
+            await DiscardAsync().ConfigureAwait(false);
             return new UpdateOutcome.Refused(refused.Message,
                 $"Passenger {release.Version} was not installed: {refused.Message}{(refused.Detail is { } detail ? $" ({detail})" : string.Empty)}");
         }
         catch (Exception error) when (error is UpdateFailedException or IOException or UnauthorizedAccessException or TimeoutException
             or System.ComponentModel.Win32Exception)
         {
-            Discard();
+            await DiscardAsync().ConfigureAwait(false);
             return new UpdateOutcome.Failed(error.Message, $"could not download Passenger {release.Version}: {error.Message}");
         }
     }
@@ -51,7 +51,7 @@ public abstract class Updater
     public abstract void Install(bool restart);
 
     /// <summary>Drops a download made or under way, as Check for updates turned off asks.</summary>
-    public abstract void Discard();
+    public abstract Task DiscardAsync();
 
     /// <summary>Another Passenger running from this install, whose files an install would change under it: it waits
     /// for the last one to close.</summary>

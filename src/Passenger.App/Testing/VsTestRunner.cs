@@ -330,13 +330,13 @@ public sealed class VsTestRunner : ITestRunner
 
         public int LaunchTestHost(TestProcessStartInfo defaultTestHostStartInfo) => LaunchTestHost(defaultTestHostStartInfo, CancellationToken.None);
 
+        // VSTest's interface answers with the process id, on VSTest's own thread.
         public int LaunchTestHost(TestProcessStartInfo defaultTestHostStartInfo, CancellationToken cancellationToken) =>
-            debugger.LaunchAsync(new TestHostStart(
+            Synchronously.Run(() => debugger.LaunchAsync(new TestHostStart(
                 defaultTestHostStartInfo.FileName ?? throw new InvalidOperationException("VSTest gave no test host"),
                 Passenger.App.Run.CommandLine.Split(defaultTestHostStartInfo.Arguments),
                 defaultTestHostStartInfo.WorkingDirectory,
-                EnvironmentOf(defaultTestHostStartInfo)))
-            .GetAwaiter().GetResult();
+                EnvironmentOf(defaultTestHostStartInfo))));
 
         private Dictionary<string, string> EnvironmentOf(TestProcessStartInfo start)
         {
@@ -351,8 +351,8 @@ public sealed class VsTestRunner : ITestRunner
 
         public bool AttachDebuggerToProcess(int pid) => AttachDebuggerToProcess(pid, CancellationToken.None);
 
-        // VSTest starts a .NET test host itself and waits on this before it runs a test in it.
-        public bool AttachDebuggerToProcess(int pid, CancellationToken cancellationToken) => debugger.AttachAsync(pid).GetAwaiter().GetResult();
+        // VSTest starts a .NET test host itself and waits on this, on its own thread, before it runs a test in it.
+        public bool AttachDebuggerToProcess(int pid, CancellationToken cancellationToken) => Synchronously.Run(() => debugger.AttachAsync(pid));
 
         public bool AttachDebuggerToProcess(AttachDebuggerInfo attachDebuggerInfo, CancellationToken cancellationToken) =>
             AttachDebuggerToProcess(attachDebuggerInfo.ProcessId, cancellationToken);

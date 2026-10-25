@@ -344,7 +344,7 @@ public sealed class AgentConnection(CancellationToken gone, bool attached)
         }
         finally
         {
-            call.Waited(asked.Answer.IsCompletedSuccessfully ? asked.Answer.Result.ToString() : "given up");
+            call.Waited(asked.Answer is { IsCompletedSuccessfully: true } answer ? answer.Result.ToString() : "given up");
             // The last call waiting gives the question up: it closes unanswered, and the next call asks again.
             if (--asked.Waiting == 0 && !asked.Answer.IsCompleted)
             {

@@ -158,9 +158,12 @@ public sealed class MarkdownPreview : ScrollViewer
         entries = [];
         Dictionary<string, Task<AssetPreview?>> drawn = pictures;
         pictures = new(PathNames.Comparer);
-        foreach (Task<AssetPreview?> picture in drawn.Values.Where(p => p.IsCompletedSuccessfully))
+        foreach (Task<AssetPreview?> picture in drawn.Values)
         {
-            picture.Result?.Dispose();
+            if (picture.IsCompletedSuccessfully)
+            {
+                picture.Result?.Dispose();
+            }
         }
     }
 

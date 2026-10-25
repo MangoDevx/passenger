@@ -86,14 +86,14 @@ public sealed class VelopackUpdater(IVelopackLocator locator) : Updater
         IdeErrors.Flush();
     }
 
-    public override void Discard()
+    public override Task DiscardAsync()
     {
         Ready = null;
         manager = null;
         package = null;
         if (locator.PackagesDir is not { } packages || !Directory.Exists(packages))
         {
-            return;
+            return Task.CompletedTask;
         }
         // The package the installed version came with stays, as Velopack keeps it.
         foreach (VelopackAsset newer in locator.GetLocalPackages().Where(p => p.Version > locator.CurrentlyInstalledVersion))
@@ -104,6 +104,7 @@ public sealed class VelopackUpdater(IVelopackLocator locator) : Updater
         {
             Delete(partial);
         }
+        return Task.CompletedTask;
     }
 
     public override bool OthersRunning()

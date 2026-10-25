@@ -119,17 +119,14 @@ public sealed class McpProxy
         // The server waits out calls still going as the agent goes, so its going, or SIGTERM, is watched for here.
         TaskCompletionSource terminated = new(TaskCreationOptions.RunContinuationsAsynchronously);
         using System.Runtime.InteropServices.PosixSignalRegistration? signal = McpHost.EndOnSignal(() => terminated.TrySetResult());
-        Task.WaitAny(running, transport.MessageReader.Completion, terminated.Task);
+        // Main's thread, which serves nothing itself, waits here until the agent goes.
+        Synchronously.Run(async () => { await Task.WhenAny(running, transport.MessageReader.Completion, terminated.Task); });
         gone.Cancel();
         proxy.Leave();
-        try
-        {
-            running.Wait(TimeSpan.FromSeconds(5));
-        }
-        catch (AggregateException)
-        {
-            // What the agent's going cut short.
-        }
+        // The process ends as Main returns: the server, cut short by the agent's going, has 5 s to end first.
+        Synchronously.Run(async () => { await Task.WhenAny(running, Task.Delay(TimeSpan.FromSeconds(5))); });
+        // What the agent's going cut short.
+        _ = running.Exception;
         return 0;
     }
 
@@ -541,7 +538,15 @@ public sealed class McpProxy
     {
         if (joined is { } window)
         {
-            Quietly(window).Wait(TimeSpan.FromSeconds(5));
+            try
+            {
+                // On Main's thread as the process ends, which has nothing to go on to while the window hears it.
+                Synchronously.Run(() => Quietly(window).WaitAsync(TimeSpan.FromSeconds(5)));
+            }
+            catch (TimeoutException)
+            {
+                // The window had its 5 s.
+            }
         }
         // The headless window ends with its input, cleanly, before the watchdog would kill it with its socket left.
         if (headless is { HasExited: false } child)

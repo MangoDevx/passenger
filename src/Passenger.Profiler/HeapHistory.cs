@@ -360,7 +360,7 @@ internal sealed class HeapHistory(int processId) : IAsyncDisposable
             }
             waiting.Add((count, heard));
         }
-        return await Task.WhenAny(heard.Task, Task.Delay(limit)) == heard.Task && heard.Task.Result;
+        return await Task.WhenAny(heard.Task, Task.Delay(limit)) == heard.Task && await heard.Task;
     }
 
     /// <summary>Has the runtime collect in full (a session with the GCHeapCollect keyword), and gives that collection's

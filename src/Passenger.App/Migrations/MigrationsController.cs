@@ -1181,7 +1181,7 @@ public sealed partial class MigrationsController(MigrationsParts parts)
         await Task.WhenAll(new Task?[] { naming, listing, checking }.OfType<Task>());
         if (naming is not null)
         {
-            if (Named(setting, naming.Result, read) is { } unnamed)
+            if (Named(setting, await naming, read) is { } unnamed)
             {
                 return unnamed;
             }

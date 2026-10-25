@@ -345,7 +345,7 @@ public partial class MainWindow
             {
                 await stopping.ContinueWith(_ => { }, TaskScheduler.Default);
             }
-            updater.Discard();
+            await updater.DiscardAsync();
         }));
     }
 

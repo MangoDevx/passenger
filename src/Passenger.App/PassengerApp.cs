@@ -261,7 +261,8 @@ public static class PassengerApp
         {
             ending = [.. Ending];
         }
-        Task.WaitAll(ending);
+        // Main's last act before the process ends, with no loop left to await on.
+        Synchronously.Run(() => Task.WhenAll(ending));
         updates?.InstallUpdate();
     }
 
