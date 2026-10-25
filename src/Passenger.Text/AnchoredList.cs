@@ -47,6 +47,43 @@ public sealed class AnchoredList<T>(Func<T, TextRange> rangeOf, Func<T, TextRang
         items = given;
     }
 
+    /// <summary>Lets the items <paramref name="drops"/> names go, with their ranges, the rest carried on; false when it named
+    /// none.</summary>
+    public bool Drop(Func<T, bool> drops)
+    {
+        IReadOnlyList<T> now = Items;
+        int first = 0;
+        while (first < now.Count && !drops(now[first]))
+        {
+            first++;
+        }
+        if (first == now.Count)
+        {
+            return false;
+        }
+        List<AnchoredRange> keptRanges = [.. ranges.Take(first)];
+        List<T> keptItems = [.. now.Take(first)];
+        for (int i = first; i < ranges.Length; i++)
+        {
+            if (i == first || drops(now[i]))
+            {
+                ranges[i].Remove();
+            }
+            else
+            {
+                keptRanges.Add(ranges[i]);
+                keptItems.Add(now[i]);
+            }
+        }
+        ranges = [.. keptRanges];
+        items = keptItems;
+        if (ranges.Length == 0)
+        {
+            document = null;
+        }
+        return true;
+    }
+
     /// <summary>Lets every range go: none is left.</summary>
     public void Clear()
     {
