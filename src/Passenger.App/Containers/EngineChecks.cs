@@ -638,6 +638,7 @@ internal sealed class DockerfileCheck(EngineChecks owner, OpenDocument document,
 /// through the Dockerfiles it opens.</summary>
 public static class BuildKitChecks
 {
+    [IdentifierHome]
     public const string Variable = "PASSENGER_BUILDKIT_CHECKS";
 
     /// <summary>The setting's default; a value of the variable other than <c>off</c> or <c>on</c> is fatal as the IDE starts.</summary>

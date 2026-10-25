@@ -11,6 +11,7 @@ namespace Passenger.App.Web;
 /// on any thread.</summary>
 public sealed class JsonSchemas(Func<bool> download)
 {
+    [IdentifierHome]
     public const string Variable = "PASSENGER_SCHEMAS";
 
     /// <summary>SchemaStore's hosts, whose schemas Passenger carries by their file's name.</summary>

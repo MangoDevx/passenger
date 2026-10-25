@@ -23,10 +23,12 @@ public sealed class McpProxy
 {
     /// <summary><c>headless</c> has a call with no window start this build headless, as its own child, in the state
     /// PASSENGER_SETTINGS names, never the person's installed Passenger.</summary>
+    [IdentifierHome]
     public const string StartVariable = "PASSENGER_START";
 
     /// <summary>What the proxy tells a Passenger it starts for an agent (<c>agent</c>), which takes it out of its own
     /// environment as it starts, so nothing it runs inherits it.</summary>
+    [IdentifierHome]
     public const string StartedForVariable = "PASSENGER_STARTED_FOR";
 
     /// <summary>Whether an agent's --mcp-attach started this Passenger, to open a folder for it: its window shows the person

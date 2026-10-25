@@ -12,6 +12,7 @@ namespace Passenger.App.Mcp;
 public sealed class AgentCall : IAsyncDisposable
 {
     /// <summary>The variable that gives <see cref="Every"/> in milliseconds.</summary>
+    [IdentifierHome]
     public const string EveryVariable = "PASSENGER_MCP_PROGRESS_MS";
 
     /// <summary>The call the flow serves, so a tool's own code reaches it however deep (the dispatcher flows it too).</summary>

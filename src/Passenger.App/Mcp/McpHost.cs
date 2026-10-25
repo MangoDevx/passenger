@@ -28,6 +28,7 @@ public static partial class McpHost
 
     /// <summary>The variable that, set to <c>off</c>, has an <c>--mcp</c> Passenger start no C# language server
     /// (<see cref="MainWindow.StartsLanguageServer"/>), for an agent that asks nothing of C#.</summary>
+    [IdentifierHome]
     public const string LanguageServerVariable = "PASSENGER_MCP_LANGUAGE_SERVER";
 
     /// <summary>Whether <c>--mcp</c>'s IDE starts the C# language server: always, unless <see cref="LanguageServerVariable"/>

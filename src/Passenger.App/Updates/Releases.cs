@@ -13,6 +13,7 @@ namespace Passenger.App.Updates;
 /// how long it waits for the answer.</summary>
 public sealed record ReleaseFeed(Uri Latest, TimeSpan Timeout)
 {
+    [IdentifierHome]
     public const string Variable = "PASSENGER_RELEASES";
 
     public static readonly Uri GitHub = new("https://api.github.com/repos/Zaneris/passenger/releases/latest");

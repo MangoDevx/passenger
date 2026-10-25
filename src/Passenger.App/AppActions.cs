@@ -5,6 +5,7 @@ namespace Passenger.App;
 /// <summary>The ids of the IDE's own actions, beside the editor's (<see cref="EditorActions"/>), and the keymaps of each
 /// platform that bind both by id: Rider's Visual Studio keymaps for these too, and its VS Code keymaps. Each action is
 /// declared by its feature (<see cref="IdeAction"/>, in the window's <see cref="ActionRegistry"/>).</summary>
+[IdentifierHome]
 public static class AppActions
 {
     public const string Open = "app.open";
