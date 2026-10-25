@@ -6,4 +6,5 @@
 Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
 PSG0001 | Passenger | Warning | IdentifierLiterals
+PSG0002 | Passenger | Warning | AsyncVoidMethods
 PSG9001 | Passenger | Error | ResourceKeys

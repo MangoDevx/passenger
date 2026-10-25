@@ -20,6 +20,16 @@ internal static class Rules
             + "an MCP tool's name) is written once, in its home, so a misspelt one is a build error rather than something "
             + "that silently finds nothing.");
 
+    public static readonly DiagnosticDescriptor AsyncVoidMethod = new(
+        "PSG0002",
+        "An async method returns void",
+        "{0} is async void: return a Task and give it to whoever awaits or observes it",
+        Category,
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "An async void method's fault is thrown on whatever context it resumed on, where nothing can catch or "
+            + "report it, and nothing can wait for it to end; an event handler starts a Task-returning method instead.");
+
     public static readonly DiagnosticDescriptor KeysUnread = new(
         "PSG9001",
         "A resource keys file is not read",
