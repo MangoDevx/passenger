@@ -155,7 +155,9 @@ Projects in `src/`:
 - `Passenger.Text`: the rope (an immutable B-tree, so every version is a thread-safe snapshot), `TextDocument` (undo,
   LSP-ordered changes; carry offsets with `TextEditing.Map*` over the change's `SortedEdits` as it came), carets, every
   editing command as a pure function to an `EditPlan`, `MarkupIndent`, `WordDiff`, `FuzzyMatch` (allocates nothing),
-  `FileText` (encoding, BOM, `.editorconfig`, line separator), `ChangeMark`.
+  `FileText` (encoding, BOM, `.editorconfig`, line separator), `ChangeMark`, anchors (`TextDocument.AnchorAt`/`RangeAt`,
+  moved before `Changed`; each handler isolated, its failure to `PassengerLog.Report`): hold a place in the text with
+  one, never your own `Map*`.
 - `Passenger.Editor`: the `CodeEditor` control (partials), `Keymap` and `EditorActions` (presets), `IHighlighter`. With
   soft wrap, whatever turns an offset into a place goes through `Rows`/`RowSpan`. Wraps (`WrapMap`), rows (`RowMap`),
   folds (`FoldList`), hints (`HintList`) and built lines (`LineRuns`) are runs an edit moves only where it reaches, so a
@@ -179,9 +181,10 @@ Projects in `src/`:
   publicized assemblies (`src/Publicize.targets`): the host's project loading (`ProjectLoader`), Hot Reload, refactoring
   descriptions, Aspire's code help, routes, configuration reads. A handler reads the solution, never changes it.
 - `Passenger.Host`: MSBuild in a process of its own per SDK (`ProjectHosts`), over JSON lines: `evaluate`, `build`
-  (design-time, as Roslyn's build host), `inspect` (MSBuild files' code help), `properties`, `hold` (no generating
-  design-time build while Passenger builds: Windows lets one writer have a file), `cancel`. Results are stamped with what
-  they read, so a reopen redoes only what changed; a Windows-only framework loads with EnableWindowsTargeting off Windows.
+  (design-time, as Roslyn's build host), `inspect` (MSBuild files' code help), `properties`, `inputs` (what a build
+  reads, stamped, for `UpToDate`), `hold` (no generating design-time build while Passenger builds: Windows lets one
+  writer have a file), `cancel`. Results are stamped with what they read, so a reopen redoes only what changed; a
+  Windows-only framework loads with EnableWindowsTargeting off Windows.
 - `Passenger.Vcs`, `Passenger.Workspace`, `Passenger.Packages`: the App's Git, folder model and NuGet code that
   needs no UI, referencing no Avalonia; what belongs to the UI thread stays in the App's folder of the same name.
 - `Passenger.Dap`, `Passenger.Debugger` (+`.Interop`), `Passenger.DebugAdapter`: Passenger's own debugger (begun from
@@ -230,7 +233,8 @@ Projects in `src/`:
   `PumpAsync`), `BuildOutput`, `RunConfiguration` (data: the folder's own, or generated from launch profiles, compose
   files and Dockerfiles and edited in place as `ConfigurationEdit`s), `LaunchPlan` (one resolution for Run, Debug,
   Profile, Hot Reload and a debugged test host; a Passenger it launches keeps its state in the launcher's `sandbox/`),
-  Publish (`PublishProfiles`, `PubXml`, a profile's `.pubxml` as the SDK reads it).
+  `UpToDate` (a launch's build skipped while what its last build read and wrote stands; anything it can't account for
+  builds), Publish (`PublishProfiles`, `PubXml`, a profile's `.pubxml` as the SDK reads it).
 - **Runs of services.** `ServiceRun` is the one model of a run of several .NET services; `ContainerRun` and
   `AspireAppRun` are its kinds. Debug, Attach, Run without Debugger, Restart and Profile of a service are written once
   (`BuildRunController.Services.cs`); a kind supplies only its restarts, holds, program places and refusals. One start at
