@@ -10,16 +10,16 @@ public class StepTests(ITestOutputHelper testOutputHelper)
     private const string Looping = "LoopingConsoleApp";
     private static readonly int LogWritten = Debuggees.Line("DebuggableConsoleApp", "MyClass.cs", "Console.WriteLine($\"Log_MyMethod\");");
     private static readonly int StaticCalled = Debuggees.Line("DebuggableConsoleApp", "MyClass.cs", "AnotherClass.MyStaticMethod();");
-    private static readonly int AnotherVarSet = Debuggees.Line("DebuggableConsoleApp", "MyClass.cs", "var anotherVar = \"asdf\";");
+    private static readonly int AnotherVarSet = Debuggees.Line("DebuggableConsoleApp", "MyClass.cs", "string anotherVar = \"asdf\";");
     private static readonly int StaticOpened = Debuggees.Line("DebuggableConsoleApp", "Namespace1/AnotherClass.cs", "public static List<int> MyStaticMethod()") + 1;
-    private static readonly int TestSet = Debuggees.Line("DebuggableConsoleApp", "Namespace1/AnotherClass.cs", "var test = 4;");
+    private static readonly int TestSet = Debuggees.Line("DebuggableConsoleApp", "Namespace1/AnotherClass.cs", "int test = 4;");
     private static readonly int ListMade = Debuggees.Line("DebuggableConsoleApp", "Namespace1/AnotherClass.cs", "List<int> myList = [1, 4, 8, 11];");
-    private static readonly int ListCopied = Debuggees.Line("DebuggableConsoleApp", "Namespace1/AnotherClass.cs", "var myResult2 = myList.ToList();");
+    private static readonly int ListCopied = Debuggees.Line("DebuggableConsoleApp", "Namespace1/AnotherClass.cs", "List<int> myResult2 = myList.ToList();");
     private static readonly int Returned = Debuggees.Line("DebuggableConsoleApp", "Namespace1/AnotherClass.cs", "return myResult;");
     private static readonly int MyMethodCalled = Debuggees.Line("DebuggableConsoleApp", "myClass.MyMethod(13, 6);");
     private static readonly int NoMembersCalled = Debuggees.Line("DebuggableConsoleApp", "myClassNoMembers.MyMethod(42);");
     private static readonly int HitConditionCalled = Debuggees.Line("DebuggableConsoleApp", "hitConditionClass.Test();");
-    private static readonly int Operated = Debuggees.Line("DebuggableConsoleApp", "MultilineSwitchInMethodCall.cs", "var result = DoOperation();");
+    private static readonly int Operated = Debuggees.Line("DebuggableConsoleApp", "MultilineSwitchInMethodCall.cs", "Result result = DoOperation();");
     private static readonly int Switched = Debuggees.Line("DebuggableConsoleApp", "MultilineSwitchInMethodCall.cs", "HandleOperationResult(result switch");
 
     /// <summary>Just My Code on, stopped in MyClass.MyMethod: a step of a thread the program does not have is refused and

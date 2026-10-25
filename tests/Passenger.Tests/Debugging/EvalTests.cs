@@ -562,7 +562,7 @@ public class EvalTests(ITestOutputHelper testOutputHelper)
             .WithAttachRequest(p2.Id)
             .WaitForInitializedEvent();
         debugProtocolHost
-            .WithBreakpointsRequest([Debuggees.Line("DebuggableConsoleApp", "MyStaticClass.cs", "var test = 4;")], Debuggees.Source("DebuggableConsoleApp", "MyStaticClass.cs"))
+            .WithBreakpointsRequest([Debuggees.Line("DebuggableConsoleApp", "MyStaticClass.cs", "int test = 4;")], Debuggees.Source("DebuggableConsoleApp", "MyStaticClass.cs"))
             .WithConfigurationDoneRequest()
             .WithOptionalResumeRuntime(p2.Id, startSuspended);
 

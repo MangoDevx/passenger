@@ -7,7 +7,7 @@ namespace Passenger.Tests.Debugging;
 [Collection(DebugSession.Collection)]
 public class Variables2Tests(ITestOutputHelper testOutputHelper)
 {
-    private static readonly int TestEnd = Debuggees.Line("DebuggableConsoleApp", "VariablesClass.cs", "var localCompositeValues = new CompositeValueFixtures();") + 1;
+    private static readonly int TestEnd = Debuggees.Line("DebuggableConsoleApp", "VariablesClass.cs", "CompositeValueFixtures localCompositeValues = new CompositeValueFixtures();") + 1;
 
     /// <summary>A float's and a double's values read as C# writes them whatever the machine's culture, and Set Value takes
     /// back the text shown. The culture comes from LANG and LC_ALL on macOS and Linux; Windows takes it from the user's

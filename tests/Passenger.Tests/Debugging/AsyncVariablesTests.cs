@@ -7,7 +7,7 @@ namespace Passenger.Tests.Debugging;
 [Collection(DebugSession.Collection)]
 public class AsyncVariablesTests(ITestOutputHelper testOutputHelper)
 {
-    private static readonly int FirstAwait = Debuggees.Line("DebuggableConsoleApp", "MyAsyncClass.cs", "var result = await AnotherClass.AnotherMethodAsync();");
+    private static readonly int FirstAwait = Debuggees.Line("DebuggableConsoleApp", "MyAsyncClass.cs", "int result = await AnotherClass.AnotherMethodAsync();");
     private static readonly int AnotherMethodOpened = Debuggees.Line("DebuggableConsoleApp", "Namespace1/AnotherClass.cs", "AnotherMethodAsync()") + 1;
 
     [Fact]

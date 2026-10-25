@@ -12,7 +12,7 @@ public class ExceptionTests(ITestOutputHelper testOutputHelper)
     private static readonly int ExceptionsCalled = Debuggees.Line("DebuggableConsoleApp", "Exceptions.Test(exceptionToThrow);");
     private static readonly int AfterThrow = ExceptionsCalled + 1;
     private static readonly int Thrown = Debuggees.Line("DebuggableConsoleApp", "Exceptions.cs", "throw new InvalidOperationException(\"Test exception\");");
-    private static readonly int Parsed = Debuggees.Line("DebuggableConsoleApp", "Exceptions.cs", "var myInt = int.Parse(\"x\");");
+    private static readonly int Parsed = Debuggees.Line("DebuggableConsoleApp", "Exceptions.cs", "int myInt = int.Parse(\"x\");");
     private static readonly int Caught = Debuggees.Line("DebuggableConsoleApp", "Exceptions.cs", "catch (Exception e)");
 
     [Fact]

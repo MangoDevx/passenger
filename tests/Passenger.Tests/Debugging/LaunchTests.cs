@@ -46,7 +46,7 @@ public class LaunchTests(ITestOutputHelper testOutputHelper)
         DapStackFrame topFrame = host.GetTopStackFrame(stoppedEvent.ThreadId!.Value);
         Assert.Contains("Main", topFrame.Name);
         Assert.EndsWith("Program.cs", topFrame.Source?.Path);
-        Assert.Equal(Debuggees.Line("TopLevelStatementsConsoleApp", "var test = 4;"), topFrame.Line);
+        Assert.Equal(Debuggees.Line("TopLevelStatementsConsoleApp", "int test = 4;"), topFrame.Line);
         host
             .WithScopesRequest(topFrame.Id, out ScopesResponse? scopesResponse)
             .WithVariablesRequest(scopesResponse.Scopes.Single().VariablesReference, out List<DapVariable>? variables);
@@ -96,7 +96,7 @@ public class LaunchTests(ITestOutputHelper testOutputHelper)
         DapStackFrame topFrame = host.GetTopStackFrame(stoppedEvent.ThreadId!.Value);
         Assert.Contains("Main", topFrame.Name);
         Assert.EndsWith("Program.cs", topFrame.Source?.Path);
-        Assert.Equal(Debuggees.Line("AsyncTopLevelStatementsConsoleApp", "var test = 4;"), topFrame.Line);
+        Assert.Equal(Debuggees.Line("AsyncTopLevelStatementsConsoleApp", "int test = 4;"), topFrame.Line);
         host
             .WithScopesRequest(topFrame.Id, out ScopesResponse? scopesResponse)
             .WithVariablesRequest(scopesResponse.Scopes.Single().VariablesReference, out List<DapVariable>? variables);

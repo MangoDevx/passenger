@@ -33,8 +33,8 @@ public class FunctionBreakpointTests(ITestOutputHelper testOutputHelper)
 
         Assert.EndsWith("SameNamedClass.cs", topFrame.Source?.Path);
         Assert.Equal(Opened("SomeFolder/SameNamedClass.cs", "public static void Test()"), topFrame.Line);
-        Assert.Equal(3, topFrame.Column);
-        Assert.Equal(4, topFrame.EndColumn);
+        Assert.Equal(2, topFrame.Column);
+        Assert.Equal(3, topFrame.EndColumn);
 
         StoppedEvent stoppedEvent2 = await debugProtocolHost.WithContinueRequest().WaitForStoppedEvent();
         debugProtocolHost.WithStackTraceRequest(stoppedEvent2.ThreadId!.Value, out StackTraceResponse? stackTraceResponse2);
@@ -42,8 +42,8 @@ public class FunctionBreakpointTests(ITestOutputHelper testOutputHelper)
 
         Assert.EndsWith("SameNamedClass2.cs", topFrame2.Source?.Path);
         Assert.Equal(Opened("SomeFolder/SameNamedClass2.cs", "public static void Test()"), topFrame2.Line);
-        Assert.Equal(3, topFrame2.Column);
-        Assert.Equal(4, topFrame2.EndColumn);
+        Assert.Equal(2, topFrame2.Column);
+        Assert.Equal(3, topFrame2.EndColumn);
     }
 
     [Fact]

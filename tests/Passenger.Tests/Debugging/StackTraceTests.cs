@@ -8,7 +8,7 @@ namespace Passenger.Tests.Debugging;
 public class StackTraceTests(ITestOutputHelper testOutputHelper)
 {
     private static readonly int Selected = Debuggees.Line("DebuggableConsoleApp", "ClassWithBclCall.cs", "return x * 2;");
-    private static readonly int Ranged = Debuggees.Line("DebuggableConsoleApp", "ClassWithBclCall.cs", "var array = Enumerable.Range(1, 5)");
+    private static readonly int Ranged = Debuggees.Line("DebuggableConsoleApp", "ClassWithBclCall.cs", "int[] array = Enumerable.Range(1, 5)");
     private static readonly int BclCalled = Debuggees.Line("DebuggableConsoleApp", "ClassWithBclCall.Test(4);");
     private static readonly int NestedGenericCalled = Debuggees.Line("DebuggableConsoleApp", "MyNestedGenericClass<double, bool>.Test();");
     private static readonly int NestedGenericBody = Debuggees.Line("DebuggableConsoleApp", "MyClassContainingAnotherClass.cs", "public static void Test()") + 2;
@@ -46,7 +46,7 @@ public class StackTraceTests(ITestOutputHelper testOutputHelper)
             new() { Id = 1, Column = 3, EndColumn =   16, Line = Selected, EndLine = Selected, Name = "DebuggableConsoleApp.dll!DebuggableConsoleApp.ClassWithBclCall.Selector(int x)",   Source = new DapSource { Name = "ClassWithBclCall.cs", SourceReference = 0, Path = breakpointedFilePath } },
             new() { Id = 2, Column = 0, EndColumn = null, Line =  0, EndLine = null, Name = "System.Linq.dll!System.Linq.Enumerable.RangeSelectIterator<int, int>.Fill(System.Span<int> results, int start, System.Func<int, int> func)",    Source = null, PresentationHint = "subtle" },
             new() { Id = 3, Column = 0, EndColumn = null, Line =  0, EndLine = null, Name = "System.Linq.dll!System.Linq.Enumerable.RangeSelectIterator<int, int>.ToArray()",   Source = null, PresentationHint = "subtle" },
-            new() { Id = 4, Column = 3, EndColumn =   65, Line = Ranged, EndLine = Ranged, Name = "DebuggableConsoleApp.dll!DebuggableConsoleApp.ClassWithBclCall.Test(int myParam)", Source = new DapSource { Name = "ClassWithBclCall.cs", SourceReference = 0, Path = breakpointedFilePath } },
+            new() { Id = 4, Column = 3, EndColumn =   67, Line = Ranged, EndLine = Ranged, Name = "DebuggableConsoleApp.dll!DebuggableConsoleApp.ClassWithBclCall.Test(int myParam)", Source = new DapSource { Name = "ClassWithBclCall.cs", SourceReference = 0, Path = breakpointedFilePath } },
             new() { Id = 5, Column = 4, EndColumn =   29, Line = BclCalled, EndLine = BclCalled, Name = "DebuggableConsoleApp.dll!DebuggableConsoleApp.Program.Main(string[] args)",        Source = new DapSource { Name = "Program.cs",          SourceReference = 0, Path = Debuggees.Source("DebuggableConsoleApp", "Program.cs") } },
 			// TODO: Return internal frames (thread.ActiveInternalFrames), such as a subtle "[Native to Managed Transition]".
 		];

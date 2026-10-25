@@ -631,7 +631,7 @@ public static class Debuggees
     });
 
     /// <summary>DebuggableConsoleApp's MyClass.MyMethod's last line, its empty statement once every local is set.</summary>
-    public static readonly int MyMethodEnd = Line("DebuggableConsoleApp", "MyClass.cs", "var anotherVar = \"asdf\";") + 1;
+    public static readonly int MyMethodEnd = Line("DebuggableConsoleApp", "MyClass.cs", "string anotherVar = \"asdf\";") + 1;
 
     /// <summary>The repository the tests were built from, its Passenger.slnx at the top.</summary>
     public static string Root => Repository.Value;

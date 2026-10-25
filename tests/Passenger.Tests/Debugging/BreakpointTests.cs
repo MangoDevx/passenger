@@ -7,7 +7,7 @@ namespace Passenger.Tests.Debugging;
 [Collection(DebugSession.Collection)]
 public class BreakpointTests(ITestOutputHelper testOutputHelper)
 {
-    private static readonly int MyIntSet = Debuggees.Line("DebuggableConsoleApp", "MyClass.cs", "var myInt = 4;");
+    private static readonly int MyIntSet = Debuggees.Line("DebuggableConsoleApp", "MyClass.cs", "int myInt = 4;");
 
     [Fact]
     public async Task A_breakpoint_set_before_its_module_loads_is_told_pending_then_bound_at_its_statement()
@@ -77,8 +77,8 @@ public class BreakpointTests(ITestOutputHelper testOutputHelper)
 
         string breakpointedFilePath = Debuggees.Source("DebuggableConsoleApp", "ColumnBreakpointClass.cs");
         int line = Debuggees.Line("DebuggableConsoleApp", "ColumnBreakpointClass.cs", "column-breakpoint-line");
-        int column = GetColumnNumber(breakpointedFilePath, line, "var third");
-        int endColumn = column + "var third = second + 1;".Length;
+        int column = GetColumnNumber(breakpointedFilePath, line, "int third");
+        int endColumn = column + "int third = second + 1;".Length;
 
         debugProtocolHost
             .WithBreakpointsRequest(breakpointedFilePath, [new DapSourceBreakpoint(line, Column: column)])
@@ -113,7 +113,7 @@ public class BreakpointTests(ITestOutputHelper testOutputHelper)
 
         string breakpointedFilePath = Debuggees.Source("DebuggableConsoleApp", "ColumnBreakpointClass.cs");
         int line = Debuggees.Line("DebuggableConsoleApp", "ColumnBreakpointClass.cs", "column-breakpoint-line");
-        int expectedColumn = GetColumnNumber(breakpointedFilePath, line, "var first");
+        int expectedColumn = GetColumnNumber(breakpointedFilePath, line, "int first");
 
         debugProtocolHost
             .WithBreakpointsRequest(breakpointedFilePath, [new DapSourceBreakpoint(line)])
@@ -141,10 +141,10 @@ public class BreakpointTests(ITestOutputHelper testOutputHelper)
             .WaitForInitializedEvent();
 
         string breakpointedFilePath = Debuggees.Source("DebuggableConsoleApp", "ColumnBreakpointClass.cs");
-        int statementStartLine = Debuggees.Line("DebuggableConsoleApp", "ColumnBreakpointClass.cs", "var multi =");
+        int statementStartLine = Debuggees.Line("DebuggableConsoleApp", "ColumnBreakpointClass.cs", "int multi =");
         int requestedLine = statementStartLine + 1;
         int requestedColumn = GetColumnNumber(breakpointedFilePath, requestedLine, "1 + 25");
-        int expectedColumn = GetColumnNumber(breakpointedFilePath, statementStartLine, "var multi");
+        int expectedColumn = GetColumnNumber(breakpointedFilePath, statementStartLine, "int multi");
 
         debugProtocolHost
             .WithBreakpointsRequest(breakpointedFilePath, [new DapSourceBreakpoint(requestedLine, Column: requestedColumn)])
@@ -185,8 +185,8 @@ public class BreakpointTests(ITestOutputHelper testOutputHelper)
 
         await debugProtocolHost.WaitForStoppedEvent();
 
-        int column = GetColumnNumber(breakpointedFilePath, line, "var second");
-        int endColumn = column + "var second = first + 1;".Length;
+        int column = GetColumnNumber(breakpointedFilePath, line, "int second");
+        int endColumn = column + "int second = first + 1;".Length;
 
         debugProtocolHost.WithBreakpointsRequest(breakpointedFilePath, [new DapSourceBreakpoint(line, Column: column)], out SetBreakpointsResponse? response);
 
