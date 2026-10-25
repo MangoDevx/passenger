@@ -10,12 +10,14 @@ using Passenger.App.Settings;
 using Passenger.App.Updates;
 using Passenger.App.Welcome;
 using Passenger.App.Workspace;
+using Passenger.Core;
 
 namespace Passenger.App.State;
 
 /// <summary>The IDE's own state, in one folder: the app's documents at its top (the settings, the layout a folder
 /// without its own opens on, the recent solutions, the release last announced, Find in Files' mask, Rename's options),
-/// and each folder's under <c>workspaces/&lt;name&gt;-&lt;hash&gt;/</c>. Only the windows a person uses keep one, all of a
+/// and each folder's caches under <c>workspaces/&lt;name&gt;-&lt;hash&gt;/</c> (its documents in its own
+/// <c>.passenger/</c>, <see cref="ProjectState"/>). Only the windows a person uses keep one, all of a
 /// process's windows over the same folder sharing it (<see cref="Open"/>), so each document is held once and what one
 /// window keeps another reads at once; a headless IDE starts on the defaults.</summary>
 public sealed class StateStore
@@ -147,30 +149,75 @@ public sealed class StateStore
     }
 }
 
-/// <summary>A folder's documents: what its window had open, its layout, breakpoints, bookmarks, run configurations,
-/// Find in Files' scope, the Unit Tests window's grouping and outcomes, the Git log's favourite branches, what its
-/// .http requests may take from the person's computer, the publish profile each project last published with, and its
-/// projects as MSBuild last evaluated and built them at design time.</summary>
+/// <summary>A folder's documents, in the folder's own <c>.passenger/</c> as Rider keeps <c>.idea/</c>: its run configurations
+/// at the top, meant to be shared, and under <c>workspace/</c>, which the folder's <c>.gitignore</c> there keeps out of
+/// version control, the person's own (what its window had open, its layout, breakpoints, bookmarks, the configuration
+/// chosen, Find in Files' scope, the Unit Tests window's view, the Git log's favourite branches, the publish profiles last
+/// used). What its .http requests may take from the person's computer, which a cloned folder must not grant, and the
+/// caches (its projects as MSBuild last evaluated and built them) stay in the store's <see cref="Folder"/>.</summary>
 public sealed class ProjectState
 {
+    /// <summary>The folder's own folder of Passenger's documents, beside a solution as <c>.vs</c> and <c>.idea</c> are.</summary>
+    public const string SharedName = ".passenger";
+
+    /// <summary>The written <c>.gitignore</c>: it ignores itself too, so a folder whose person shares nothing shows no change.</summary>
+    private const string Ignored = "# Passenger's: the person's own state stays out of version control, the rest of this folder is shared.\n/.gitignore\n/workspace/\n";
+
     internal ProjectState(string root, string folder)
     {
         Folder = FolderOf(root, folder);
-        Workspace = new(Path.Combine(Folder, "workspace.json"), formerly: Folder + ".json");
-        Layout = new(Path.Combine(Folder, "layout.json"));
-        Breakpoints = new(Path.Combine(Folder, "breakpoints.json"));
-        Bookmarks = new(Path.Combine(Folder, "bookmarks.json"));
-        RunConfigurations = new(Path.Combine(Folder, "runConfigurations.json"));
-        Find = new(Path.Combine(Folder, "find.json"));
-        UnitTests = new(Path.Combine(Folder, "unitTests.json"));
-        GitBranches = new(Path.Combine(Folder, "gitBranches.json"));
+        Shared = Path.Combine(folder, SharedName);
+        Personal = Path.Combine(Shared, "workspace");
+        Workspace = new(Path.Combine(Personal, "workspace.json"), [Path.Combine(Folder, "workspace.json"), Folder + ".json"], Ignore);
+        Layout = Own<DockLayout>("layout.json");
+        Breakpoints = Own<BreakpointsState>("breakpoints.json");
+        Bookmarks = Own<BookmarksState>("bookmarks.json");
+        RunConfigurations = new(Path.Combine(Shared, "runConfigurations.json"), [Path.Combine(Folder, "runConfigurations.json")], Ignore);
+        RunChoice = new(Path.Combine(Personal, "runChoice.json"), [Path.Combine(Folder, "runConfigurations.json")], Ignore);
+        Find = Own<FindScopeState>("find.json");
+        UnitTests = Own<Testing.UnitTestsState>("unitTests.json");
+        GitBranches = Own<ToolWindows.GitBranchesState>("gitBranches.json");
         Endpoints = new(Path.Combine(Folder, "endpoints.json"));
-        Publish = new(Path.Combine(Folder, "publish.json"));
+        Publish = Own<Run.PublishState>("publish.json");
         ProjectModels = new(Path.Combine(Folder, "projectModels.json"));
         ProjectBuilds = new(Path.Combine(Folder, "projectBuilds.json"));
     }
 
-    /// <summary>The folder the documents are in.</summary>
+    /// <summary>The folder's <c>.passenger/</c>: what is meant to be shared at its top.</summary>
+    public string Shared { get; }
+
+    /// <summary>The person's own documents, <c>.passenger/workspace/</c>.</summary>
+    public string Personal { get; }
+
+    /// <summary>A personal document, read from the store's folder, where builds before <c>.passenger/</c> kept it, until
+    /// written here.</summary>
+    private StateDocument<T> Own<T>(string name) where T : class, IStateDocument<T>, new() =>
+        new(Path.Combine(Personal, name), [Path.Combine(Folder, name)], Ignore);
+
+    /// <summary>Before anything is written into <c>.passenger/</c>, on whichever thread writes it: its <c>.gitignore</c>,
+    /// unless the folder has one. One that cannot be written is logged and costs the document nothing.</summary>
+    private void Ignore()
+    {
+        string file = Path.Combine(Shared, ".gitignore");
+        // Two documents' writes land together, and on Windows the second move over the first's file fails.
+        lock (StateFile.Lock(file))
+        {
+            try
+            {
+                if (!File.Exists(file))
+                {
+                    Directory.CreateDirectory(Shared);
+                    AtomicFile.Write(file, Encoding.UTF8.GetBytes(Ignored));
+                }
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+            {
+                StateFile.Log($"{file} could not be written ({error.Message})");
+            }
+        }
+    }
+
+    /// <summary>The store's folder for the folder: its caches and grants, which never go into the folder itself.</summary>
     public string Folder { get; }
 
     /// <summary>Where a store keeps an open folder's own things, <c>workspaces/&lt;name&gt;-&lt;hash&gt;</c>: its
@@ -190,8 +237,11 @@ public sealed class ProjectState
 
     public StateDocument<BookmarksState> Bookmarks { get; }
 
-    /// <summary>The person's own run configurations and the one chosen.</summary>
+    /// <summary>The folder's own run configurations and the changes to generated ones, shared.</summary>
     public StateDocument<RunConfigurationsState> RunConfigurations { get; }
+
+    /// <summary>The configuration the person chose in the toolbar.</summary>
+    public StateDocument<RunChoiceState> RunChoice { get; }
 
     /// <summary>Find in Files' scope: the one chosen last, and the project, directory and named scope it showed.</summary>
     public StateDocument<FindScopeState> Find { get; }
@@ -217,7 +267,7 @@ public sealed class ProjectState
     /// <summary>Reads, off the UI thread and at once, the documents a folder's open restores, so the restore takes them in
     /// with no read of its own. Done at once for those read already.</summary>
     public Task ReadAsync() => Task.WhenAll(Workspace.ValueAsync(), Layout.ValueAsync(), Breakpoints.ValueAsync(), Bookmarks.ValueAsync(),
-        RunConfigurations.ValueAsync(), Find.ValueAsync(), UnitTests.ValueAsync(), GitBranches.ValueAsync(), Endpoints.ValueAsync(),
+        RunConfigurations.ValueAsync(), RunChoice.ValueAsync(), Find.ValueAsync(), UnitTests.ValueAsync(), GitBranches.ValueAsync(), Endpoints.ValueAsync(),
         Publish.ValueAsync());
 
     public void Flush()
@@ -229,6 +279,7 @@ public sealed class ProjectState
         Breakpoints.Flush();
         Bookmarks.Flush();
         RunConfigurations.Flush();
+        RunChoice.Flush();
         Find.Flush();
         UnitTests.Flush();
         GitBranches.Flush();

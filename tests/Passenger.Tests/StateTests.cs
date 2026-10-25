@@ -173,7 +173,7 @@ public sealed class StateTests : IDisposable
         window.Close();
 
         Assert.Equal(kept, File.ReadAllText(Path.Combine(settings, "settings.json")));
-        JsonObject workspace = Read(Path.Combine(settings, "workspaces", $"{Path.GetFileName(canonical)}-{hash}", "workspace.json"));
+        JsonObject workspace = Read(Path.Combine(canonical, ".passenger", "workspace", "workspace.json"));
         Assert.Equal(1, (int)workspace["version"]!);
         Assert.Equal(["Two.cs", "One.cs"], workspace["recentFiles"]!.AsArray().Select(f => Path.GetFileName((string)f!)));
         Assert.True(File.Exists(former), "The workspace file an older build reads was taken away");
@@ -231,7 +231,7 @@ public sealed class StateTests : IDisposable
         long Opening(int count)
         {
             string open = PathNames.Canonical(TestFolders.Create("kept-"));
-            string kept = Passenger.App.State.ProjectState.FolderOf(settings, open);
+            string kept = Path.Combine(open, ".passenger", "workspace");
             Directory.CreateDirectory(kept);
             JsonArray breakpoints = [.. Enumerable.Range(0, count).Select(i => (JsonNode)new JsonObject
             {

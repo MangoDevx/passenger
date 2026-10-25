@@ -36,7 +36,8 @@ public sealed class StateDocument<T> where T : class, IStateDocument<T>, new()
     /// is written once.</summary>
     private static readonly TimeSpan Delay = TimeSpan.FromMilliseconds(500);
 
-    private readonly string? formerly;
+    private readonly IReadOnlyList<string> formerly;
+    private readonly Action? preparing;
     private readonly object writing;
     private readonly object gate = new();
     private T? value;
@@ -53,12 +54,14 @@ public sealed class StateDocument<T> where T : class, IStateDocument<T>, new()
     private bool scheduled;
     private bool readOnly;
 
-    /// <summary>A document at a path; <paramref name="formerly"/> is the file an older build kept the same value in, read
-    /// while this one does not exist yet and left where it is.</summary>
-    internal StateDocument(string path, string? formerly = null)
+    /// <summary>A document at a path; <paramref name="formerly"/> are the files older builds kept the same value in, the
+    /// first there read while this one does not exist yet and each left where it is; <paramref name="preparing"/> runs
+    /// before each write.</summary>
+    internal StateDocument(string path, IReadOnlyList<string>? formerly = null, Action? preparing = null)
     {
         Path = path;
-        this.formerly = formerly;
+        this.formerly = formerly ?? [];
+        this.preparing = preparing;
         writing = StateFile.Lock(path);
     }
 
@@ -203,7 +206,7 @@ public sealed class StateDocument<T> where T : class, IStateDocument<T>, new()
     {
         lock (writing)
         {
-            string? file = File.Exists(Path) ? Path : formerly is not null && File.Exists(formerly) ? formerly : null;
+            string? file = File.Exists(Path) ? Path : formerly.FirstOrDefault(File.Exists);
             T? read = file is null ? null : Read(file);
             T clamped = (read ?? new T()).Clamped();
             return (clamped, read is not null, JsonSerializer.Serialize(clamped, StateFile.Options));
@@ -264,6 +267,7 @@ public sealed class StateDocument<T> where T : class, IStateDocument<T>, new()
                 {
                     return;
                 }
+                preparing?.Invoke();
                 StateFile.Replace(Path, StateFile.Merged(disk.Document, Math.Max(disk.Version, T.Upgrades.Count), known, mine, T.Sets));
                 known = mine;
             }

@@ -384,8 +384,9 @@ public sealed class RunConfigurationsTests : IClassFixture<RestoredFolders>, IDi
         }
     }
 
-    /// <summary>A runConfigurations.json an older Passenger wrote, with a copy the person made of a generated configuration,
-    /// opens as it was; changing the generated one in place leaves the copy in the file as it stood.</summary>
+    /// <summary>A runConfigurations.json an older Passenger wrote in its state, with a copy the person made of a generated
+    /// configuration, opens as it was; changing the generated one in place keeps the copy as it stood in the folder's
+    /// .passenger/, leaving the older file as it was.</summary>
     [AvaloniaFact]
     public void An_older_runConfigurations_json_opens_as_it_was_and_keeps_the_persons_copies_as_they_stand()
     {
@@ -418,8 +419,10 @@ public sealed class RunConfigurationsTests : IClassFixture<RestoredFolders>, IDi
         {
             window.Close();
         }
-        JsonObject kept = (JsonObject)JsonNode.Parse(File.ReadAllText(file))!;
-        Assert.Equal(3, (int)kept["version"]!);
+        Assert.True(File.ReadAllText(file).Contains("\"version\":2", StringComparison.Ordinal), "The older Passenger's file was written over as its configurations moved");
+        JsonObject kept = (JsonObject)JsonNode.Parse(File.ReadAllText(Path.Combine(folder, ".passenger", "runConfigurations.json")))!;
+        Assert.Equal(4, (int)kept["version"]!);
+        Assert.True(kept["selected"] is null, $"The configuration chosen, the person's own, moved into the file a team shares:\n{kept.ToJsonString()}");
         JsonObject keptCopy = kept["configurations"]!.AsArray().Single()!.AsObject();
         Assert.True(copies[0]!.AsObject().All(p => JsonNode.DeepEquals(p.Value, keptCopy[p.Key])),
             $"The person's copy changed as the generated configuration was changed in place:\n{keptCopy.ToJsonString()}");
@@ -590,6 +593,39 @@ public sealed class RunConfigurationsTests : IClassFixture<RestoredFolders>, IDi
         finally
         {
             again.Close();
+        }
+    }
+
+    /// <summary>A folder's own configurations are kept in its .passenger/ to be shared, and the one chosen with the rest of
+    /// the person's own state under .passenger/workspace/, which the .gitignore written there keeps out of Git: Git sees
+    /// the shared file alone, and a clone of the folder, with none of the person's state, opens on its configurations.</summary>
+    [AvaloniaFact]
+    public void A_folders_own_configurations_are_kept_in_its_passenger_folder_to_share_and_Git_sees_none_of_the_persons_own_state()
+    {
+        TestGit.Run(folder, "init", "-q", "-b", "main");
+        MainWindow window = Keeping();
+        window.SetConfigurations([new RunConfiguration { Name = "Loud", Project = Path.Combine(project, "Hello.csproj"), Arguments = "--loud" }], "Loud");
+        window.Close();
+
+        string shared = Path.Combine(folder, ".passenger");
+        JsonObject kept = (JsonObject)JsonNode.Parse(File.ReadAllText(Path.Combine(shared, "runConfigurations.json")))!;
+        Assert.Equal("Loud", (string?)kept["configurations"]?[0]?["name"]);
+        Assert.True(kept["selected"] is null, $"The configuration chosen, the person's own, is in the file a team shares:\n{kept.ToJsonString()}");
+        Assert.Equal("Loud", (string?)JsonNode.Parse(File.ReadAllText(Path.Combine(shared, "workspace", "runChoice.json")))?["selected"]);
+        Assert.True(File.Exists(Path.Combine(shared, "workspace", "workspace.json")), "The folder's tabs and layout were not kept in its .passenger/workspace/");
+        string untracked = TestGit.Run(folder, "status", "--porcelain", "--untracked-files=all", "--", ".passenger");
+        Assert.True(untracked.Trim() == "?? .passenger/runConfigurations.json",
+            $"Git sees more of .passenger than the configurations meant to be shared:\n{untracked}");
+
+        Directory.Delete(Path.Combine(shared, "workspace"), recursive: true);
+        MainWindow cloned = Keeping();
+        try
+        {
+            Assert.Equal(["Hello", "Loud"], Names(cloned));
+        }
+        finally
+        {
+            cloned.Close();
         }
     }
 

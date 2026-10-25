@@ -4,10 +4,10 @@ using Passenger.Core;
 namespace Passenger.Workspace;
 
 /// <summary>The folders passed over wherever the open folder is walked (<see cref="FolderWalk"/>) or watched, and dimmed
-/// in the Explorer: version control's own stores, build output, dependencies and other IDEs' state. Go to File and Find in
-/// Files never search them, a folder with no solution never takes its projects from them, and the folder watcher never
-/// hears of them (on Linux never watches them) but for a restore's assets in obj, kept apart, so what the index lists is
-/// what the watcher keeps current.</summary>
+/// in the Explorer: version control's own stores, build output, dependencies and IDEs' state (Passenger's <c>.passenger</c>
+/// among them). Go to File and Find in Files never search them, a folder with no solution never takes its projects from
+/// them, and the folder watcher never hears of them (on Linux never watches them) but for a restore's assets in obj, kept
+/// apart, so what the index lists is what the watcher keeps current.</summary>
 public static class IgnoredFolders
 {
     /// <summary>NuGet's restore folder for packages.config, and as often a JavaScript monorepo's source (packages/*/package.json),
@@ -24,7 +24,7 @@ public static class IgnoredFolders
 
     /// <summary>The names passed over wherever they are, whatever they hold.</summary>
     public static IReadOnlySet<string> Names { get; } =
-        new HashSet<string>([".git", ".hg", ".svn", "bin", "obj", "artifacts", "node_modules", ".vs", ".idea", "TestResults"]);
+        new HashSet<string>([".git", ".hg", ".svn", "bin", "obj", "artifacts", "node_modules", ".vs", ".idea", ".passenger", "TestResults"]);
 
     /// <summary>What each packages folder was found to be, as of its last change: a check costs a look at its time, not a
     /// read, as each of the watcher's changes in a monorepo's packages is checked.</summary>

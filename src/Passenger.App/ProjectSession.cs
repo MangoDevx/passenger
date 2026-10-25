@@ -715,7 +715,7 @@ public sealed class ProjectSession : IAsyncDisposable
             Unloaded.Add(project);
         }
         State = kept;
-        Configurations.Keep(kept.RunConfigurations, Projects);
+        Configurations.Keep(kept.RunConfigurations, kept.RunChoice, Projects);
         Folds.Restore(workspace.Folds);
         foreach (string file in workspace.RecentFiles.Where(File.Exists).Reverse())
         {

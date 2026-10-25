@@ -12,6 +12,7 @@ public sealed class RunConfigurations(string? folder, Func<WorkspaceModel?>? wor
 {
     private List<RunConfiguration> own = [];
     private StateDocument<RunConfigurationsState>? kept;
+    private StateDocument<RunChoiceState>? choice;
 
     /// <summary>The person's changes to generated configurations by their names, paths full (<see cref="ConfigurationEdit"/>);
     /// those whose configuration is not made now are kept as they are.</summary>
@@ -49,15 +50,17 @@ public sealed class RunConfigurations(string? folder, Func<WorkspaceModel?>? wor
 
     /// <summary>Takes the folder's own, the changes to generated ones and the one chosen from the store, which keeps each
     /// change from now; the one chosen before stays chosen when the store names none.</summary>
-    public void Keep(StateDocument<RunConfigurationsState> document, IReadOnlyList<ProjectModel> projects)
+    public void Keep(StateDocument<RunConfigurationsState> document, StateDocument<RunChoiceState> chosen, IReadOnlyList<ProjectModel> projects)
     {
         RunConfigurationsState read = document.Value;
+        string? selected = chosen.Value.Selected;
         own = [.. read.Configurations.Select(FromStore)];
         edits = new(read.Edits.Where(e => e.Value is JsonObject).Select(e => KeyValuePair.Create(e.Key, ConfigurationEdit.Mapped((JsonObject)e.Value!, Full))),
             StringComparer.OrdinalIgnoreCase);
         kept = document;
-        picked |= read.Selected is not null;
-        preferred = read.Selected ?? preferred ?? Chosen?.Name;
+        choice = chosen;
+        picked |= selected is not null;
+        preferred = selected ?? preferred ?? Chosen?.Name;
         Configure(projects, preferred);
     }
 
@@ -156,12 +159,15 @@ public sealed class RunConfigurations(string? folder, Func<WorkspaceModel?>? wor
         }
     }
 
-    private void Write() => kept?.Set(new RunConfigurationsState
+    private void Write()
     {
-        Configurations = [.. own.Select(ForStore)],
-        Edits = new(edits.Select(e => KeyValuePair.Create(e.Key, (JsonNode?)ConfigurationEdit.Mapped(e.Value, Relative))), StringComparer.OrdinalIgnoreCase),
-        Selected = preferred ?? Chosen?.Name,
-    });
+        kept?.Set(new RunConfigurationsState
+        {
+            Configurations = [.. own.Select(ForStore)],
+            Edits = new(edits.Select(e => KeyValuePair.Create(e.Key, (JsonNode?)ConfigurationEdit.Mapped(e.Value, Relative))), StringComparer.OrdinalIgnoreCase),
+        });
+        choice?.Set(new RunChoiceState { Selected = preferred ?? Chosen?.Name });
+    }
 
     /// <summary>A configuration as the store keeps it: its project and every file it names (compose files, env files, a
     /// Dockerfile, a context, the projects chosen for services) relative to the folder, so a hand edit reads plainly.</summary>

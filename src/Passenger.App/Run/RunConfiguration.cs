@@ -305,9 +305,9 @@ public sealed record RunConfiguration
     };
 }
 
-/// <summary>A folder's own run configurations, the person's changes to the generated ones and the one chosen, kept in its
-/// place in the store. The generated ones are not kept: they are made again from the projects each time, each one's
-/// changes (<see cref="Edits"/>) put over it.</summary>
+/// <summary>A folder's own run configurations and the person's changes to the generated ones, kept in its
+/// <c>.passenger/</c> to be shared (the one chosen is the person's own, <see cref="RunChoiceState"/>). The generated ones
+/// are not kept: they are made again from the projects each time, each one's changes (<see cref="Edits"/>) put over it.</summary>
 public sealed record RunConfigurationsState : IStateDocument<RunConfigurationsState>
 {
     public List<RunConfiguration> Configurations { get; init; } = [];
@@ -317,10 +317,7 @@ public sealed record RunConfigurationsState : IStateDocument<RunConfigurationsSt
     /// brings back.</summary>
     public Dictionary<string, JsonNode?> Edits { get; init; } = [];
 
-    /// <summary>The name of the configuration chosen in the toolbar, the person's or a generated one.</summary>
-    public string? Selected { get; init; }
-
-    public static IReadOnlyList<Action<JsonObject>> Upgrades { get; } = [StateStore.Unversioned, Kinded, Edited];
+    public static IReadOnlyList<Action<JsonObject>> Upgrades { get; } = [StateStore.Unversioned, Kinded, Edited, Shared];
 
     /// <summary>Version 2, when a configuration gained a kind: every one before it ran a project.</summary>
     private static void Kinded(JsonObject document)
@@ -337,6 +334,10 @@ public sealed record RunConfigurationsState : IStateDocument<RunConfigurationsSt
     /// <summary>Version 3, when a generated configuration could be changed in place: none had been, and the person's own
     /// (their copies among them) stay as they are.</summary>
     private static void Edited(JsonObject document) => document["edits"] ??= new JsonObject();
+
+    /// <summary>Version 4, when the file went into the folder's <c>.passenger/</c> to be shared: the one chosen went to the
+    /// person's own <see cref="RunChoiceState"/>.</summary>
+    private static void Shared(JsonObject document) => document.Remove("selected");
 
     /// <summary>One without a name is left out, as is a second of the same name, a project, Dockerfile or SDK container
     /// configuration without its project and a Compose one without its files; a kind, console, mode or service action this
@@ -368,4 +369,15 @@ public sealed record RunConfigurationsState : IStateDocument<RunConfigurationsSt
         }
         return this with { Configurations = kept, Edits = edits };
     }
+}
+
+/// <summary>The configuration the person chose in the toolbar, theirs or a generated one, by name: kept apart from the shared
+/// <see cref="RunConfigurationsState"/>, so a choice changes no file a team shares.</summary>
+public sealed record RunChoiceState : IStateDocument<RunChoiceState>
+{
+    public string? Selected { get; init; }
+
+    public static IReadOnlyList<Action<JsonObject>> Upgrades { get; } = [StateStore.Unversioned];
+
+    public RunChoiceState Clamped() => string.IsNullOrWhiteSpace(Selected) ? this with { Selected = null } : this;
 }

@@ -673,7 +673,8 @@ public partial class MainWindow : Window
     /// is said in the status bar, so the person knows where what they kept went.</summary>
     private void SayWhatWasSetAside()
     {
-        if (State.StateFile.TakeUnsaid(StateFolder) is { Count: > 0 } said)
+        IEnumerable<string> roots = new[] { session.Folder, opening }.OfType<string>().Select(f => Path.Combine(f, State.ProjectState.SharedName));
+        if (roots.Prepend(StateFolder).SelectMany(State.StateFile.TakeUnsaid).ToList() is { Count: > 0 } said)
         {
             Say(string.Join("; ", said.Select(s => s.Said)), SetAsidePlace(said[0].Kept));
         }
