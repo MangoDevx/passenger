@@ -148,7 +148,7 @@ Projects in `src/`:
   `SocketFolders` (every Unix socket, short paths), `DotnetProcesses` (attachable programs), `InFlight`.
 - `Passenger.Text`: the rope (an immutable B-tree, so every version is a thread-safe snapshot), `TextDocument` (undo,
   LSP-ordered changes; carry offsets with `TextEditing.Map*` over the change's `SortedEdits` as it came), carets, every
-  editing command as a pure function to an `EditPlan`, `MarkupIndent`, `WordDiff`.
+  editing command as a pure function to an `EditPlan`, `MarkupIndent`, `WordDiff`, `FuzzyMatch` (allocates nothing).
 - `Passenger.Editor`: the `CodeEditor` control (partials), `Keymap` and `EditorActions` (presets), `IHighlighter`. With
   soft wrap, whatever turns an offset into a place goes through `Rows`/`RowSpan`. Wraps (`WrapMap`), rows (`RowMap`),
   folds (`FoldList`), hints (`HintList`) and built lines (`LineRuns`) are runs an edit moves only where it reaches, so a
@@ -249,7 +249,7 @@ Projects in `src/`:
   `TestingPlatformRunner`, the rest to `VsTestRunner`, the only file that knows VSTest's object model), `TestTree`.
 - **The rest,** each folder named for its job: `Vcs` (`Git` over porcelain v2, `VcsController`, `ThreeWayMerge`),
   `Packages` (`FeedSet`, `NuGetView`, every package change's one path, credentials only to their feed's host), `History`
-  (Local History), `Navigation` (`FuzzyMatch` allocates nothing), `Workspace` (`SolutionModel`, `SolutionEdits` and
+  (Local History), `Navigation`, `Workspace` (`SolutionModel`, `SolutionEdits` and
   `ProjectEdits` change files as text, never `dotnet sln`/`add reference`), `Welcome`, `Templates` (every `dotnet new`
   through `ProjectTemplates.New`/`NewCommand`), `Updates` (`Releases`, `Updater`; only an installed copy updates itself;
   What's New from `docs/release-notes/X.Y.Z.md`), `Settings`, `State`, `Discord`.
