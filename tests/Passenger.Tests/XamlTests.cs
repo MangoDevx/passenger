@@ -1079,13 +1079,21 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
     }
 
     /// <summary>An app still on Avalonia 11, whose package carries its previewer under tools/netstandard2.0 where Avalonia
-    /// 12's are under tools/net8.0 and later, previews as one on Avalonia 12 does: turned on from its file's tab strip
-    /// before the app was ever restored, it draws once Build has restored and built it.</summary>
+    /// 12's are under tools/net8.0 and later, and whose Directory.Build.props moves its obj folder, previews as any app
+    /// does: turned on from its file's tab strip before the app was ever restored, it draws once Build has restored and
+    /// built it.</summary>
     [AvaloniaFact]
-    public void An_app_on_Avalonia_11_previews_from_its_packages_previewer()
+    public void An_app_on_Avalonia_11_with_its_obj_folder_moved_previews_from_its_packages_previewer()
     {
         string folder = TestFolders.Create("avalonia11-");
         string version = AvaloniaApp.Metadata("AvaloniaOlderVersion");
+        TestFolders.Write(folder, "Directory.Build.props", """
+            <Project>
+              <PropertyGroup>
+                <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)build/obj/</BaseIntermediateOutputPath>
+              </PropertyGroup>
+            </Project>
+            """);
         TestFolders.Write(folder, "Eleven.csproj", $$"""
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>

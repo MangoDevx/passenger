@@ -5,6 +5,10 @@ using Passenger.Core;
 
 namespace Passenger.Xaml.Projects;
 
+/// <summary>What MSBuild's evaluation says of a project's restore: where its assets file is, wherever its obj folder was
+/// moved, the package folder it restores into, and the version it takes of each package (central versions included).</summary>
+public sealed record ProjectRestore(string? AssetsFile, string? PackageRoot, IReadOnlyDictionary<string, string> Versions);
+
 /// <summary>What a project's XAML is compiled against, read without MSBuild: the assemblies its restore resolved
 /// (<c>project.assets.json</c>: each package's compile assets, the framework's reference pack), its project references,
 /// its own C# files and the usings its SDK adds to them, and the items a dialect reads from its project file
@@ -55,13 +59,14 @@ public sealed record ProjectInputs(
     }
 
     /// <summary>Reads a project's inputs; <paramref name="dotnetRoot"/> is the folder of the <c>dotnet</c> that builds it,
-    /// whose <c>packs/</c> hold the framework's reference assemblies.</summary>
-    public static ProjectInputs Read(string projectPath, string? dotnetRoot)
+    /// whose <c>packs/</c> hold the framework's reference assemblies, and <paramref name="restore"/> what MSBuild's evaluation
+    /// says of its restore, when there is one, which is taken before what the folders suggest.</summary>
+    public static ProjectInputs Read(string projectPath, string? dotnetRoot, ProjectRestore? restore = null)
     {
         string folder = Path.GetDirectoryName(projectPath)!;
         XDocument? project = Load(projectPath);
         string assemblyName = Property(project, "AssemblyName") ?? Path.GetFileNameWithoutExtension(projectPath);
-        string? assets = FindAssets(projectPath);
+        string? assets = restore?.AssetsFile is { Length: > 0 } evaluated && File.Exists(evaluated) ? evaluated : FindAssets(projectPath);
         List<string> references = [];
         List<string> projectReferences = [];
         List<string> packages = [];
@@ -90,21 +95,69 @@ public sealed record ProjectInputs(
                 }
             }
         }
+        Dictionary<string, string> versions = read is null ? new(StringComparer.OrdinalIgnoreCase) : new(read.Versions, StringComparer.OrdinalIgnoreCase);
         foreach (XElement package in Elements(project, "PackageReference"))
         {
-            if (package.Attribute("Include")?.Value is { Length: > 0 } id && !packages.Contains(id, StringComparer.OrdinalIgnoreCase))
+            if (package.Attribute("Include")?.Value is not { Length: > 0 } id)
+            {
+                continue;
+            }
+            if (!packages.Contains(id, StringComparer.OrdinalIgnoreCase))
             {
                 packages.Add(id);
             }
+            if ((package.Attribute("Version")?.Value ?? package.Elements().FirstOrDefault(e => e.Name.LocalName == "Version")?.Value) is { Length: > 0 } version)
+            {
+                versions.TryAdd(id, version.Trim());
+            }
         }
+        foreach ((string id, string version) in restore?.Versions ?? new Dictionary<string, string>())
+        {
+            if (!packages.Contains(id, StringComparer.OrdinalIgnoreCase))
+            {
+                packages.Add(id);
+            }
+            versions.TryAdd(id, version);
+        }
+        Dictionary<string, string> folders = read is null ? new(StringComparer.OrdinalIgnoreCase) : new(read.Folders, StringComparer.OrdinalIgnoreCase);
+        FindInCache(folders, versions, [restore?.PackageRoot, .. read?.PackageFolders ?? [], .. PackageRoots()]);
         // Two profiles of one framework (WPF's and Windows Forms') share its pack.
         return new ProjectInputs(projectPath, assemblyName, framework, [.. references.Distinct(StringComparer.Ordinal)], projectReferences, SourceFilesOf(folder),
             ImplicitUsingsOf(assets), assets, packages)
         {
-            PackageVersions = read?.Versions ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
-            PackageFolders = read?.Folders ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
+            PackageVersions = versions,
+            PackageFolders = folders,
             FrameworkReferences = read?.FrameworkReferences ?? [],
         };
+    }
+
+    /// <summary>The folder of each package the restore's assets did not place, at the version the project takes, from the
+    /// first package folder that holds it: what a project with no assets to read, or assets Passenger could not find, has.</summary>
+    private static void FindInCache(Dictionary<string, string> folders, IReadOnlyDictionary<string, string> versions, IEnumerable<string?> roots)
+    {
+        string[] places = [.. roots.OfType<string>().Where(r => r.Length > 0).Distinct(PathNames.Comparer)];
+        foreach ((string id, string version) in versions)
+        {
+            // A range or a floating version names no one folder.
+            if (folders.ContainsKey(id) || version.IndexOfAny(['*', '[', '(', ',', '$']) >= 0)
+            {
+                continue;
+            }
+            if (places.Select(p => Path.Combine(p, id.ToLowerInvariant(), version.ToLowerInvariant())).FirstOrDefault(Directory.Exists) is { } found)
+            {
+                folders[id] = found;
+            }
+        }
+    }
+
+    /// <summary>The package folders a restore takes when nothing says otherwise: NUGET_PACKAGES, else the user's .nuget/packages.</summary>
+    private static IEnumerable<string> PackageRoots()
+    {
+        if (Environment.GetEnvironmentVariable("NUGET_PACKAGES") is { Length: > 0 } set)
+        {
+            yield return set;
+        }
+        yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nuget", "packages");
     }
 
     /// <summary>The files an item type of the project file includes (<c>AvaloniaResource</c>), its globs expanded and its

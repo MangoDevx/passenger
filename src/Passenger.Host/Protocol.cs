@@ -144,10 +144,17 @@ public static class CarriedProperties
     /// <summary>Whether Publish offers the project: an executable's unless it says false, a library's only when it says true.</summary>
     public const string IsPublishable = "IsPublishable";
 
+    /// <summary>Where the project's restore writes its project.assets.json, wherever its obj folder was moved.</summary>
+    public const string ProjectAssetsFile = "ProjectAssetsFile";
+
+    /// <summary>The package folder the project restores into.</summary>
+    public const string NuGetPackageRoot = "NuGetPackageRoot";
+
     public static readonly IReadOnlyList<string> Names =
     [
         EnableSdkContainerSupport, ContainerRepository, ContainerImageName, ContainerBaseImage, DockerfileFile, DockerfileContext,
-        DockerfileFastModeStage, ContainerDevelopmentMode, DockerDefaultTargetOS, UserSecretsId, IsPublishable,
+        DockerfileFastModeStage, ContainerDevelopmentMode, DockerDefaultTargetOS, UserSecretsId, IsPublishable, ProjectAssetsFile,
+        NuGetPackageRoot,
     ];
 }
 

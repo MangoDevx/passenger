@@ -47,6 +47,20 @@ public sealed class XamlService : IDisposable
     /// set.</summary>
     public ILibraryFiles LibraryFiles { get; set; } = new SourceLink();
 
+    /// <summary>What MSBuild's evaluation says of a project's restore, by its path, asked from any thread: where its assets
+    /// file and packages are, which a project's XAML is read from before what its folders suggest.</summary>
+    public Func<string, ProjectRestore?>? Restores { get; set; }
+
+    /// <summary>The projects whose evaluated restore changed are read again, so their XAML takes the restore it now names.</summary>
+    public void RestoresChanged(IReadOnlyCollection<string> projectPaths)
+    {
+        UiThread.Check();
+        foreach (XamlLoading loading in projects.Values.Where(l => projectPaths.Contains(l.ProjectPath, PathNames.Comparer)).ToList())
+        {
+            Reload(loading);
+        }
+    }
+
     /// <summary>The open files' texts as the editor has them now, each a snapshot any thread reads, for the .resx and XLIFF
     /// files a XAML file's localized strings are read from off the UI thread; none open without it.</summary>
     public Func<Func<string, TextSnapshot?>>? Snapshots { get; set; }
@@ -228,7 +242,8 @@ public sealed class XamlService : IDisposable
             return loading;
         }
         Dictionary<string, TextSnapshot> texts = OpenTexts();
-        Task<XamlProjectBuilder?> builder = BackgroundWork.Run(() => XamlProjectBuilder.For(project, DotnetRoot.Value, IdeErrors.Report));
+        Func<string, ProjectRestore?>? restores = Restores;
+        Task<XamlProjectBuilder?> builder = BackgroundWork.Run(() => XamlProjectBuilder.For(project, DotnetRoot.Value, IdeErrors.Report, restores));
         loading = new XamlLoading(project, builder, LoadAsync(builder, texts));
         projects[project] = loading;
         _ = AnnounceAsync(loading);
@@ -304,7 +319,8 @@ public sealed class XamlService : IDisposable
     private void Reload(XamlLoading loading)
     {
         Dictionary<string, TextSnapshot> texts = OpenTexts();
-        Task<XamlProjectBuilder?> builder = BackgroundWork.Run(() => XamlProjectBuilder.For(loading.ProjectPath, DotnetRoot.Value, IdeErrors.Report));
+        Func<string, ProjectRestore?>? restores = Restores;
+        Task<XamlProjectBuilder?> builder = BackgroundWork.Run(() => XamlProjectBuilder.For(loading.ProjectPath, DotnetRoot.Value, IdeErrors.Report, restores));
         XamlLoading again = loading with { Builder = builder, Loaded = LoadAsync(builder, texts) };
         projects[loading.ProjectPath] = again;
         foreach (XamlDocument document in documents.Values.Where(d => d.Loading.ProjectPath == loading.ProjectPath))

@@ -17,7 +17,11 @@ public sealed record ProjectModelCache : IStateDocument<ProjectModelCache>
     /// <summary>Each project's evaluation, complete, by its path.</summary>
     public Dictionary<string, EvaluatedProject> Projects { get; init; } = [];
 
-    public static IReadOnlyList<Action<JsonObject>> Upgrades { get; } = [StateStore.Unversioned, ForgetWindowsTargeted, ForgetAll, ForgetUncarried, ForgetUnpublishable, ForgetAll];
+    public static IReadOnlyList<Action<JsonObject>> Upgrades { get; } = [StateStore.Unversioned, ForgetWindowsTargeted, ForgetAll, ForgetUncarried, ForgetUnpublishable, ForgetAll,
+        ForgetUnrestored];
+
+    /// <summary>Every evaluation, kept before they carried where a project's restore is, by which its XAML finds its packages.</summary>
+    private static void ForgetUnrestored(JsonObject document) => document.Remove("projects");
 
     /// <summary>Every evaluation, kept before they carried IsPublishable, by which Publish offers a library that asks for it.</summary>
     private static void ForgetUnpublishable(JsonObject document) => document.Remove("projects");
