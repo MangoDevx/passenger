@@ -8,6 +8,14 @@ pattern shows. A **race in the IDE** is fixed in the IDE; waiting longer or tryi
 To add one: a line under its date, newest first, naming the test, the run, the cause in a sentence and the commit
 that fixed it, in one of the forms below. A failure not yet understood goes in only once it is.
 
+## 2026-10-25
+
+- `LongFileAssistTests`' `Typing_with_pauses_…`, CI macOS, release run 40125454882 (1bd14b59): the whole file's colours
+  were asked for twice. CountedMessages noted where the server's refresh stood among Passenger's requests only once
+  StreamJsonRpc had parsed it, which can come well after its last byte is read, so a whole-file request sent in that gap
+  counted as sent before the refresh and was asked again. **A race in the IDE**: each message's place is now taken as its
+  last byte is read (fad3e3c3, #479), and the test waits for no request outstanding rather than a fixed 3 s.
+
 ## 2026-10-24
 
 - `XamlTests`' `A_project_that_takes_avalonia_while_its_xaml_is_open_gets_its_xaml_help_once_the_restore_lands`, CI Linux,
