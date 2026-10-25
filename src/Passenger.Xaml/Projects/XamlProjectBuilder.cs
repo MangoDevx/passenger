@@ -14,8 +14,8 @@ public sealed class XamlProjectBuilder
     private readonly object gate = new();
     private readonly string? dotnetRoot;
 
-    /// <summary>What MSBuild's evaluation says of a project's restore, by its path; any thread asks it.</summary>
-    private readonly Func<string, ProjectRestore?>? restores;
+    /// <summary>What MSBuild's evaluation says of where a project's restore and build put things, by its path; any thread asks it.</summary>
+    private readonly Func<string, ProjectEvaluation?>? evaluations;
     private readonly Action<Exception>? failed;
     private readonly Dictionary<string, SourceTypes> sources = new(StringComparer.Ordinal);
     private readonly Dictionary<string, XamlFileSummary> files = new(StringComparer.Ordinal);
@@ -30,13 +30,13 @@ public sealed class XamlProjectBuilder
     /// declares none anew keeps it.</summary>
     private string classes = string.Empty;
 
-    private XamlProjectBuilder(ProjectInputs inputs, XamlDialect dialect, string? dotnetRoot, Action<Exception>? failed, Func<string, ProjectRestore?>? restores)
+    private XamlProjectBuilder(ProjectInputs inputs, XamlDialect dialect, string? dotnetRoot, Action<Exception>? failed, Func<string, ProjectEvaluation?>? evaluations)
     {
         this.inputs = inputs;
         Dialect = dialect;
         this.dotnetRoot = dotnetRoot;
         this.failed = failed;
-        this.restores = restores;
+        this.evaluations = evaluations;
     }
 
     public XamlDialect Dialect { get; }
@@ -46,12 +46,12 @@ public sealed class XamlProjectBuilder
     public string Folder => inputs.Folder;
 
     /// <summary>A builder for a project whose XAML Passenger reads (an Avalonia or WPF project), or null for another;
-    /// <paramref name="failed"/> hears of a file a load could not read, which it leaves out, and <paramref name="restores"/>
-    /// answers what MSBuild's evaluation says of a project's restore, from any thread.</summary>
-    public static XamlProjectBuilder? For(string projectPath, string? dotnetRoot, Action<Exception>? failed = null, Func<string, ProjectRestore?>? restores = null)
+    /// <paramref name="failed"/> hears of a file a load could not read, which it leaves out, and <paramref name="evaluations"/>
+    /// answers what MSBuild's evaluation says of where a project's restore and build put things, from any thread.</summary>
+    public static XamlProjectBuilder? For(string projectPath, string? dotnetRoot, Action<Exception>? failed = null, Func<string, ProjectEvaluation?>? evaluations = null)
     {
-        ProjectInputs inputs = ProjectInputs.Read(projectPath, dotnetRoot, restores?.Invoke(projectPath));
-        return DialectOf(inputs) is { } dialect ? new XamlProjectBuilder(inputs, dialect, dotnetRoot, failed, restores) : null;
+        ProjectInputs inputs = ProjectInputs.Read(projectPath, dotnetRoot, evaluations?.Invoke(projectPath));
+        return DialectOf(inputs) is { } dialect ? new XamlProjectBuilder(inputs, dialect, dotnetRoot, failed, evaluations) : null;
     }
 
     /// <summary>The dialect a project's XAML is in, by the framework it references: Avalonia's for a project that references
@@ -78,7 +78,7 @@ public sealed class XamlProjectBuilder
     {
         lock (gate)
         {
-            inputs = ProjectInputs.Read(inputs.ProjectPath, dotnetRoot, restores?.Invoke(inputs.ProjectPath));
+            inputs = ProjectInputs.Read(inputs.ProjectPath, dotnetRoot, evaluations?.Invoke(inputs.ProjectPath));
             assemblies = [.. inputs.References.AsParallel().AsOrdered().Select(AssemblyTypes.Get).OfType<AssemblyTypes>()];
             themeKeys = ThemeKeys(assemblies);
             referenced = [];
@@ -253,7 +253,7 @@ public sealed class XamlProjectBuilder
             {
                 continue;
             }
-            ProjectInputs read = ProjectInputs.Read(project, dotnetRoot, restores?.Invoke(project));
+            ProjectInputs read = ProjectInputs.Read(project, dotnetRoot, evaluations?.Invoke(project));
             referenced.Add((read, [.. XamlFilesUnder(read.Folder)]));
             CollectReferences(read, seen);
         }

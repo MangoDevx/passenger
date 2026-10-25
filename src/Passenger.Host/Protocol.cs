@@ -150,11 +150,14 @@ public static class CarriedProperties
     /// <summary>The package folder the project restores into.</summary>
     public const string NuGetPackageRoot = "NuGetPackageRoot";
 
+    /// <summary>The assembly the project's build makes, wherever its output folder was moved.</summary>
+    public const string TargetPath = "TargetPath";
+
     public static readonly IReadOnlyList<string> Names =
     [
         EnableSdkContainerSupport, ContainerRepository, ContainerImageName, ContainerBaseImage, DockerfileFile, DockerfileContext,
         DockerfileFastModeStage, ContainerDevelopmentMode, DockerDefaultTargetOS, UserSecretsId, IsPublishable, ProjectAssetsFile,
-        NuGetPackageRoot,
+        NuGetPackageRoot, TargetPath,
     ];
 }
 

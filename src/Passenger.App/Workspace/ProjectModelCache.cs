@@ -20,7 +20,8 @@ public sealed record ProjectModelCache : IStateDocument<ProjectModelCache>
     public static IReadOnlyList<Action<JsonObject>> Upgrades { get; } = [StateStore.Unversioned, ForgetWindowsTargeted, ForgetAll, ForgetUncarried, ForgetUnpublishable, ForgetAll,
         ForgetUnrestored];
 
-    /// <summary>Every evaluation, kept before they carried where a project's restore is, by which its XAML finds its packages.</summary>
+    /// <summary>Every evaluation, kept before they carried where a project's restore and build output are, by which its XAML
+    /// finds its packages and its preview its build.</summary>
     private static void ForgetUnrestored(JsonObject document) => document.Remove("projects");
 
     /// <summary>Every evaluation, kept before they carried IsPublishable, by which Publish offers a library that asks for it.</summary>

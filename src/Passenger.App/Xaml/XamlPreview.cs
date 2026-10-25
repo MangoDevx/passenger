@@ -195,12 +195,16 @@ public sealed class XamlPreview : IDisposable
     }
 
     /// <summary>The project's newest build output that can run: its assembly with its dependencies beside it, and its runtime
-    /// configuration when <paramref name="configured"/> (a class library has none), under its own bin/ or an artifacts
-    /// folder above it.</summary>
+    /// configuration when <paramref name="configured"/> (a class library has none), where MSBuild's evaluation says its
+    /// build puts it, under its own bin/ or under an artifacts folder above it.</summary>
     public static string? Output(ProjectInputs inputs, bool configured = true)
     {
         string name = inputs.AssemblyName + ".dll";
         List<string> found = [];
+        if (inputs.TargetPath is { } evaluated && File.Exists(evaluated))
+        {
+            found.Add(evaluated);
+        }
         string bin = Path.Combine(inputs.Folder, "bin");
         if (Directory.Exists(bin))
         {

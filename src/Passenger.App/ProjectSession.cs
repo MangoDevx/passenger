@@ -87,7 +87,7 @@ public sealed class ProjectSession : IAsyncDisposable
         Vcs.Work = setup.Work;
         // A XAML file's localized strings read from the .resx and XLIFF files as the editor has them.
         Xaml.Snapshots = () => ConfigurationFiles.Snapshots(setup.Editors.Documents);
-        Xaml.Restores = path => restores.GetValueOrDefault(path);
+        Xaml.Evaluations = path => evaluations.GetValueOrDefault(path);
         Debug = new DebugController(setup.Editors, setup.Views.Debug)
         {
             RunInTerminal = setup.RunForDebugger,
@@ -171,41 +171,43 @@ public sealed class ProjectSession : IAsyncDisposable
         private set
         {
             workspace = value;
-            FollowRestores();
+            FollowEvaluations();
         }
     }
 
     private WorkspaceModel? workspace;
 
-    /// <summary>Each evaluated project's restore by its path, replaced whole, so the XAML service reads it from any thread.</summary>
-    private volatile IReadOnlyDictionary<string, ProjectRestore> restores =
-        new Dictionary<string, ProjectRestore>(PathNames.Comparer);
+    /// <summary>What each evaluated project says of where its restore and build put things, by its path, replaced whole,
+    /// so the XAML service reads it from any thread.</summary>
+    private volatile IReadOnlyDictionary<string, ProjectEvaluation> evaluations =
+        new Dictionary<string, ProjectEvaluation>(PathNames.Comparer);
 
-    /// <summary>The projects' evaluated restores taken anew, and the XAML of a project whose restore changed read again.</summary>
-    private void FollowRestores()
+    /// <summary>The projects' evaluations taken anew, and the XAML of a project whose evaluation moved something read again.</summary>
+    private void FollowEvaluations()
     {
-        Dictionary<string, ProjectRestore> now = new(PathNames.Comparer);
+        Dictionary<string, ProjectEvaluation> now = new(PathNames.Comparer);
         foreach (ProjectModel project in workspace?.Projects ?? [])
         {
             if (project.Evaluated is { } evaluated)
             {
-                now[project.Path] = new ProjectRestore(
+                now[project.Path] = new ProjectEvaluation(
                     evaluated.Properties.GetValueOrDefault(Passenger.Host.CarriedProperties.ProjectAssetsFile)?.Value,
                     evaluated.Properties.GetValueOrDefault(Passenger.Host.CarriedProperties.NuGetPackageRoot)?.Value,
                     project.Packages.Where(p => p.Version is { Length: > 0 }).DistinctBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
-                        .ToDictionary(p => p.Name, p => p.Version!, StringComparer.OrdinalIgnoreCase));
+                        .ToDictionary(p => p.Name, p => p.Version!, StringComparer.OrdinalIgnoreCase),
+                    evaluated.Properties.GetValueOrDefault(Passenger.Host.CarriedProperties.TargetPath)?.Value);
             }
         }
-        IReadOnlyDictionary<string, ProjectRestore> was = restores;
-        restores = now;
-        string[] changed = [.. now.Where(p => !was.TryGetValue(p.Key, out ProjectRestore? before) || !Same(before, p.Value)).Select(p => p.Key)];
+        IReadOnlyDictionary<string, ProjectEvaluation> was = evaluations;
+        evaluations = now;
+        string[] changed = [.. now.Where(p => !was.TryGetValue(p.Key, out ProjectEvaluation? before) || !Same(before, p.Value)).Select(p => p.Key)];
         if (changed.Length > 0)
         {
-            Xaml.RestoresChanged(changed);
+            Xaml.EvaluationsChanged(changed);
         }
 
-        static bool Same(ProjectRestore a, ProjectRestore b) =>
-            a.AssetsFile == b.AssetsFile && a.PackageRoot == b.PackageRoot && a.Versions.Count == b.Versions.Count
+        static bool Same(ProjectEvaluation a, ProjectEvaluation b) =>
+            a.AssetsFile == b.AssetsFile && a.PackageRoot == b.PackageRoot && a.TargetPath == b.TargetPath && a.Versions.Count == b.Versions.Count
             && a.Versions.All(v => b.Versions.TryGetValue(v.Key, out string? version) && version == v.Value);
     }
 

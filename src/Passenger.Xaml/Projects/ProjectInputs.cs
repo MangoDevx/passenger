@@ -5,9 +5,10 @@ using Passenger.Core;
 
 namespace Passenger.Xaml.Projects;
 
-/// <summary>What MSBuild's evaluation says of a project's restore: where its assets file is, wherever its obj folder was
-/// moved, the package folder it restores into, and the version it takes of each package (central versions included).</summary>
-public sealed record ProjectRestore(string? AssetsFile, string? PackageRoot, IReadOnlyDictionary<string, string> Versions);
+/// <summary>What MSBuild's evaluation says of where a project's restore and build put things, wherever its obj and output
+/// folders were moved: its assets file, the package folder it restores into, the version it takes of each package (central
+/// versions included), and the assembly its build makes.</summary>
+public sealed record ProjectEvaluation(string? AssetsFile, string? PackageRoot, IReadOnlyDictionary<string, string> Versions, string? TargetPath = null);
 
 /// <summary>What a project's XAML is compiled against, read without MSBuild: the assemblies its restore resolved
 /// (<c>project.assets.json</c>: each package's compile assets, the framework's reference pack), its project references,
@@ -31,6 +32,9 @@ public sealed record ProjectInputs(
 
     /// <summary>The version of each package its restore resolved, by id.</summary>
     public IReadOnlyDictionary<string, string> PackageVersions { get; init; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>The assembly the project's build makes, as MSBuild's evaluation names it; null without one.</summary>
+    public string? TargetPath { get; init; }
 
     /// <summary>Where each package its restore resolved is, by id: the folder of its version in the package cache.</summary>
     public IReadOnlyDictionary<string, string> PackageFolders { get; init; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -59,14 +63,14 @@ public sealed record ProjectInputs(
     }
 
     /// <summary>Reads a project's inputs; <paramref name="dotnetRoot"/> is the folder of the <c>dotnet</c> that builds it,
-    /// whose <c>packs/</c> hold the framework's reference assemblies, and <paramref name="restore"/> what MSBuild's evaluation
-    /// says of its restore, when there is one, which is taken before what the folders suggest.</summary>
-    public static ProjectInputs Read(string projectPath, string? dotnetRoot, ProjectRestore? restore = null)
+    /// whose <c>packs/</c> hold the framework's reference assemblies, and <paramref name="evaluation"/> what MSBuild's evaluation
+    /// says of where its restore and build put things, when there is one, which is taken before what the folders suggest.</summary>
+    public static ProjectInputs Read(string projectPath, string? dotnetRoot, ProjectEvaluation? evaluation = null)
     {
         string folder = Path.GetDirectoryName(projectPath)!;
         XDocument? project = Load(projectPath);
         string assemblyName = Property(project, "AssemblyName") ?? Path.GetFileNameWithoutExtension(projectPath);
-        string? assets = restore?.AssetsFile is { Length: > 0 } evaluated && File.Exists(evaluated) ? evaluated : FindAssets(projectPath);
+        string? assets = evaluation?.AssetsFile is { Length: > 0 } evaluated && File.Exists(evaluated) ? evaluated : FindAssets(projectPath);
         List<string> references = [];
         List<string> projectReferences = [];
         List<string> packages = [];
@@ -111,7 +115,7 @@ public sealed record ProjectInputs(
                 versions.TryAdd(id, version.Trim());
             }
         }
-        foreach ((string id, string version) in restore?.Versions ?? new Dictionary<string, string>())
+        foreach ((string id, string version) in evaluation?.Versions ?? new Dictionary<string, string>())
         {
             if (!packages.Contains(id, StringComparer.OrdinalIgnoreCase))
             {
@@ -120,13 +124,14 @@ public sealed record ProjectInputs(
             versions.TryAdd(id, version);
         }
         Dictionary<string, string> folders = read is null ? new(StringComparer.OrdinalIgnoreCase) : new(read.Folders, StringComparer.OrdinalIgnoreCase);
-        FindInCache(folders, versions, [restore?.PackageRoot, .. read?.PackageFolders ?? [], .. PackageRoots()]);
+        FindInCache(folders, versions, [evaluation?.PackageRoot, .. read?.PackageFolders ?? [], .. PackageRoots()]);
         // Two profiles of one framework (WPF's and Windows Forms') share its pack.
         return new ProjectInputs(projectPath, assemblyName, framework, [.. references.Distinct(StringComparer.Ordinal)], projectReferences, SourceFilesOf(folder),
             ImplicitUsingsOf(assets), assets, packages)
         {
             PackageVersions = versions,
             PackageFolders = folders,
+            TargetPath = evaluation?.TargetPath is { Length: > 0 } built ? built : null,
             FrameworkReferences = read?.FrameworkReferences ?? [],
         };
     }
