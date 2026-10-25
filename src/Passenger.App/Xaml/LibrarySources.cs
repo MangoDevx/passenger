@@ -35,6 +35,10 @@ public static partial class LibrarySources
     /// <summary>Where the decompiled files are kept.</summary>
     public static string Folder => Path.Combine(StateStore.DefaultRoot, "MetadataAsSource");
 
+    /// <summary>The cache at <see cref="Folder"/>, an entry a folder of one version's files (<c>kind/Name/stamp</c>).</summary>
+    private static UsedCache Cache => new(Folder, UsedEntries.Folders(3), new UsedLimits(UnusedFor, InUse, MostBytes, Abandoned),
+        static line => IdeErrors.Write($"Library sources: {line}"));
+
     /// <summary>A library type's decompiled file, and where in it a member (or the type itself) is declared; null when its
     /// assembly cannot be read.</summary>
     public static (string Path, TextPosition Position)? Decompile(ClrType type, ClrMember? member)
@@ -74,24 +78,25 @@ public static partial class LibrarySources
         {
             return null;
         }
+        UsedCache cache = Cache;
         lock (Pruning)
         {
             if (!pruned)
             {
                 pruned = true;
-                Prune(DateTime.UtcNow);
+                cache.Prune(DateTime.UtcNow);
             }
         }
-        string folder = Path.Combine(Folder, kind, assemblyName, Stamp(assembly));
+        string folder = Path.Combine(cache.Folder, kind, assemblyName, Stamp(assembly));
         try
         {
             Directory.CreateDirectory(folder);
-            Directory.SetLastWriteTimeUtc(folder, DateTime.UtcNow);
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
             // Pruned by another Passenger a moment ago, or not writable: the write that follows says which.
         }
+        cache.Touch(folder);
         return folder;
     }
 
@@ -104,100 +109,9 @@ public static partial class LibrarySources
         return PathNames.IsUnder(path, root) ? path : null;
     }
 
-    /// <summary>Writes a file whole or not at all, its folder made first (<see cref="AtomicFile"/>), so a write cut short
+    /// <summary>Writes a file whole or not at all, its folder made first (<see cref="UsedCache"/>), so a write cut short
     /// never leaves a truncated file that a later session takes for the whole.</summary>
-    public static void WriteWhole(string path, byte[] bytes)
-    {
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        AtomicFile.Write(path, bytes);
-    }
-
-    /// <summary>Deletes what no session needs: temporary files of writes that never finished, entries unused for
-    /// <see cref="UnusedFor"/>, then the least recently used while the rest pass <see cref="MostBytes"/>, never one used in
-    /// the last <see cref="InUse"/>; then the assemblies' folders left empty.</summary>
-    private static void Prune(DateTime now)
-    {
-        try
-        {
-            if (!Directory.Exists(Folder))
-            {
-                return;
-            }
-            foreach (FileInfo file in new DirectoryInfo(Folder).EnumerateFiles("*" + AtomicFile.Temporary, SearchOption.AllDirectories))
-            {
-                if (now - file.LastWriteTimeUtc > Abandoned)
-                {
-                    Delete(file.FullName);
-                }
-            }
-            List<(DirectoryInfo Folder, DateTime Used, long Bytes)> entries = [.. new DirectoryInfo(Folder).EnumerateDirectories()
-                .SelectMany(kind => kind.EnumerateDirectories()).SelectMany(name => name.EnumerateDirectories())
-                .Select(entry => (entry, entry.LastWriteTimeUtc, entry.EnumerateFiles("*", SearchOption.AllDirectories).Sum(f => f.Length)))];
-            long total = entries.Sum(e => e.Bytes);
-            int deleted = 0;
-            foreach ((DirectoryInfo entry, DateTime used, long bytes) in entries.OrderBy(e => e.Used))
-            {
-                TimeSpan unused = now - used;
-                if (unused < InUse)
-                {
-                    break;
-                }
-                if (unused > UnusedFor || total > MostBytes)
-                {
-                    try
-                    {
-                        entry.Delete(recursive: true);
-                        total -= bytes;
-                        deleted++;
-                    }
-                    catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-                    {
-                        // Held by a reader (Windows): the next session's prune takes it.
-                    }
-                }
-            }
-            foreach (DirectoryInfo name in new DirectoryInfo(Folder).EnumerateDirectories().SelectMany(kind => kind.EnumerateDirectories()).ToList())
-            {
-                if (!name.EnumerateFileSystemInfos().Any())
-                {
-                    Delete(name);
-                }
-            }
-            if (deleted > 0)
-            {
-                IdeErrors.Write($"Library sources: {deleted} versions' files pruned, {total / (1024 * 1024)} MB kept in {Folder}");
-            }
-        }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-        {
-            // A chore: what it could not delete waits for the next session, and the cache is used all the same.
-            IdeErrors.Write($"Library sources: {Folder} could not be pruned: {error.Message}");
-        }
-    }
-
-    private static void Delete(string file)
-    {
-        try
-        {
-            File.Delete(file);
-        }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-        {
-            // Held a moment: a later prune takes it.
-        }
-    }
-
-    private static void Delete(DirectoryInfo folder)
-    {
-        try
-        {
-            folder.Delete();
-        }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-        {
-            // Written to since it was looked at.
-        }
-    }
+    public static void WriteWhole(string path, byte[] bytes) => Cache.Write(path, bytes);
 
     /// <summary>The assembly with the code: a package's lib/ beside the ref/ compiled against, the running runtime's for
     /// the framework's reference pack, else the one given.</summary>

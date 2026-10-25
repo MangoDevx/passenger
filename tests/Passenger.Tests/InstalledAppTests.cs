@@ -114,11 +114,16 @@ public sealed class InstalledAppTests : McpRig, IClassFixture<RestoredFolders>
     }
 
     /// <summary>Has an agent ask the C# server of the app in a folder about a file, then checks that the server wrote its
-    /// caches in its copy in the state's cache and nothing in the app's own server folder.</summary>
+    /// caches in its copy in the state's cache and nothing in the app's own server folder, and that another build's copy
+    /// no server has run from for two days was removed.</summary>
     private async Task RunsFromCopy(string app, string wrote, bool throughDotnet = false)
     {
         string roslyn = Path.Combine(app, "roslyn");
         string[] before = Listing(roslyn);
+        string stale = Path.Combine(OwnState, "cache", "roslyn", "5.0.0-0123456789ab");
+        Directory.CreateDirectory(stale);
+        File.WriteAllText(Path.Combine(stale, ".used"), string.Empty);
+        File.SetLastWriteTimeUtc(Path.Combine(stale, ".used"), DateTime.UtcNow - TimeSpan.FromDays(2));
         await using (McpClient client = throughDotnet
             ? await Start([Path.Combine(app, "Passenger.dll"), "--mcp", Folder], executable: Dotnet.Host())
             : await Start(["--mcp", Folder], executable: Path.Combine(app, "Passenger")))
@@ -134,6 +139,7 @@ public sealed class InstalledAppTests : McpRig, IClassFixture<RestoredFolders>
         string[] after = Listing(roslyn);
         Assert.True(before.SequenceEqual(after), $"The C# server {wrote}: "
             + string.Join(", ", after.Except(before).Concat(before.Except(after).Select(gone => $"{gone} (changed or gone)"))));
+        Assert.False(Directory.Exists(stale), $"Another build's copy of the C# server, unused for two days, was kept: {stale}");
         string copy = Assert.Single(Copies());
         Assert.True(File.Exists(Path.Combine(copy, "Microsoft.CodeAnalysis.LanguageServer.dll")) && Caches(copy).Any(),
             $"The server did not run from its copy in the state's cache, {copy}");

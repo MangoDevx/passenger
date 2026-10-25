@@ -25,7 +25,7 @@ internal static class RoslynServerFolder
     private const string UsedMark = ".used";
 
     /// <summary>A copy of another build whose mark is this old is no running server's, which marks its own every
-    /// <see cref="Keep"/>, in this Passenger or another, and is removed.</summary>
+    /// <see cref="Keep"/>, in this Passenger or another, and is removed, as is a copy left half made as long.</summary>
     private static readonly TimeSpan Unused = TimeSpan.FromDays(1);
 
     private static readonly TimeSpan Keep = TimeSpan.FromHours(1);
@@ -59,8 +59,9 @@ internal static class RoslynServerFolder
         {
             throw new IOException($"The C# language server could not be copied out of the app to {copy}: {failed.Message}", failed);
         }
-        Mark(copy);
-        Prune(copies, copy);
+        UsedCache cache = Copies(copies);
+        cache.Touch(copy);
+        cache.Prune(DateTime.UtcNow, kept: copy);
         return copy;
     }
 
@@ -84,9 +85,12 @@ internal static class RoslynServerFolder
         }
         foreach (string copy in copies)
         {
-            Mark(copy);
+            Copies(Path.GetDirectoryName(copy)!).Touch(copy);
         }
     }
+
+    /// <summary>The copies under the state's cache, each a folder kept by its mark.</summary>
+    private static UsedCache Copies(string copies) => new(copies, UsedEntries.Folders(1, UsedMark), new UsedLimits(Unused, Unused, null, Unused));
 
     /// <summary>Whether a folder is inside a macOS app bundle (<c>X.app/Contents/…</c>), whose seal a file added breaks.</summary>
     private static bool InAppBundle(string folder)
@@ -157,16 +161,17 @@ internal static class RoslynServerFolder
                 CopyFiles(carried, making);
             }
             cancel.ThrowIfCancellationRequested();
-            OwnersFolders(making);
+            UsedCache.OwnFolders(making);
             if (Directory.Exists(Path.Combine(making, Written)))
             {
                 Directory.Delete(Path.Combine(making, Written), recursive: true);
             }
-            AtomicFile.Write(Path.Combine(making, UsedMark), []);
+            UsedCache cache = Copies(copies);
+            cache.Touch(making);
             if (Directory.Exists(copy) && !File.Exists(Path.Combine(copy, Assembly)))
             {
                 // A copy that lost its server (a person's clean-up gone wrong) is no copy any server can run from.
-                Remove(copy);
+                cache.Remove(copy);
             }
             try
             {
@@ -179,14 +184,8 @@ internal static class RoslynServerFolder
         }
         finally
         {
-            try
-            {
-                Remove(making);
-            }
-            catch (Exception failed) when (failed is IOException or UnauthorizedAccessException)
-            {
-                // Left to the next prune, a day on: a failure of the copy's own is what is said.
-            }
+            // Gone once moved into place; else what is left goes now, or with the next prune a day on.
+            Copies(copies).Remove(making);
         }
     }
 
@@ -207,7 +206,7 @@ internal static class RoslynServerFolder
         {
             // Copied file by file below.
         }
-        Remove(making);
+        Copies(Path.GetDirectoryName(making)!).Remove(making);
         return false;
     }
 
@@ -219,89 +218,6 @@ internal static class RoslynServerFolder
             string to = Path.Combine(making, file);
             Directory.CreateDirectory(Path.GetDirectoryName(to)!);
             File.Copy(Path.Combine(carried, file), to);
-        }
-    }
-
-    /// <summary>Gives the person every folder of a copy to write in: the server makes its cache folder in the top one, and
-    /// a copy is removed whole, whatever modes the app's own folders have (a system install's, read-only).</summary>
-    private static void OwnersFolders(string folder)
-    {
-        if (OperatingSystem.IsWindows())
-        {
-            return;
-        }
-        foreach (string each in Directory.EnumerateDirectories(folder, "*", SearchOption.AllDirectories).Prepend(folder))
-        {
-            UnixFileMode mode = File.GetUnixFileMode(each);
-            UnixFileMode owners = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
-            if ((mode & owners) != owners)
-            {
-                File.SetUnixFileMode(each, mode | owners);
-            }
-        }
-    }
-
-    /// <summary>Touches a copy's mark, made again if it went.</summary>
-    private static void Mark(string copy)
-    {
-        string mark = Path.Combine(copy, UsedMark);
-        try
-        {
-            if (File.Exists(mark))
-            {
-                File.SetLastWriteTimeUtc(mark, DateTime.UtcNow);
-            }
-            else
-            {
-                AtomicFile.Write(mark, []);
-            }
-        }
-        catch (Exception failed) when (failed is IOException or UnauthorizedAccessException)
-        {
-            // Unmarked, it is removed a day after its folder last changed, as a copy of a build no longer run is.
-        }
-    }
-
-    /// <summary>Removes the copies of other builds, and temporary folders, left unused for a day: each renamed out of a
-    /// copy's name first, so no Passenger takes it for whole as it goes.</summary>
-    private static void Prune(string copies, string kept)
-    {
-        DateTime before = DateTime.UtcNow - Unused;
-        foreach (string folder in Directory.EnumerateDirectories(copies).ToList())
-        {
-            if (PathNames.Same(folder, kept))
-            {
-                continue;
-            }
-            try
-            {
-                string mark = Path.Combine(folder, UsedMark);
-                DateTime used = File.Exists(mark) ? File.GetLastWriteTimeUtc(mark) : Directory.GetLastWriteTimeUtc(folder);
-                if (used > before)
-                {
-                    continue;
-                }
-                string going = folder;
-                if (!Path.GetFileName(folder).StartsWith('.'))
-                {
-                    going = Path.Combine(copies, $".{Guid.NewGuid():N}.gone");
-                    Directory.Move(folder, going);
-                }
-                Remove(going);
-            }
-            catch (Exception failed) when (failed is IOException or UnauthorizedAccessException)
-            {
-                // Tried again as the next server starts.
-            }
-        }
-    }
-
-    private static void Remove(string folder)
-    {
-        if (Directory.Exists(folder))
-        {
-            OwnersFolders(folder);
-            Directory.Delete(folder, recursive: true);
         }
     }
 }
