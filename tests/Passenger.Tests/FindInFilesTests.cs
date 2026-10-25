@@ -337,6 +337,62 @@ public sealed class FindInFilesTests : IDisposable
         window.Close();
     }
 
+    /// <summary>A breakpoint is an anchor its file's text carries, so a key moves those below it without touching each: the
+    /// least of twenty keys typed above 2,000 breakpoints allocates on the UI thread under 2 bytes for each more than above
+    /// none, and a line broken above them takes each one down with its line.</summary>
+    [AvaloniaFact]
+    public void Keys_typed_above_two_thousand_breakpoints_carry_them_on_the_UI_thread_without_costing_each()
+    {
+        long none = UiBytesPerKey(0);
+        long many = UiBytesPerKey(2000);
+        long each = (many - none) / 2000;
+        TestContext.Current.TestOutputHelper?.WriteLine($"A key allocated at least {many:N0} bytes on the UI thread above 2,000 breakpoints, {none:N0} above none: {each} bytes a breakpoint.");
+        Assert.True(each < 2,
+            $"A key allocated at least {many / 1024:N0} KB on the UI thread above 2,000 breakpoints, {none / 1024:N0} KB above none: {each} bytes for each breakpoint, which the key carried one by one");
+    }
+
+    /// <summary>The least of twenty keys typed at the top of a file of 4,000 lines allocates on the UI thread, with as many
+    /// breakpoints below on every other line, which Enter above then takes down a line each.</summary>
+    private long UiBytesPerKey(int breakpoints)
+    {
+        System.Text.StringBuilder text = new("class Long\n{\n    int typed = 1;\n");
+        for (int i = 0; i < 4000; i++)
+        {
+            text.Append(System.Globalization.CultureInfo.InvariantCulture, $"    int field{i};\n");
+        }
+        string source = text.Append("}\n").ToString();
+        string path = Path.Combine(folder, $"Long{breakpoints}.cs");
+        File.WriteAllText(path, source);
+        MainWindow window = Ui.OpenFolder(folder, width: 1000, height: 700, languageServer: false);
+        window.OpenFile(path);
+        Ui.Settle();
+        OpenDocument document = window.EditorArea.Active!;
+        Passenger.Editor.CodeEditor editor = window.EditorArea.CodeEditor;
+        for (int i = 0; i < breakpoints; i++)
+        {
+            window.Debugger.Breakpoints.Toggle(document.Path, 3 + (2 * i));
+        }
+        editor.Selections = SelectionSet.Single(source.IndexOf("= 1;", StringComparison.Ordinal) + 2);
+        editor.Focus();
+        Ui.Settle();
+        long least = long.MaxValue;
+        for (int i = 0; i < 20; i++)
+        {
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            window.KeyTextInput("1");
+            Ui.Settle();
+            least = Math.Min(least, GC.GetAllocatedBytesForCurrentThread() - before);
+        }
+        Ui.Press(window, "ENTER");
+        Ui.Settle();
+        IReadOnlyList<int> lines = [.. window.Debugger.Breakpoints.In(document.Path).Select(b => b.Line)];
+        Assert.True(lines.SequenceEqual(Enumerable.Range(0, breakpoints).Select(i => 4 + (2 * i))),
+            $"After Enter above them, the breakpoints were on lines {string.Join(", ", lines.Take(5))}, not each a line down from where it was set");
+        Assert.True(editor.LineMarks.Select(m => m.Line).SequenceEqual(lines), "The gutter's breakpoints were not on the lines the breakpoints were carried to");
+        window.Close();
+        return least;
+    }
+
     [AvaloniaFact]
     public void A_matched_lines_arrow_is_one_ligature_only_while_Settings_enables_ligatures()
     {

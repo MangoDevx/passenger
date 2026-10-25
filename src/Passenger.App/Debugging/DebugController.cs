@@ -1391,7 +1391,7 @@ public sealed class DebugController : IDisposable
             {
                 run.Reload.Edited(document.Path, change.Before);
             }
-            Breakpoints.Follow(document.Path, change);
+            Breakpoints.Follow(document.Path);
             FollowStop(document, change);
             if (Breakpoints.In(document.Path).Any(b => b.Attribute is not null))
             {
@@ -1400,6 +1400,7 @@ public sealed class DebugController : IDisposable
             }
         };
         following[document] = follow;
+        Breakpoints.Attach(document.Path, document.Text);
         document.Text.Changed += follow;
         document.Saved += OnSaved;
         UpdateMarks(document);
@@ -1412,6 +1413,7 @@ public sealed class DebugController : IDisposable
         {
             document.Text.Changed -= follow;
             document.Saved -= OnSaved;
+            Breakpoints.Detach(document.Path);
         }
     }
 
