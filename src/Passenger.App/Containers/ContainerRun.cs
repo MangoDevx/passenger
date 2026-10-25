@@ -841,10 +841,10 @@ internal static class OwnFiles
     }
 }
 
-/// <summary>A .NET service of a container run in its container, as the debugger and the profiler reach it: the container,
-/// its program there (by its id there), Passenger's tools in it, when the container started (its log followed from then),
-/// and why its image may not be debugged where it runs under emulation, or null.</summary>
-public sealed record ServiceInContainer(string Container, DotnetProcess Program, string Tools, string Started, string? Emulated);
+/// <summary>A .NET service of a container run in its container, as the debugger and the profiler reach it: its container
+/// reached through Passenger's tools (with its caveat, an image run under emulation), its program there (by its id there),
+/// and when the container started (its log followed from then).</summary>
+public sealed record ServiceInContainer(ContainerReach Reach, DotnetProcess Program, string Started);
 
 /// <summary>A service's container as the engine says it stands: its service, state, health, published ports, the
 /// container's name and its last exit code.</summary>
@@ -892,8 +892,8 @@ public sealed class ContainerRun(ContainerPlan plan, ContainerEngine engine, Con
 
     public ContainerEngine Engine => engine;
 
-    /// <summary>Where the container tools come from that are put in a service's container to reach its program.</summary>
-    public Func<ContainerToolsSource> ToolsFrom { get; init; } = () => ContainerToolsSource.Default(Updates.ReleaseFeed.Default);
+    /// <summary>Where the container tools come from that are put in a service's container to reach its program: its session's.</summary>
+    public required ContainerToolsSource Tools { get; init; }
 
     /// <summary>Whether it was taken down (or is being).</summary>
     public override bool IsStopped => stopping is not null;
@@ -1002,28 +1002,27 @@ public sealed class ContainerRun(ContainerPlan plan, ContainerEngine engine, Con
             return null;
         }
         ContainerPaths paths = Plan.Mode == ContainerMode.Images ? dotnet.Paths : ContainerPaths.None;
-        AdapterPlace place = new(arguments => engine.Command(ContainerTools.AdapterCommand(there.Container, there.Tools, arguments)), ContainerTools.SymbolCache, paths, there.Container)
+        AdapterPlace place = there.Reach.Adapter(there.Program.Program, paths) with
         {
-            Output = () => engine.Command(["logs", "--follow", "--since", there.Started, there.Container]),
-            // Its container stopped (its own end, the Containers window's Stop) is its program's end, never the debugger's.
-            Running = AdapterPlace.Runs(engine, there.Container),
-            Program = there.Program.Program,
+            Output = () => engine.Command(["logs", "--follow", "--since", there.Started, there.Reach.Container]),
         };
         return new ServiceProgram(there.Program.Id, place, ProfilePlaceOf(dotnet, there))
         {
             WhyNot = there.Program.WhyNot,
-            Notes = [.. ((string?[])[there.Program.Note, there.Emulated]).OfType<string>()],
-            Caveat = there.Emulated,
+            Notes = [.. ((string?[])[there.Program.Note, there.Reach.Emulated]).OfType<string>()],
+            Caveat = there.Reach.Emulated,
             HotReload = there.Program.HotReload,
         };
     }
 
     /// <summary>A service of the run in its container, once Compose has started it (null when Compose ended without it):
-    /// Passenger's tools in it (copied in for its image's system, found here or downloaded), its program by its assembly as
-    /// the tools list it there, when its container started, and whether its image runs under emulation. Off the UI thread.</summary>
+    /// reached through Passenger's tools there (<see cref="ContainerTools.ReachAsync"/>, each stage of putting them in said
+    /// in the run's console), its program by its assembly as the tools list it there, and when its container started. Off
+    /// the UI thread.</summary>
     public Task<ServiceInContainer?> ThereAsync(DotnetService service, Task up, CancellationToken stop)
     {
-        ContainerToolsSource source = ToolsFrom();
+        ContainerToolsSource source = Tools;
+        string? told = null;
         return BackgroundWork.Run(async () =>
         {
             string? container = await ContainerOfAsync(engine, Plan, service.Service, up, stop);
@@ -1031,27 +1030,29 @@ public sealed class ContainerRun(ContainerPlan plan, ContainerEngine engine, Con
             {
                 return null;
             }
-            ContainerSystem system = await ContainerTools.SystemOfContainerAsync(engine, container, stop);
-            string architecture = await ContainerTools.EngineArchitectureAsync(engine, stop);
-            string? emulated = system.Architecture == architecture ? null
-                : $"its image is for {system.Architecture}, which this {architecture} engine runs under emulation, where the debugger may not attach";
-            string rid = system.Rid ?? throw new ContainerToolsException($"{service.Service}'s image is for {system.Architecture}, for which Passenger has no debugger");
-            string tools = await ContainerTools.InContainerAsync(engine, container, stop)
-                ?? await ContainerTools.CopyIntoAsync(engine, container, await ContainerTools.FolderAsync(source, rid, null, stop), stop);
-            DotnetProcess program = await HeldProgramAsync(engine, container, tools, service, stop);
+            ContainerReach reach = await ContainerTools.ReachAsync(engine, container, source, Told, stop);
+            DotnetProcess program = await HeldProgramAsync(reach, service, stop);
             // As JSON, RFC 3339 either way: Podman's own docker writes the time itself in Go's words, which its logs --since refuses.
             ChildResult started = await engine.RunAsync(["inspect", "-f", "{{json .State.StartedAt}}", container], cancel: stop);
-            return (ServiceInContainer?)new ServiceInContainer(container, program, tools, started.Output.Trim().Trim('"'), emulated);
+            return (ServiceInContainer?)new ServiceInContainer(reach, program, started.Output.Trim().Trim('"'));
         }, stop);
+
+        void Told(string said)
+        {
+            // A line a stage: a download's percentages are a status's, not the console's.
+            string stage = said.Split(": ", 2)[0];
+            if (stage != told)
+            {
+                told = stage;
+                Say(service, stage, error: false);
+            }
+        }
     }
 
     /// <summary>Where the profiler records a service of the run: Passenger's tools in its container over docker exec, its
     /// PDBs' paths made this machine's through the service's map in images mode (in fast mode they are this machine's).</summary>
-    public Profiler.ProfilePlace ProfilePlaceOf(DotnetService service, ServiceInContainer there)
-    {
-        ContainerPaths paths = Plan.Mode == ContainerMode.Images ? service.Paths : ContainerPaths.None;
-        return new Profiler.ProfilePlace(words => engine.Command(ContainerTools.ToolsCommand(there.Container, there.Tools, words)), there.Container, path => paths.ToHost(path) ?? path);
-    }
+    public Profiler.ProfilePlace ProfilePlaceOf(DotnetService service, ServiceInContainer there) =>
+        there.Reach.Recorder(Plan.Mode == ContainerMode.Images ? service.Paths : ContainerPaths.None);
 
     /// <summary>A service's container once Compose has started it (null when Compose ended without it).</summary>
     internal static async Task<string?> ContainerOfAsync(ContainerEngine engine, ContainerPlan plan, string service, Task up, CancellationToken stop)
@@ -1075,20 +1076,20 @@ public sealed class ContainerRun(ContainerPlan plan, ContainerEngine engine, Con
 
     /// <summary>The service's program in its container as the tools list it once its runtime has loaded: held at its start
     /// for the debugger (or, its debugger turned off, saying why), by its assembly; given up on after a minute.</summary>
-    internal static async Task<DotnetProcess> HeldProgramAsync(ContainerEngine engine, string container, string tools, DotnetService service, CancellationToken stop)
+    internal static async Task<DotnetProcess> HeldProgramAsync(ContainerReach reach, DotnetService service, CancellationToken stop)
     {
         DateTime until = DateTime.UtcNow + TimeSpan.FromMinutes(1);
         string assembly = $"{service.Assembly}.dll";
         while (true)
         {
-            IReadOnlyList<DotnetProcess> there = await ContainerTools.ProcessesAsync(engine, container, tools, stop);
+            IReadOnlyList<DotnetProcess> there = await reach.ProcessesAsync(stop);
             if ((there.FirstOrDefault(p => p.CommandLine.Contains(assembly, StringComparison.OrdinalIgnoreCase)) ?? (there is [{ } only] ? only : null)) is { } program)
             {
                 return program;
             }
             if (DateTime.UtcNow > until)
             {
-                throw new ContainerToolsException($"no .NET program running {assembly} started in its container {container} within a minute");
+                throw new ContainerToolsException($"no .NET program running {assembly} started in its container {reach.Container} within a minute");
             }
             await Task.Delay(TimeSpan.FromMilliseconds(250), stop);
         }

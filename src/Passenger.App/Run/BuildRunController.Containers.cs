@@ -267,7 +267,7 @@ public sealed partial class BuildRunController
             How = how,
             LabelledFor = session.Folder,
             Certificate = certificate,
-            ToolsFrom = () => parts.Tools?.Invoke() ?? ContainerToolsSource.Default(Updates.ReleaseFeed.Default),
+            Tools = session.ContainerTools,
         };
         run.Brought([.. holding.Select(h => ((IRunService)h.Service, h.How))]);
         run.ProblemFound += (_, found) =>

@@ -58,12 +58,11 @@ public static class ContainerProcesses
                 return [];
             }
             ContainerSystem system = await ContainerTools.SystemOfContainerAsync(engine, name, cancel);
-            string? emulated = system.Architecture == engineArchitecture ? null
-                : $"{system.Architecture} under emulation on this {engineArchitecture} engine, where the debugger may not attach";
+            string? emulated = system.Architecture == engineArchitecture ? null : ContainerTools.Emulation(system.Architecture, engineArchitecture);
             IReadOnlyList<DotnetProcess> found = await ContainerTools.InContainerAsync(engine, name, cancel) is { } tools
                 ? await ContainerTools.ProcessesAsync(engine, name, tools, cancel)
                 : outside;
-            return [.. found.Select(p => emulated is null ? p : p with { Note = p.Note is null ? emulated : $"{p.Note}; {emulated}" })];
+            return [.. found.Select(p => emulated is null ? p : p with { Note = ContainerTools.Noted(p.Note, emulated) })];
         }
         catch (Exception unread) when (unread is ContainerCommandException or ContainerToolsException or JsonException or TimeoutException)
         {

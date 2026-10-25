@@ -45,6 +45,32 @@ public sealed record ContainerToolsSource(IReadOnlyList<string> Local, ReleaseFe
     }
 }
 
+/// <summary>A container whose .NET programs Passenger's tools reach (<see cref="ContainerTools.ReachAsync"/>): the tools'
+/// executable there, and why a debugger there may not attach (its image run under emulation), null where nothing stands in
+/// its way. What it runs there goes over docker exec: the tools' list of programs, the debug adapter, the profiler.</summary>
+public sealed record ContainerReach(ContainerEngine Engine, string Container, string Tools, string? Emulated)
+{
+    /// <summary>Its .NET programs, by their ids there (<see cref="ContainerTools.ProcessesAsync"/>).</summary>
+    public Task<IReadOnlyList<DotnetProcess>> ProcessesAsync(CancellationToken cancel) => ContainerTools.ProcessesAsync(Engine, Container, Tools, cancel);
+
+    /// <summary>The debug adapter's place there for a program (its name as the container's processes give it), paths
+    /// crossing through <paramref name="paths"/>; the container stopped (its own end, the Containers window's Stop) is its
+    /// program's end, never the debugger's.</summary>
+    public Debugging.AdapterPlace Adapter(string? program, ContainerPaths paths) =>
+        new(arguments => Engine.Command(ContainerTools.AdapterCommand(Container, Tools, arguments)), ContainerTools.SymbolCache, paths, Container)
+        {
+            Running = Debugging.AdapterPlace.Runs(Engine, Container),
+            Program = program,
+        };
+
+    /// <summary>Where the profiler records a program there, the paths its PDBs name made this machine's through <paramref name="paths"/>.</summary>
+    public Profiler.ProfilePlace Recorder(ContainerPaths paths) =>
+        new(words => Engine.Command(ContainerTools.ToolsCommand(Container, Tools, words)), Container, path => paths.ToHost(path) ?? path);
+
+    /// <summary>A program's note there with the container's caveat beside it, once.</summary>
+    public string? Noted(string? note) => ContainerTools.Noted(note, Emulated);
+}
+
 /// <summary>Passenger's container tools on this side (src/Passenger.ContainerTools runs inside): a copy for a container's
 /// system found on this machine or downloaded once (its own version's release, checked against that release's
 /// SHA256SUMS, into the state's cache through a temporary folder renamed), a container's system read once per image,
@@ -203,6 +229,33 @@ public static class ContainerTools
             }
         }
     }
+
+    /// <summary>A container's programs reached through Passenger's tools: the tools there, else copied in for its system (a
+    /// copy found here or downloaded from <paramref name="source"/>, <paramref name="say"/> telling each stage and a download's
+    /// progress), and whether its image runs under emulation. Throws <see cref="ContainerToolsException"/> saying why not.</summary>
+    public static async Task<ContainerReach> ReachAsync(ContainerEngine engine, string container, ContainerToolsSource source, Action<string>? say,
+        CancellationToken cancel)
+    {
+        ContainerSystem system = await SystemOfContainerAsync(engine, container, cancel).ConfigureAwait(false);
+        string architecture = await EngineArchitectureAsync(engine, cancel).ConfigureAwait(false);
+        string? tools = await InContainerAsync(engine, container, cancel).ConfigureAwait(false);
+        if (tools is null)
+        {
+            string rid = system.Rid ?? throw new ContainerToolsException($"{container}'s image is for {system.Architecture}, for which Passenger has no container tools");
+            string folder = await FolderAsync(source, rid, say, cancel).ConfigureAwait(false);
+            say?.Invoke($"Copying Passenger's container tools into {container}");
+            tools = await CopyIntoAsync(engine, container, folder, cancel).ConfigureAwait(false);
+        }
+        return new ContainerReach(engine, container, tools, system.Architecture == architecture ? null : Emulation(system.Architecture, architecture));
+    }
+
+    /// <summary>Why a debugger may not attach in a container whose image is for another processor than its engine's.</summary>
+    public static string Emulation(string image, string engine) =>
+        $"its image is for {image}, which this {engine} engine runs under emulation, where the debugger may not attach";
+
+    /// <summary>A program's note with a container's caveat beside it, once; either alone where the other is null.</summary>
+    public static string? Noted(string? note, string? caveat) =>
+        caveat is null || note?.Contains(caveat, StringComparison.Ordinal) == true ? note : note is null ? caveat : $"{note}; {caveat}";
 
     /// <summary>The engine's own processor, docker's name for it (amd64, arm64).</summary>
     public static async Task<string> EngineArchitectureAsync(ContainerEngine engine, CancellationToken cancel)

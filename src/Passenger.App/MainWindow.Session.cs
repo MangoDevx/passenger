@@ -44,10 +44,11 @@ public partial class MainWindow
 
     /// <summary>What a session of this window is made with: its editors, where it keeps state, how it watches folders, the
     /// warm server it may take up, its consoles, Debug window and tests tree, a test run's build (which the session's builds
-    /// and runs make), and the Terminal tab the debugger asks for.</summary>
+    /// and runs make), the Terminal tab the debugger asks for, and where its container tools come from.</summary>
     private SessionSetup Setup() => new(Editors, StateFolder, HistoryKeeping, Watching, () => settings.SolutionWideAnalysis, WarmServer, Bottom,
         cancel => buildRun.BuildAsync(BuildCause.Tests, cancel), RunForDebugger, () => settings, work, () => Engine)
     {
+        ContainerTools = () => ContainerToolsFrom ?? Containers.ContainerToolsSource.Default(Releases),
         DockerHub = DockerHub,
         StartsLanguageServer = StartsLanguageServer,
     };
@@ -65,7 +66,6 @@ public partial class MainWindow
             containersView?.Reveal(project);
             containersView?.TelemetryChanged();
         },
-        Tools = () => ToolsSource,
         DevCertificates = DevCertificates,
         AskCertificate = AskCertificateAsync,
         AskReplace = AskReplaceAsync,

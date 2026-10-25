@@ -688,6 +688,42 @@ public sealed class ContainersTests
         }
     }
 
+    /// <summary>Attaching in a container whose image is for another processor than its engine's says the debugger may not
+    /// attach there, the image run under emulation, beside what the program's own note says (a Release build's): the engine's
+    /// processor answered by a docker standing in over the real one, the tools a stand-in whose adapter ends at once.</summary>
+    [AvaloniaFact]
+    public void Attaching_in_an_emulated_container_says_it_is_emulated()
+    {
+        Assert.SkipWhen(Docker.WhyNot is not null, Docker.WhyNot ?? string.Empty);
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "The docker answering another processor for the engine is a shell script");
+        string container = Docker.Container("emulated", "sleep 600");
+        Docker.Run("cp", Path.Combine(StandInTools("[{\"id\":7,\"name\":\"Spins\",\"commandLine\":\"dotnet /app/Spins.dll\",\"optimized\":true}]"), "."),
+            $"{container}:{ContainerTools.Copied}");
+        string image = Docker.Run("image", "inspect", "-f", "{{.Architecture}}", Docker.Image);
+        string engine = image == "arm64" ? "amd64" : "arm64";
+        string cli = Path.Combine(TestFolders.Create("ctr-emulating-"), "docker");
+        File.WriteAllText(cli, $"#!/bin/sh\nif [ \"$1 $2 $3\" = 'version --format {{{{.Server.Arch}}}}' ]; then echo {engine}; exit 0; fi\nexec '{ContainerEngine.Shared.Cli}' \"$@\"\n");
+        if (!OperatingSystem.IsWindows())
+        {
+            File.SetUnixFileMode(cli, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
+        MainWindow window = new() { Width = 1200, Height = 800, Engine = new ContainerEngine(cli: cli) };
+        window.Show();
+        window.OpenFolder(TestFolders.Create("ctr-attach-"));
+        Ui.Settle();
+        try
+        {
+            string? refused = Ui.Await(window.AttachAsync(new DotnetProcess(0, "Spins", "dotnet /app/Spins.dll", "root", true) { Container = container }), "the attach's answer");
+            Assert.True(refused?.Contains(ContainerTools.Emulation(image, engine), StringComparison.Ordinal) == true,
+                $"Attaching in a container of an {image} image on an {engine} engine did not say it runs under emulation: {refused}");
+            Assert.Contains(ContainerTools.ReleaseBuild, refused, StringComparison.Ordinal);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
     /// <summary>Stand-in container tools of this version: a script that says the version, lists the programs given (or runs
     /// the command given for its list), begins a recording at once, and in its heap mode sends <c>/tmp/frames/N</c> to the
     /// Nth start, nothing when there is none; the folder holding it.</summary>

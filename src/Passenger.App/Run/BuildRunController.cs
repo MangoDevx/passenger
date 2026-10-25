@@ -37,9 +37,6 @@ public sealed record BuildRunParts(
     /// <summary>Shows a Compose project in the Containers window, chosen there, as a container run comes up.</summary>
     public Action<string>? Reveal { get; init; }
 
-    /// <summary>Where the window's container tools come from, which Debug of a container configuration puts in each service.</summary>
-    public Func<Containers.ContainerToolsSource>? Tools { get; init; }
-
     /// <summary>The dotnet <c>dev-certs</c> runs through for a run that serves HTTPS (containers' or Aspire's): the machine's,
     /// or a test's stand-in.</summary>
     public DotnetWords? DevCertificates { get; init; }

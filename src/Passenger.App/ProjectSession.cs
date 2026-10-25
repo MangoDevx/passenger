@@ -46,6 +46,9 @@ public sealed record SessionSetup(
 
     /// <summary>Whether the session starts the C# language server: the window's <see cref="MainWindow.StartsLanguageServer"/>.</summary>
     public bool StartsLanguageServer { get; init; } = true;
+
+    /// <summary>Where the container tools come from that reach a program in a container: the window's.</summary>
+    public required Func<Containers.ContainerToolsSource> ContainerTools { get; init; }
 }
 
 /// <summary>Projects whose evaluation landed, as the workspace now has them, and whether which projects hold tests, or what
@@ -473,6 +476,9 @@ public sealed class ProjectSession : IAsyncDisposable
 
     /// <summary>What the folder had the container engine start, and the labels it goes on with: ended with the folder.</summary>
     public Containers.FolderContainers Containers { get; }
+
+    /// <summary>Where the container tools come from that reach a program in a container, for Attach and a container run alike.</summary>
+    public Containers.ContainerToolsSource ContainerTools => setup.ContainerTools();
 
     /// <summary>What the folder's .http requests may take from the person's computer to a host, as they answered.</summary>
     public Endpoints.EndpointGrants EndpointGrants { get; } = new();

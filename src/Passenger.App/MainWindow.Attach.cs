@@ -25,11 +25,9 @@ public partial class MainWindow
     /// <summary>The Attach to Process dialog open over the window, or null.</summary>
     public AttachToProcessDialog? AttachToProcessDialog { get; private set; }
 
-    /// <summary>Where this window's container tools come from: by default beside the app, a dev build's artifacts and
-    /// the state's cache, downloaded from <see cref="Releases"/>' release of this version.</summary>
+    /// <summary>Where this window's container tools come from, which its sessions hold: by default beside the app, a dev
+    /// build's artifacts and the state's cache, downloaded from <see cref="Releases"/>' release of this version.</summary>
     public ContainerToolsSource? ContainerToolsFrom { get; init; }
-
-    private ContainerToolsSource ToolsSource => ContainerToolsFrom ?? ContainerToolsSource.Default(Releases);
 
     /// <summary>Attach to Process and Reattach to Process, in the Run menu before Edit Configurations.</summary>
     private void AddAttaching()
@@ -140,62 +138,45 @@ public partial class MainWindow
         return refused;
     }
 
-    /// <summary>What attaching in a container takes: the tools in it and the program by its id there
-    /// (<see cref="ToolsAndProgramAsync"/>), and the adapter's place, docker exec.</summary>
+    /// <summary>What attaching in a container takes: the program by its id there, reached through Passenger's tools
+    /// (<see cref="ProgramInContainerAsync"/>), and the adapter's place, docker exec.</summary>
     private async Task<(DotnetProcess Target, AdapterPlace Place)> InContainerAsync(DotnetProcess process, string container, Working held)
     {
-        ContainerEngine engine = Engine;
-        (DotnetProcess target, string executable) = await ToolsAndProgramAsync(process, container, UiThread.Marshal<string>(held.Say), held.Stopping);
-        AdapterPlace place = new(arguments => engine.Command(ContainerTools.AdapterCommand(container, executable, arguments)), ContainerTools.SymbolCache,
-            ContainerPaths.None, container)
-        {
-            Running = AdapterPlace.Runs(engine, container),
-            Program = process.Program,
-        };
-        return (target, place);
+        (DotnetProcess target, ContainerReach reach) = await ProgramInContainerAsync(process, container, UiThread.Marshal<string>(held.Say), held.Stopping);
+        return (target, reach.Adapter(process.Program, ContainerPaths.None));
     }
 
-    /// <summary>Passenger's tools in a container (copied in for a system of its, found here or downloaded, when they are not
-    /// there) and the program there by its id: the one of its command line, or, one named by its id alone (a debugged
-    /// session's), as it is.</summary>
-    private Task<(DotnetProcess Target, string Tools)> ToolsAndProgramAsync(DotnetProcess process, string container, Action<string> say, CancellationToken stop)
+    /// <summary>A program in a container reached through Passenger's tools (<see cref="ContainerTools.ReachAsync"/>) and found
+    /// there by its id: the one of its command line, or, one named by its id alone (a debugged session's), as it is; its note
+    /// given the container's caveat.</summary>
+    private Task<(DotnetProcess Target, ContainerReach Reach)> ProgramInContainerAsync(DotnetProcess process, string container, Action<string> say, CancellationToken stop)
     {
         ContainerEngine engine = Engine;
-        ContainerToolsSource source = ToolsSource;
+        ContainerToolsSource source = session.ContainerTools;
         return BackgroundWork.Run(async () =>
         {
-            string? tools = await ContainerTools.InContainerAsync(engine, container, stop);
-            if (tools is null)
-            {
-                ContainerSystem system = await ContainerTools.SystemOfContainerAsync(engine, container, stop);
-                string rid = system.Rid ?? throw new ContainerToolsException($"Container {container} runs on {system.Architecture}, for which Passenger has no tools");
-                string folder = await ContainerTools.FolderAsync(source, rid, say, stop);
-                say($"Copying Passenger's container tools into {container}");
-                tools = await ContainerTools.CopyIntoAsync(engine, container, folder, stop);
-            }
+            ContainerReach reach = await ContainerTools.ReachAsync(engine, container, source, say, stop);
             if (process.Id != 0 && process.CommandLine.Length == 0)
             {
-                return (process, tools);
+                return (process with { Note = reach.Noted(process.Note) }, reach);
             }
-            IReadOnlyList<DotnetProcess> there = await ContainerTools.ProcessesAsync(engine, container, tools, stop);
+            IReadOnlyList<DotnetProcess> there = await reach.ProcessesAsync(stop);
             DotnetProcess found = process.Id != 0 && there.FirstOrDefault(p => p.Id == process.Id && p.CommandLine == process.CommandLine) is { } same ? same
                 : there.FirstOrDefault(p => p.CommandLine == process.CommandLine)
                 ?? throw new ContainerToolsException($"{process.Program} no longer runs in {container}");
-            return (found with { Note = found.Note ?? process.Note }, tools);
+            return (found with { Note = reach.Noted(found.Note ?? process.Note) }, reach);
         }, stop);
     }
 
-    /// <summary>A program in a container made ready for the profiler (Attach Profiler's): the tools put in it, the program
-    /// found by its id there, and the place it is recorded at, docker exec, the paths its PDBs name made this machine's
-    /// through <paramref name="paths"/> (as they are where it was built here).</summary>
+    /// <summary>A program in a container made ready for the profiler (Attach Profiler's): reached and found by its id there
+    /// (<see cref="ProgramInContainerAsync"/>), and the place it is recorded at, docker exec, the paths its PDBs name made
+    /// this machine's through <paramref name="paths"/> (as they are where it was built here).</summary>
     private async Task<(DotnetProcess Target, ProfilePlace Place)> ProfiledInContainerAsync(DotnetProcess process, ContainerPaths paths, Action<string> say,
         CancellationToken stop)
     {
         string container = process.Container ?? throw new ArgumentException($"{process.Program} runs on this machine, in no container", nameof(process));
-        ContainerEngine engine = Engine;
-        (DotnetProcess target, string executable) = await ToolsAndProgramAsync(process, container, say, stop);
-        return (target, new ProfilePlace(words => engine.Command(ContainerTools.ToolsCommand(container, executable, words)), container,
-            path => paths.ToHost(path) ?? path));
+        (DotnetProcess target, ContainerReach reach) = await ProgramInContainerAsync(process, container, say, stop);
+        return (target, reach.Recorder(paths));
     }
 
     /// <summary>Attach Profiler's choice among the .NET programs of the engine's running containers, in Attach to Process's
