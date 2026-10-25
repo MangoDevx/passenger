@@ -204,22 +204,9 @@ internal sealed class WpfPreviewHost : IPreviewHost
     {
         try
         {
-            while (await from.StandardOutput.ReadLineAsync() is { } line)
+            // A line that is not the protocol's is the previewer's own output.
+            await foreach (WpfPreviewReply reply in JsonLines.ReadAsync(from.StandardOutput, WpfPreviewJson.Reply, (line, _) => log.Heard(line)))
             {
-                WpfPreviewReply? reply;
-                try
-                {
-                    reply = JsonSerializer.Deserialize<WpfPreviewReply>(line, WpfPreviewJson.Options);
-                }
-                catch (JsonException)
-                {
-                    log.Heard(line);
-                    continue;
-                }
-                if (reply is null)
-                {
-                    continue;
-                }
                 TextSnapshot? sent = unanswered.GetValueOrDefault(reply.Sequence);
                 Bitmap? frame = null;
                 IReadOnlyList<PreviewElement> elements = [];

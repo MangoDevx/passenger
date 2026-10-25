@@ -164,7 +164,10 @@
         }
       },
       "passenger.dap": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "Passenger.Core": "[0.2.0, )"
+        }
       },
       "passenger.debugger.interop": {
         "type": "Project"

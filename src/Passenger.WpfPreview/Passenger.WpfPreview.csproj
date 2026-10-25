@@ -21,5 +21,7 @@
   <ItemGroup>
     <!-- The runtime's and WPF's variables as Passenger names them. -->
     <Compile Include="../Passenger.Core/RuntimeVariables.cs" Link="RuntimeVariables.cs" />
+    <!-- Passenger's requests read as every JSON-lines peer reads its messages. -->
+    <Compile Include="../Passenger.Core/JsonLines.cs" Link="JsonLines.cs" />
   </ItemGroup>
 </Project>

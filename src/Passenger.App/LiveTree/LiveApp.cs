@@ -50,14 +50,13 @@ public sealed class LiveApp : IDisposable
 
     private readonly Socket listener;
     private readonly CancellationTokenSource closing = new();
-    private readonly Dictionary<int, TaskCompletionSource<Reply>> asked = [];
+    private readonly PendingRequests<Request, Reply> asked = new();
     private readonly SemaphoreSlim writing = new(1, 1);
 
     /// <summary>What the app told unasked and the UI thread has yet to hear, which it hears all at once: an app saying
     /// thousands of things at once (its bindings failing as it opens) is one crossing, not one each.</summary>
     private readonly List<Reply> heard = [];
     private NetworkStream? stream;
-    private int next;
 
     private LiveApp(string name, string socket, Socket listener, LaunchPlan? plan, IReadOnlyList<string> overlays, LiveAppKind kind = LiveAppKind.Avalonia)
     {
@@ -339,12 +338,7 @@ public sealed class LiveApp : IDisposable
                 _ => $"{Name} has ended",
             });
         }
-        int id = Interlocked.Increment(ref next);
-        TaskCompletionSource<Reply> answer = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        lock (asked)
-        {
-            asked[id] = answer;
-        }
+        (int id, Task<Reply> answer) = asked.Add(request);
         byte[] line = [.. JsonSerializer.SerializeToUtf8Bytes(request with { Id = id }, WireJson.Default.Request), (byte)'\n'];
         await writing.WaitAsync();
         try
@@ -353,7 +347,7 @@ public sealed class LiveApp : IDisposable
         }
         catch (Exception error) when (error is IOException or ObjectDisposedException or SocketException)
         {
-            Drop(id, answer);
+            asked.Forget(id, answer);
             throw new LiveAppException($"{Name} has ended");
         }
         finally
@@ -363,17 +357,17 @@ public sealed class LiveApp : IDisposable
         Reply reply;
         try
         {
-            reply = await answer.Task.WaitAsync(AnswerLimit, giveUp);
+            reply = await answer.WaitAsync(AnswerLimit, giveUp);
         }
         catch (OperationCanceledException) when (giveUp.IsCancellationRequested)
         {
-            Drop(id, answer);
+            asked.Forget(id, answer);
             throw;
         }
         catch (TimeoutException)
         {
             // Forgotten, so its answer, if it ever comes, finds no one waiting.
-            Drop(id, answer);
+            asked.Forget(id, answer);
             throw new LiveAppException(NotAnswered(Name));
         }
         return reply.Error is { } why ? throw new LiveAppException(why) : reply;
@@ -408,25 +402,12 @@ public sealed class LiveApp : IDisposable
         try
         {
             using StreamReader reader = new(network, new UTF8Encoding(false));
-            while (await reader.ReadLineAsync(closing.Token) is { } line)
+            await foreach (Reply reply in JsonLines.ReadAsync(reader, WireJson.Default.Reply,
+                (_, error) => IdeErrors.Write($"The Live Visual Tree could not read what {Name} said: {error.Message}"), closing.Token))
             {
-                Reply? reply;
-                try
-                {
-                    reply = JsonSerializer.Deserialize(line, WireJson.Default.Reply);
-                }
-                catch (JsonException error)
-                {
-                    IdeErrors.Write($"The Live Visual Tree could not read what {Name} said: {error.Message}");
-                    continue;
-                }
-                if (reply is null)
-                {
-                    continue;
-                }
                 if (reply.Id is int id)
                 {
-                    Answered(id, reply);
+                    asked.Answer(id, reply);
                     continue;
                 }
                 bool first;
@@ -452,41 +433,7 @@ public sealed class LiveApp : IDisposable
         }
     }
 
-    /// <summary>Lets go of a request no one waits for any longer: an answer that still comes finds no one, and the app's end,
-    /// should it fail the request first, is observed here rather than reported as an error nobody saw.</summary>
-    private void Drop(int id, TaskCompletionSource<Reply> answer)
-    {
-        lock (asked)
-        {
-            asked.Remove(id);
-        }
-        _ = answer.Task.ContinueWith(static done => _ = done.Exception, CancellationToken.None,
-            TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
-    }
-
-    private void Answered(int id, Reply reply)
-    {
-        TaskCompletionSource<Reply>? answer;
-        lock (asked)
-        {
-            asked.Remove(id, out answer);
-        }
-        answer?.TrySetResult(reply);
-    }
-
-    private void FailAll()
-    {
-        List<TaskCompletionSource<Reply>> left;
-        lock (asked)
-        {
-            left = [.. asked.Values];
-            asked.Clear();
-        }
-        foreach (TaskCompletionSource<Reply> answer in left)
-        {
-            answer.TrySetException(new LiveAppException($"{Name} has ended"));
-        }
-    }
+    private void FailAll() => asked.End(_ => new LiveAppException($"{Name} has ended"));
 
     /// <summary>Everything the app has told unasked since the UI thread last heard it, in the order told.</summary>
     private void Hear()

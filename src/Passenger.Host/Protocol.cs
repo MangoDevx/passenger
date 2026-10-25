@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Passenger.Host;
 
@@ -57,7 +58,15 @@ public static class HostJson
     public static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web)
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        // Named, as the serializer names it by default, so each message's metadata can be had before the first message.
+        TypeInfoResolver = new DefaultJsonTypeInfoResolver(),
     };
+
+    /// <summary>A request's line as the host reads it.</summary>
+    public static JsonTypeInfo<HostRequest> Request { get; } = (JsonTypeInfo<HostRequest>)Options.GetTypeInfo(typeof(HostRequest));
+
+    /// <summary>An answer's line as the app reads it.</summary>
+    public static JsonTypeInfo<HostReply> Reply { get; } = (JsonTypeInfo<HostReply>)Options.GetTypeInfo(typeof(HostReply));
 }
 
 /// <summary>The SDK the host loaded: its folder (MSBuild's) and version.</summary>

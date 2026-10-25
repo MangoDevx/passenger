@@ -23,6 +23,7 @@
     <!-- What Passenger and its inspectors say to each other, and the app's end of the socket, one definition for all. -->
     <Compile Include="../Passenger.Inspector/Protocol.cs" Link="Protocol.cs" />
     <Compile Include="../Passenger.Inspector/Connection.cs" Link="Connection.cs" />
+    <Compile Include="../Passenger.Core/JsonLines.cs" Link="JsonLines.cs" />
     <!-- The failed bindings told and counted, and a failure's nearest names, one definition for both inspectors. -->
     <Compile Include="../Passenger.Inspector/BindingFailures.cs" Link="BindingFailures.cs" />
     <Compile Include="../Passenger.Core/Spelling.cs" Link="Spelling.cs" />

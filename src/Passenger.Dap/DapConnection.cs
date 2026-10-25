@@ -1,9 +1,9 @@
-using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Channels;
+using Passenger.Core;
 
 namespace Passenger.Dap;
 
@@ -33,7 +33,9 @@ public sealed class DapConnection : IAsyncDisposable
     private readonly Stream output;
     private readonly Action<string>? log;
     private readonly Lock writeGate = new();
-    private readonly ConcurrentDictionary<int, (string Command, TaskCompletionSource<JsonElement> Answer)> pending = new();
+
+    /// <summary>The requests sent and not yet answered, each by its command; every message's sequence number is counted here.</summary>
+    private readonly PendingRequests<string, JsonElement> pending = new();
     private readonly Dictionary<string, Func<JsonElement, Task<object?>>> handlers = new(StringComparer.Ordinal);
     private readonly Dictionary<string, (Action Then, bool EvenIfFailed)> afterResponse = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Action<JsonElement>> eventHandlers = new(StringComparer.Ordinal);
@@ -41,7 +43,6 @@ public sealed class DapConnection : IAsyncDisposable
     private readonly CancellationTokenSource stopping = new();
     private Task? reading;
     private Task? dispatching;
-    private int sequence;
 
     /// <param name="log">What went wrong in the conversation, a line at a time; called on any thread.</param>
     public DapConnection(Stream input, Stream output, Action<string>? log = null)
@@ -114,9 +115,16 @@ public sealed class DapConnection : IAsyncDisposable
     /// throws <see cref="DapException"/> when the other end answers with an error.</summary>
     public Task<JsonElement> RequestAsync(string command, object? arguments, CancellationToken cancellation = default)
     {
-        int seq = Interlocked.Increment(ref sequence);
-        TaskCompletionSource<JsonElement> answer = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        pending[seq] = (command, answer);
+        int seq;
+        Task<JsonElement> answer;
+        try
+        {
+            (seq, answer) = pending.Add(command);
+        }
+        catch (DapException closed)
+        {
+            return Task.FromException<JsonElement>(closed);
+        }
         JsonObject message = new()
         {
             ["seq"] = seq,
@@ -129,13 +137,7 @@ public sealed class DapConnection : IAsyncDisposable
         }
         if (cancellation.CanBeCanceled)
         {
-            cancellation.Register(() =>
-            {
-                if (pending.TryRemove(seq, out (string, TaskCompletionSource<JsonElement> Answer) waiting))
-                {
-                    waiting.Answer.TrySetCanceled(cancellation);
-                }
-            });
+            cancellation.Register(() => pending.Forget(seq, answer, cancellation));
         }
         try
         {
@@ -143,17 +145,16 @@ public sealed class DapConnection : IAsyncDisposable
         }
         catch (Exception error) when (error is IOException or ObjectDisposedException)
         {
-            pending.TryRemove(seq, out _);
-            answer.TrySetException(new DapException(command, "the connection is closed"));
+            pending.Fail(seq, asked => new DapException(asked, "the connection is closed"));
         }
-        return answer.Task;
+        return answer;
     }
 
     public void SendEvent(string name, object? body = null)
     {
         JsonObject message = new()
         {
-            ["seq"] = Interlocked.Increment(ref sequence),
+            ["seq"] = pending.NextId(),
             ["type"] = "event",
             ["event"] = name,
         };
@@ -330,17 +331,13 @@ public sealed class DapConnection : IAsyncDisposable
             int seq = message.GetProperty("request_seq").GetInt32();
             // Read before the request is taken from those waiting, so an answer that does not read fails it with the rest.
             bool succeeded = message.TryGetProperty("success", out JsonElement success) && success.GetBoolean();
-            if (!pending.TryRemove(seq, out (string Command, TaskCompletionSource<JsonElement> Answer) request))
-            {
-                return;
-            }
             if (succeeded)
             {
-                request.Answer.TrySetResult(message.TryGetProperty("body", out JsonElement body) ? body.Clone() : default);
+                pending.Answer(seq, message.TryGetProperty("body", out JsonElement body) ? body.Clone() : default);
             }
             else
             {
-                request.Answer.TrySetException(new DapException(Text(message, "command") ?? request.Command, Text(message, "message") ?? "failed"));
+                pending.Fail(seq, asked => new DapException(Text(message, "command") ?? asked, Text(message, "message") ?? "failed"));
             }
             return;
         }
@@ -413,7 +410,7 @@ public sealed class DapConnection : IAsyncDisposable
             response["success"] = false;
             response["message"] = error is DapException dap ? dap.Reason : error.Message;
         }
-        response["seq"] = Interlocked.Increment(ref sequence);
+        response["seq"] = pending.NextId();
         try
         {
             Write(response);
@@ -428,17 +425,9 @@ public sealed class DapConnection : IAsyncDisposable
         }
     }
 
-    private void FailPending(string why)
-    {
-        foreach (int seq in pending.Keys)
-        {
-            // Named, since a request failed this way may be heard of only from the finalizer, with no stack to say whose it was.
-            if (pending.TryRemove(seq, out (string Command, TaskCompletionSource<JsonElement> Answer) request))
-            {
-                request.Answer.TrySetException(new DapException(request.Command, why));
-            }
-        }
-    }
+    /// <summary>Fails every request waiting, and each asked from now on, named by its command, since a request failed
+    /// this way may be heard of only from the finalizer, with no stack to say whose it was.</summary>
+    private void FailPending(string why) => pending.End(command => new DapException(command, why));
 
     private static string? Text(JsonElement element, string name) =>
         element.TryGetProperty(name, out JsonElement value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;

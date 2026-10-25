@@ -3,7 +3,6 @@ using System.ComponentModel.Design;
 using System.IO;
 using System.Reflection;
 using System.Text;
-using System.Text.Json;
 using System.Windows;
 using System.Windows.Navigation;
 using System.Windows.Threading;
@@ -109,26 +108,10 @@ public static class Program
     {
         try
         {
-            while (Console.In.ReadLine() is { } line)
+            while (JsonLines.Read(Console.In, WpfPreviewJson.Request, static (_, error) => Console.Error.WriteLine($"A request that does not read: {error.Message}"))
+                is { } request)
             {
-                if (line.Length == 0)
-                {
-                    continue;
-                }
-                WpfPreviewRequest? request;
-                try
-                {
-                    request = JsonSerializer.Deserialize<WpfPreviewRequest>(line, WpfPreviewJson.Options);
-                }
-                catch (JsonException error)
-                {
-                    Console.Error.WriteLine($"A request that does not read: {error.Message}");
-                    continue;
-                }
-                if (request is not null)
-                {
-                    previewer.Take(request);
-                }
+                previewer.Take(request);
             }
         }
         catch (IOException error)

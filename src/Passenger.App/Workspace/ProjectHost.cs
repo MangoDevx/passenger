@@ -20,14 +20,15 @@ public sealed class ProjectHostFailed(string reason, Exception? inner = null) : 
 public sealed class ProjectHost : IAsyncDisposable
 {
     private readonly Process process;
-    private readonly Dictionary<int, Pending> pending = [];
+
+    /// <summary>The requests waiting for their answers, each with what takes its partial answers.</summary>
+    private readonly PendingRequests<Action<JsonElement>?, JsonElement> pending = new();
     private readonly object writing = new();
 
     /// <summary>The methods whose next answers are spoiled (<see cref="SpoilNext"/>), and the requests now asked of them.</summary>
     private readonly Dictionary<string, int> spoiling = new(StringComparer.Ordinal);
     private readonly HashSet<int> spoiled = [];
 
-    private int next;
     private volatile bool gone;
 
     private ProjectHost(Process process, HostReady ready)
@@ -199,16 +200,9 @@ public sealed class ProjectHost : IAsyncDisposable
 
     private async Task<JsonElement> AskAsync(string method, object parameters, Action<JsonElement>? partial, CancellationToken cancel)
     {
-        TaskCompletionSource<JsonElement> answered = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        int id;
-        lock (pending)
+        (int id, Task<JsonElement> answered) = pending.Add(partial);
+        lock (spoiling)
         {
-            if (gone)
-            {
-                throw new ProjectHostFailed("the project host has ended");
-            }
-            id = ++next;
-            pending[id] = new Pending(answered, partial);
             if (spoiling.GetValueOrDefault(method) > 0)
             {
                 spoiling[method]--;
@@ -219,17 +213,11 @@ public sealed class ProjectHost : IAsyncDisposable
         // Given up by the caller, the host is told to end the request, and what it still sends of it is dropped.
         using (cancel.Register(() =>
         {
-            int cancelling;
-            lock (pending)
-            {
-                pending.Remove(id);
-                cancelling = ++next;
-            }
-            answered.TrySetCanceled(cancel);
-            Send(cancelling, HostMethods.Cancel, new CancelParams(id));
+            pending.Forget(id, answered, cancel);
+            Send(pending.NextId(), HostMethods.Cancel, new CancelParams(id));
         }))
         {
-            return await answered.Task;
+            return await answered;
         }
     }
 
@@ -255,7 +243,7 @@ public sealed class ProjectHost : IAsyncDisposable
     /// another build could write one.</summary>
     public void SpoilNext(string method)
     {
-        lock (pending)
+        lock (spoiling)
         {
             spoiling[method] = spoiling.GetValueOrDefault(method) + 1;
         }
@@ -271,41 +259,29 @@ public sealed class ProjectHost : IAsyncDisposable
         {
             // Taken once: a disposed process gives no reader, where the reader taken says it was closed.
             StreamReader output = process.StandardOutput;
-            while (await output.ReadLineAsync() is { } line)
+            await foreach (HostReply reply in JsonLines.ReadAsync(output, HostJson.Reply, static (_, unread) => throw unread))
             {
-                HostReply? reply = JsonSerializer.Deserialize<HostReply>(line, HostJson.Options);
-                if (reply is null)
-                {
-                    continue;
-                }
-                Pending? asked;
-                lock (pending)
+                lock (spoiling)
                 {
                     if (spoiled.Contains(reply.Id))
                     {
                         throw new JsonException("the line was spoiled, as a test asked");
                     }
-                    pending.TryGetValue(reply.Id, out asked);
-                    if (asked is not null && reply.Partial is null)
-                    {
-                        pending.Remove(reply.Id);
-                    }
-                }
-                if (asked is null)
-                {
-                    continue;
                 }
                 if (reply.Partial is { } partial)
                 {
-                    asked.Partial?.Invoke(partial);
+                    if (pending.TryGet(reply.Id, out Action<JsonElement>? taken))
+                    {
+                        taken?.Invoke(partial);
+                    }
                 }
                 else if (reply.Error is { } error)
                 {
-                    asked.Answered.TrySetException(new ProjectHostFailed(error));
+                    pending.Fail(reply.Id, _ => new ProjectHostFailed(error));
                 }
                 else
                 {
-                    asked.Answered.TrySetResult(reply.Result ?? default);
+                    pending.Answer(reply.Id, reply.Result ?? default);
                 }
             }
         }
@@ -322,25 +298,17 @@ public sealed class ProjectHost : IAsyncDisposable
         Fail(why);
     }
 
+    /// <summary>Fails every request waiting, and each asked from now on.</summary>
     private void Fail(string why)
     {
-        List<Pending> failed;
-        lock (pending)
-        {
-            gone = true;
-            failed = [.. pending.Values];
-            pending.Clear();
-        }
-        foreach (Pending asked in failed)
-        {
-            asked.Answered.TrySetException(new ProjectHostFailed(why));
-        }
+        gone = true;
+        pending.End(_ => new ProjectHostFailed(why));
     }
 
     /// <summary>Closes the host's input, which ends it, and ends it outright if it has not gone a moment later.</summary>
     public async ValueTask DisposeAsync()
     {
-        gone = true;
+        Fail("the project host has ended");
         ChildProcesses.Ending(process);
         try
         {
@@ -354,8 +322,6 @@ public sealed class ProjectHost : IAsyncDisposable
         ChildProcesses.Kill(process);
         process.Dispose();
     }
-
-    private sealed record Pending(TaskCompletionSource<JsonElement> Answered, Action<JsonElement>? Partial);
 }
 
 /// <summary>The process's project hosts, one for each SDK its folders pick: every window whose folder picks the same SDK

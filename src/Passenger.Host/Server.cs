@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.Json;
+using Passenger.Core;
 
 namespace Passenger.Host;
 
@@ -18,26 +19,9 @@ public sealed class Server(TextWriter protocol, HostReady ready)
     {
         Write(new HostReply { Id = 0, Result = JsonSerializer.SerializeToElement(ready, HostJson.Options) });
         List<Task> running = [];
-        while (input.ReadLine() is { } line)
+        while (JsonLines.Read(input, HostJson.Request, static (_, error) => Console.Error.WriteLine($"Passenger.Host: a request that does not read: {error.Message}"))
+            is { } request)
         {
-            if (line.Length == 0)
-            {
-                continue;
-            }
-            HostRequest? request;
-            try
-            {
-                request = JsonSerializer.Deserialize<HostRequest>(line, HostJson.Options);
-            }
-            catch (JsonException error)
-            {
-                Console.Error.WriteLine($"Passenger.Host: a request that does not read: {error.Message}");
-                continue;
-            }
-            if (request is null)
-            {
-                continue;
-            }
             running.RemoveAll(t => t.IsCompleted);
             // Before the next line is read, or a cancel right behind its request would find nothing and leave it running.
             CancellationTokenSource cancel = new();

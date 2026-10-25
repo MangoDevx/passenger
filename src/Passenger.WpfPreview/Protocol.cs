@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 // What Passenger and its WPF previewer say to each other, one definition for both ends (the app compiles this file
 // too): one JSON object a line each way over the previewer's standard input and output. Passenger sends the file's text
@@ -75,5 +76,13 @@ public static class WpfPreviewJson
     public static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web)
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        // Named, as the serializer names it by default, so each message's metadata can be had before the first message.
+        TypeInfoResolver = new DefaultJsonTypeInfoResolver(),
     };
+
+    /// <summary>A request's line as the previewer reads it.</summary>
+    public static JsonTypeInfo<WpfPreviewRequest> Request { get; } = (JsonTypeInfo<WpfPreviewRequest>)Options.GetTypeInfo(typeof(WpfPreviewRequest));
+
+    /// <summary>An answer's line as Passenger reads it.</summary>
+    public static JsonTypeInfo<WpfPreviewReply> Reply { get; } = (JsonTypeInfo<WpfPreviewReply>)Options.GetTypeInfo(typeof(WpfPreviewReply));
 }

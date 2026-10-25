@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
+using Passenger.Core;
 
 namespace Passenger.Inspector;
 
@@ -93,36 +94,14 @@ internal sealed class Connection : IDisposable
     /// <summary>The next request, or null once Passenger has gone.</summary>
     public Request? Read()
     {
-        while (true)
+        try
         {
-            string? line;
-            try
-            {
-                line = reader.ReadLine();
-            }
-            catch (Exception error) when (error is IOException or ObjectDisposedException)
-            {
-                return null;
-            }
-            if (line is null)
-            {
-                return null;
-            }
-            if (line.Length == 0)
-            {
-                continue;
-            }
-            try
-            {
-                if (JsonSerializer.Deserialize(line, WireJson.Default.Request) is { } request)
-                {
-                    return request;
-                }
-            }
-            catch (JsonException)
-            {
-                // A line this version cannot read is passed over; Passenger's own version check refuses a mismatch first.
-            }
+            // A line this version cannot read is passed over; Passenger's own version check refuses a mismatch first.
+            return JsonLines.Read(reader, WireJson.Default.Request, static (_, _) => { });
+        }
+        catch (Exception error) when (error is IOException or ObjectDisposedException)
+        {
+            return null;
         }
     }
 
