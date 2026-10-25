@@ -590,20 +590,19 @@ public sealed class TelemetryView : IDisposable
     /// the action's keys), else the view's own.</summary>
     private static Button PageTool(string icon, string tip, string? action, string name, Action own, Func<string, bool>? request)
     {
-        Button button = ToolButtons.Of(icon, tip, () =>
+        if (action is null)
         {
-            if (action is null || request?.Invoke(action) != true)
+            Button button = ToolButtons.Of(icon, tip, own);
+            button.Name = name;
+            return button;
+        }
+        return ToolButtons.Of(action, icon, tip, asked =>
+        {
+            if (request?.Invoke(asked) != true)
             {
                 own();
             }
         });
-        button.Name = action ?? name;
-        if (action is not null)
-        {
-            ActionTips.Set(button, action, tip);
-            ActionButtons.Mark(button, action);
-        }
-        return button;
     }
 
     /// <summary>A page's bar: what it says, its buttons at the right.</summary>

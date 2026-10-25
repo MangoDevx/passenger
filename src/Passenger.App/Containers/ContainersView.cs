@@ -91,7 +91,7 @@ public sealed class ContainersView : DockPanel
             (AppActions.ContainerScale, "Icon.Add"),
             (AppActions.ContainerPrune, "Icon.Clear")])
         {
-            tools.Children.Add(RunWindowFrame.Tool(action, icon, parts.Title(action), Request));
+            tools.Children.Add(ToolButtons.Of(action, icon, parts.Title(action), Request));
         }
 
         list = new ListBox

@@ -65,13 +65,13 @@ public sealed class MigrationsView : DockPanel
         Border topBar = ToolBars.Top(top);
 
         Border leftBar = ToolBars.Side(
-            Tool(AppActions.MigrationsRefresh, "Icon.Rerun", "Refresh Migrations"),
-            Tool(AppActions.AddMigration, "Icon.Add", "Add Migration…"),
-            Tool(AppActions.UpdateDatabase, "Icon.Update", "Update Database"),
-            Tool(AppActions.RemoveLastMigration, "Icon.Clear", "Remove Last Migration"),
+            ToolButtons.Of(AppActions.MigrationsRefresh, "Icon.Rerun", "Refresh Migrations", Request),
+            ToolButtons.Of(AppActions.AddMigration, "Icon.Add", "Add Migration…", Request),
+            ToolButtons.Of(AppActions.UpdateDatabase, "Icon.Update", "Update Database", Request),
+            ToolButtons.Of(AppActions.RemoveLastMigration, "Icon.Clear", "Remove Last Migration", Request),
             ToolBars.Gap(),
-            Tool(AppActions.ScriptMigrations, "Icon.DocumentText", "Script Migrations…"),
-            Tool(AppActions.BundleMigrations, "Icon.Package", "Bundle Migrations"));
+            ToolButtons.Of(AppActions.ScriptMigrations, "Icon.DocumentText", "Script Migrations…", Request),
+            ToolButtons.Of(AppActions.BundleMigrations, "Icon.Package", "Bundle Migrations", Request));
 
         gaps = new StackPanel { [DockProperty] = Dock.Top, Name = "MigrationsGaps", Spacing = 4, Margin = new Thickness(8, 6, 8, 0) };
         list = new ListBox
@@ -99,6 +99,8 @@ public sealed class MigrationsView : DockPanel
 
     /// <summary>A button or a menu item asked for one of the window's actions.</summary>
     public event EventHandler<string>? ActionRequested;
+
+    private void Request(string action) => ActionRequested?.Invoke(this, action);
 
     /// <summary>The migration chosen in the list, which Update Database to Here updates to.</summary>
     public MigrationRow? Chosen => list.SelectedItem as MigrationRow;
@@ -188,15 +190,6 @@ public sealed class MigrationsView : DockPanel
         SetDock(state, Dock.Right);
         DockPanel.SetDock(line.Children[1], Dock.Left);
         return line;
-    }
-
-    private Button Tool(string action, string icon, string tip)
-    {
-        Button button = ToolButtons.Of(icon, tip, () => ActionRequested?.Invoke(this, action));
-        button.Name = action;
-        ActionTips.Set(button, action, tip);
-        ActionButtons.Mark(button, action);
-        return button;
     }
 
     private static ComboBox Chooser(string name, string tip)

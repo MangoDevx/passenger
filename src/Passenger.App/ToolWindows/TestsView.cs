@@ -168,13 +168,13 @@ public sealed class TestsView : DockPanel
         Border topBar = ToolBars.Top(top);
         ShowFilters();
         ShowPlaceholder();
-        stop = ActionTool(AppActions.StopTests, "Icon.Stop", "Stop");
+        stop = ToolButtons.Of(AppActions.StopTests, "Icon.Stop", "Stop", Request);
         stop.IsEnabled = false;
         Border leftBar = ToolBars.Side(
-            ActionTool(AppActions.RunAllTests, "Icon.Run", "Run All Tests"),
-            ActionTool(AppActions.RunTests, "Icon.RunOutline", "Run Selected Tests"),
-            ActionTool(AppActions.DebugTests, "Icon.Debug", "Debug Selected Tests"),
-            ActionTool(AppActions.RerunFailedTests, "Icon.Rerun", "Rerun Failed Tests"),
+            ToolButtons.Of(AppActions.RunAllTests, "Icon.Run", "Run All Tests", Request),
+            ToolButtons.Of(AppActions.RunTests, "Icon.RunOutline", "Run Selected Tests", Request),
+            ToolButtons.Of(AppActions.DebugTests, "Icon.Debug", "Debug Selected Tests", Request),
+            ToolButtons.Of(AppActions.RerunFailedTests, "Icon.Rerun", "Rerun Failed Tests", Request),
             stop);
         Children.Add(leftBar);
         Children.Add(topBar);
@@ -226,6 +226,8 @@ public sealed class TestsView : DockPanel
 
     /// <summary>A toolbar button pressed: the app action it runs.</summary>
     public event EventHandler<string>? ActionRequested;
+
+    private void Request(string action) => ActionRequested?.Invoke(this, action);
 
     /// <summary>The rows chosen to run (false) or debug (true), from their menu.</summary>
     public event EventHandler<bool>? RunRequested;
@@ -343,15 +345,6 @@ public sealed class TestsView : DockPanel
 
     /// <summary>The Group By menu while it is open.</summary>
     public ContextMenu? OpenMenu { get; private set; }
-
-    /// <summary>A toolbar button that runs one of the window's actions.</summary>
-    private Button ActionTool(string action, string icon, string tip)
-    {
-        Button button = ToolButtons.Of(icon, tip, () => ActionRequested?.Invoke(this, action));
-        ActionTips.Set(button, action, tip);
-        ActionButtons.Mark(button, action);
-        return button;
-    }
 
     /// <summary>An outcome's filter: its mark and how many tests have it. A click with Ctrl, ⌘ or Shift held adds it to
     /// those chosen.</summary>

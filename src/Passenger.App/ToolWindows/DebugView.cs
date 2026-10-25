@@ -308,13 +308,7 @@ public sealed class DebugView : DockPanel, IOwnKeys
         return button;
     }
 
-    private Button Tool(string action, string icon, string tip)
-    {
-        Button button = ToolButtons.Of(icon, tip, () => model.Request(action));
-        ActionTips.Set(button, action, tip);
-        tools[action] = button;
-        return button;
-    }
+    private Button Tool(string action, string icon, string tip) => tools[action] = ToolButtons.Of(action, icon, tip, model.Request);
 
     private static string ThreadLabel(DapThread thread) =>
         string.IsNullOrEmpty(thread.Name) || thread.Name == "<No Name>" ? $"Thread {thread.Id}" : $"{thread.Name} ({thread.Id})";

@@ -212,7 +212,13 @@ public sealed class CommitView : DockPanel, IOwnKeys
             {
                 ToolButtons.Of("Icon.Rerun", "Refresh", () => _ = vcs.RefreshAsync()),
                 ToolButtons.Of("Icon.Rollback", "Rollback", () => RollbackRequested?.Invoke(this, ChosenOrSelected())),
-                ShowDiffButton(),
+                ToolButtons.Of(AppActions.ShowDiff, "Icon.Diff", "Show Diff", _ =>
+                {
+                    if (list.SelectedItem is CommitRow row)
+                    {
+                        DiffRequested?.Invoke(this, row.Change.Path);
+                    }
+                }),
             },
         };
         Border top = ToolBars.Top(tools);
@@ -253,19 +259,6 @@ public sealed class CommitView : DockPanel, IOwnKeys
     /// <summary>Show Diff's keys, as the Commit window takes them (<see cref="AppActions.KeysIn"/>), ahead of what they run
     /// elsewhere while a file is chosen.</summary>
     public bool TakesKey(KeyEventArgs e) => list.IsKeyboardFocusWithin && list.SelectedItem is CommitRow && AppActions.Presses(AppActions.ShowDiff, e);
-
-    private Button ShowDiffButton()
-    {
-        Button button = ToolButtons.Of("Icon.Diff", "Show Diff", () =>
-        {
-            if (list.SelectedItem is CommitRow row)
-            {
-                DiffRequested?.Invoke(this, row.Change.Path);
-            }
-        });
-        ActionTips.Set(button, AppActions.ShowDiff, "Show Diff");
-        return button;
-    }
 
     private void Open(FileChange change)
     {

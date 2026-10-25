@@ -75,7 +75,7 @@ public sealed class AspireView : DockPanel, IDisposable
             (AppActions.AspireSource, "Icon.DocumentText", "Open the chosen resource's source"),
             (AppActions.AspireContainer, "Icon.Containers", "Show the chosen resource's container in Containers")])
         {
-            Button button = RunWindowFrame.Tool(action, icon, tip, Request);
+            Button button = ToolButtons.Of(action, icon, tip, Request);
             tools.Add((button, action));
             bar.Children.Add(button);
         }

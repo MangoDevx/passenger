@@ -59,8 +59,7 @@ public sealed class DiffView : DockPanel, IOwnKeys
         sides.Children.Add(Right);
 
         count = new TextBlock();
-        settings = ToolButtons.Of("Icon.Settings", "Settings", ShowSettings);
-        ActionTips.Set(settings, AppActions.DiffSettings, "Settings");
+        settings = ToolButtons.Of(AppActions.DiffSettings, "Icon.Settings", "Settings", _ => ShowSettings());
         settings.ContextMenu = SettingsMenu();
         Children.Add(DiffLines.Bar(name, Step, count, [], settings));
         Children.Add(sides);
