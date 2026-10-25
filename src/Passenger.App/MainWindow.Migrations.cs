@@ -328,7 +328,7 @@ public partial class MainWindow
         lines.AddRange(controller.Migrations.Select(m => $"- {m.Id}: {m.Applied switch { true => "applied", false => "pending", null => "not read" }}"));
         IEnumerable<EfGap> gaps = controller.Gaps.Concat(controller.Pending.Select(p => new EfGap($"{p.Context}'s model has changes no migration covers",
             [new EfFix(EfFixKind.AddMigration, $"{A.AddMigration} with the name as input")], Blocks: false)));
-        string where = controller.Startup is { } startup ? $"code_actions on {Path.GetFileName(startup.Path)}:1:1" : "code_actions";
+        string where = controller.Startup is { } startup ? $"{Mcp.McpTools.CodeActions} on {Path.GetFileName(startup.Path)}:1:1" : Mcp.McpTools.CodeActions;
         foreach (EfGap gap in gaps.Concat(controller.Failure is { } failed ? [failed] : []))
         {
             string[] titles = [.. gap.Fixes.Where(f => f.Kind is not (EfFixKind.ChooseStartup or EfFixKind.ChooseContext or EfFixKind.ScriptPlain)).Select(f => f.Title)];

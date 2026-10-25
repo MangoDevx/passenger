@@ -180,7 +180,7 @@ public sealed class McpProxy
         }
         call.Logged("forwarded to the window");
         AgentCall.Say($"Waiting for the Passenger window on {here} to answer");
-        bool opens = tool == "open";
+        bool opens = tool == McpTools.Open;
         if (opens)
         {
             Interlocked.Increment(ref opening);

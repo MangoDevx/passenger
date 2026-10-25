@@ -23,7 +23,7 @@ public sealed partial class PassengerTools
     private const string RefactorKinds = "change_signature, safe_delete, move, extract_interface, pull_members_up, push_members_down, introduce_field, "
         + "introduce_parameter, encapsulate_field, optimize_imports, code_cleanup";
 
-    [McpServerTool(Name = "refactor", Title = "Refactor across the solution", Destructive = true), Description(
+    [McpServerTool(Name = McpTools.Refactor, Title = "Refactor across the solution", Destructive = true), Description(
         "Runs one of the IDE's C# refactorings (kind) at path, line, column (a selection to endLine:endColumn), as its command " +
         "and dialog do: every file it touches (callers, implementations, usings, new files) changed as one Undo step, saved. " +
         "options is one JSON object, by kind:\nchange_signature (a method or constructor): {name, returnType, parameters: " +

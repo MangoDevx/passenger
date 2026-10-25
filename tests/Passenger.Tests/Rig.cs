@@ -61,6 +61,8 @@ public sealed class TestRun : IDisposable
     /// so (<see cref="TestRun()"/>), the run's own clean-up beforehand taking 1.</summary>
     public static double TimeScale => ReadTimeScale.Value.Scale;
 
+    [IdentifierHome]
+
     public const string TimeScaleVariable = "PASSENGER_TEST_TIME_SCALE";
 
     private static readonly Lazy<(double Scale, string? Problem)> ReadTimeScale = new(() =>

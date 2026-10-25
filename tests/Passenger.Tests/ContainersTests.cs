@@ -35,6 +35,7 @@ internal static class Docker
 
     /// <summary>Set to <c>never</c> where the images the tests run on are pulled before the run (CI's test.yml): no test
     /// pulls one there, and a missing one skips every container test, saying which. Unset, a test pulls what it needs.</summary>
+    [IdentifierHome]
     public const string PullVariable = "PASSENGER_TEST_PULL";
 
     /// <summary>Every image the container tests run on, Image's and .NET's, as ContainerImages.txt lists them for CI to pull.</summary>

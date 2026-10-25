@@ -1,6 +1,7 @@
 using System.Text.Json;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
+using Passenger.App.Mcp;
 
 namespace Passenger.Tests;
 
@@ -19,12 +20,12 @@ public sealed class McpContainerProfileTests(ContainerRunDebuggingTests.Tools to
         string container = await Task.Run(() => spins.Start("agent", offWindow: true));
         await using McpClient client = await Start(["--mcp", spins.Folder], languageServer: false);
 
-        CallToolResult unattached = await Result(client, "profile", new() { ["container"] = container, ["seconds"] = 1 });
+        CallToolResult unattached = await Result(client, McpTools.Profile, new() { ["container"] = container, ["seconds"] = 1 });
         Assert.True(unattached.IsError == true && Text(unattached).Contains("attach", StringComparison.Ordinal), $"A container's profile without attach answered: {Text(unattached)}");
-        CallToolResult nowhere = await Result(client, "profile", new() { ["attach"] = true, ["container"] = $"{container}-not", ["seconds"] = 1 });
+        CallToolResult nowhere = await Result(client, McpTools.Profile, new() { ["attach"] = true, ["container"] = $"{container}-not", ["seconds"] = 1 });
         Assert.True(nowhere.IsError == true && Text(nowhere).Contains("debug_state of processes", StringComparison.Ordinal), $"A profile in no such container answered: {Text(nowhere)}");
 
-        JsonElement profiled = await Call(client, "profile", new() { ["attach"] = true, ["container"] = container, ["seconds"] = 2, ["memory"] = true });
+        JsonElement profiled = await Call(client, McpTools.Profile, new() { ["attach"] = true, ["container"] = container, ["seconds"] = 2, ["memory"] = true });
         Assert.True(profiled.GetProperty("samples").GetInt32() > 0, $"The profile in the container sampled nothing: {profiled.GetRawText()}");
         JsonElement spin = Assert.Single(profiled.GetProperty("hotSpots").EnumerateArray(), h => h.GetProperty("method").GetString()!.StartsWith("Hot.Spin", StringComparison.Ordinal));
         Assert.True(spin.TryGetProperty("source", out JsonElement source) && source.GetString() == $"Program.cs:{ContainerProfilingTests.Spins.SpinLine}",
@@ -46,7 +47,7 @@ public sealed class McpContainerProfileTests(ContainerRunDebuggingTests.Tools to
         await using McpClient client = await Start(["--mcp", shop], languageServer: false);
         try
         {
-            JsonElement profiled = await Call(client, "profile", new() { ["configuration"] = "Compose: compose.yaml", ["seconds"] = 2, ["memory"] = true, ["top"] = 200 });
+            JsonElement profiled = await Call(client, McpTools.Profile, new() { ["configuration"] = "Compose: compose.yaml", ["seconds"] = 2, ["memory"] = true, ["top"] = 200 });
             Assert.True(profiled.GetProperty("samples").GetInt32() > 0, $"The profile of the compose configuration sampled nothing: {profiled.GetRawText()}");
             JsonElement spin = Assert.Single(profiled.GetProperty("hotSpots").EnumerateArray(), h => h.GetProperty("method").GetString()!.StartsWith("Hot.Spin", StringComparison.Ordinal));
             Assert.True(spin.TryGetProperty("source", out JsonElement source) && source.GetString()!.EndsWith($"Program.cs:{ContainerRunProfilingTests.SpinLine}", StringComparison.Ordinal),
@@ -56,7 +57,7 @@ public sealed class McpContainerProfileTests(ContainerRunDebuggingTests.Tools to
         }
         finally
         {
-            await Call(client, "stop");
+            await Call(client, McpTools.Stop);
             Assert.True(await Waiting.UntilAsync(() => Docker.NoneLeft(project), TimeSpan.FromMinutes(2),
                 TestContext.Current.CancellationToken), "stop left the configuration's containers behind");
             // The headless IDE's state is not the run's, whose end removes only its own images: these go here.

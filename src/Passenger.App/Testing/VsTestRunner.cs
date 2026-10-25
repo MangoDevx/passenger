@@ -22,6 +22,10 @@ public sealed class VsTestRunner : ITestRunner
 {
     private const string RunSettings = "<RunSettings><RunConfiguration><DesignMode>true</DesignMode></RunConfiguration></RunSettings>";
 
+    /// <summary>Names a file for VSTest's own diagnostic log, for a run that goes wrong inside it.</summary>
+    [IdentifierHome]
+    public const string LogVariable = "PASSENGER_VSTEST_LOG";
+
     /// <summary>The translation layer's constructor that names the dotnet running vstest.console.dll: the public ones run
     /// the .dll under this process's own executable, which is right inside dotnet and wrong under Passenger's apphost (it
     /// would start Passenger again). It is internal to the package version pinned, so a version without it fails every
@@ -63,8 +67,7 @@ public sealed class VsTestRunner : ITestRunner
         {
             InheritEnvironmentVariables = true,
         };
-        // PASSENGER_VSTEST_LOG=FILE keeps VSTest's own diagnostic log, for a run that goes wrong inside it.
-        if (Environment.GetEnvironmentVariable("PASSENGER_VSTEST_LOG") is { Length: > 0 } logFile)
+        if (Environment.GetEnvironmentVariable(LogVariable) is { Length: > 0 } logFile)
         {
             parameters.LogFilePath = logFile;
             parameters.TraceLevel = TraceLevel.Verbose;

@@ -21,7 +21,7 @@ public sealed partial class PassengerTools
     /// <summary>How long a tool waits for an app launched a moment ago to show its UI.</summary>
     private static readonly TimeSpan AppUiLimit = TimeSpan.FromSeconds(60);
 
-    [McpServerTool(Name = "app_windows", Title = "The app's windows", ReadOnly = true), Description(
+    [McpServerTool(Name = McpTools.AppWindows, Title = "The app's windows", ReadOnly = true), Description(
         "The windows of the app (an Avalonia 12 app Run or Debug started, a WPF one on Windows; one starting is waited for): " +
         "each one's @N, type, title, size in units, pixels a unit, whether active and shown, and a popup's owner. Every app_ " +
         "tool's app is run, debug, profile, a debugged program's or an AppHost service's name, or ide for Passenger's own windows, by default the one running; " +
@@ -34,7 +34,7 @@ public sealed partial class PassengerTools
             Id(w.Id), w.Type, w.Name, w.Title, Math.Round(w.Width, 2), Math.Round(w.Height, 2), w.Scaling, w.Active, w.Visible, w.Owner is long owner ? Id(owner) : null))]);
     });
 
-    [McpServerTool(Name = "app_screenshot", Title = "A picture of the app", ReadOnly = true), Description(
+    [McpServerTool(Name = McpTools.AppScreenshot, Title = "A picture of the app", ReadOnly = true), Description(
         "A PNG of an app window (its popups drawn over it) as the app draws it, hidden, off-screen or headless alike; or of " +
         "control's part of it, or an area (x, y, width, height in its units). At the window's scaling up to 1600 pixels a side, " +
         "or scale pixels a unit (8 at most). Its text maps its pixels to the window's units, which app_click takes.")]
@@ -62,7 +62,7 @@ public sealed partial class PassengerTools
         return new CallToolResult { Content = [ImageContentBlock.FromBytes(picture.Png, "image/png"), new TextContentBlock { Text = text }] };
     });
 
-    [McpServerTool(Name = "app_tree", Title = "The app's visual tree", ReadOnly = true), Description(
+    [McpServerTool(Name = McpTools.AppTree, Title = "The app's visual tree", ReadOnly = true), Description(
         "The app's visual tree (the Live Visual Tree's), a level a line: each element's type, #name, .classes, \"text\" it " +
         "shows, @id, box in its window's units (x,y widthxheight), and [hidden], [out of view], [disabled], [focused]; with " +
         "properties (IsEnabled, Grid.Row), their values ({Name=value}). A template's parts are left out (what they hold comes " +
@@ -106,7 +106,7 @@ public sealed partial class PassengerTools
         return AppQuery.Write(roots, depth, templates, hidden);
     });
 
-    [McpServerTool(Name = "app_details", Title = "An element's properties and styles", ReadOnly = true), Description(
+    [McpServerTool(Name = McpTools.AppDetails, Title = "An element's properties and styles", ReadOnly = true), Description(
         "One element (control) looked at closely, as the Live Visual Tree's details show it: its type, classes and " +
         "pseudo-classes, XAML place (or why none), templated parent and layout (bounds, desired size, margin, border, padding, " +
         "alignment); each property not at its default (every one with defaults) whose name contains properties, with its " +
@@ -163,7 +163,7 @@ public sealed partial class PassengerTools
         return place.Line > 0 ? string.Create(CultureInfo.InvariantCulture, $"{file}:{place.Line}:{place.Column}") : file;
     }
 
-    [McpServerTool(Name = "app_click", Title = "Click in the app", Destructive = true), Description(
+    [McpServerTool(Name = McpTools.AppClick, Title = "Click in the app", Destructive = true), Description(
         "Clicks as a mouse would (button left, right or middle; count 2 a double click), through the window's own input, " +
         "handlers, commands and focus all running: at control's centre (or x,y from its top left), or x,y in the window, " +
         "neither bringing it forward nor moving the real pointer, modifiers held as app_key names them. One hidden, disabled, " +
@@ -203,7 +203,7 @@ public sealed partial class PassengerTools
         return $"{clicked} {Aimed(element, done)}{Took(element, done, "click")}{Said(done)}";
     });
 
-    [McpServerTool(Name = "app_type", Title = "Type into the app", Destructive = true), Description(
+    [McpServerTool(Name = McpTools.AppType, Title = "Type into the app", Destructive = true), Description(
         "Types text as a keyboard would, a key at a time (a newline Enter, a tab Tab): into control, given the focus first (a " +
         "text box at its end), else into what has the focus; with replace, Select All first. Says what it shows now. With app " +
         "ide, Passenger's editor types at the caret open put it at, leaving the file unsaved.")]
@@ -230,7 +230,7 @@ public sealed partial class PassengerTools
         return $"Typed {Plural.Of(text.Length, "character")} into {done.TargetName ?? "the window, nothing having the focus"}{Said(done)}";
     });
 
-    [McpServerTool(Name = "app_key", Title = "Press keys in the app", Destructive = true), Description(
+    [McpServerTool(Name = McpTools.AppKey, Title = "Press keys in the app", Destructive = true), Description(
         "Presses keys as a keyboard would, chords split by spaces, a chord's keys joined by + (\"Enter\", \"Tab Tab Space\", " +
         "\"ctrl+A Delete\", \"primary+S\"), into control, given the focus first, else what has it. Keys by Avalonia's names, " +
         "which WPF shares (Escape, Back, PageDown, F5, A, D1 or 1); modifiers ctrl, shift, alt, cmd (meta), primary (Cmd on " +
@@ -257,7 +257,7 @@ public sealed partial class PassengerTools
         return $"Pressed {keys.Trim()} in {done.TargetName ?? "the window, nothing having the focus"}{Said(done)}";
     });
 
-    [McpServerTool(Name = "app_scroll", Title = "Scroll in the app", Destructive = true), Description(
+    [McpServerTool(Name = McpTools.AppScroll, Title = "Scroll in the app", Destructive = true), Description(
         "Turns the mouse wheel over control's centre or at x,y in the window, as a person scrolls: dy notches down, dx right, " +
         "negative up or left (3 down by default), modifiers held as app_key names them. Says where the scroll viewer under it " +
         "is now.")]
@@ -298,7 +298,7 @@ public sealed partial class PassengerTools
             : string.Create(CultureInfo.InvariantCulture, $"{Math.Abs(notches):0.#} notch{(Math.Abs(notches) == 1 ? "" : "es")} {(notches < 0 ? back : ahead)}");
     });
 
-    [McpServerTool(Name = "app_binding_errors", Title = "The app's failed bindings", ReadOnly = true), Description(
+    [McpServerTool(Name = McpTools.AppBindingErrors, Title = "The app's failed bindings", ReadOnly = true), Description(
         "The failed bindings of the apps Run and Debug started last and an AppHost's services (or app's), each once: control, property, path, the " +
         "framework's message (with the nearest members when the source lacks the one named), XAML place and count. An ended " +
         "app's stay until the next of its kind starts; past an app's first 1000, a last entry of level Untold counts the rest.")]

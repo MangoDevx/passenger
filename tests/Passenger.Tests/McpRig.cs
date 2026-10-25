@@ -18,9 +18,13 @@ namespace Passenger.Tests;
 /// runs out or fails ends the test naming it and quoting what Passenger said meanwhile.</summary>
 public abstract class McpRig : IDisposable
 {
-    /// <summary>The build's, beside the tests, or an installed copy that PASSENGER_EXECUTABLE names: CI's installer job
-    /// has an agent debug through the Passenger its Windows installer installed.</summary>
-    private static readonly string Passenger = Environment.GetEnvironmentVariable("PASSENGER_EXECUTABLE") is { Length: > 0 } installed
+    /// <summary>What names an installed Passenger for the agents to start in place of the build's.</summary>
+    [IdentifierHome]
+    public const string ExecutableVariable = "PASSENGER_EXECUTABLE";
+
+    /// <summary>The build's, beside the tests, or an installed copy that <see cref="ExecutableVariable"/> names: CI's
+    /// installer job has an agent debug through the Passenger its Windows installer installed.</summary>
+    private static readonly string Passenger = Environment.GetEnvironmentVariable(ExecutableVariable) is { Length: > 0 } installed
         ? installed
         : Path.Combine(AppContext.BaseDirectory, OperatingSystem.IsWindows() ? "Passenger.exe" : "Passenger");
 
@@ -275,7 +279,7 @@ public abstract class McpRig : IDisposable
 
     /// <summary>An agent's call the window first asks the person about, its question naming the tool and what it would do;
     /// allowed, the call's answer.</summary>
-    protected JsonElement Asked(MainWindow window, McpClient client, string tool, string what, Dictionary<string, object?>? arguments = null)
+    protected JsonElement Asked(MainWindow window, McpClient client, [IdentifierOf(typeof(McpTools))] string tool, string what, Dictionary<string, object?>? arguments = null)
     {
         Task<JsonElement> calling = Task.Run(() => Call(client, tool, arguments));
         ConfirmDialog asked = Question(window, $"the question for the agent's {tool}");
@@ -287,7 +291,7 @@ public abstract class McpRig : IDisposable
     }
 
     /// <summary>An agent's call answered without a question to the person.</summary>
-    protected JsonElement Unasked(MainWindow window, McpClient client, string tool, Dictionary<string, object?>? arguments = null)
+    protected JsonElement Unasked(MainWindow window, McpClient client, [IdentifierOf(typeof(McpTools))] string tool, Dictionary<string, object?>? arguments = null)
     {
         Task<JsonElement> calling = Task.Run(() => Call(client, tool, arguments));
         WaitFor(() => calling.IsCompleted || window.OwnedWindows.OfType<ConfirmDialog>().Any(), $"the agent's {tool}", AgentLimit);
@@ -306,7 +310,7 @@ public abstract class McpRig : IDisposable
 
     /// <summary>A tool's answer, read as the JSON it is; a tool's error fails the test with its words and
     /// what Passenger said meanwhile.</summary>
-    protected async Task<JsonElement> Call(McpClient client, string tool, Dictionary<string, object?>? arguments = null)
+    protected async Task<JsonElement> Call(McpClient client, [IdentifierOf(typeof(McpTools))] string tool, Dictionary<string, object?>? arguments = null)
     {
         CallToolResult result = await Result(client, tool, arguments);
         string text = Text(result);
@@ -332,7 +336,7 @@ public abstract class McpRig : IDisposable
 
     /// <summary>A tool's whole result, an error's included, within the time the tool may take, or until the test gives up
     /// on it; with <paramref name="heard"/>, the call asks for progress and keeps what it is told.</summary>
-    protected Task<CallToolResult> Result(McpClient client, string tool, Dictionary<string, object?>? arguments = null, CancellationTokenSource? giveUp = null, Heard? heard = null) =>
+    protected Task<CallToolResult> Result(McpClient client, [IdentifierOf(typeof(McpTools))] string tool, Dictionary<string, object?>? arguments = null, CancellationTokenSource? giveUp = null, Heard? heard = null) =>
         Exchange($"The {tool} call", Limit(tool), cancel => client.CallToolAsync(tool, arguments, heard, cancellationToken: cancel).AsTask(), giveUp);
 
     /// <summary>The progress an agent's call was told, as the SDK hands it over, on any thread.</summary>
@@ -366,7 +370,7 @@ public abstract class McpRig : IDisposable
     /// <summary>A tool call the agent gives up on as the protocol has it: sent under an id of its own, and on giving up a
     /// "cancelled" notification naming that id. The SDK's own call can drop that notification (1 in 200 under load), leaving
     /// the window waiting.</summary>
-    protected static async Task<CallToolResult> CallGivingUp(McpClient client, string tool, Dictionary<string, object?> arguments, CancellationToken giveUp)
+    protected static async Task<CallToolResult> CallGivingUp(McpClient client, [IdentifierOf(typeof(McpTools))] string tool, Dictionary<string, object?> arguments, CancellationToken giveUp)
     {
         RequestId id = new($"given-up-{Guid.NewGuid():N}");
         CallToolRequestParams call = new()
@@ -390,11 +394,11 @@ public abstract class McpRig : IDisposable
     /// <summary>How long a tool may take before the test calls it hung: minutes for one that builds first; for one that asks
     /// the language server, longer than the 120 s Passenger waits for it to load the folder, so its own words come back;
     /// a minute for any other.</summary>
-    protected static TimeSpan Limit(string tool) => tool switch
+    protected static TimeSpan Limit([IdentifierOf(typeof(McpTools))] string tool) => tool switch
     {
-        "build" or "debug_start" or "run" or "tests_run" or "profile" or "nuget_install" => TimeSpan.FromMinutes(5),
-        "diagnostics" or "symbol_info" or "definition" or "usages" or "hierarchy" or "rename" or "code_actions"
-            or "apply_code_action" or "format" or "find_symbol" or "outline" or "refactor" => TimeSpan.FromMinutes(3),
+        McpTools.Build or McpTools.DebugStart or McpTools.Run or McpTools.TestsRun or McpTools.Profile or McpTools.NugetInstall => TimeSpan.FromMinutes(5),
+        McpTools.Diagnostics or McpTools.SymbolInfo or McpTools.Definition or McpTools.Usages or McpTools.Hierarchy or McpTools.Rename or McpTools.CodeActions
+            or McpTools.ApplyCodeAction or McpTools.Format or McpTools.FindSymbol or McpTools.Outline or McpTools.Refactor => TimeSpan.FromMinutes(3),
         _ => TimeSpan.FromMinutes(1),
     };
 
