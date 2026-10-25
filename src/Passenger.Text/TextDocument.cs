@@ -107,6 +107,10 @@ public sealed class TextDocument
     public AnchoredRange RangeAt(TextRange range, AnchorGravity start, AnchorGravity end, AnchorGravity? empty = null) =>
         new(AnchorAt(range.Start, start), AnchorAt(range.End, end), empty);
 
+    /// <summary>A stretch carried as a mark on the text is (a squiggle, a match, a use): what is typed at its start stays
+    /// out, what is typed at its end goes in while it holds text, and once its text is gone it stays empty.</summary>
+    public AnchoredRange MarkAt(TextRange range) => RangeAt(range, AnchorGravity.Before, AnchorGravity.After, empty: AnchorGravity.Before);
+
     public static string DetectLineEnding(string text)
     {
         int lf = text.IndexOf('\n');
