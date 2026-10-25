@@ -23,6 +23,10 @@ public sealed class OpenDocument : Observable
     private IReadOnlyList<LineMark> lineMarks = [];
     private IReadOnlyList<LineAnnotation> lineAnnotations = [];
     private IReadOnlyList<LineAnnotation> liveValues = [];
+
+    /// <summary>The line of each of <see cref="lineAnnotations"/> and of <see cref="liveValues"/>, carried by the text.</summary>
+    private AnchoredLine[] annotationLines = [];
+    private AnchoredLine[] liveLines = [];
     private IReadOnlyList<InlayHint> inlayHints = [];
     private IReadOnlyList<TestMark> testMarks = [];
     private IReadOnlyList<ColourMark> colourMarks = [];
@@ -219,6 +223,14 @@ public sealed class OpenDocument : Observable
             {
                 // The same way: each editor has carried its own already, which this draws alike, so none wraps a line again.
                 InlayHints = HintList.Of(inlayHints).Through(change.Edits);
+            }
+            if (lineAnnotations.Count > 0)
+            {
+                Set(ref lineAnnotations, Carried(lineAnnotations, annotationLines), nameof(LineAnnotations));
+            }
+            if (liveValues.Count > 0)
+            {
+                Set(ref liveValues, Carried(liveValues, liveLines), nameof(LiveValues));
             }
             FollowHeld(change.Edits);
             Raise(nameof(IsModified));
@@ -457,11 +469,16 @@ public sealed class OpenDocument : Observable
         set => Set(ref inlayHints, HintList.Of(value));
     }
 
-    /// <summary>The debugger's text after lines: inline values, the exception it stopped on.</summary>
+    /// <summary>The debugger's text after lines: inline values, the exception it stopped on. Each goes with its line as
+    /// the text is edited.</summary>
     public IReadOnlyList<LineAnnotation> LineAnnotations
     {
         get => lineAnnotations;
-        set => Set(ref lineAnnotations, value);
+        set
+        {
+            annotationLines = Anchored(value, annotationLines);
+            Set(ref lineAnnotations, value);
+        }
     }
 
     /// <summary>A debugged Avalonia app's values after an .axaml file's lines: each binding's value on the control it is read
@@ -469,7 +486,42 @@ public sealed class OpenDocument : Observable
     public IReadOnlyList<LineAnnotation> LiveValues
     {
         get => liveValues;
-        set => Set(ref liveValues, value);
+        set
+        {
+            liveLines = Anchored(value, liveLines);
+            Set(ref liveValues, value);
+        }
+    }
+
+    /// <summary>The lines of annotations, anchored in the text, those of the ones they replace let go.</summary>
+    private AnchoredLine[] Anchored(IReadOnlyList<LineAnnotation> annotations, AnchoredLine[] replaced)
+    {
+        foreach (AnchoredLine line in replaced)
+        {
+            line.Detach();
+        }
+        AnchoredLine[] lines = new AnchoredLine[annotations.Count];
+        for (int i = 0; i < lines.Length; i++)
+        {
+            lines[i] = new AnchoredLine(annotations[i].Line);
+            lines[i].Attach(Text);
+        }
+        return lines;
+    }
+
+    /// <summary>Annotations with the lines their anchors carried them to; the same list when none moved.</summary>
+    private static IReadOnlyList<LineAnnotation> Carried(IReadOnlyList<LineAnnotation> annotations, AnchoredLine[] lines)
+    {
+        LineAnnotation[]? moved = null;
+        for (int i = 0; i < lines.Length; i++)
+        {
+            if (lines[i].Follow())
+            {
+                moved ??= [.. annotations];
+                moved[i] = moved[i] with { Line = lines[i].Line };
+            }
+        }
+        return moved ?? annotations;
     }
 
     /// <summary>What its editors show after its lines: the debugger's annotations, then the app's live values.</summary>

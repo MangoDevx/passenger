@@ -2278,8 +2278,8 @@ public sealed class DebugController : IDisposable
         document.LineMarks = marks;
     }
 
-    /// <summary>Carries the stop shown in a file through an edit to it: the arrow and the frames' rows from the built lines,
-    /// the values a line at a time.</summary>
+    /// <summary>Carries the stop shown in a file through an edit to it: the arrow and the frames' rows from the built lines.
+    /// The values go with their lines by themselves (<see cref="OpenDocument.LineAnnotations"/>).</summary>
     private void FollowStop(OpenDocument document, DocumentChangedEventArgs change)
     {
         if (executionPoint is { } point && point.Path == document.Path)
@@ -2289,10 +2289,6 @@ public sealed class DebugController : IDisposable
         if (change.After.LineCount != change.Before.LineCount && view.Frames.Count > 0)
         {
             view.ShowPlacesAgain();
-        }
-        if (document.LineAnnotations.Count > 0)
-        {
-            document.LineAnnotations = [.. document.LineAnnotations.Select(a => a with { Line = TextEditing.MapLine(change.Before, change.Edits, change.After, a.Line) })];
         }
     }
 
