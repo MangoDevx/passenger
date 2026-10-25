@@ -101,6 +101,10 @@ referenced projects twice).
 - **Colours are tokens** (`Passenger.*` in `Theme/Tokens.axaml`), given in every theme (dark and light, `Harbour.axaml`
   and each look `just themes` writes); Fluent's keys are mapped once in `Theme/FluentKeys.axaml`. UiRulesTests fails on a
   colour or non-zero CornerRadius written outside `Theme/` (but the content's own) and on an unmapped Fluent key.
+- **An identifier is named from its home** (`[IdentifierHome]`: action and tool window ids, DAP and LSP names, `McpTools`,
+  each `PASSENGER_` variable's const, the theme's keys as `TokenKeys` and `IconKeys`, generated from their XAML): PSG0001
+  (`src/Passenger.Analyzers`, every rule's id and words in `Rules.cs`) fails its text written anywhere else, a plain word
+  only where a parameter or member marked `[IdentifierOf]` its home takes it.
 - **A malformed flag or environment value is fatal**, never a silent default (`LaunchOptions.cs`).
 - **A warning is fixed at its cause.** Turning it off (NoWarn, a pragma, a lowered severity, a suppression) or moving
   the line it checks (a raised budget or limit) does not count as fixing it; neither does an analyzer's baseline.
