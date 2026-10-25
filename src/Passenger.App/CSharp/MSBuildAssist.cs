@@ -15,19 +15,78 @@ namespace Passenger.App.CSharp;
 /// value's quote, <c>$(</c>, <c>@(</c>, <c>%(</c>, a list's <c>;</c> and a path's separator), the hover card and Go to
 /// Declaration. A package id chosen for a reference goes in with its version, or under central package management with
 /// its version in Directory.Packages.props.</summary>
-public sealed partial class CodeAssist
+internal sealed class MSBuildAssist : LanguageAssist
 {
+    private readonly AssistContext context;
+    private readonly PopupPlacement popups;
+    private readonly CodeCompletion completion;
+    /// <summary>The MSBuild items of the last list made, by its rows' items, which a commit and the card beside it look up.</summary>
     private readonly Dictionary<CompletionItem, MSBuildItem> msbuildOffered = [];
 
-    /// <summary>The characters beyond a name's that narrow the open MSBuild list rather than close it.</summary>
-    private string msbuildWordCharacters = string.Empty;
+    public MSBuildAssist(AssistContext context, PopupPlacement popups, CodeCompletion completion)
+    {
+        this.context = context;
+        this.popups = popups;
+        this.completion = completion;
+    }
 
-    /// <summary>The window's MSBuild code help, for a project file shown.</summary>
-    public Func<MSBuildService?>? MSBuild { get; set; }
+    private CodeEditor Editor => context.Editor;
 
-    private MSBuildDocument? MSBuildCurrent => editors.Active is { } active ? MSBuildOf(active) : null;
+    public override bool Typed(string text)
+    {
+        if (context.MSBuildCurrent is null)
+        {
+            return false;
+        }
+        char last = text[^1];
+        int caret = Editor.Selections.Primary.Caret;
+        if (MSBuildTrigger(text) || (AssistContext.IsIdentifierChar(last) && !char.IsDigit(last) && context.WordStart(caret) == caret - 1))
+        {
+            _ = completion.Start(null);
+        }
+        return true;
+    }
 
-    private MSBuildDocument? MSBuildOf(OpenDocument? document) => document is null ? null : MSBuild?.Invoke()?.For(document);
+    public override async Task<bool> CompleteAsync(string? trigger, bool incomplete)
+    {
+        if (context.MSBuildCurrent is not { } msbuild)
+        {
+            return false;
+        }
+        await StartMSBuildCompletion(msbuild);
+        return true;
+    }
+
+    public override void Commit(CompletionItem item, int start)
+    {
+        if (msbuildOffered.TryGetValue(item, out MSBuildItem? offered))
+        {
+            CommitMSBuild(offered, start);
+        }
+    }
+
+    /// <summary>The card beside the list: MSBuild's documentation of the item chosen, where its schemas have some.</summary>
+    public override string? Describe(CompletionItem item) => msbuildOffered.GetValueOrDefault(item)?.Documentation;
+
+    public override async Task<bool> HoverAsync(InfoCard card, int offset, CancellationToken cancel)
+    {
+        if (context.MSBuildCurrent is not { } msbuild)
+        {
+            return false;
+        }
+        await MSBuildHover(card, msbuild, offset, cancel);
+        return true;
+    }
+
+    public override async Task<bool> DefinitionAsync(int offset)
+    {
+        if (context.MSBuildCurrent is not { } msbuild)
+        {
+            return false;
+        }
+        await MSBuildGoTo(msbuild, offset);
+        return true;
+    }
 
     /// <summary>Whether what was just typed in an MSBuild file opens completion.</summary>
     private bool MSBuildTrigger(string typed)
@@ -72,9 +131,7 @@ public sealed partial class CodeAssist
     /// <summary>The MSBuild list for the caret.</summary>
     private async Task StartMSBuildCompletion(MSBuildDocument msbuild)
     {
-        completing?.Cancel();
-        CancellationTokenSource cancel = new();
-        completing = cancel;
+        CancellationTokenSource cancel = completion.Asking();
         int caret = Editor.Selections.Primary.Caret;
         TextDocument asked = Editor.Document;
         try
@@ -86,11 +143,10 @@ public sealed partial class CodeAssist
             }
             if (list is null || list.Items.Count == 0)
             {
-                CloseCompletion();
+                completion.Close();
                 return;
             }
             msbuildOffered.Clear();
-            xamlOffered.Clear();
             List<CompletionItem> items = [];
             foreach (MSBuildItem offered in list.Items)
             {
@@ -98,9 +154,14 @@ public sealed partial class CodeAssist
                 msbuildOffered[item] = offered;
                 items.Add(item);
             }
-            msbuildWordCharacters = list.WordCharacters;
-            open = new Completion(items, Math.Min(list.Start, Editor.Selections.Primary.Caret), [], list.Incomplete);
-            Filter();
+            completion.Open(new CodeCompletion.Completion(items, Math.Min(list.Start, Editor.Selections.Primary.Caret), [], list.Incomplete)
+            {
+                Own = this,
+                WordCharacters = list.WordCharacters,
+                // An MSBuild list keeps its own order among names that match alike (the common properties first), not the shortest.
+                Alike = 1000,
+                DescribedAsItOpens = true,
+            });
         }
         catch (OperationCanceledException)
         {
@@ -118,7 +179,7 @@ public sealed partial class CodeAssist
     {
         int caret = Editor.Selections.Primary.Caret;
         TextRange replaced = TextRange.FromBounds(start, Math.Max(start, caret));
-        if (item.Package is { } package && MSBuildCurrent is { } msbuild)
+        if (item.Package is { } package && context.MSBuildCurrent is { } msbuild)
         {
             CommitPackage(msbuild, package, replaced);
             return;
@@ -134,7 +195,7 @@ public sealed partial class CodeAssist
         }
         if (item.Reopen)
         {
-            _ = StartCompletion(null);
+            _ = completion.Start(null);
         }
     }
 
@@ -155,9 +216,9 @@ public sealed partial class CodeAssist
         {
             edits.Add(new TextEdit(attribute.ValueEnd + 1, 0, $" Version=\"{package.Version}\""));
         }
-        string? propsText = central ? ReadOpenOrDisk(props!) : null;
+        string? propsText = central ? context.ReadOpenOrDisk(props!) : null;
         TextEdit? pinned = propsText is null ? null : CentralVersion(propsText, package);
-        using CommandHistory.Recording? recording = pinned is null ? null : editors.Commands.Record($"Add {package.Id}");
+        using CommandHistory.Recording? recording = pinned is null ? null : context.Editors.Commands.Record($"Add {package.Id}");
         if (pinned is not null)
         {
             recording!.Watch(props!);
@@ -177,13 +238,13 @@ public sealed partial class CodeAssist
         List<string> dropped = [];
         try
         {
-            WorkspaceEdits.Apply(editors, edit, null, dropped);
-            Message?.Invoke(this, dropped.Count > 0 ? $"{Path.GetFileName(props)} was edited meanwhile: add {package.Id}'s version there"
+            WorkspaceEdits.Apply(context.Editors, edit, null, dropped);
+            context.Say(dropped.Count > 0 ? $"{Path.GetFileName(props)} was edited meanwhile: add {package.Id}'s version there"
                 : $"{package.Id} {package.Version} added to {Path.GetFileName(props)}, as central package management has it");
         }
         catch (WorkspaceEditFailed failed)
         {
-            Message?.Invoke(this, $"{package.Id}'s version could not be added to {Path.GetFileName(props)}: {failed.Message}");
+            context.Say($"{package.Id}'s version could not be added to {Path.GetFileName(props)}: {failed.Message}");
         }
     }
 
@@ -224,7 +285,7 @@ public sealed partial class CodeAssist
     {
         if (await msbuild.TargetsAsync(offset) is not { Targets.Count: > 0 } found)
         {
-            Message?.Invoke(this, Refusals.NoDeclaration);
+            context.Say(Refusals.NoDeclaration);
             return;
         }
         if (found.Targets.Count == 1)
@@ -235,7 +296,7 @@ public sealed partial class CodeAssist
         string root = Path.GetDirectoryName(msbuild.Project ?? msbuild.Document.Path)!;
         List<Choice> choices = [.. found.Targets.Select(t => new Choice(t.Title,
             PathNames.Shown(t.Place.Path, root), t))];
-        ShowModal(new ChoicePopup($"Declarations of {found.Symbol.Name}", choices), offset, "Go to Declaration", choice =>
+        popups.ShowModal(new ChoicePopup($"Declarations of {found.Symbol.Name}", choices), offset, "Go to Declaration", choice =>
         {
             if (choice?.Value is MSBuildTarget target)
             {
@@ -246,11 +307,11 @@ public sealed partial class CodeAssist
     }
 
     private void ArriveAt(MSBuildPlace place) =>
-        Navigate?.Invoke(this, (place.Path, new TextPosition(Math.Max(0, place.Line - 1), Math.Max(0, place.Column - 1))));
+        context.Navigate((place.Path, new TextPosition(Math.Max(0, place.Line - 1), Math.Max(0, place.Column - 1))));
 
     /// <summary>The hover card for a name in an MSBuild file: what it is (a property and its value) as code, then where it
     /// was set and MSBuild's documentation.</summary>
-    private async Task<bool> MSBuildHover(MSBuildDocument msbuild, int offset, CancellationToken cancel)
+    private static async Task<bool> MSBuildHover(InfoCard hoverCard, MSBuildDocument msbuild, int offset, CancellationToken cancel)
     {
         if (await msbuild.DescribeAsync(offset) is not { } described || cancel.IsCancellationRequested)
         {
@@ -263,19 +324,6 @@ public sealed partial class CodeAssist
             hoverCard.AddText(line);
         }
         return true;
-    }
-
-    /// <summary>The card beside the list: MSBuild's documentation of the item chosen, where its schemas have some.</summary>
-    private void DescribeMSBuild(MSBuildItem item)
-    {
-        if (item.Documentation is not { Length: > 0 } documentation)
-        {
-            return;
-        }
-        itemCard.Clear();
-        itemCard.AddText(documentation);
-        itemCard.IsVisible = true;
-        PlaceBeside(itemCard, completion);
     }
 
     /// <summary>The badge an MSBuild item shows, by the protocol's kinds.</summary>

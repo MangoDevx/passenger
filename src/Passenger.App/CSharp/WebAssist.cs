@@ -2,9 +2,10 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Passenger.App.Web;
 using Passenger.App.Workspace;
+using Passenger.Core;
 using Passenger.Lsp;
 using Passenger.Text;
-using Passenger.Core;
+using Passenger.Xaml.Features;
 
 namespace Passenger.App.CSharp;
 
@@ -12,8 +13,90 @@ namespace Passenger.App.CSharp;
 /// language server (<see cref="WebLanguages"/>): completion after the server's own trigger characters, names that run
 /// on through the language's own characters, and, where the JSON server has none, Go to Declaration from a package.json
 /// dependency to its installed package and Rename of a JSON property, a package.json script's runs with it.</summary>
-public sealed partial class CodeAssist
+internal sealed partial class WebAssist(AssistContext context, PopupPlacement popups, CodeCompletion completion, ParameterInfo parameters, CodeActions actions) : LanguageAssist
 {
+    private Passenger.Editor.CodeEditor Editor => context.Editor;
+
+    public override bool Typed(string text)
+    {
+        if (context.WebCurrent is not { } web)
+        {
+            return false;
+        }
+        AfterTypedInWeb(web, text);
+        return true;
+    }
+
+    public override async Task<bool> CompleteAsync(string? trigger, bool incomplete)
+    {
+        if (context.WebCurrent is not { } web)
+        {
+            return false;
+        }
+        if (web.Lsp is { } lsp)
+        {
+            await completion.ServerListAsync(lsp, trigger, incomplete, web);
+        }
+        return true;
+    }
+
+    public override async Task<bool> HoverAsync(InfoCard card, int offset, CancellationToken cancel)
+    {
+        if (context.WebCurrent is not { } web)
+        {
+            return false;
+        }
+        if (web.Lsp is { } lsp)
+        {
+            await QuickInfo.ServerHoverAsync(lsp, card, offset, cancel);
+        }
+        return true;
+    }
+
+    /// <summary>Go to Declaration where the server has none (JSON's); the server's own (<see cref="CSharpAssist"/>) otherwise.</summary>
+    public override async Task<bool> DefinitionAsync(int offset)
+    {
+        if (context.WebCurrent is not { Lsp: not null } web || web.Provides("definitionProvider"))
+        {
+            return false;
+        }
+        await WebGoTo(web, offset);
+        return true;
+    }
+
+    public override Task<bool> UsagesAsync(int offset)
+    {
+        if (context.WebCurrent is not { Lsp: not null } web || web.Provides("referencesProvider"))
+        {
+            return Passed;
+        }
+        context.Say($"Find Usages finds nothing in {context.Editors.Active?.Name}: its language server has no usages to find");
+        return Answered;
+    }
+
+    /// <summary>Rename where the server has none (JSON's); the server's own (<see cref="CSharpAssist"/>) otherwise.</summary>
+    public override bool Rename(int caret)
+    {
+        if (context.WebCurrent is not { Lsp: not null } own || own.Provides("renameProvider") || context.Editors.Active is not { } json)
+        {
+            return false;
+        }
+        ShowWebRename(own, json);
+        return true;
+    }
+
+    /// <summary>Prettier's "Run on 'Reformat Code' action", for any file it formats: one its .prettierignore names, or of a
+    /// type it does not format, goes to its language server.</summary>
+    public override async Task<CodeActions.Reformatted?> FormatAsync(OpenDocument document, TextRange? within)
+    {
+        if (!PrettierReformats(document) || context.Web?.Invoke() is not { } web)
+        {
+            return null;
+        }
+        (Prettified outcome, string said) = await PrettifyAsync(web, document, "Reformat Code");
+        return outcome is Prettified.Ignored or Prettified.Unsupported ? null : new CodeActions.Reformatted(outcome != Prettified.Failed, outcome == Prettified.Formatted, said);
+    }
+
     /// <summary>What opens completion in a web file: one of its server's trigger characters (a member's '.', CSS's ':', a
     /// tag's '&lt;', a JSON string's quote), or a name's first letter; and in a script, a call's bracket its signature.</summary>
     private void AfterTypedInWeb(WebDocument web, string text)
@@ -22,27 +105,23 @@ public sealed partial class CodeAssist
         int caret = Editor.Selections.Primary.Caret;
         if (text.Length == 1 && web.CompletionTriggers.Contains(text))
         {
-            _ = StartCompletion(text);
+            _ = completion.Start(text);
         }
         else if ((char.IsLetter(last) || last is '_' or '$') && WebWordStart(web, caret) == caret - 1)
         {
-            _ = StartCompletion(null);
+            _ = completion.Start(null);
         }
-        if (web.Kind is WebServerKind.TypeScript or WebServerKind.Html && last is '(' or ',')
+        // A script's call shows its signature after its bracket or comma; any file's closing bracket or semicolon hides it.
+        if (web.Kind is WebServerKind.TypeScript or WebServerKind.Html || last is ')' or ';')
         {
-            _ = ShowSignature();
-        }
-        else if (last is ')' or ';')
-        {
-            signing?.Cancel();
-            signatureCard.IsVisible = false;
+            parameters.AfterTyped(last);
         }
     }
 
     /// <summary>A character of a web language's name beyond an identifier's: CSS's and HTML's '-' (background-color,
     /// --accent, data-id), JavaScript's '$', a Dockerfile's flags' '-' (--from), YAML's keys' and names' '-' and '.'
     /// (x-common, my-api), and in JSON the quotes a property's name is written in.</summary>
-    private static bool IsWebWordChar(WebDocument web, char c) => web.Kind switch
+    public static bool IsWebWordChar(WebDocument web, char c) => web.Kind switch
     {
         WebServerKind.Css or WebServerKind.Html or WebServerKind.Dockerfile => c == '-',
         WebServerKind.TypeScript => c == '$',
@@ -52,10 +131,10 @@ public sealed partial class CodeAssist
 
     private int WebWordStart(WebDocument web, int caret) => WebWordStart(web, Editor.Document.Snapshot, caret);
 
-    private static int WebWordStart(WebDocument web, TextSnapshot text, int caret)
+    public static int WebWordStart(WebDocument web, TextSnapshot text, int caret)
     {
         int start = caret;
-        while (start > 0 && (IsIdentifierChar(text[start - 1]) || (IsWebWordChar(web, text[start - 1]) && text[start - 1] != '"')))
+        while (start > 0 && (AssistContext.IsIdentifierChar(text[start - 1]) || (IsWebWordChar(web, text[start - 1]) && text[start - 1] != '"')))
         {
             start--;
         }
@@ -63,11 +142,11 @@ public sealed partial class CodeAssist
     }
 
     /// <summary>The name around an offset in a web file's text, through its language's own characters.</summary>
-    private static TextRange WebWordAt(WebDocument web, TextSnapshot text, int offset)
+    public static TextRange WebWordAt(WebDocument web, TextSnapshot text, int offset)
     {
         int start = WebWordStart(web, text, Math.Min(offset, text.Length));
         int end = Math.Min(offset, text.Length);
-        while (end < text.Length && (IsIdentifierChar(text[end]) || (IsWebWordChar(web, text[end]) && text[end] != '"')))
+        while (end < text.Length && (AssistContext.IsIdentifierChar(text[end]) || (IsWebWordChar(web, text[end]) && text[end] != '"')))
         {
             end++;
         }
@@ -78,23 +157,23 @@ public sealed partial class CodeAssist
     /// own package.json in node_modules, and from a script's <c>npm run</c> to the script it runs.</summary>
     private async Task WebGoTo(WebDocument web, int offset)
     {
-        if (web.Lsp is not { } lsp || editors.Active is not { } document)
+        if (web.Lsp is not { } lsp || context.Editors.Active is not { } document)
         {
             return;
         }
         try
         {
             ((string Path, TextPosition Position)? place, string said) = await JsonDeclarationAsync(lsp, document, offset);
-            if (editors.Active != document || place is not { } found)
+            if (context.Editors.Active != document || place is not { } found)
             {
-                Message?.Invoke(this, editors.Active == document ? said : Refusals.NoDeclaration);
+                context.Say(context.Editors.Active == document ? said : Refusals.NoDeclaration);
                 return;
             }
-            Navigate?.Invoke(this, found);
+            context.Navigate(found);
         }
         catch (LanguageServerFailed failed)
         {
-            Failed("Go to Declaration", failed);
+            context.Failed("Go to Declaration", failed);
         }
     }
 
@@ -136,44 +215,44 @@ public sealed partial class CodeAssist
         int caret = Editor.Selections.Primary.Caret;
         // The text the outline is asked of, whose places the edit is made in and carried through what is typed since.
         ChangeTracker asked = new(document.Text);
-        _ = Carried("Rename", async () =>
+        _ = popups.Carried("Rename", async () =>
         {
             bool shown = false;
             try
             {
                 IReadOnlyList<DocumentSymbol> outline = await lsp.OutlineAsync();
-                if (editors.Active != document || web.Lsp != lsp)
+                if (context.Editors.Active != document || web.Lsp != lsp)
                 {
                     return;
                 }
                 ServerLines lines = ServerLines.Of(asked.Snapshot);
                 if (JsonPropertyAt(outline, lines, caret) is not { } at)
                 {
-                    Message?.Invoke(this, "Nothing to rename here: put the caret on a property's name");
+                    context.Say("Nothing to rename here: put the caret on a property's name");
                     return;
                 }
                 DocumentSymbol property = at.Path[^1];
                 RenameBox box = new(property.Name);
                 shown = true;
-                ShowModal(box, asked.MapOffset(at.Key.Start), name =>
+                popups.ShowModal(box, asked.MapOffset(at.Key.Start), name =>
                 {
-                    if (name is null || name == property.Name || editors.Active != document)
+                    if (name is null || name == property.Name || context.Editors.Active != document)
                     {
                         return Task.CompletedTask;
                     }
                     IReadOnlyList<TextEdit> edits = JsonRenameEdits(at.Path, at.Key, lines, name, IsPackageJson(document));
                     if (asked.Map(edits) is not { } placed)
                     {
-                        Message?.Invoke(this, "Rename was not applied: the property was edited meanwhile");
+                        context.Say("Rename was not applied: the property was edited meanwhile");
                         return Task.CompletedTask;
                     }
                     Editor.ApplyEdits(placed);
                     int runs = placed.Count - 1;
-                    Message?.Invoke(this, runs == 0 ? "Renamed" : $"Renamed, and in {Plural.Of(runs, "script")} that run{(runs == 1 ? "s" : "")} it");
+                    context.Say(runs == 0 ? "Renamed" : $"Renamed, and in {Plural.Of(runs, "script")} that run{(runs == 1 ? "s" : "")} it");
                     return Task.CompletedTask;
                 });
                 // Let go as the box closes, however it closes; what was typed until then is still carried.
-                modalClosed = asked.Dispose;
+                popups.WhenClosed(asked.Dispose);
             }
             finally
             {
@@ -249,6 +328,20 @@ public sealed partial class CodeAssist
         }
         return written.ToString();
     }
+
+    /// <summary>The registry page of the image a Dockerfile's FROM names where an offset is on it; null elsewhere.</summary>
+    internal static Uri? FromImageAt(TextSnapshot text, int offset)
+    {
+        int line = text.GetLineFromOffset(Math.Clamp(offset, 0, text.Length));
+        int column = Math.Clamp(offset, 0, text.Length) - text.GetLineStart(line);
+        return FromLine().Match(text.GetLineText(line)) is { Success: true } from
+            && column >= from.Groups["image"].Index && column <= from.Groups["image"].Index + from.Groups["image"].Length
+            ? ComposeDeclarations.RegistryPage(from.Groups["image"].Value)
+            : null;
+    }
+
+    [GeneratedRegex(@"^\s*FROM\s+(?:--\S+\s+)*(?<image>[^\s]+)", RegexOptions.IgnoreCase)]
+    private static partial Regex FromLine();
 
     internal static bool IsPackageJson(OpenDocument document) => Path.GetFileName(document.Path).Equals("package.json", StringComparison.OrdinalIgnoreCase);
 

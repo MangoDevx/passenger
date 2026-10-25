@@ -18,21 +18,22 @@ namespace Passenger.App.CSharp;
 /// files that give them (<see cref="ResourceFiles"/>): a key's hover card says each language's value, Go to Declaration goes
 /// to each file's entry, completion in a localizer's string offers the resource's keys, and a key a language lacks is
 /// warned of (<see cref="CSharpDocument.LocalizationFindingsAsync"/>) with Passenger's own fix, which asks the value and adds it.
-/// XAML's <c>{x:Static p:Resources.Key}</c> of a generated class (<see cref="XamlLocalization"/>) has the same card, entries and fix.</summary>
-public sealed partial class CodeAssist
+/// XAML's <c>{x:Static p:Resources.Key}</c> of a generated class (<see cref="XamlLocalization"/>) has the same card and entries
+/// (<see cref="XamlAssist"/>) and fix.</summary>
+internal sealed partial class CSharpAssist
 {
     /// <summary>The key read at an offset of a C# or Razor file, with its resource and that resource's files; null elsewhere,
     /// a C# file asking nothing where the offset is in neither a string nor a name.</summary>
     private async Task<(LocalizedKey Read, LocalizedResource Resource, ResourceSet? Set)?> LocalizedAtAsync(LspDocument lsp, OpenDocument document, int offset,
         CancellationToken cancel = default)
     {
-        if (!lsp.IsRazor && (Syntax is not { } parsed || !ReferenceEquals(parsed.Text, lsp.Text.Snapshot)
+        if (!lsp.IsRazor && (context.Syntax is not { } parsed || !ReferenceEquals(parsed.Text, lsp.Text.Snapshot)
             || !new[] { parsed.Root.FindToken(Math.Max(0, offset - 1)), parsed.Root.FindToken(offset) }.Any(t => t.IsKind(SyntaxKind.StringLiteralToken) || t.IsKind(SyntaxKind.IdentifierToken))))
         {
             return null;
         }
         TextSnapshot asked = lsp.Text.Snapshot;
-        if (service() is not { } csharp || await csharp.LocalizedAsync(document.Path, cancel) is not { } localized || lsp.Text.Snapshot != asked)
+        if (context.CSharp is not { } csharp || await csharp.LocalizedAsync(document.Path, cancel) is not { } localized || lsp.Text.Snapshot != asked)
         {
             return null;
         }
@@ -50,7 +51,7 @@ public sealed partial class CodeAssist
     /// none, is not translated yet or wants review; that no file gives the resource where none is found.</summary>
     private async Task<string?> LocalizationHoverAsync(int offset, CancellationToken cancel)
     {
-        if (editors.Active is not { } document || WebCurrent is not null || service()?.For(document)?.Lsp is not { } lsp
+        if (context.Editors.Active is not { } document || context.WebCurrent is not null || context.CSharp?.For(document)?.Lsp is not { } lsp
             || await LocalizedAtAsync(lsp, document, offset, cancel) is not ({ } read, { } resource, var set))
         {
             return null;
@@ -64,7 +65,7 @@ public sealed partial class CodeAssist
 
     /// <summary>A localized key's card: the key and its type (with the files' name where it is not the type's: a resource under
     /// another name, a Designer class's .resx), then each language's value; C#'s and XAML's alike.</summary>
-    private static string LocalizationCard(string key, string type, ResourceSet set) =>
+    internal static string LocalizationCard(string key, string type, ResourceSet set) =>
         string.Join('\n', [$"'{key}' ({(set.Name == type ? type : $"{type}, {set.Name}")}):", .. set.Languages(key)]);
 
     /// <summary>Where Go to Declaration goes from a localized key: each file's entry of it (a .resx's <c>&lt;data name&gt;</c>,
@@ -73,14 +74,14 @@ public sealed partial class CodeAssist
     internal async Task<(IReadOnlyList<(string Path, TextPosition Position, LspPosition Served, string Label)> Places, bool Generated, string Key, string Type)?> LocalizedDeclarationsAsync(
         OpenDocument document, int offset)
     {
-        if (service()?.For(document)?.Lsp is not { } lsp || await LocalizedAtAsync(lsp, document, offset) is not ({ } read, { } resource, var set))
+        if (context.CSharp?.For(document)?.Lsp is not { } lsp || await LocalizedAtAsync(lsp, document, offset) is not ({ } read, { } resource, var set))
         {
             return null;
         }
         IReadOnlyList<(string, TextPosition, LspPosition, string)> places = [];
         if (set is not null)
         {
-            OpenTexts texts = editors.Texts();
+            OpenTexts texts = context.Editors.Texts();
             places = await BackgroundWork.Run(() => (IReadOnlyList<(string, TextPosition, LspPosition, string)>)[.. set.Files.Select(f => (File: f, Entry: f.Entry(read.Key)))
                 .Where(f => f.Entry is not null).Select(f =>
                 {
@@ -98,7 +99,7 @@ public sealed partial class CodeAssist
     /// server declares; false where the caret is on no key, for the server's own.</summary>
     private async Task<bool> LocalizationGoTo(LspDocument lsp, int offset)
     {
-        if (editors.Active is not { } document || await LocalizedDeclarationsAsync(document, offset) is not { } found)
+        if (context.Editors.Active is not { } document || await LocalizedDeclarationsAsync(document, offset) is not { } found)
         {
             return false;
         }
@@ -117,9 +118,9 @@ public sealed partial class CodeAssist
             places.Add(new LspLocation(DocumentUris.FromPath(path), new LspRange(served, served)));
             names.Add(label);
         }
-        if (editors.Active == document)
+        if (context.Editors.Active == document)
         {
-            Go(places, offset, "Declarations", $"No file of {found.Type} gives '{found.Key}'", names);
+            navigation.Go(places, offset, "Declarations", $"No file of {found.Type} gives '{found.Key}'", names);
         }
         return true;
     }
@@ -133,7 +134,7 @@ public sealed partial class CodeAssist
         int line = asked.GetLineFromOffset(Math.Min(caret, asked.Length));
         int lineStart = asked.GetLineStart(line);
         if (!IndexerString.IsMatch(asked.GetText(lineStart, Math.Min(caret, asked.Length) - lineStart))
-            || editors.Active is not { } document || await LocalizedAtAsync(lsp, document, caret, cancel) is not ({ Exact: true } read, { Kind: LocalizedKinds.Localizer }, { } set)
+            || context.Editors.Active is not { } document || await LocalizedAtAsync(lsp, document, caret, cancel) is not ({ Exact: true } read, { Kind: LocalizedKinds.Localizer }, { } set)
             || lsp.Text.Snapshot != asked)
         {
             return null;
@@ -152,41 +153,6 @@ public sealed partial class CodeAssist
         return items.Count == 0 ? null : (start, items, caret < end ? asked.GetText(caret, end - caret) : string.Empty);
     }
 
-    /// <summary>The localized string a XAML file reads at an offset (an <c>{x:Static}</c> of a generated class's property), and its
-    /// resource's files, read off the UI thread with the open ones as the editor has them; null elsewhere.</summary>
-    private async Task<(LocalizedStatic Read, ResourceSet? Set)?> XamlLocalizedAtAsync(XamlFile file, int offset)
-    {
-        Func<string, TextSnapshot?> open = editors.Texts().Open;
-        return await BackgroundWork.Run(() => XamlLocalization.At(file, offset) is { } read ? (read, read.SetOf(open)) : ((LocalizedStatic, ResourceSet?)?)null);
-    }
-
-    /// <summary>What the hover card says of a XAML file's localized string, beside what the name is: each language's value, as
-    /// C#'s card says it; that no file gives the resource where none is found.</summary>
-    private async Task<string?> XamlLocalizationHoverAsync(XamlDocument xaml, int offset)
-    {
-        if (await xaml.FileAsync() is not { } file || await XamlLocalizedAtAsync(file, offset) is not ({ } read, var set))
-        {
-            return null;
-        }
-        return set is null ? $"'{read.Key}' ({read.Type.Name}): no .resx gives {read.Manager}" : LocalizationCard(read.Key, read.Type.Name, set);
-    }
-
-    /// <summary>Where Go to Declaration goes from a XAML file's localized string beyond the generated property: each file's entry
-    /// of its key, named by its language; none elsewhere. Shared with the agents' definition.</summary>
-    internal async Task<IReadOnlyList<XamlTarget>> XamlLocalizedTargetsAsync(XamlFile file, int offset)
-    {
-        if (await XamlLocalizedAtAsync(file, offset) is not ({ } read, { } set))
-        {
-            return [];
-        }
-        return [.. set.Files.Select(f => (File: f, Entry: f.Entry(read.Key))).Where(f => f.Entry is not null)
-            .Select(f => new XamlTarget(XamlTargetKind.File, $"{(f.File.Culture.Length == 0 ? "neutral" : f.File.Culture)}: {f.File.Name}")
-            {
-                Path = f.File.Path,
-                Range = TextRange.FromBounds(f.Entry!.NameStart, f.Entry.NameEnd),
-            })];
-    }
-
     /// <summary>A line up to the caret that ends inside a string given to an indexer or to GetString.</summary>
     private static readonly System.Text.RegularExpressions.Regex IndexerString = new(@"(\[|GetString\()\s*""[^""]*$");
 
@@ -203,14 +169,14 @@ public sealed partial class CodeAssist
     /// (<see cref="XamlDocument.Gaps"/>), each where it is read in the text as it stands.</summary>
     private IReadOnlyList<(TextRange Range, string Key, string File, string Culture, string Base, bool Untranslated)> LackingKeys(OpenDocument file, int? offset)
     {
-        if (XamlOf(file) is { } xaml)
+        if (context.XamlOf(file) is { } xaml)
         {
             TextSnapshot text = file.Text.Snapshot;
             int? line = offset is { } at ? text.GetLineFromOffset(Math.Min(at, text.Length)) : null;
             return [.. xaml.Gaps.Where(g => line is not { } on || g.Range.Start <= text.Length && text.GetLineFromOffset(g.Range.Start) == on)
                 .Select(g => (g.Range, g.Gap.Key, g.Gap.File.Path, g.Gap.Culture, g.Gap.BasePath, g.Gap.Untranslated))];
         }
-        return service()?.For(file) is { Lsp: { } lsp } features ? features.LocalizationMissingOn(offset is { } served ? lsp.PositionOf(served).Line : null) : [];
+        return context.CSharp?.For(file) is { Lsp: { } lsp } features ? features.LocalizationMissingOn(offset is { } served ? lsp.PositionOf(served).Line : null) : [];
     }
 
     private EditorFix TranslationFix(OpenDocument file, TextRange range, string key, string target, string culture, string basePath, bool untranslated)
@@ -232,7 +198,7 @@ public sealed partial class CodeAssist
     {
         string name = Path.GetFileName(target);
         bool xliff = target.EndsWith(".xlf", StringComparison.OrdinalIgnoreCase);
-        OpenTexts texts = editors.Texts();
+        OpenTexts texts = context.Editors.Texts();
         (string? was, string? now, string? problem) = await BackgroundWork.Run(() =>
         {
             string text = texts.Text(target) ?? string.Empty;
@@ -258,12 +224,12 @@ public sealed partial class CodeAssist
             return made is null || made == text ? [] : [TextEdit.Between(text, made)];
         }
         string title = xliff ? $"Translate '{key}'" : $"Add '{key}'";
-        if (ApplyFileChanges(title, [new XamlFileChange(target, Edits)]) is { } refused)
+        if (actions.ApplyFileChanges(title, [new XamlFileChange(target, Edits)]) is { } refused)
         {
             return RefactorOutcome.Refused(refused);
         }
-        service()?.For(file)?.RefreshDiagnostics();
-        XamlOf(file)?.Recheck();
+        context.CSharp?.For(file)?.RefreshDiagnostics();
+        context.XamlOf(file)?.Recheck();
         return new RefactorOutcome($"Added '{key}' to {name}", null, [new RefactoredFile(target, "changed", [])], []);
     }
 }

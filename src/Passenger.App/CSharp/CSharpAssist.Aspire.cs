@@ -11,18 +11,18 @@ namespace Passenger.App.CSharp;
 /// <summary>Aspire's help in C#, from Passenger's extension in the server, asked only in an AppHost's file or a service's
 /// (<see cref="AspireRole"/>): any other file's completion, actions and declarations are the server's alone, and cost it
 /// no round trip.</summary>
-public sealed partial class CodeAssist
+internal sealed partial class CSharpAssist
 {
     /// <summary>The file shown's role, when it is a C# file of the server's.</summary>
-    private AspireRole AspireRoleOfShown => editors.Active is { Syntax: not null } shown && service()?.For(shown) is { } features
+    internal AspireRole AspireRoleOfShown => context.Editors.Active is { Syntax: not null } shown && context.CSharp?.For(shown) is { } features
         ? features.AspireRole : AspireRole.None;
 
     /// <summary>A resource's names where one is typed in an AppHost or a service: true once they are listed, or the list was
     /// asked for again meanwhile; false for the server's own list, also when the text changed while the extension answered.</summary>
     private async Task<bool> StartAspireCompletion(LspDocument lsp, CancellationToken cancel)
     {
-        int caret = Editor.Selections.Primary.Caret;
-        if (AspireRoleOfShown == AspireRole.None || editors.Active is not { } document || !MayNameResource(caret))
+        int caret = context.Caret;
+        if (AspireRoleOfShown == AspireRole.None || context.Editors.Active is not { } document || !MayNameResource(caret))
         {
             return false;
         }
@@ -41,15 +41,13 @@ public sealed partial class CodeAssist
             return true;
         }
         // Typed on meanwhile: the server's list for the text as it stands, rather than none.
-        if (editors.Active != document || document.Text.Version != version
+        if (context.Editors.Active != document || document.Text.Version != version
             || help.Names.Count == 0 || help.Start is not { } start || help.End is not { } end)
         {
             return false;
         }
         LspRange range = new(new LspPosition(start.Line, start.Character), new LspPosition(end.Line, end.Character));
-        templatesOffered.Clear();
-        postfixOffered.Clear();
-        open = new Completion([.. help.Names.Select(name => new CompletionItem
+        completion.Open(new CodeCompletion.Completion([.. help.Names.Select(name => new CompletionItem
         {
             Label = name,
             Kind = CompletionItemKind.Value,
@@ -59,16 +57,15 @@ public sealed partial class CodeAssist
         {
             ResourceNames = true,
             Tail = document.Text.Snapshot.GetText(caret, Math.Max(0, lsp.OffsetOf(range.End) - caret)),
-        };
-        Filter();
+        });
         return true;
     }
 
     /// <summary>Whether the caret may be in a resource's name, which is a string literal's: as the parse of the text as it stands
     /// has it, or anywhere while the parse is behind.</summary>
-    private bool MayNameResource(int caret)
+    internal bool MayNameResource(int caret)
     {
-        if (Syntax is not { } parsed || !ReferenceEquals(parsed.Text, Editor.Document.Snapshot))
+        if (context.Syntax is not { } parsed || !ReferenceEquals(parsed.Text, context.Editor.Document.Snapshot))
         {
             return true;
         }
@@ -82,7 +79,7 @@ public sealed partial class CodeAssist
     /// has changed to a declared name near it (<see cref="ConnectionFix"/>). An AppHost's: a parameter's value set.</summary>
     public IReadOnlyList<EditorFix> AspireFixes(OpenDocument file, int offset)
     {
-        if (service()?.For(file) is not { Lsp: { } lsp } features)
+        if (context.CSharp?.For(file) is not { Lsp: { } lsp } features)
         {
             return [];
         }
@@ -102,9 +99,9 @@ public sealed partial class CodeAssist
             new($"Add WithReference({resource}) to {named}", "Aspire AppHost reference", range, string.Empty)
         {
             // Where its warning stands as it is chosen, while it does; the extension says when the reference is no longer missing.
-            Again = _ => service()?.For(file)?.AspireMissingOn(null).FirstOrDefault(m => m.Service == named && m.Resource == resource) is { } now
+            Again = _ => context.CSharp?.For(file)?.AspireMissingOn(null).FirstOrDefault(m => m.Service == named && m.Resource == resource) is { } now
                 ? Fix(now.Range, named, resource) : Fix(range, named, resource),
-            Elsewhere = (at, patience) => MakeAsync("Add Aspire reference", file,
+            Elsewhere = (at, patience) => actions.MakeAsync("Add Aspire reference", file,
                 current => current.ExtensionAsync<Refactored>(Handlers.AspireReferenceFix,
                     new AspireFixRequest(current.PlaceOf(at.Start), named, resource)),
                 _ => $"Added WithReference({resource}) to {named}", patience),
@@ -118,7 +115,7 @@ public sealed partial class CodeAssist
     private EditorFix ConnectionFix(OpenDocument file, TextRange range, string name, string near) =>
         new($"Change to {near}", "a resource the AppHost declares", range, near)
         {
-            Again = now => service()?.For(file)?.AspireUnknownOn(null).Where(u => u.Name == name && u.Near.Contains(near))
+            Again = now => context.CSharp?.For(file)?.AspireUnknownOn(null).Where(u => u.Name == name && u.Near.Contains(near))
                 .OrderBy(u => Math.Abs(u.Range.Start - range.Start)).Select(u => u.Range).FirstOrDefault() is { Length: > 0 } current
                 && current.End <= now.Length && now.GetText(current.Start, current.Length) == name
                 ? ConnectionFix(file, current, name, near) : null,
@@ -130,7 +127,7 @@ public sealed partial class CodeAssist
     private EditorFix ParameterFix(OpenDocument file, TextRange range, string name, bool secret) =>
         new(secret ? $"Set {name} in the AppHost's user secrets…" : $"Set {name} in the AppHost's appsettings.json…", "Aspire AppHost parameter", range, string.Empty)
         {
-            Again = _ => service()?.For(file)?.AspireUnsetOn(null).FirstOrDefault(p => p.Name == name) is { } now ? ParameterFix(file, now.Range, name, secret) : null,
+            Again = _ => context.CSharp?.For(file)?.AspireUnsetOn(null).FirstOrDefault(p => p.Name == name) is { } now ? ParameterFix(file, now.Range, name, secret) : null,
             Asks = new ValueAsked(secret ? $"The value of {name}, kept in the AppHost's user secrets, out of the project's files"
                 : $"The value of {name}, kept in the AppHost's appsettings.json", secret, (value, _) => Task.FromResult(SetParameter(file, name, secret, value))),
         };
@@ -140,11 +137,11 @@ public sealed partial class CodeAssist
     /// the AppHost's warnings pulled again; what it says never holds the value.</summary>
     private RefactorOutcome SetParameter(OpenDocument file, string name, bool secret, string value)
     {
-        if (service() is not { } csharp || csharp.AspireAppHostOf?.Invoke(file.Path) is not { } host)
+        if (context.CSharp is not { } csharp || csharp.AspireAppHostOf?.Invoke(file.Path) is not { } host)
         {
             return RefactorOutcome.Refused($"{name} was not set: {file.Name} is no longer an AppHost's");
         }
-        Func<string, string?> text = editors.Texts().Text;
+        Func<string, string?> text = context.Editors.Texts().Text;
         if (AspireParameters.HasValue(host, name, text))
         {
             return RefactorOutcome.Refused($"{name} was not set: the AppHost's configuration has a value for it already");
@@ -176,7 +173,7 @@ public sealed partial class CodeAssist
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         }
-        if (ApplyFileChanges($"Set {name}", changes) is { } refused)
+        if (actions.ApplyFileChanges($"Set {name}", changes) is { } refused)
         {
             return RefactorOutcome.Refused(refused);
         }
@@ -195,7 +192,7 @@ public sealed partial class CodeAssist
     /// on as the extension answered, for the server's rename.</summary>
     private async Task<bool> ShowAspireRename(OpenDocument document, int caret)
     {
-        LspDocument lsp = Now(document);
+        LspDocument lsp = context.Now(document);
         int version = document.Text.Version;
         AspireRenaming described;
         try
@@ -206,14 +203,14 @@ public sealed partial class CodeAssist
         {
             return false;
         }
-        if (described is not { Name: { } old, Start: { } start } || editors.Active != document || document.Text.Version != version)
+        if (described is not { Name: { } old, Start: { } start } || context.Editors.Active != document || document.Text.Version != version)
         {
             return false;
         }
         int at = lsp.OffsetOf(new LspPosition(start.Line, start.Character));
         RenameBox box = new(old);
-        ChangeTracker opened = new(Editor.Document);
-        ShowModal(box, at, async name =>
+        ChangeTracker opened = new(context.Editor.Document);
+        popups.ShowModal(box, at, async name =>
         {
             int now = opened.MapOffset(at);
             if (name is null || name == old)
@@ -221,9 +218,9 @@ public sealed partial class CodeAssist
                 return;
             }
             RefactorOutcome made = await RenameResourceAsync(document, now, old, name, null);
-            Message?.Invoke(this, made.Problem ?? made.Said);
+            context.Say(made.Problem ?? made.Said);
         });
-        modalClosed = opened.Dispose;
+        popups.WhenClosed(opened.Dispose);
         return true;
     }
 
@@ -243,7 +240,7 @@ public sealed partial class CodeAssist
     /// <summary>A resource renamed from its name at an offset: where its AppHost declares it and wherever its services read it,
     /// worked out again by the extension as it is made, one command of global undo; shared with the agents' rename.</summary>
     internal Task<RefactorOutcome> RenameResourceAsync(OpenDocument document, int offset, string old, string name, Patience? patience) =>
-        MakeAsync($"Rename {old} to {name}", document,
+        actions.MakeAsync($"Rename {old} to {name}", document,
             async current => (await current.ExtensionAsync<AspireRenaming>(Handlers.AspireRename, new AspireRenameRequest(current.PlaceOf(offset), name))).Made
                 ?? new Refactored($"{old} was not renamed: no resource is named there any longer", []),
             files => $"Renamed {old} to {name} in {Passenger.Core.Plural.Of(files, "file")}", patience);
@@ -253,11 +250,11 @@ public sealed partial class CodeAssist
     /// resource; false elsewhere, for the server's own.</summary>
     private async Task<bool> AspireGoTo(LspDocument document, int offset)
     {
-        if (AspireRoleOfShown == AspireRole.None || await AspireDeclarationAsync(document, offset, ServerPlaces.Texts(editors)) is not { } place)
+        if (AspireRoleOfShown == AspireRole.None || await AspireDeclarationAsync(document, offset, ServerPlaces.Texts(context.Editors)) is not { } place)
         {
             return false;
         }
-        Navigate?.Invoke(this, place);
+        context.Navigate(place);
         return true;
     }
 

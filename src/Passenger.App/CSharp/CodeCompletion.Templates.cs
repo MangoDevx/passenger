@@ -10,24 +10,21 @@ namespace Passenger.App.CSharp;
 /// <summary>Live and postfix templates: a shortcut and Tab, or one chosen from completion, becomes its template, its
 /// variables worked out by their macros; a postfix template that could wrap more than one expression asks
 /// which.</summary>
-public sealed partial class CodeAssist
+internal sealed partial class CodeCompletion
 {
     /// <summary>The templates in force, as Settings leaves them.</summary>
     public TemplateSet Templates { get; set; } = TemplateSet.Default;
-
-    /// <summary>What the open list of choices is titled ("Select expression to parenthesize"); null with none open.</summary>
-    public string? OfferedTitle => layer.Children.OfType<ChoicePopup>().LastOrDefault()?.Title;
 
     /// <summary>An abbreviation and Tab: the word before the caret, when a live template has it as its abbreviation and
     /// may go here, becomes the template. Whether one did.</summary>
     private bool TryExpandTemplate()
     {
-        if (Current is null || WebCurrent is not null || Editor.Selections.HasMultiple || !Editor.Selections.Primary.IsEmpty)
+        if (context.Current is null || context.WebCurrent is not null || Editor.Selections.HasMultiple || !Editor.Selections.Primary.IsEmpty)
         {
             return false;
         }
         int caret = Editor.Selections.Primary.Caret;
-        int start = WordStart(caret);
+        int start = context.WordStart(caret);
         if (start == caret)
         {
             return false;
@@ -38,7 +35,7 @@ public sealed partial class CodeAssist
             ExpandPostfix(postfix, found.Target, caret);
             return true;
         }
-        TemplateScope scope = Syntax is { } syntax ? TemplateScopes.At(syntax, caret).Scope : TemplateScope.None;
+        TemplateScope scope = context.Syntax is { } syntax ? TemplateScopes.At(syntax, caret).Scope : TemplateScope.None;
         if (Templates.In(scope).FirstOrDefault(t => t.Abbreviation == word) is not { } template)
         {
             return false;
@@ -51,7 +48,7 @@ public sealed partial class CodeAssist
     /// and what each would wrap; none when no dot or no expression is there.</summary>
     private IEnumerable<(PostfixTemplate Template, PostfixTarget Target)> Postfixes(int word, int caret)
     {
-        if (word < 1 || Syntax is not { } syntax || word > syntax.Text.Length || syntax.Text[word - 1] != '.'
+        if (word < 1 || context.Syntax is not { } syntax || word > syntax.Text.Length || syntax.Text[word - 1] != '.'
             || PostfixTemplates.Before(syntax, word - 1, caret) is not { } target)
         {
             return [];
@@ -83,7 +80,7 @@ public sealed partial class CodeAssist
                 Show(moved);
             }
         };
-        ShowModal(popup, caret, template.Name, choice =>
+        popups.ShowModal(popup, caret, template.Name, choice =>
         {
             if (choice?.Value is not PostfixExpression chosen)
             {
@@ -91,13 +88,13 @@ public sealed partial class CodeAssist
             }
             if (Editor != editor || editor.Document != document || document.Version != version)
             {
-                Message?.Invoke(this, $".{template.Name} was not applied: the code it wraps was edited meanwhile");
+                context.Say($".{template.Name} was not applied: the code it wraps was edited meanwhile");
                 return Task.CompletedTask;
             }
             Wrap(template, chosen, caret);
             return Task.CompletedTask;
         });
-        modalClosed = () => editor.SetHighlights(found, current);
+        popups.WhenClosed(() => editor.SetHighlights(found, current));
         Show(target.Expressions[0]);
     }
 
@@ -139,14 +136,14 @@ public sealed partial class CodeAssist
         TextSnapshot text = Editor.Document.Snapshot;
         string? type = null;
         string? space = null;
-        if (Syntax is { } syntax)
+        if (context.Syntax is { } syntax)
         {
             type = TemplateScopes.At(syntax, at).TypeName;
             SyntaxNode? node = syntax.Root.FindToken(Math.Max(0, Math.Min(at, syntax.Root.FullSpan.End) - 1)).Parent;
             string[] names = [.. (node?.AncestorsAndSelf() ?? []).OfType<BaseNamespaceDeclarationSyntax>().Reverse().Select(n => n.Name.ToString())];
             space = names.Length > 0 ? string.Join('.', names) : null;
         }
-        TemplateSite site = new(type, space, editors.Active?.Path, text.GetLineFromOffset(Math.Min(at, text.Length)) + 1);
+        TemplateSite site = new(type, space, context.Editors.Active?.Path, text.GetLineFromOffset(Math.Min(at, text.Length)) + 1);
         return [.. template.VariablesInText().Select(variable =>
             new SnippetVariable(variable.Name, LiveTemplates.Macros.FirstOrDefault(m => m.Name == variable.Macro)?.Value(site, variable.Parameter) ?? string.Empty,
                 variable.Editable))];

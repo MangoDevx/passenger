@@ -13,7 +13,7 @@ namespace Passenger.App.CSharp;
 /// <summary>Optimize Imports and refactorings beyond Refactor This: Safe Delete, built from the server's definition and
 /// usages and the file's syntax, and Introduce Field, Introduce Parameter and Encapsulate Field, the server's own code
 /// actions under names of their own.</summary>
-public sealed partial class CodeAssist
+internal sealed partial class CodeActions
 {
     /// <summary>A refactoring the server offers as code actions in words of its own: which of its actions are it, which
     /// of their nested choices fit it, and what to say when the server offers none here.</summary>
@@ -37,10 +37,10 @@ public sealed partial class CodeAssist
     /// <summary>A refactoring the server offers under its own words, over the selection: its one action carried out, or
     /// a list of them when it offers several (Encapsulate Field's with and without the property used), then the choices
     /// nested under the one chosen (Introduce Parameter's into a new overload or an extracted method).</summary>
-    private async Task Refactor(ServerRefactoring refactoring)
+    public async Task Refactor(ServerRefactoring refactoring)
     {
         string name = refactoring.Name;
-        if (Ask(name) is not { } lsp || editors.Active is not { } document)
+        if (context.Ask(name) is not { } lsp || context.Editors.Active is not { } document)
         {
             return;
         }
@@ -48,25 +48,25 @@ public sealed partial class CodeAssist
         try
         {
             Selection primary = Editor.Selections.Primary;
-            using Asked asked = WorkspaceEdits.Track(editors);
+            using Asked asked = WorkspaceEdits.Track(context.Editors);
             IReadOnlyList<CodeAction> offered = await OfferedAsync(lsp, primary.Range, refactoring);
             if (offered.Count == 0)
             {
-                Message?.Invoke(this, $"{name} is not available here: {refactoring.Missing}");
+                context.Say($"{name} is not available here: {refactoring.Missing}");
                 return;
             }
-            Action done = () => Message?.Invoke(this, $"{name} done");
+            Action done = () => context.Say($"{name} done");
             if (offered.Count == 1)
             {
                 await Carry(document, offered[0], primary.Caret, name, asked, done, refactoring.Keep);
                 return;
             }
-            ShowModal(new ChoicePopup(name, [.. offered.Select(a => new Choice(a.Title, string.Empty, a))]), primary.Caret, name,
+            popups.ShowModal(new ChoicePopup(name, [.. offered.Select(a => new Choice(a.Title, string.Empty, a))]), primary.Caret, name,
                 choice => choice?.Value is CodeAction chosen ? Carry(document, chosen, primary.Caret, name, null, done, refactoring.Keep) : Task.CompletedTask);
         }
         catch (LanguageServerFailed failed)
         {
-            Failed(name, failed);
+            context.Failed(name, failed);
         }
     }
 
@@ -80,21 +80,21 @@ public sealed partial class CodeAssist
     public static IReadOnlyList<ActionChoice> ChoicesOf(CodeAction action, ServerRefactoring refactoring) =>
         refactoring.Keep is { } keep ? [.. ClientCommands.Choices(action).Where(keep)] : ClientCommands.Choices(action);
 
-    private async Task OptimizeUsings()
+    public async Task OptimizeUsings()
     {
         using IDisposable held = BackgroundWork.Scope();
         try
         {
-            if (Ask("Optimize Imports") is not { } lsp || editors.Active is not { } document)
+            if (context.Ask("Optimize Imports") is not { } lsp || context.Editors.Active is not { } document)
             {
                 return;
             }
             (bool removed, bool sorted) = await TidyUsings(lsp, document);
-            Message?.Invoke(this, Optimized(removed, sorted));
+            context.Say(Optimized(removed, sorted));
         }
         catch (LanguageServerFailed failed)
         {
-            Failed("Optimize Imports", failed);
+            context.Failed("Optimize Imports", failed);
         }
     }
 
@@ -137,13 +137,13 @@ public sealed partial class CodeAssist
     /// where it is declared, the file's syntax what deleting it takes out, and the server's usages what would break.
     /// With no usage outside the declaration it is deleted at once; with some, they are listed first and it is deleted
     /// only if the person says Delete Anyway.</summary>
-    private async Task SafeDelete()
+    public async Task SafeDelete()
     {
-        if (Ask("Safe Delete") is not { } lsp)
+        if (context.Ask("Safe Delete") is not { } lsp)
         {
             return;
         }
-        int caret = Caret;
+        int caret = context.Caret;
         Doomed? doomed;
         using (BackgroundWork.Scope())
         {
@@ -152,12 +152,12 @@ public sealed partial class CodeAssist
                 (doomed, string? whyNot) = await FindDoomedAsync(lsp, caret);
                 if (whyNot is not null)
                 {
-                    Message?.Invoke(this, whyNot);
+                    context.Say(whyNot);
                 }
             }
             catch (LanguageServerFailed failed)
             {
-                Failed("Safe Delete", failed);
+                context.Failed("Safe Delete", failed);
                 return;
             }
         }
@@ -169,10 +169,10 @@ public sealed partial class CodeAssist
         {
             if (doomed.Uses.Count > 0 && !await DeleteAnyway(doomed))
             {
-                Message?.Invoke(this, $"Safe Delete left the {doomed.Removal.Kind} '{doomed.Removal.Name}' where it is");
+                context.Say($"Safe Delete left the {doomed.Removal.Kind} '{doomed.Removal.Name}' where it is");
                 return;
             }
-            Message?.Invoke(this, Delete(doomed).Said);
+            context.Say(Delete(doomed).Said);
         }
         finally
         {
@@ -191,8 +191,8 @@ public sealed partial class CodeAssist
             return (null, declared.Count == 0 ? "Nothing to delete here: put the caret on a name" : $"Safe Delete cannot delete a symbol declared in {declared.Count} places");
         }
         string path = DocumentUris.ToPath(declared[0].Uri);
-        string? root = service()?.Session?.Folder;
-        OpenDocument? open = editors.Find(path);
+        string? root = context.CSharp?.Session?.Folder;
+        OpenDocument? open = context.Editors.Find(path);
         if (root is null || !PathNames.IsUnder(path, root) || !path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase) || open?.IsReadOnly == true)
         {
             return (null, "Safe Delete deletes only what this folder's own code declares");
@@ -238,10 +238,10 @@ public sealed partial class CodeAssist
         {
             return false;
         }
-        string root = service()?.Session?.Folder ?? string.Empty;
+        string root = context.CSharp?.Session?.Folder ?? string.Empty;
         Grid rows = new() { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
         Dictionary<string, string> paths = DocumentUris.ToPaths(doomed.Uses.Select(u => u.Uri));
-        Func<string, LspPosition, (int Line, string Code)> preview = LinePreviews();
+        Func<string, LspPosition, (int Line, string Code)> preview = navigation.LinePreviews();
         foreach ((LspLocation use, int row) in doomed.Uses.Select((u, i) => (u, i)))
         {
             string path = paths[use.Uri];
@@ -282,12 +282,12 @@ public sealed partial class CodeAssist
         {
             if (doomed.Open is { } open)
             {
-                if (!editors.Documents.Contains(open) || open.Syntax is not { } parser
+                if (!context.Editors.Documents.Contains(open) || open.Syntax is not { } parser
                     || SafeDeletion.At(parser.Current, doomed.Tracker!.MapOffset(doomed.Offset)) is not { WhyNot: null } now || now.Name != removal.Name)
                 {
                     return RefactorOutcome.Refused($"Safe Delete was not applied: '{removal.Name}' was edited meanwhile");
                 }
-                WorkspaceEdits.ApplyTo(editors, open, [new TextEdit(now.Range.Start, now.Range.Length, string.Empty)]);
+                WorkspaceEdits.ApplyTo(context.Editors, open, [new TextEdit(now.Range.Start, now.Range.Length, string.Empty)]);
             }
             else
             {
@@ -296,7 +296,7 @@ public sealed partial class CodeAssist
                     return RefactorOutcome.Refused($"Safe Delete was not applied: {Path.GetFileName(doomed.Path)} changed meanwhile");
                 }
                 // A command of its own, as the file has no undo: Undo in the Solution view puts the declaration back.
-                using Editors.CommandHistory.Recording recording = editors.Commands.Record("Safe Delete");
+                using Editors.CommandHistory.Recording recording = context.Editors.Commands.Record("Safe Delete");
                 recording.Watch(doomed.Path);
                 _ = FileText.Save(doomed.Path, doomed.Text.Replace(removal.Range.Start, removal.Range.Length, string.Empty).ToString(), file.Encoding, file.HasBom, file.CrBreaks);
             }

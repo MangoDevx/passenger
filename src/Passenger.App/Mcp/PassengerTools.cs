@@ -358,9 +358,9 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         Served served = await Serve(at.Path, cancel);
         int offset = Offset(served.Document, at.Line, at.Column);
         if (served is ServerServed { Web.Kind: WebServerKind.Yaml } yaml && ComposeDeclarations.IsCompose(yaml.Document.Path)
-            && await CodeAssist.ComposeRenamingAsync(yaml.Lsp, yaml.Document, offset) is { } composed)
+            && await ComposeAssist.ComposeRenamingAsync(yaml.Lsp, yaml.Document, offset) is { } composed)
         {
-            RefactorOutcome compose = await window.Assist.RenameComposeAsync(yaml.Document, offset, composed.Name, newName);
+            RefactorOutcome compose = await window.Assist.Languages.Compose.RenameComposeAsync(yaml.Document, offset, composed.Name, newName);
             if (compose.Problem is { } refused)
             {
                 throw new InvalidOperationException(refused);
@@ -380,9 +380,9 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         ServerServed server = (ServerServed)served;
         LspDocument lsp = server.Lsp;
         if (server.Web is null && Session.AspireFiles.RoleOf(served.Document.Path) != Aspire.AspireRole.None
-            && await CodeAssist.AspireResourceAtAsync(lsp, offset) is { } resource)
+            && await CSharpAssist.AspireResourceAtAsync(lsp, offset) is { } resource)
         {
-            RefactorOutcome made = await window.Assist.RenameResourceAsync(served.Document, offset, resource, newName, patience);
+            RefactorOutcome made = await window.Assist.Languages.CSharp.RenameResourceAsync(served.Document, offset, resource, newName, patience);
             if (made.Problem is { } problem)
             {
                 throw new InvalidOperationException(problem);
@@ -392,7 +392,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         }
         (string Type, IReadOnlyList<string> Files)? named = renameFiles && server.Web is null && Session.CSharp?.Session?.Folder is { } folder
             ? await TypeRename.NamedAsync(Editors, folder, lsp, offset) : null;
-        RefactorOutcome renaming = await window.Assist.RenameSymbolAsync(served.Document, offset, newName, named?.Files ?? [], patience);
+        RefactorOutcome renaming = await window.Assist.Actions.RenameSymbolAsync(served.Document, offset, newName, named?.Files ?? [], patience);
         if (renaming.Problem is { } notRenamed)
         {
             throw new InvalidOperationException(notRenamed);
@@ -529,23 +529,23 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
             (document, lsp) = (served.Document, served.Lsp);
         }
         window.OpenFile(document.Path);
-        CodeAssist.Reformatted done = await window.Assist.ReformatAsync(document, null, () => lsp)
+        CSharp.CodeActions.Reformatted done = await window.Assist.Actions.ReformatAsync(document, null, () => lsp)
             ?? throw new InvalidOperationException($"Reformat Code was not applied: {Relative(document.Path)} was closed as it was reformatted");
         return Saved(done, document);
     });
 
     /// <summary>A XAML file reformatted as the window's Reformat Code and Code Cleanup reformat it, then saved.</summary>
-    private async Task<CodeAssist.Reformatted> FormatXamlAsync(OpenDocument markup, string what)
+    private async Task<CSharp.CodeActions.Reformatted> FormatXamlAsync(OpenDocument markup, string what)
     {
         window.OpenFile(markup.Path);
-        CodeAssist.Reformatted done = await window.Assist.ReformatXamlAsync(markup, null, what);
+        CSharp.CodeActions.Reformatted done = await window.Assist.Languages.Xaml.ReformatXamlAsync(markup, null, what);
         _ = Saved(done, markup);
         return done;
     }
 
     /// <summary>What a reformat came to, as an agent is told it, the file saved once it is applied and the file holds
     /// what is not saved; one not applied refused, saying why.</summary>
-    private static string Saved(CodeAssist.Reformatted done, OpenDocument document)
+    private static string Saved(CSharp.CodeActions.Reformatted done, OpenDocument document)
     {
         if (!done.Applied)
         {

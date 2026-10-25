@@ -6,33 +6,69 @@ using Passenger.Xaml.Features;
 
 namespace Passenger.App.CSharp;
 
-/// <summary>Go to Declaration in a compose file: Passenger's own (<see cref="ComposeDeclarations"/>) first, read from
-/// the YAML server's outline, then the server's own (an alias to its anchor) where Passenger's finds nothing. An image
-/// goes to its registry's page in the browser.</summary>
-public sealed partial class CodeAssist
+/// <summary>A compose file's own names, read from the YAML server's outline (<see cref="ComposeDeclarations"/>): completion
+/// lists them ahead of the server's items, Go to Declaration goes where they are declared (an image to its registry's page
+/// in the browser) and Rename renames one in every file that writes it; the server's own answers (an alias to its anchor)
+/// where Passenger's find nothing.</summary>
+internal sealed class ComposeAssist(AssistContext context, PopupPlacement popups, CodeCompletion completion, CodeNavigation navigation, CodeActions actions) : LanguageAssist
 {
     /// <summary>The solution's projects, which a Dockerfile's project is found among.</summary>
     public Func<IReadOnlyList<ProjectModel>>? Projects { get; set; }
+
+    /// <summary>A compose file's names listed ahead of the YAML server's items.</summary>
+    public override async Task<bool> CompleteAsync(string? trigger, bool incomplete)
+    {
+        if (context.WebCurrent is not { } web || context.Editors.Active is not { } document || !IsComposeFile(web, document))
+        {
+            return false;
+        }
+        if (web.Lsp is { } lsp)
+        {
+            await completion.ServerListAsync(lsp, trigger, incomplete, web,
+                async (text, caret, _) => await ComposeCompletionAsync(web, lsp, text, caret) is { } named ? new CodeCompletion.OwnItems(named.Start, named.Items, null) : null);
+        }
+        return true;
+    }
+
+    public override async Task<bool> DefinitionAsync(int offset) =>
+        context.WebCurrent is { Lsp: not null } compose && context.Editors.Active is { } shown && IsComposeFile(compose, shown) && await ComposeGoTo(compose, offset);
+
+    /// <summary>A compose file's own name: where it is declared and every use, its override's too; else the server's (an anchor's).</summary>
+    public override bool Rename(int caret)
+    {
+        if (context.WebCurrent is not { Lsp: not null } yaml || context.Editors.Active is not { } compose || !IsComposeFile(yaml, compose))
+        {
+            return false;
+        }
+        _ = popups.Carried("Rename", async () =>
+        {
+            if (!await ShowComposeRename(yaml, compose, caret) && context.Editors.Active == compose)
+            {
+                actions.ShowServerRename();
+            }
+        }, closeModal: false);
+        return true;
+    }
 
     /// <summary>Goes where Passenger's own declarations in a compose file lead; false when they find nothing, for the
     /// server's to be asked.</summary>
     private async Task<bool> ComposeGoTo(WebDocument compose, int offset)
     {
-        if (compose.Lsp is not { } lsp || editors.Active is not { } document)
+        if (compose.Lsp is not { } lsp || context.Editors.Active is not { } document)
         {
             return false;
         }
         try
         {
-            ComposeAnswer answer = await ComposeDeclarationAsync(lsp, document, offset, ServerPlaces.Texts(editors), Projects?.Invoke() ?? []);
-            if (editors.Active != document)
+            ComposeAnswer answer = await ComposeDeclarationAsync(lsp, document, offset, ServerPlaces.Texts(context.Editors), Projects?.Invoke() ?? []);
+            if (context.Editors.Active != document)
             {
                 return true;
             }
             if (answer.Page is { } page)
             {
-                Message?.Invoke(this, $"{answer.Said}: {page}");
-                Browse?.Invoke(this, page);
+                context.Say($"{answer.Said}: {page}");
+                context.Browse(page);
                 return true;
             }
             switch (answer.Places.Count)
@@ -40,21 +76,21 @@ public sealed partial class CodeAssist
                 case 0 when answer.Said == Refusals.NoDeclaration:
                     return false;
                 case 0:
-                    Message?.Invoke(this, answer.Said);
+                    context.Say(answer.Said);
                     return true;
                 case 1:
-                    Navigate?.Invoke(this, (answer.Places[0].Path, answer.Places[0].Position));
+                    context.Navigate((answer.Places[0].Path, answer.Places[0].Position));
                     return true;
             }
-            Func<string, TextSnapshot?> texts = ServerPlaces.Texts(editors);
-            Go([.. answer.Places.Select(p => new LspLocation(DocumentUris.FromPath(p.Path), new LspRange(
+            Func<string, TextSnapshot?> texts = ServerPlaces.Texts(context.Editors);
+            navigation.Go([.. answer.Places.Select(p => new LspLocation(DocumentUris.FromPath(p.Path), new LspRange(
                 ServerPlaces.ServerPositionOf(texts(p.Path), p.Position), ServerPlaces.ServerPositionOf(texts(p.Path), p.Position))))],
                 offset, "Declarations", Refusals.NoDeclaration, [.. answer.Places.Select(p => (string?)p.Name)]);
             return true;
         }
         catch (LanguageServerFailed failed)
         {
-            Failed("Go to Declaration", failed);
+            context.Failed("Go to Declaration", failed);
             return true;
         }
     }
@@ -69,33 +105,19 @@ public sealed partial class CodeAssist
         return ComposeDeclarations.Find(document.Path, text, outline, offset, texts, projects);
     }
 
-    /// <summary>The registry page of the image a Dockerfile's FROM names where an offset is on it; null elsewhere.</summary>
-    internal static Uri? FromImageAt(TextSnapshot text, int offset)
-    {
-        int line = text.GetLineFromOffset(Math.Clamp(offset, 0, text.Length));
-        int column = Math.Clamp(offset, 0, text.Length) - text.GetLineStart(line);
-        return FromLine().Match(text.GetLineText(line)) is { Success: true } from
-            && column >= from.Groups["image"].Index && column <= from.Groups["image"].Index + from.Groups["image"].Length
-            ? ComposeDeclarations.RegistryPage(from.Groups["image"].Value)
-            : null;
-    }
-
-    [System.Text.RegularExpressions.GeneratedRegex(@"^\s*FROM\s+(?:--\S+\s+)*(?<image>[^\s]+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase)]
-    private static partial System.Text.RegularExpressions.Regex FromLine();
-
     /// <summary>The names a compose file offers where one is typed (<see cref="ComposeNames"/>: its services, volumes,
     /// networks, configs and secrets, read from the YAML server's outline of the text as it stands), as completion lists
     /// them before the server's own, with where the name they complete begins; null where none are typed.</summary>
     private async Task<(int Start, IReadOnlyList<CompletionItem> Items)?> ComposeCompletionAsync(WebDocument web, LspDocument lsp, TextSnapshot text, int caret)
     {
         // The outline is asked for only where a name of the file's is typed.
-        if (editors.Active is not { } document || !IsComposeFile(web, document) || ComposeNames.Spot(text, caret) is not { } spot
+        if (context.Editors.Active is not { } document || !IsComposeFile(web, document) || ComposeNames.Spot(text, caret) is not { } spot
             || ComposeNames.Takes(spot) is not (_, int start))
         {
             return null;
         }
         IReadOnlyList<DocumentSymbol> outline = await lsp.OutlineAsync();
-        IReadOnlyList<ComposeName> names = ComposeNames.At(document.Path, text, outline, spot, ServerPlaces.Texts(editors));
+        IReadOnlyList<ComposeName> names = ComposeNames.At(document.Path, text, outline, spot, ServerPlaces.Texts(context.Editors));
         if (names.Count == 0)
         {
             return null;
@@ -121,13 +143,13 @@ public sealed partial class CodeAssist
         }
         int version = document.Text.Version;
         ComposeRenaming? renaming = await ComposeRenamingAsync(lsp, document, caret);
-        if (renaming is null || editors.Active != document || document.Text.Version != version)
+        if (renaming is null || context.Editors.Active != document || document.Text.Version != version)
         {
             return false;
         }
         RenameBox box = new(renaming.Name);
-        ChangeTracker opened = new(Editor.Document);
-        ShowModal(box, renaming.At.Start, async name =>
+        ChangeTracker opened = new(context.Editor.Document);
+        popups.ShowModal(box, renaming.At.Start, async name =>
         {
             int now = opened.MapOffset(renaming.At.Start);
             if (name is null || name == renaming.Name)
@@ -135,9 +157,9 @@ public sealed partial class CodeAssist
                 return;
             }
             RefactorOutcome made = await RenameComposeAsync(document, now, renaming.Name, name);
-            Message?.Invoke(this, made.Problem ?? made.Said);
+            context.Say(made.Problem ?? made.Said);
         });
-        modalClosed = opened.Dispose;
+        popups.WhenClosed(opened.Dispose);
         return true;
     }
 
@@ -155,7 +177,7 @@ public sealed partial class CodeAssist
     /// undo; shared with the agents' rename.</summary>
     internal async Task<RefactorOutcome> RenameComposeAsync(OpenDocument document, int offset, string old, string name)
     {
-        if (WebOf(document) is not { Lsp: { } lsp })
+        if (context.WebOf(document) is not { Lsp: { } lsp })
         {
             return RefactorOutcome.Refused($"{old} was not renamed: the YAML language server does not run for {document.Name}");
         }
@@ -172,7 +194,7 @@ public sealed partial class CodeAssist
         {
             return RefactorOutcome.Refused($"{old} was not renamed: the file no longer names it there");
         }
-        if (ComposeRename.Problem(renaming, name, ReadOpenOrDisk) is { } problem)
+        if (ComposeRename.Problem(renaming, name, context.ReadOpenOrDisk) is { } problem)
         {
             return RefactorOutcome.Refused(problem);
         }
@@ -180,7 +202,7 @@ public sealed partial class CodeAssist
         List<RefactoredFile> files = [];
         foreach (string file in ComposeRename.Files(document.Path, renaming))
         {
-            string text = ReadOpenOrDisk(file);
+            string text = context.ReadOpenOrDisk(file);
             if (ComposeRename.Edits(file, text, renaming, name) is { Count: > 0 } edits)
             {
                 changes.Add(new XamlFileChange(file, now => ComposeRename.Edits(file, now, renaming, name)));
@@ -188,7 +210,7 @@ public sealed partial class CodeAssist
                 files.Add(new RefactoredFile(file, "changed", [.. edits.Select(e => written.GetLineFromOffset(e.Start) + 1).Distinct()]));
             }
         }
-        if (ApplyFileChanges($"Rename {old} to {name}", changes) is { } refused)
+        if (actions.ApplyFileChanges($"Rename {old} to {name}", changes) is { } refused)
         {
             return RefactorOutcome.Refused(refused);
         }
@@ -201,7 +223,7 @@ public sealed partial class CodeAssist
     /// (<see cref="SetInCompose"/>) as it is chosen.</summary>
     public IReadOnlyList<EditorFix> ComposeReadFixes(OpenDocument file, int offset)
     {
-        if (service()?.For(file) is not { Lsp: { } lsp } features)
+        if (context.CSharp?.For(file) is not { Lsp: { } lsp } features)
         {
             return [];
         }
@@ -212,7 +234,7 @@ public sealed partial class CodeAssist
             new($"Set {gap.Variable} in {gap.Service}'s environment", $"in {Path.GetFileName(gap.Compose)}, {gap.Fix!.Value.Detail}", range, string.Empty)
             {
                 // Its warning as it stands when chosen, refused once the compose file's check no longer finds the gap.
-                Again = _ => service()?.For(file)?.ComposeGapsOn(null).FirstOrDefault(m => m.Gap.Same(gap)) is { } now ? ReadFix(file, now.Range, now.Gap) : null,
+                Again = _ => context.CSharp?.For(file)?.ComposeGapsOn(null).FirstOrDefault(m => m.Gap.Same(gap)) is { } now ? ReadFix(file, now.Range, now.Gap) : null,
                 Elsewhere = (_, _) => Task.FromResult(SetInCompose(gap)),
             };
     }
@@ -228,11 +250,11 @@ public sealed partial class CodeAssist
             gap.Fix is { } fix && Containers.ComposeFixes.SetVariable(TextSnapshot.From(text), gap.Service, gap.Variable, fix.Value, fix.Detail) is [{ } made]
                 ? [new TextEdit(made.Range.Start, made.Range.Length, made.Text)] : [];
         string compose = Path.GetFileName(gap.Compose);
-        if (Edits(ReadOpenOrDisk(gap.Compose)).Count == 0)
+        if (Edits(context.ReadOpenOrDisk(gap.Compose)).Count == 0)
         {
             return RefactorOutcome.Refused($"{title} was not made: {compose} no longer has the service {gap.Service}, or sets {gap.Variable} already");
         }
-        if (ApplyFileChanges(title, [new XamlFileChange(gap.Compose, Edits)]) is { } refused)
+        if (actions.ApplyFileChanges(title, [new XamlFileChange(gap.Compose, Edits)]) is { } refused)
         {
             return RefactorOutcome.Refused(refused);
         }
@@ -243,6 +265,6 @@ public sealed partial class CodeAssist
     private const CompletionItemKind ComposeItemKind = CompletionItemKind.Variable;
 
     /// <summary>Whether a file is a compose file the YAML server reads, whose declarations Passenger finds first.</summary>
-    private static bool IsComposeFile(WebDocument web, OpenDocument document) =>
+    internal static bool IsComposeFile(WebDocument web, OpenDocument document) =>
         web.Kind == WebServerKind.Yaml && ComposeDeclarations.IsCompose(document.Path);
 }

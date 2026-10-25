@@ -9,31 +9,128 @@ using Passenger.Lsp;
 using Passenger.Text;
 using Passenger.Xaml;
 using Passenger.Xaml.Features;
+using Passenger.Xaml.Localization;
 using Passenger.Xaml.Syntax;
+using Avalonia.Media;
 
 namespace Passenger.App.CSharp;
 
 /// <summary>The same popups and commands over a XAML file, answered by Passenger's own XAML (<see cref="XamlService"/>)
 /// rather than a language server: completion as it is typed, after a tag's <c>&lt;</c>, a name's <c>.</c> or
 /// <c>:</c>, a value's quotes and a markup extension's brace.</summary>
-public sealed partial class CodeAssist
+internal sealed partial class XamlAssist : LanguageAssist
 {
+    private readonly AssistContext context;
+    private readonly PopupPlacement popups;
+    private readonly CodeCompletion completion;
+    /// <summary>The XAML items of the last list made, by its rows' items, which a commit and a badge look up.</summary>
     private readonly Dictionary<CompletionItem, XamlItem> xamlOffered = [];
-
-    /// <summary>The characters beyond a name's that narrow the open XAML list rather than close it.</summary>
-    private string xamlWordCharacters = string.Empty;
 
     /// <summary>The XAML file, its text's version and the caret its last list was asked at, until that list closes (one that
     /// found nothing stays), so a list made from the project as it was is asked again once the project is read anew.</summary>
     private (XamlDocument Xaml, int Version, int Caret)? xamlAsked;
 
-    /// <summary>The window's XAML, for a XAML file shown.</summary>
-    public Func<XamlService?>? Xaml { get; set; }
+    public XamlAssist(AssistContext context, PopupPlacement popups, CodeCompletion completion)
+    {
+        this.context = context;
+        this.popups = popups;
+        this.completion = completion;
+        completion.Closed += (_, _) => xamlAsked = null;
+    }
 
-    /// <summary>The shown file's XAML, null for a file that is not XAML of a project Passenger reads.</summary>
-    private XamlDocument? XamlCurrent => editors.Active is { } active ? XamlOf(active) : null;
+    private Passenger.Editor.CodeEditor Editor => context.Editor;
 
-    private XamlDocument? XamlOf(OpenDocument? document) => document is null ? null : Xaml?.Invoke()?.For(document);
+    /// <summary>The XAML code style as Settings leaves it, which a file's .editorconfig overrides.</summary>
+    public XamlFormatSettings XamlFormat { get; set; } = new();
+
+    public override bool Typed(string text)
+    {
+        if (context.XamlCurrent is null)
+        {
+            return false;
+        }
+        char last = text[^1];
+        int caret = Editor.Selections.Primary.Caret;
+        if (XamlTrigger(text) || (AssistContext.IsIdentifierChar(last) && !char.IsDigit(last) && context.WordStart(caret) == caret - 1))
+        {
+            _ = completion.Start(null);
+        }
+        return true;
+    }
+
+    public override async Task<bool> CompleteAsync(string? trigger, bool incomplete)
+    {
+        if (context.XamlCurrent is not { } xaml)
+        {
+            return false;
+        }
+        await StartXamlCompletion(xaml);
+        return true;
+    }
+
+    public override void Commit(CompletionItem item, int start)
+    {
+        if (xamlOffered.TryGetValue(item, out XamlItem? offered))
+        {
+            CommitXaml(offered, start);
+        }
+    }
+
+    /// <summary>A XAML colour's badge, the colour itself; null for any other item.</summary>
+    public override IBrush? Swatch(CompletionItem item) =>
+        xamlOffered.TryGetValue(item, out XamlItem? offered) ? CodeAssist.Swatch(offered.Colour) : null;
+
+    /// <summary>The hover card's words for a XAML name, then each language's value of a localized string.</summary>
+    public override async Task<bool> HoverAsync(InfoCard card, int offset, CancellationToken cancel)
+    {
+        if (context.XamlCurrent is not { } xaml)
+        {
+            return false;
+        }
+        if (await XamlDescription(xaml, offset) is { } described && !cancel.IsCancellationRequested)
+        {
+            card.AddCode(described);
+        }
+        if (await XamlLocalizationHoverAsync(xaml, offset) is { } languages && !cancel.IsCancellationRequested)
+        {
+            card.AddText(languages);
+        }
+        return true;
+    }
+
+    public override async Task<bool> DefinitionAsync(int offset)
+    {
+        if (context.XamlCurrent is not { } xaml)
+        {
+            return false;
+        }
+        await XamlGoTo(xaml, offset);
+        return true;
+    }
+
+    public override async Task<bool> UsagesAsync(int offset)
+    {
+        if (context.XamlCurrent is not { } xaml)
+        {
+            return false;
+        }
+        await XamlUsages(xaml, offset);
+        return true;
+    }
+
+    public override bool Rename(int caret)
+    {
+        if (context.XamlCurrent is not { } xaml || context.Editors.Active is null)
+        {
+            return false;
+        }
+        _ = popups.Carried("Rename", () => XamlRename(xaml), closeModal: false);
+        return true;
+    }
+
+    /// <summary>Any XAML file, of a project Passenger reads or not, by Passenger's own layout.</summary>
+    public override async Task<CodeActions.Reformatted?> FormatAsync(OpenDocument document, TextRange? within) =>
+        XamlService.IsXaml(document.Path) ? await ReformatXamlAsync(document, within, "Reformat Code") : null;
 
     /// <summary>Whether what was just typed in a XAML file opens completion: a tag's '&lt;' (or its end tag's '/'), a
     /// name's '.' or ':', a value's opening quote or a markup extension's brace or comma.</summary>
@@ -83,9 +180,7 @@ public sealed partial class CodeAssist
     /// <summary>The XAML list for the caret, in place of the server's.</summary>
     private async Task StartXamlCompletion(XamlDocument xaml)
     {
-        completing?.Cancel();
-        CancellationTokenSource cancel = new();
-        completing = cancel;
+        CancellationTokenSource cancel = completion.Asking();
         int caret = Editor.Selections.Primary.Caret;
         TextDocument asked = Editor.Document;
         (XamlDocument, int, int) at = (xaml, asked.Version, caret);
@@ -99,7 +194,7 @@ public sealed partial class CodeAssist
             }
             if (list is null || list.Items.Count == 0)
             {
-                CloseCompletion();
+                completion.Close();
                 // Nothing, perhaps for want of the types a restore landing now brings: asked again once the project is read anew.
                 xamlAsked = at;
                 return;
@@ -112,9 +207,11 @@ public sealed partial class CodeAssist
                 xamlOffered[item] = offered;
                 items.Add(item);
             }
-            xamlWordCharacters = list.WordCharacters;
-            open = new Completion(items, Math.Min(list.Start, Editor.Selections.Primary.Caret), [], false);
-            Filter();
+            completion.Open(new CodeCompletion.Completion(items, Math.Min(list.Start, Editor.Selections.Primary.Caret), [], false)
+            {
+                Own = this,
+                WordCharacters = list.WordCharacters,
+            });
         }
         catch (OperationCanceledException)
         {
@@ -125,16 +222,16 @@ public sealed partial class CodeAssist
     /// <summary>A XAML project was read anew (its restore landed, a file it reads was written): a list shown in one of
     /// its files, or asked there and found empty at the caret as it still stands, was made from the project as it was,
     /// so it is asked again of the project as it is.</summary>
-    internal void XamlProjectRead(XamlProject project)
+    public void ProjectRead(XamlProject project)
     {
-        if (xamlAsked is not (XamlDocument xaml, int version, int caret) || XamlCurrent != xaml
+        if (xamlAsked is not (XamlDocument xaml, int version, int caret) || context.XamlCurrent != xaml
             || !Passenger.Core.PathNames.Same(xaml.Loading.ProjectPath, project.Inputs.ProjectPath))
         {
             return;
         }
-        if (completion.IsVisible || (Editor.Document.Version == version && Editor.Selections.Primary.Caret == caret))
+        if (completion.IsOpen || (Editor.Document.Version == version && Editor.Selections.Primary.Caret == caret))
         {
-            _ = StartCompletion(null);
+            _ = completion.Start(null);
         }
     }
 
@@ -156,11 +253,11 @@ public sealed partial class CodeAssist
         }
         if (item.Reopen)
         {
-            _ = StartCompletion(null);
+            _ = completion.Start(null);
         }
     }
 
-    /// <summary>The name at the caret and its file, read as the file stands; null where there is none, said in the status
+    /// <summary>The name at an offset and its file, read as the file stands; null where there is none, said in the status
     /// bar for a command (<paramref name="none"/>).</summary>
     private async Task<(XamlFile File, XamlSymbol Symbol)?> XamlSymbolAt(XamlDocument xaml, int offset, string? none)
     {
@@ -170,7 +267,7 @@ public sealed partial class CodeAssist
         {
             if (none is not null)
             {
-                Message?.Invoke(this, none);
+                context.Say(none);
             }
             return null;
         }
@@ -193,7 +290,7 @@ public sealed partial class CodeAssist
         }
         List<Choice> choices = [.. targets.Select(t => new Choice(t.Name, t.Path is { } path ? Path.GetFileName(path)
             : t.Kind == XamlTargetKind.Theme ? "Theme" : t.Type?.Origin.AssemblyName ?? string.Empty, t))];
-        ShowModal(new ChoicePopup($"Declarations of {found.Symbol.Name}", choices), offset, "Go to Declaration",
+        popups.ShowModal(new ChoicePopup($"Declarations of {found.Symbol.Name}", choices), offset, "Go to Declaration",
             choice => choice?.Value is XamlTarget target ? Arrive(target, found.File) : Task.CompletedTask);
     }
 
@@ -203,7 +300,7 @@ public sealed partial class CodeAssist
     /// merges in (Fluent's Button.xaml, in FluentControls.xaml), whose own text says them.</summary>
     internal async Task<((string Path, TextPosition Position)? Place, string Said)> ThemePlaceAsync(XamlTarget target, XamlFile file)
     {
-        if (Xaml?.Invoke() is not { } service)
+        if (context.Xaml?.Invoke() is not { } service)
         {
             return (null, Refusals.NoFolder);
         }
@@ -218,7 +315,7 @@ public sealed partial class CodeAssist
         List<string> known = [.. theme.XamlFiles];
         Task<string?> Fetch(string path)
         {
-            Message?.Invoke(this, $"Reading {theme.Name}'s {path.TrimStart('/')} from its Source Link…");
+            context.Say($"Reading {theme.Name}'s {path.TrimStart('/')} from its Source Link…");
             return service.LibraryFiles.FileAsync(assembly, theme.Name, path, said, CancellationToken.None);
         }
         IReadOnlyList<string> names = target.Type is { } type ? [.. file.Types.SelfAndBases(type).Select(t => t.Name)] : [];
@@ -303,16 +400,16 @@ public sealed partial class CodeAssist
     };
 
     /// <summary>Goes where a XAML name leads (<see cref="XamlPlaceAsync"/>), saying in the status bar what there is to say.</summary>
-    private async Task Arrive(XamlTarget target, XamlFile? file = null)
+    internal async Task Arrive(XamlTarget target, XamlFile? file = null)
     {
         ((string Path, TextPosition Position)? place, string? said) = await XamlPlaceAsync(target, file);
         if (place is { } found)
         {
-            Navigate?.Invoke(this, found);
+            context.Navigate(found);
         }
         if (said is not null)
         {
-            Message?.Invoke(this, said);
+            context.Say(said);
         }
     }
 
@@ -326,7 +423,7 @@ public sealed partial class CodeAssist
         }
         if (target.Place is { } place)
         {
-            return ((place.Path, ServerPlaces.PositionOf(editors, place.Path, new LspPosition(place.Line, place.Column))), null);
+            return ((place.Path, ServerPlaces.PositionOf(context.Editors, place.Path, new LspPosition(place.Line, place.Column))), null);
         }
         if (target.Path is { } path)
         {
@@ -343,14 +440,14 @@ public sealed partial class CodeAssist
     /// <summary>Where an offset of a file is: in its open text, else its text on disk.</summary>
     private TextPosition PositionIn(string path, int offset)
     {
-        TextSnapshot text = editors.TextOf(path) ?? TextSnapshot.Empty;
+        TextSnapshot text = context.Editors.TextOf(path) ?? TextSnapshot.Empty;
         return text.GetPosition(Math.Min(offset, text.Length));
     }
 
     /// <summary>A range of a file as a place for the Find window, which reads it in the server's lines as the server's are.</summary>
     private LspLocation Location(string path, int start, int end)
     {
-        TextSnapshot text = ServerPlaces.TextOf(editors, path) ?? TextSnapshot.Empty;
+        TextSnapshot text = ServerPlaces.TextOf(context.Editors, path) ?? TextSnapshot.Empty;
         return new LspLocation(DocumentUris.FromPath(path), ServerLines.Of(text).RangeOf(TextRange.FromBounds(Math.Min(start, text.Length), Math.Min(end, text.Length))));
     }
 
@@ -365,15 +462,15 @@ public sealed partial class CodeAssist
         (XamlFile file, XamlSymbol symbol) = found;
         if (await XamlUsesAsync(file, symbol) is not { } usages)
         {
-            Message?.Invoke(this, XamlUsesWhat);
+            context.Say(XamlUsesWhat);
             return;
         }
         if (usages.Count == 0)
         {
-            Message?.Invoke(this, "No usages found");
+            context.Say("No usages found");
             return;
         }
-        UsagesFound?.Invoke(this, ($"Usages of {symbol.Name}", usages));
+        context.ShowUsages(($"Usages of {symbol.Name}", usages));
     }
 
     /// <summary>What Find Usages finds in XAML, said where it finds nothing else.</summary>
@@ -392,7 +489,7 @@ public sealed partial class CodeAssist
         else if (symbol.Targets.Count > 0 && symbol.Targets[0].Kind == XamlTargetKind.Resource)
         {
             string key = symbol.Name;
-            OpenTexts texts = editors.Texts();
+            OpenTexts texts = context.Editors.Texts();
             foreach (string path in file.Project.Files.Keys.Order(StringComparer.Ordinal))
             {
                 string text = texts.Text(path) ?? string.Empty;
@@ -417,7 +514,7 @@ public sealed partial class CodeAssist
     /// generated field, its generated declaration and uses left out.</summary>
     private async Task<IReadOnlyList<LspLocation>> CodeBehindUses(XamlFile file, string name)
     {
-        if (service()?.Session is not { IsLoaded: true } session || file.ClassName is not { } className)
+        if (context.CSharp?.Session is not { IsLoaded: true } session || file.ClassName is not { } className)
         {
             return [];
         }
@@ -425,14 +522,14 @@ public sealed partial class CodeAssist
         Regex word = new($@"(?<![\w.]){Regex.Escape(name)}\b", RegexOptions.CultureInvariant);
         foreach (string path in files)
         {
-            OpenDocument? open = editors.Find(path);
-            string text = editors.TextOf(path)?.ToString() ?? string.Empty;
+            OpenDocument? open = context.Editors.Find(path);
+            string text = context.Editors.TextOf(path)?.ToString() ?? string.Empty;
             foreach (Match mention in word.Matches(text).Take(5))
             {
                 LspDocument? shown = null;
                 try
                 {
-                    LspDocument server = open is not null && service()?.For(open)?.Lsp is { } attached ? attached : shown = session.Open(path, new TextDocument(text));
+                    LspDocument server = open is not null && context.CSharp?.For(open)?.Lsp is { } attached ? attached : shown = session.Open(path, new TextDocument(text));
                     IReadOnlyList<LspLocation> definitions = await server.DefinitionAsync(mention.Index);
                     if (!definitions.Any(d => IsGenerated(d, className, file.Path)))
                     {
@@ -478,7 +575,7 @@ public sealed partial class CodeAssist
         }
         string old = named.Value;
         RenameBox box = new(old);
-        ShowModal(box, named.ValueStart, async name =>
+        popups.ShowModal(box, named.ValueStart, async name =>
         {
             if (name is null || name == old)
             {
@@ -486,7 +583,7 @@ public sealed partial class CodeAssist
             }
             if (await XamlRenameAsync(xaml, old, name) is { } renamed)
             {
-                Message?.Invoke(this, renamed.Said);
+                context.Say(renamed.Said);
             }
         });
     }
@@ -500,7 +597,7 @@ public sealed partial class CodeAssist
         {
             return ([], $"'{name}' cannot name a field in the code-behind");
         }
-        using Asked asked = WorkspaceEdits.Track(editors);
+        using Asked asked = WorkspaceEdits.Track(context.Editors);
         XamlFile? file = await xaml.FileAsync();
         if (file is null)
         {
@@ -525,14 +622,14 @@ public sealed partial class CodeAssist
         }
         JsonElement edit = JsonSerializer.SerializeToElement(new { changes }, Json.Options);
         List<string> dropped = [];
-        int files = TypeRename.Apply(editors, edit, [], $"Rename {old} to {name}", asked, dropped);
+        int files = TypeRename.Apply(context.Editors, edit, [], $"Rename {old} to {name}", asked, dropped);
         return ([.. changes.Keys.Select(DocumentUris.ToPath)], dropped.Count > 0 ? $"Renamed, but not in {string.Join(", ", dropped)}: it was edited meanwhile"
             : files > 1 ? $"Renamed in {files} files" : "Renamed");
     }
 
     /// <summary>Show Context Actions in XAML: the fixes of the problems on the caret's line, the file checked as it stands,
     /// then the refactorings there; Refactor This (<paramref name="refactor"/>): Rename where a name is, then those.</summary>
-    private async Task XamlFixes(XamlDocument xaml, IReadOnlyList<EditorFix> own, bool refactor = false)
+    public async Task FixesAsync(CodeActions actions, XamlDocument xaml, IReadOnlyList<EditorFix> own, bool refactor = false)
     {
         int caret = Editor.Selections.Primary.Caret;
         List<XamlFix> fixes = [];
@@ -549,33 +646,33 @@ public sealed partial class CodeAssist
             }
             else if (await BackgroundWork.Run(() => XamlNavigation.At(file, caret)) is { Named: { } named })
             {
-                refactorings.Add(new Choice("Rename…", named.Value, XamlRefactoring.Rename));
+                refactorings.Add(new Choice("Rename…", named.Value, CodeActions.XamlRefactoring.Rename));
             }
-            refactorings.AddRange(await BackgroundWork.Run(() => XamlRefactoringsAt(file, caret)));
+            refactorings.AddRange(await BackgroundWork.Run(() => CodeActions.XamlRefactoringsAt(file, caret)));
         }
         if (fixes.Count == 0 && own.Count == 0 && refactorings.Count == 0)
         {
-            Message?.Invoke(this, refactor ? "No refactorings here" : "No fixes here");
+            context.Say(refactor ? "No refactorings here" : "No fixes here");
             return;
         }
         // A failed binding's fixes (the running app's word) come first, then the file's own problems', then the refactorings.
         List<Choice> choices = [.. own.Select(f => new Choice(f.Title, f.Detail, f)), .. fixes.Select(f => new Choice(f.Title, f.Detail ?? Path.GetFileName(f.Path), f)),
             .. refactorings];
-        OpenDocument? document = editors.Active;
-        ShowModal(new ChoicePopup(refactor ? "Refactor This" : "Fixes", choices), caret, refactor ? "Refactor This" : "Show Context Actions", choice =>
+        OpenDocument? document = context.Editors.Active;
+        popups.ShowModal(new ChoicePopup(refactor ? "Refactor This" : "Fixes", choices), caret, refactor ? "Refactor This" : "Show Context Actions", choice =>
         {
             if (choice?.Value is XamlFix fix)
             {
-                ApplyFix(fix);
+                ApplyFix(actions, fix);
             }
             else if (choice?.Value is EditorFix chosen && document is not null)
             {
-                return ApplyOwnFix(document, chosen);
+                return actions.ApplyOwnFix(document, chosen);
             }
-            else if (choice?.Value is XamlRefactoring refactoring && editors.Active == document)
+            else if (choice?.Value is CodeActions.XamlRefactoring refactoring && context.Editors.Active == document)
             {
                 // Not awaited: its dialog waits for the person, which no screenshot or test should wait out.
-                _ = RunXamlRefactoring(refactoring);
+                _ = actions.RunXamlRefactoring(refactoring);
             }
             return Task.CompletedTask;
         });
@@ -583,10 +680,10 @@ public sealed partial class CodeAssist
 
     /// <summary>A XAML fix made against its files' texts as they are now (open, or on disk), the files it makes made, as one
     /// command.</summary>
-    private void ApplyFix(XamlFix fix)
+    private void ApplyFix(CodeActions actions, XamlFix fix)
     {
-        string? refused = ApplyFileChanges(fix.Title, [new XamlFileChange(fix.Path, fix.Edits), .. fix.Others]);
-        Message?.Invoke(this, refused is null ? fix.Title : $"{fix.Title} was not applied: {refused}");
+        string? refused = actions.ApplyFileChanges(fix.Title, [new XamlFileChange(fix.Path, fix.Edits), .. fix.Others]);
+        context.Say(refused is null ? fix.Title : $"{fix.Title} was not applied: {refused}");
     }
 
     /// <summary>The hover card's words for a XAML name.</summary>
@@ -601,11 +698,11 @@ public sealed partial class CodeAssist
 
     /// <summary>A C# definition that lands in the field Avalonia's generator or WPF's MarkupCompile made for a named
     /// element goes to the element's name in its XAML instead; null for any other.</summary>
-    private async Task<XamlTarget?> NamedElementOfAsync(IReadOnlyList<LspLocation> definitions, int offset)
+    internal async Task<XamlTarget?> NamedElementOfAsync(IReadOnlyList<LspLocation> definitions, int offset)
     {
         foreach (LspLocation place in definitions)
         {
-            if (editors.Active is not { } active)
+            if (context.Editors.Active is not { } active)
             {
                 continue;
             }
@@ -617,10 +714,10 @@ public sealed partial class CodeAssist
             else
             {
                 Match generated = GeneratedFile().Match(Uri.UnescapeDataString(place.Uri));
-                xaml = generated.Success && Xaml?.Invoke() is { } service ? await service.ClassFileAsync(generated.Groups["class"].Value, active.Path) : null;
+                xaml = generated.Success && context.Xaml?.Invoke() is { } service ? await service.ClassFileAsync(generated.Groups["class"].Value, active.Path) : null;
             }
-            string name = NameAt(offset);
-            if (xaml is not null && Regex.Match(ReadOpenOrDisk(xaml), $@"\b(?:x:)?Name\s*=\s*""(?<name>{Regex.Escape(name)})""") is { Success: true } found)
+            string name = context.NameAt(offset);
+            if (xaml is not null && Regex.Match(context.ReadOpenOrDisk(xaml), $@"\b(?:x:)?Name\s*=\s*""(?<name>{Regex.Escape(name)})""") is { Success: true } found)
             {
                 int start = found.Groups["name"].Index;
                 return new XamlTarget(XamlTargetKind.Element, name) { Path = xaml, Range = new TextRange(start, name.Length) };
@@ -654,11 +751,81 @@ public sealed partial class CodeAssist
     [GeneratedRegex(@"^\s*#line\s+\d+\s+""(?<file>[^""]+\.xaml)""")]
     private static partial Regex LineDirective();
 
-    /// <summary>A file's text as the editor has it, else the disk's (<see cref="EditorArea.TextOf"/>); empty when it cannot be read.</summary>
-    private string ReadOpenOrDisk(string path) => editors.TextOf(path)?.ToString() ?? string.Empty;
-
     [GeneratedRegex(@"(?<class>[\w.]+)\.g\.cs")]
     private static partial Regex GeneratedFile();
+
+    /// <summary>Reformat Code's edits for an open XAML file as it stands, by <paramref name="settings"/> with its
+    /// .editorconfig over them, its own indent and line breaks; only those in the lines of <paramref name="within"/> when
+    /// given. Worked out off the UI thread.</summary>
+    public static Task<XamlFormatted> FormatXamlAsync(OpenDocument document, XamlFormatSettings settings, TextRange? within = null)
+    {
+        TextSnapshot text = document.Text.Snapshot;
+        string path = document.Path;
+        IndentOptions indent = document.Indentation.Options;
+        string eol = document.Text.LineEnding;
+        return BackgroundWork.Run(() =>
+        {
+            EditorConfig config = EditorConfig.For(path);
+            return XamlFormatter.Format(text.ToString(), settings.Over(key => config[key]), indent, eol, within);
+        });
+    }
+
+    /// <summary>A XAML file reformatted by Passenger's own layout, only <paramref name="within"/> when given, as one
+    /// undoable edit: what came of it.</summary>
+    internal async Task<CodeActions.Reformatted> ReformatXamlAsync(OpenDocument document, TextRange? within, string what)
+    {
+        using ChangeTracker asked = new(document.Text);
+        XamlFormatted formatted = await FormatXamlAsync(document, XamlFormat, within);
+        if (formatted.Problem is { } problem)
+        {
+            return new CodeActions.Reformatted(false, false, $"{what} was not applied: {problem}");
+        }
+        if (formatted.Edits.Count == 0 || !context.Editors.Documents.Contains(document))
+        {
+            return new CodeActions.Reformatted(true, false, "Already formatted");
+        }
+        if (asked.Map(formatted.Edits) is not { } edits)
+        {
+            return new CodeActions.Reformatted(false, false, $"{what} was not applied: the code it changes was edited meanwhile");
+        }
+        WorkspaceEdits.ApplyTo(context.Editors, document, edits);
+        return new CodeActions.Reformatted(true, true, "Reformatted");
+    }
+
+    /// <summary>The localized string a XAML file reads at an offset (an <c>{x:Static}</c> of a generated class's property), and its
+    /// resource's files, read off the UI thread with the open ones as the editor has them; null elsewhere.</summary>
+    private async Task<(LocalizedStatic Read, ResourceSet? Set)?> XamlLocalizedAtAsync(XamlFile file, int offset)
+    {
+        Func<string, TextSnapshot?> open = context.Editors.Texts().Open;
+        return await BackgroundWork.Run(() => XamlLocalization.At(file, offset) is { } read ? (read, read.SetOf(open)) : ((LocalizedStatic, ResourceSet?)?)null);
+    }
+
+    /// <summary>What the hover card says of a XAML file's localized string, beside what the name is: each language's value, as
+    /// C#'s card says it; that no file gives the resource where none is found.</summary>
+    private async Task<string?> XamlLocalizationHoverAsync(XamlDocument xaml, int offset)
+    {
+        if (await xaml.FileAsync() is not { } file || await XamlLocalizedAtAsync(file, offset) is not ({ } read, var set))
+        {
+            return null;
+        }
+        return set is null ? $"'{read.Key}' ({read.Type.Name}): no .resx gives {read.Manager}" : CSharpAssist.LocalizationCard(read.Key, read.Type.Name, set);
+    }
+
+    /// <summary>Where Go to Declaration goes from a XAML file's localized string beyond the generated property: each file's entry
+    /// of its key, named by its language; none elsewhere. Shared with the agents' definition.</summary>
+    internal async Task<IReadOnlyList<XamlTarget>> XamlLocalizedTargetsAsync(XamlFile file, int offset)
+    {
+        if (await XamlLocalizedAtAsync(file, offset) is not ({ } read, { } set))
+        {
+            return [];
+        }
+        return [.. set.Files.Select(f => (File: f, Entry: f.Entry(read.Key))).Where(f => f.Entry is not null)
+            .Select(f => new XamlTarget(XamlTargetKind.File, $"{(f.File.Culture.Length == 0 ? "neutral" : f.File.Culture)}: {f.File.Name}")
+            {
+                Path = f.File.Path,
+                Range = TextRange.FromBounds(f.Entry!.NameStart, f.Entry.NameEnd),
+            })];
+    }
 
     /// <summary>The protocol's kind for a XAML item, which gives its badge its letter and colour.</summary>
     private static CompletionItemKind KindOf(XamlItemKind kind) => kind switch

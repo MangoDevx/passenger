@@ -14,9 +14,9 @@ namespace Passenger.App.CSharp;
 /// applied as one command that Undo takes back whole, the files it makes included. The making is a method of its own
 /// per refactoring (<see cref="ChangeSignatureAsync"/>...), which an agent's refactor tool calls with the dialog's
 /// options.</summary>
-public sealed partial class CodeAssist
+internal sealed partial class CodeActions
 {
-    private async Task ChangeSignature()
+    public async Task ChangeSignature()
     {
         const string name = "Change Signature";
         if (await DescribeAsync<Signature>(name, Handlers.DescribeSignature) is not ({ } signature, { } document, { } caret))
@@ -27,7 +27,7 @@ public sealed partial class CodeAssist
         {
             if (signature.Problem is { } problem)
             {
-                Message?.Invoke(this, problem);
+                context.Say(problem);
                 return;
             }
             await ShowAsync(new ChangeSignatureDialog(signature, (method, returnType, parameters) =>
@@ -35,7 +35,7 @@ public sealed partial class CodeAssist
         }
     }
 
-    private async Task ExtractInterface()
+    public async Task ExtractInterface()
     {
         const string name = "Extract Interface";
         if (await DescribeAsync<InterfaceSource>(name, Handlers.DescribeInterface) is not ({ } source, { } document, { } caret))
@@ -46,7 +46,7 @@ public sealed partial class CodeAssist
         {
             if (source.Problem is { } problem)
             {
-                Message?.Invoke(this, problem);
+                context.Say(problem);
                 return;
             }
             await ShowAsync(new ExtractInterfaceDialog(source, (interfaceName, file, members) =>
@@ -55,7 +55,7 @@ public sealed partial class CodeAssist
     }
 
     /// <summary>Move on a type: a list of where it can go, then the dialog of the one chosen.</summary>
-    private async Task Move()
+    public async Task Move()
     {
         const string name = "Move";
         if (await DescribeAsync<TypeSource>(name, Handlers.DescribeType) is not ({ } type, { } document, { } caret))
@@ -65,10 +65,10 @@ public sealed partial class CodeAssist
         if (type.Problem is { } problem)
         {
             caret.Dispose();
-            Message?.Invoke(this, problem);
+            context.Say(problem);
             return;
         }
-        ShowModal(new ChoicePopup($"Move {type.Kind} '{type.Name}'",
+        popups.ShowModal(new ChoicePopup($"Move {type.Kind} '{type.Name}'",
             [new Choice("Move to Another File…", string.Empty, true, Mnemonic: '1'), new Choice("Move to Namespace…", string.Empty, false, Mnemonic: '2')]),
             caret.Offset, name, chosen =>
             {
@@ -81,7 +81,7 @@ public sealed partial class CodeAssist
                 return Task.CompletedTask;
             });
         // The list's own let go as it closes, however it closes: a choice follows the caret on from there with one of its own.
-        modalClosed = caret.Dispose;
+        popups.WhenClosed(caret.Dispose);
     }
 
     private async Task MoveAsync(TypeSource type, OpenDocument document, FollowedCaret caret, bool toFile)
@@ -96,7 +96,7 @@ public sealed partial class CodeAssist
 
     /// <summary>Pull Members Up (to a base type in the solution) or Push Members Down (to the classes derived from the
     /// one at the caret).</summary>
-    private async Task MoveMembers(bool up)
+    public async Task MoveMembers(bool up)
     {
         string name = up ? "Pull Members Up" : "Push Members Down";
         if (await DescribeAsync<Hierarchy>(name, Handlers.DescribeHierarchy) is not ({ } hierarchy, { } document, { } caret))
@@ -107,7 +107,7 @@ public sealed partial class CodeAssist
         {
             if (MembersMoveProblem(hierarchy, up) is { } problem)
             {
-                Message?.Invoke(this, problem);
+                context.Say(problem);
                 return;
             }
             Func<string, IReadOnlyList<string>, IReadOnlyList<string>, Task<string?>> make = (target, members, made) =>
@@ -175,25 +175,25 @@ public sealed partial class CodeAssist
     /// now; null, said in the status bar, when the server cannot be asked.</summary>
     private async Task<(T? Found, OpenDocument? Document, FollowedCaret? Caret)> DescribeAsync<T>(string name, string handler) where T : class
     {
-        if (Ask(name) is not { } lsp || editors.Active is not { } document)
+        if (context.Ask(name) is not { } lsp || context.Editors.Active is not { } document)
         {
             return (null, null, null);
         }
-        FollowedCaret caret = new(new ChangeTracker(document.Text), Caret);
+        FollowedCaret caret = new(new ChangeTracker(document.Text), context.Caret);
         using IDisposable held = BackgroundWork.Scope();
         try
         {
-            return (await DescribeAtAsync<T>(lsp, Caret, handler), document, caret);
+            return (await DescribeAtAsync<T>(lsp, context.Caret, handler), document, caret);
         }
         catch (LanguageServerFailed failed)
         {
             caret.Dispose();
-            Failed(name, failed);
+            context.Failed(name, failed);
             return (null, null, null);
         }
     }
 
-    private async Task ShowAsync(RefactoringDialog dialog)
+    internal async Task ShowAsync(RefactoringDialog dialog)
     {
         if (TopLevel.GetTopLevel(Editor) is Window owner)
         {
@@ -208,7 +208,7 @@ public sealed partial class CodeAssist
         RefactorOutcome made = await making;
         if (made.Problem is null)
         {
-            Message?.Invoke(this, made.Said);
+            context.Say(made.Said);
         }
         return made.Problem;
     }
@@ -216,12 +216,12 @@ public sealed partial class CodeAssist
     /// <summary>A refactoring computed by Passenger's extension for a file and applied as one command, which Undo takes back
     /// whole: every file it changes, open or not, and every file it makes. What it came to: the files it changed and what
     /// to say of it, or why it was not made (for an agent's call, told its <paramref name="patience"/>).</summary>
-    private async Task<RefactorOutcome> MakeAsync(string name, OpenDocument document, Func<LspDocument, Task<Refactored>> ask, Func<int, string> done, Patience? patience)
+    internal async Task<RefactorOutcome> MakeAsync(string name, OpenDocument document, Func<LspDocument, Task<Refactored>> ask, Func<int, string> done, Patience? patience)
     {
         try
         {
-            LspDocument lsp = Now(document);
-            using Asked asked = WorkspaceEdits.Track(editors);
+            LspDocument lsp = context.Now(document);
+            using Asked asked = WorkspaceEdits.Track(context.Editors);
             Refactored made = await ask(lsp);
             if (made.Problem is { } problem)
             {
@@ -232,21 +232,21 @@ public sealed partial class CodeAssist
                 return new RefactorOutcome($"{name} changed nothing", null, [], []);
             }
             System.Text.Json.JsonElement edit = RoslynExtension.WorkspaceEdit(made);
-            if (await WorkspaceEdits.StaleAsync(editors, lsp, edit, asked.Since, patience) is { } stale)
+            if (await WorkspaceEdits.StaleAsync(context.Editors, lsp, edit, asked.Since, patience) is { } stale)
             {
                 return RefactorOutcome.Refused($"{name} was not applied: {stale}");
             }
             List<string> dropped = [];
-            IReadOnlyList<RefactoredFile> files = WorkspaceEdits.Files(edit, WorkspaceEdits.Answered(editors, asked));
-            using (CommandHistory.Recording recording = editors.Commands.Record(name))
+            IReadOnlyList<RefactoredFile> files = WorkspaceEdits.Files(edit, WorkspaceEdits.Answered(context.Editors, asked));
+            using (CommandHistory.Recording recording = context.Editors.Commands.Record(name))
             {
                 foreach (FileChange change in made.Changes)
                 {
                     recording.Watch(PathNames.Canonical(change.Path));
                 }
-                _ = WorkspaceEdits.Apply(editors, edit, asked, dropped);
+                _ = WorkspaceEdits.Apply(context.Editors, edit, asked, dropped);
             }
-            FilesChanged?.Invoke(this, EventArgs.Empty);
+            context.ChangedFiles();
             // Counted by file: a file made is its creation and its text, which the edit counts apart.
             string said = done(made.Changes.Count - dropped.Count) + (dropped.Count > 0 ? $", but not in {string.Join(", ", dropped)}: it was edited meanwhile" : string.Empty);
             return new RefactorOutcome(said, null, files, dropped);

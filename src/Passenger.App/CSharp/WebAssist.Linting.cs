@@ -13,25 +13,22 @@ namespace Passenger.App.CSharp;
 /// Reformat Code formats with Prettier the files its glob covers (Reformat with Prettier any file it reads), and an
 /// explicit save runs both first as Settings ask. Each is one undoable edit, the caret kept where the code it was in
 /// went.</summary>
-public sealed partial class CodeAssist
+internal sealed partial class WebAssist
 {
-    /// <summary>A page to open in the browser: an ESLint rule's.</summary>
-    public event EventHandler<Uri>? Browse;
-
-    private EslintDocument? LintOf(OpenDocument document) => Web?.Invoke()?.Eslint.For(document);
+    private EslintDocument? LintOf(OpenDocument document) => context.Web?.Invoke()?.Eslint.For(document);
 
     /// <summary>Reformat with Prettier and Fix ESLint Problems, in the editor's menu.</summary>
-    private void AddLintingActions(ActionRegistry actions)
+    public void AddLintingActions(ActionRegistry registry)
     {
-        actions.Add(new IdeAction(AppActions.ReformatWithPrettier, "Reformat with Prettier", "Code", context => _ = ReformatWithPrettier())
+        registry.Add(new IdeAction(AppActions.ReformatWithPrettier, "Reformat with Prettier", "Code", context => _ = ReformatWithPrettier())
         {
-            WhyNot = context => context.File is null ? Refusals.NoFile
-                : context.Editor.IsReadOnly ? "The file is read-only"
-                : Web?.Invoke() is not { } web ? Refusals.NoFolder
-                : web.Prettier.PackageFor(context.File.Path) is null ? $"No prettier package formats {context.File.Name}: install it in the project, or name one in {PrettierService.Place}"
+            WhyNot = action => action.File is null ? Refusals.NoFile
+                : action.Editor.IsReadOnly ? "The file is read-only"
+                : context.Web?.Invoke() is not { } web ? Refusals.NoFolder
+                : web.Prettier.PackageFor(action.File.Path) is null ? $"No prettier package formats {action.File.Name}: install it in the project, or name one in {PrettierService.Place}"
                 : null,
         });
-        actions.Add(new IdeAction(AppActions.FixEslintProblems, "Fix ESLint Problems", "Code", context => _ = FixEslintProblems())
+        registry.Add(new IdeAction(AppActions.FixEslintProblems, "Fix ESLint Problems", "Code", context => _ = FixEslintProblems())
         {
             WhyNot = context => context.File is null ? Refusals.NoFile
                 : context.Editor.IsReadOnly ? "The file is read-only"
@@ -41,7 +38,7 @@ public sealed partial class CodeAssist
     }
 
     /// <summary>Whether Reformat Code formats a file with Prettier ("Run on 'Reformat Code' action").</summary>
-    private bool PrettierReformats(OpenDocument? file) => file is not null && Web?.Invoke()?.Prettier.OnReformat(file.Path) == true;
+    internal bool PrettierReformats(OpenDocument? file) => file is not null && context.Web?.Invoke()?.Prettier.OnReformat(file.Path) == true;
 
     /// <summary>ESLint's fixes for the problems on the caret's line; none when ESLint does not check the file.</summary>
     internal async Task<IReadOnlyList<EslintFix>> LintFixes(OpenDocument document, int caret)
@@ -63,18 +60,18 @@ public sealed partial class CodeAssist
 
     /// <summary>One of ESLint's fixes chosen: made by its server's command, which hands the window its edit; its rule's page
     /// opened for the documentation.</summary>
-    private async Task RunLintFix(OpenDocument document, EslintFix fix)
+    internal async Task RunLintFix(OpenDocument document, EslintFix fix)
     {
         if (LintOf(document) is not { } lint)
         {
-            Message?.Invoke(this, $"{fix.Title} was not applied: ESLint no longer checks {document.Name}");
+            context.Say($"{fix.Title} was not applied: ESLint no longer checks {document.Name}");
             return;
         }
         if (fix.OpensDocumentation)
         {
             if (lint.Diagnostics.FirstOrDefault(d => d.Code is { ValueKind: JsonValueKind.String } code && code.GetString() == fix.Rule)?.CodePage is { } page)
             {
-                Browse?.Invoke(this, page);
+                context.Browse(page);
             }
             return;
         }
@@ -85,26 +82,26 @@ public sealed partial class CodeAssist
         }
         catch (LanguageServerFailed failed)
         {
-            Failed(fix.Title, failed);
+            context.Failed(fix.Title, failed);
         }
     }
 
     private async Task FixEslintProblems()
     {
-        if (editors.Active is not { } document)
+        if (context.Editors.Active is not { } document)
         {
             return;
         }
         if (LintOf(document) is not { } lint)
         {
-            Message?.Invoke(this, $"ESLint does not check {document.Name}");
+            context.Say($"ESLint does not check {document.Name}");
             return;
         }
         using (BackgroundWork.Scope())
         {
             if (await FixAll(document, lint, "Fix ESLint Problems") is { } changed)
             {
-                Message?.Invoke(this, changed ? "ESLint: fixed what it can fix" : "ESLint: nothing to fix");
+                context.Say(changed ? "ESLint: fixed what it can fix" : "ESLint: nothing to fix");
             }
         }
     }
@@ -116,13 +113,13 @@ public sealed partial class CodeAssist
         string before = document.Text.Snapshot.ToString();
         try
         {
-            using Asked asked = WorkspaceEdits.Track(editors);
+            using Asked asked = WorkspaceEdits.Track(context.Editors);
             if (await lint.FixAllAsync() is not { } edit)
             {
-                Message?.Invoke(this, $"{what}: ESLint has nothing to give for {document.Name} yet");
+                context.Say($"{what}: ESLint has nothing to give for {document.Name} yet");
                 return null;
             }
-            if (!ApplyWorkspace(edit, asked, what))
+            if (!actions.ApplyWorkspace(edit, asked, what))
             {
                 return null;
             }
@@ -130,14 +127,14 @@ public sealed partial class CodeAssist
         }
         catch (LanguageServerFailed failed)
         {
-            Failed(what, failed);
+            context.Failed(what, failed);
             return null;
         }
     }
 
     private async Task ReformatWithPrettier()
     {
-        if (editors.Active is not { } document || Web?.Invoke() is not { } web)
+        if (context.Editors.Active is not { } document || context.Web?.Invoke() is not { } web)
         {
             return;
         }
@@ -151,7 +148,7 @@ public sealed partial class CodeAssist
     /// own undoable edit.</summary>
     public async Task BeforeSave(OpenDocument document)
     {
-        if (Web?.Invoke() is not { } web || document.IsReadOnly)
+        if (context.Web?.Invoke() is not { } web || document.IsReadOnly)
         {
             return;
         }
@@ -179,7 +176,7 @@ public sealed partial class CodeAssist
     private async Task<Prettified> Prettify(WebLanguages web, OpenDocument document, string what)
     {
         (Prettified outcome, string said) = await PrettifyAsync(web, document, what);
-        Message?.Invoke(this, said);
+        context.Say(said);
         return outcome;
     }
 
@@ -193,7 +190,7 @@ public sealed partial class CodeAssist
         }
         string text = document.Text.Snapshot.ToString();
         int version = document.Text.Version;
-        int caret = editors.Active == document ? Editor.Selections.Primary.Caret : document.Selections.Primary.Caret;
+        int caret = context.Editors.Active == document ? context.Editor.Selections.Primary.Caret : document.Selections.Primary.Caret;
         PrettierAnswer answer = await BackgroundWork.Run(() => web.Prettier.FormatAsync(document.Path, text, caret));
         if (answer.Ignored)
         {
@@ -220,9 +217,9 @@ public sealed partial class CodeAssist
         }
         int lines = LineDiff.Hunks(LineDiff.Lines(text), LineDiff.Lines(after)).Sum(h => Math.Max(h.OldCount, h.NewCount));
         SelectionSet carried = SelectionSet.Single(Math.Clamp(cursor, 0, after.Length));
-        if (editors.Active == document)
+        if (context.Editors.Active == document)
         {
-            Editor.ApplyEdits(edits, carried);
+            context.Editor.ApplyEdits(edits, carried);
         }
         else
         {

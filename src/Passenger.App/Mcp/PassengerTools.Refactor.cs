@@ -10,7 +10,7 @@ using Passenger.Text;
 
 namespace Passenger.App.Mcp;
 
-/// <summary>The window's refactorings for an agent, each through the same method of <see cref="CodeAssist"/> its command
+/// <summary>The window's refactorings for an agent, each through the same method of <see cref="CodeActions"/> its command
 /// goes through, with its dialog's options as arguments: Change Signature, Safe Delete, Move, Extract Interface, Pull
 /// Members Up and Push Members Down, the server's Introduce Field, Introduce Parameter and Encapsulate Field, and Optimize
 /// Imports and Code Cleanup over a file, a project or the solution. Asked without options, a kind with a dialog answers
@@ -105,7 +105,7 @@ public sealed partial class PassengerTools
 
     private async Task<RefactorAnswer> ChangeSignatureAsync(OpenDocument document, LspDocument lsp, int offset, JsonElement? options, bool describing, Patience patience)
     {
-        Signature signature = await CodeAssist.DescribeAtAsync<Signature>(lsp, offset, Handlers.DescribeSignature);
+        Signature signature = await CSharp.CodeActions.DescribeAtAsync<Signature>(lsp, offset, Handlers.DescribeSignature);
         if (signature.Problem is { } problem)
         {
             throw new InvalidOperationException(problem);
@@ -170,12 +170,12 @@ public sealed partial class PassengerTools
                 }
             }
         }
-        return Applied("change_signature", await window.Assist.ChangeSignatureAsync(document, offset, signature, name, returnType, parameters, patience));
+        return Applied("change_signature", await window.Assist.Actions.ChangeSignatureAsync(document, offset, signature, name, returnType, parameters, patience));
     }
 
     private async Task<RefactorAnswer> ExtractInterfaceAsync(OpenDocument document, LspDocument lsp, int offset, JsonElement? options, bool describing, Patience patience)
     {
-        InterfaceSource source = await CodeAssist.DescribeAtAsync<InterfaceSource>(lsp, offset, Handlers.DescribeInterface);
+        InterfaceSource source = await CSharp.CodeActions.DescribeAtAsync<InterfaceSource>(lsp, offset, Handlers.DescribeInterface);
         if (source.Problem is { } problem)
         {
             throw new InvalidOperationException(problem);
@@ -195,12 +195,12 @@ public sealed partial class PassengerTools
         // The file follows the name until it is given, as the dialog's does until it is typed in.
         string file = Text(given, "file") ?? (Text(given, "name") is { } typed ? $"{typed.Trim()}.cs" : source.FileName);
         IReadOnlyList<string> members = Texts(given, "members") is { } chosen ? [.. chosen.Select(m => MemberId(source.Members, m, $"members {source.Type} can give an interface"))] : [.. source.Members.Select(m => m.Id)];
-        return Applied("extract_interface", await window.Assist.ExtractInterfaceAsync(document, offset, source, name, file, members, patience));
+        return Applied("extract_interface", await window.Assist.Actions.ExtractInterfaceAsync(document, offset, source, name, file, members, patience));
     }
 
     private async Task<RefactorAnswer> MoveAsync(OpenDocument document, LspDocument lsp, int offset, JsonElement? options, bool describing, Patience patience)
     {
-        TypeSource type = await CodeAssist.DescribeAtAsync<TypeSource>(lsp, offset, Handlers.DescribeType);
+        TypeSource type = await CSharp.CodeActions.DescribeAtAsync<TypeSource>(lsp, offset, Handlers.DescribeType);
         if (type.Problem is { } problem)
         {
             throw new InvalidOperationException(problem);
@@ -224,16 +224,16 @@ public sealed partial class PassengerTools
         {
             (null, null) => throw new ArgumentException("move takes file (a new file beside the type's) or namespace, as the window's Move to Another File and Move to Namespace do"),
             ({ }, { }) => throw new ArgumentException("move takes file or namespace, one at a time, as the window's Move does: move it to the namespace, then to the file, in two calls"),
-            ({ } toFile, null) => Applied("move", await window.Assist.MoveTypeToFileAsync(document, offset, type, toFile, patience)),
-            _ => Applied("move", await window.Assist.MoveTypeToNamespaceAsync(document, offset, type, space!, patience)),
+            ({ } toFile, null) => Applied("move", await window.Assist.Actions.MoveTypeToFileAsync(document, offset, type, toFile, patience)),
+            _ => Applied("move", await window.Assist.Actions.MoveTypeToNamespaceAsync(document, offset, type, space!, patience)),
         };
     }
 
     private async Task<RefactorAnswer> MembersAsync(OpenDocument document, LspDocument lsp, int offset, JsonElement? options, bool describing, bool up, Patience patience)
     {
         string kind = up ? "pull_members_up" : "push_members_down";
-        Hierarchy hierarchy = await CodeAssist.DescribeAtAsync<Hierarchy>(lsp, offset, Handlers.DescribeHierarchy);
-        if (CodeAssist.MembersMoveProblem(hierarchy, up) is { } problem)
+        Hierarchy hierarchy = await CSharp.CodeActions.DescribeAtAsync<Hierarchy>(lsp, offset, Handlers.DescribeHierarchy);
+        if (CSharp.CodeActions.MembersMoveProblem(hierarchy, up) is { } problem)
         {
             throw new InvalidOperationException(problem);
         }
@@ -261,12 +261,12 @@ public sealed partial class PassengerTools
         {
             throw new ArgumentException($"{hierarchy.Members.First(m => m.Id == stays).Text} is made abstract only as it moves: list it in members too");
         }
-        return Applied(kind, await window.Assist.MoveMembersAsync(document, offset, hierarchy, up, target, members, made, patience));
+        return Applied(kind, await window.Assist.Actions.MoveMembersAsync(document, offset, hierarchy, up, target, members, made, patience));
     }
 
     private async Task<RefactorAnswer> SafeDeleteAsync(LspDocument lsp, int offset, JsonElement? options, bool describing, CancellationToken cancel)
     {
-        (CodeAssist.Doomed? found, string? whyNot) = await window.Assist.FindDoomedAsync(lsp, offset);
+        (CSharp.CodeActions.Doomed? found, string? whyNot) = await window.Assist.Actions.FindDoomedAsync(lsp, offset);
         if (found is not { } doomed)
         {
             throw new InvalidOperationException(whyNot ?? "Nothing to delete here");
@@ -286,7 +286,7 @@ public sealed partial class PassengerTools
                 throw new InvalidOperationException($"Safe Delete left {what} where it is: it has {Plural.Of(uses.Count, "usage")} that would no longer compile "
                     + $"once it is deleted ({string.Join("; ", uses.Select(u => $"{u.Path}:{u.Line}: {u.Text}"))}). Fix them first, or give deleteAnyway true");
             }
-            return Applied("safe_delete", window.Assist.Delete(doomed)) with { Usages = uses.Count > 0 ? uses : null };
+            return Applied("safe_delete", window.Assist.Actions.Delete(doomed)) with { Usages = uses.Count > 0 ? uses : null };
         }
     }
 
@@ -294,16 +294,16 @@ public sealed partial class PassengerTools
     /// selection, the one named where it offers several, then the choice named of those nested under it.</summary>
     private async Task<RefactorAnswer> ServerRefactorAsync(string kind, OpenDocument document, LspDocument lsp, int offset, int? endLine, int? endColumn, JsonElement? options, bool describing, Patience patience)
     {
-        CodeAssist.ServerRefactoring refactoring = kind switch
+        CSharp.CodeActions.ServerRefactoring refactoring = kind switch
         {
-            "introduce_field" => CodeAssist.IntroduceField,
-            "introduce_parameter" => CodeAssist.IntroduceParameter,
-            _ => CodeAssist.EncapsulateField,
+            "introduce_field" => CSharp.CodeActions.IntroduceField,
+            "introduce_parameter" => CSharp.CodeActions.IntroduceParameter,
+            _ => CSharp.CodeActions.EncapsulateField,
         };
         int end = endLine is int l ? Offset(document, l, endColumn ?? 1) : offset;
         TextRange range = new(Math.Min(offset, end), Math.Abs(end - offset));
         using Asked asked = WorkspaceEdits.Track(Editors);
-        IReadOnlyList<CodeAction> offered = await CodeAssist.OfferedAsync(lsp, range, refactoring);
+        IReadOnlyList<CodeAction> offered = await CSharp.CodeActions.OfferedAsync(lsp, range, refactoring);
         if (offered.Count == 0)
         {
             throw new InvalidOperationException($"{refactoring.Name} is not available here: {refactoring.Missing}");
@@ -312,7 +312,7 @@ public sealed partial class PassengerTools
         {
             return Described(kind, $"{refactoring.Name} here", new
             {
-                Actions = offered.Select(a => new { a.Title, Choices = CodeAssist.ChoicesOf(a, refactoring).Select(c => c.Text) }),
+                Actions = offered.Select(a => new { a.Title, Choices = CSharp.CodeActions.ChoicesOf(a, refactoring).Select(c => c.Text) }),
             });
         }
         string? title = options is { } given ? Text(given, "action") : null;
@@ -321,7 +321,7 @@ public sealed partial class PassengerTools
             ? offered.Count == 1 ? offered[0] : throw new ArgumentException($"{refactoring.Name} offers {offered.Count} actions here; name one as action: {string.Join("; ", offered.Select(a => a.Title))}")
             : offered.FirstOrDefault(a => a.Title == title) ?? throw new ArgumentException($"{refactoring.Name} offers no '{title}' here; it offers {string.Join("; ", offered.Select(a => a.Title))}");
         IReadOnlyList<ActionChoice> all = ClientCommands.Choices(action);
-        IReadOnlyList<ActionChoice> choices = CodeAssist.ChoicesOf(action, refactoring);
+        IReadOnlyList<ActionChoice> choices = CSharp.CodeActions.ChoicesOf(action, refactoring);
         if (all.Count > 0 && choices.Count == 0)
         {
             throw new InvalidOperationException($"{refactoring.Name} is not available here: the language server offers none of its kind");
@@ -335,7 +335,7 @@ public sealed partial class PassengerTools
                 : choices.FirstOrDefault(c => c.Text == choice) ?? throw new ArgumentException($"'{action.Title}' offers no choice '{choice}'; it offers {string.Join("; ", choices.Select(c => c.Text))}");
             (chosen, scope) = (taken.Action, taken.Scope);
         }
-        (RefactorOutcome made, _) = await window.Assist.ApplyAsync(document, chosen, scope, refactoring.Name, asked, patience);
+        (RefactorOutcome made, _) = await window.Assist.Actions.ApplyAsync(document, chosen, scope, refactoring.Name, asked, patience);
         return Applied(kind, made.Said.Length > 0 || made.Problem is not null ? made : made with { Said = $"{refactoring.Name} done" });
     }
 
@@ -362,7 +362,7 @@ public sealed partial class PassengerTools
                 {
                     return new RefactorAnswer(kind, $"Code Cleanup would reformat {Relative(markup.Path)}", [], []);
                 }
-                CodeAssist.Reformatted formatted = await FormatXamlAsync(markup, name);
+                CSharp.CodeActions.Reformatted formatted = await FormatXamlAsync(markup, name);
                 return new RefactorAnswer(kind, formatted.Said, formatted.Changed ? [new RefactorFile(Relative(markup.Path), "changed", [], formatted.Said)] : [], []);
             }
             (OpenDocument document, LspDocument lsp) = await CSharpOnly(path, kind, cancel);
@@ -444,10 +444,10 @@ public sealed partial class PassengerTools
     {
         if (cleanup)
         {
-            return CodeAssist.CleanedUp(await window.Assist.CleanUpAsync(lsp, document));
+            return CSharp.CodeActions.CleanedUp(await window.Assist.Actions.CleanUpAsync(lsp, document));
         }
-        (bool removed, bool sorted) = await window.Assist.TidyUsings(lsp, document);
-        return CodeAssist.Optimized(removed, sorted);
+        (bool removed, bool sorted) = await window.Assist.Actions.TidyUsings(lsp, document);
+        return CSharp.CodeActions.Optimized(removed, sorted);
     }
 
     /// <summary>The C# files of a project (the one a path names or holds) or of the solution, as Find in Files' scopes
