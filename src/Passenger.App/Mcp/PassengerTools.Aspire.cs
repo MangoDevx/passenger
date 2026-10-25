@@ -1,3 +1,4 @@
+using Passenger.Core;
 using System.ComponentModel;
 using System.Text.Json;
 using ModelContextProtocol.Server;

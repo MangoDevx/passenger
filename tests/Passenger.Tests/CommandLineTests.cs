@@ -79,7 +79,7 @@ public sealed class CommandLineTests : IDisposable
     [InlineData(global::Passenger.Dap.AdapterEnvironment.EvaluationTimeoutVariable, "0", Milliseconds)]
     [InlineData(global::Passenger.App.Mcp.AgentCall.EveryVariable, "-1000", Milliseconds)]
     [InlineData(global::Passenger.App.Mcp.McpHost.LanguageServerVariable, "no", "off or on")]
-    [InlineData(global::Passenger.App.Waits.ScaleVariable, "0", "a number above 0")]
+    [InlineData(global::Passenger.Core.Waits.ScaleVariable, "0", "a number above 0")]
     public async Task A_malformed_variable_ends_Passenger_with_exit_code_2_and_the_reason_before_anything_starts(string variable, string value, string takes)
     {
         (int code, string error) = await Run(["--mcp", "."], settings, new Dictionary<string, string> { [variable] = value });

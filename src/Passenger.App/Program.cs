@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Avalonia;
 using Avalonia.Styling;
 using Velopack;
+using Passenger.Core;
 
 namespace Passenger.App;
 
