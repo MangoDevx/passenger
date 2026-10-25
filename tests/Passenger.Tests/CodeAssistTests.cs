@@ -857,8 +857,8 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Passenger.App.Mcp.PassengerTools tools = new(window);
         Passenger.App.Mcp.Place declared = Assert.Single(Await(tools.Definition("Separated.cs", 14, 39), "the declaration an agent asks for"));
         Assert.Equal(("Separators.cs", 4, 23, "public static int Value()"), (declared.Path, declared.Line, declared.Column, declared.Text));
-        Assert.Contains(Await(tools.Usages("Separators.cs", 4, 23), "the usages an agent asks for"),
-            p => p is { Path: "Separated.cs", Line: 14, Column: 38, Text: "public int Value() => Separators.Value();" });
+        Assert.Contains("14:38 public int Value() => Separators.Value();",
+            Assert.Single(Await(tools.Usages("Separators.cs", 4, 23), "the usages an agent asks for").Files, f => f.Path == "Separated.cs").Places);
         Assert.Contains(Await(tools.FindSymbol("FirstSeparated"), "the symbol an agent looks for"), s => s.Line == 7);
         Assert.Contains("FirstSeparated (class, line 7)", Await(tools.Outline("Separated.cs"), "the outline an agent asks for"), StringComparison.Ordinal);
 

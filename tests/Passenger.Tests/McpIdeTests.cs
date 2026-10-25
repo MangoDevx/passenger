@@ -202,8 +202,8 @@ public sealed class McpIdeTests : McpRig, IClassFixture<RestoredFolders>
         Assert.Equal(("CS0103", 1), (error.GetProperty("code").GetString(), error.GetProperty("line").GetInt32()));
         string total = (await Call(client, "symbol_info", new() { ["path"] = "Components/Sum.razor", ["line"] = 1, ["column"] = 6 })).GetString()!;
         Assert.True(total.Contains("Total", StringComparison.Ordinal) && total.Contains("int", StringComparison.Ordinal), $"symbol_info on a Razor component's name said: {total}");
-        string[] used = [.. (await Call(client, "usages", new() { ["path"] = "Components/Sum.razor", ["line"] = 6, ["column"] = 25 })).EnumerateArray()
-            .Select(p => $"{p.GetProperty("path").GetString()}:{p.GetProperty("line").GetInt32()}").Order(StringComparer.Ordinal)];
+        string[] used = [.. Used(await Call(client, "usages", new() { ["path"] = "Components/Sum.razor", ["line"] = 6, ["column"] = 25 }))
+            .Select(p => $"{p.Path}:{p.Line}").Order(StringComparer.Ordinal)];
         Assert.Equal([Path.Combine("Components", "Sum.razor") + ":4", Path.Combine("Components", "Sum.razor") + ":6"], used);
     }
 

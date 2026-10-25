@@ -244,7 +244,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         {
             return "Nothing is known about this position";
         }
-        string said = Shapes.Text(hover.Contents).Trim();
+        string said = HoverText(hover);
         return served.Document.Language == Languages.Language.CSharp && await server.Lsp.SymbolAtAsync(offset) is { Id: { } id } ? $"{said}\n\nDocumentation id: {id}" : said;
     });
 
@@ -286,18 +286,20 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
     });
 
     [McpServerTool(Name = "usages", Title = "Find usages", ReadOnly = true), Description(
-        "Every place the symbol at a position is used, its declaration included, each with its line's text, as Find Usages " +
-        "finds them; in XAML, an element's name in its file and code-behind, or a resource's key across the project. JSON and " +
-        "MSBuild files have none.")]
-    public Task<IReadOnlyList<Place>> Usages(string? path = null, int? line = null, int? column = null, string? symbol = null, CancellationToken cancel = default) => OnUi(cancel, async () =>
+        "Every place the symbol at a position is used, its declaration included, as Find Usages finds them, by file, each as " +
+        "line:column and its line's text, after the C# symbol the place took; in XAML, an element's name in its file and " +
+        "code-behind, or a resource's key across the project. JSON and MSBuild files have none.")]
+    public Task<UsagesFound> Usages(string? path = null, int? line = null, int? column = null, string? symbol = null, CancellationToken cancel = default) => OnUi(cancel, async () =>
     {
         CodePlace at = await AskedAt(path, line, column, symbol, cancel);
         Served served = await Serve(at.Path, cancel);
         int offset = Offset(served.Document, at.Line, at.Column);
+        string place = $"{Relative(served.Document.Path)}:{at.Line}:{at.Column}";
         switch (served)
         {
             case XamlServed xaml:
-                return Sorted(await XamlUsages(xaml, offset, cancel));
+                return ByFile(null, await XamlUsages(xaml, offset, cancel) is { Count: > 0 } uses ? uses
+                    : throw new InvalidOperationException($"No name or resource key at {place}: {XamlAssist.XamlUsesWhat}"));
             case MSBuildServed:
                 throw Lacks(served, "Find Usages", MSBuildHas);
             case ServerServed unfound when !unfound.Provides("referencesProvider"):
@@ -308,10 +310,21 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         // A symbol's usages hold its declaration, so none says no symbol is there.
         if (found.Count == 0 && server.Web is null)
         {
-            found = await server.Lsp.ReferencesAsync(await DeclaredOn(server, at.Line, at.Column));
+            found = await server.Lsp.ReferencesAsync(offset = await DeclaredOn(server, at.Line, at.Column));
         }
-        return Sorted(await Places(found, cancel));
+        if (found.Count == 0)
+        {
+            throw new InvalidOperationException($"No symbol at {place}: {server.Language}'s language server finds no usages there");
+        }
+        // Passenger's extension reads a C# file's symbols, not a Razor file's.
+        string? taken = served.Document.Language == Languages.Language.CSharp && await server.Lsp.SymbolAtAsync(offset, cancel) is { } named ? $"{named.Shown} ({named.Kind})" : null;
+        return ByFile(taken, await Places(found, cancel));
     });
+
+    /// <summary>usages' answer: its places in order (<see cref="Sorted"/>), each file named once.</summary>
+    private static UsagesFound ByFile(string? symbol, IReadOnlyList<Place> places) =>
+        new(symbol, places.Count, [.. Sorted(places).GroupBy(p => p.Path, StringComparer.Ordinal)
+            .Select(file => new FilePlaces(file.Key, [.. file.Select(p => p.Text.Length == 0 ? $"{p.Line}:{p.Column}" : $"{p.Line}:{p.Column} {p.Text}")]))]);
 
     [McpServerTool(Name = "hierarchy", Title = "Call or type hierarchy", ReadOnly = true), Description(
         "One level of the hierarchy of the symbol at a position, as the Hierarchy window: direction callers (each at its " +
@@ -414,26 +427,38 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         "Method, Introduce Variable), as 'title [kind]' with the choices each offers (nested actions, a Fix All's scopes, where " +
         "a XAML resource goes), which apply_code_action takes: Passenger's own fixes first, then ESLint's, then the language " +
         "server's; in XAML, the line's problems' fixes (a binding's missing property or command, a missing converter), Extract " +
-        "Resource and Extract Style.")]
-    public Task<IReadOnlyList<string>> CodeActions(string path, int line, int column, int? endLine = null, int? endColumn = null, CancellationToken cancel = default) => OnUi(cancel, async () =>
+        "Resource and Extract Style. A Suppress or Configure action's choices are counted, and listed when title names it.")]
+    public Task<IReadOnlyList<string>> CodeActions(string path, int line, int column, int? endLine = null, int? endColumn = null, string? title = null,
+        CancellationToken cancel = default) => OnUi(cancel, async () =>
     {
         Served served = await Serve(path, cancel);
+        IReadOnlyList<(string Title, string Shown)> listed;
         switch (served)
         {
             case XamlServed xaml:
-                return (IReadOnlyList<string>)[.. (await XamlActions(xaml, Offset(xaml.Document, line, column)))
-                    .Select(a => a.Choices.Count == 0 ? $"{a.Title} [{a.Kind}]" : $"{a.Title} [{a.Kind}], choices: {string.Join("; ", a.Choices)}")];
+                listed = [.. (await XamlActions(xaml, Offset(xaml.Document, line, column)))
+                    .Select(a => (a.Title, a.Choices.Count == 0 ? $"{a.Title} [{a.Kind}]" : $"{a.Title} [{a.Kind}], choices: {string.Join("; ", a.Choices)}"))];
+                break;
             case MSBuildServed when window.Assist.OwnFixes(served.Document, Offset(served.Document, line, column)) is { Count: > 0 } own:
-                return (IReadOnlyList<string>)[.. own.Select(f => $"{f.Title} [quickfix]")];
+                listed = [.. own.Select(f => (f.Title, $"{f.Title} [quickfix]"))];
+                break;
             case MSBuildServed:
                 throw Lacks(served, "fixes or refactorings", MSBuildHas);
+            default:
+                int offset = Offset(served.Document, line, column);
+                await AspireMarked(served, cancel);
+                IReadOnlyList<EslintFix> linted = await LintFixes(served, offset);
+                listed = [.. window.Assist.OwnFixes(served.Document, offset).Select(f => (f.Title, $"{f.Title} [quickfix]")),
+                    .. linted.Select(f => (f.Title, f.Action.Kind is { Length: > 0 } kind ? $"{f.Title} [{kind}]" : f.Title)),
+                    .. (await Actions((ServerServed)served, line, column, endLine, endColumn)).Select(a => (a.Title, Described(a, all: title is not null)))];
+                break;
         }
-        int offset = Offset(served.Document, line, column);
-        await AspireMarked(served, cancel);
-        IReadOnlyList<EslintFix> linted = await LintFixes(served, offset);
-        return (IReadOnlyList<string>)[.. window.Assist.OwnFixes(served.Document, offset).Select(f => $"{f.Title} [quickfix]"),
-            .. linted.Select(f => f.Action.Kind is { Length: > 0 } kind ? $"{f.Title} [{kind}]" : f.Title),
-            .. (await Actions((ServerServed)served, line, column, endLine, endColumn)).Select(Described)];
+        if (title is null)
+        {
+            return (IReadOnlyList<string>)[.. listed.Select(a => a.Shown)];
+        }
+        return listed.Where(a => a.Title == title).Select(a => a.Shown).ToList() is { Count: > 0 } named ? named
+            : throw new InvalidOperationException($"No action '{title}' here; there are: {string.Join("; ", listed.Select(a => a.Title))}");
     });
 
     [McpServerTool(Name = "apply_code_action", Title = "Apply a fix or refactoring", Destructive = true), Description(
@@ -503,12 +528,16 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         return $"Applied {what} to {Plural.Of(files, "file")}{unrun}{(dropped.Count > 0 ? $", but not to {string.Join(", ", dropped)}, edited meanwhile" : string.Empty)}";
     }, cancel));
 
-    /// <summary>A code action as code_actions lists it: its title, its kind, and the choices it offers.</summary>
-    private static string Described(CodeAction action)
+    /// <summary>A code action as code_actions lists it: its title, its kind, and the choices it offers, a Suppress or
+    /// Configure action's (dozens: each scope, each severity) only counted unless <paramref name="all"/>.</summary>
+    private static string Described(CodeAction action, bool all)
     {
         string described = action.Kind is { Length: > 0 } kind ? $"{action.Title} [{kind}]" : action.Title;
         IReadOnlyList<ActionChoice> choices = ClientCommands.Choices(action);
-        return choices.Count == 0 ? described : $"{described}, choices: {string.Join("; ", choices.Select(c => c.Text))}";
+        return choices.Count == 0 ? described
+            : !all && (action.Title.StartsWith("Suppress", StringComparison.Ordinal) || action.Title.StartsWith("Configure", StringComparison.Ordinal))
+                ? $"{described}, {Plural.Of(choices.Count, "choice")}: title lists them"
+                : $"{described}, choices: {string.Join("; ", choices.Select(c => c.Text))}";
     }
 
     [McpServerTool(Name = "format", Title = "Reformat a file", Destructive = true), Description(
@@ -560,7 +589,8 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
 
     [McpServerTool(Name = "find_symbol", Title = "Go to symbol", ReadOnly = true), Description(
         "The solution's own C# and Razor symbols (not packages') whose names match query by substring, initials or camel " +
-        "humps (\"GH\" finds GetHashCode), as Go to Symbol finds them. Other files' names are in their outline.")]
+        "humps (\"GH\" finds GetHashCode), as Go to Symbol finds them, the name itself first, then names starting with it, " +
+        "types before members; an indexer by this[] or Item. Other files' names are in their outline.")]
     public Task<IReadOnlyList<SymbolFound>> FindSymbol(
         string query,
         [Description("class, interface, struct, enum, method, property, field, event, constructor...")] string? kind = null,
@@ -569,19 +599,28 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         CancellationToken cancel = default) => OnUi(cancel, async () =>
     {
         RoslynSession session = await Server(cancel);
-        if (exact)
+        // Go to Symbol finds an indexer by neither of its names, this[] or its metadata's Item: the exact find does.
+        bool indexer = query.StartsWith("this[", StringComparison.Ordinal);
+        if (exact || indexer)
         {
-            return (IReadOnlyList<SymbolFound>)[.. (await NamedAsync(session, query, kind, limit, cancel)).Symbols.Select(n =>
-                new SymbolFound(n.Name, n.Kind, n.Container, n.Path, n.Line, n.Column) { Id = n.Id })];
+            return (IReadOnlyList<SymbolFound>)[.. (await NamedAsync(session, query, kind, limit, cancel)).Symbols.Select(Found)];
         }
+        IReadOnlyList<SymbolFound> indexers = query == "Item" && kind is null or "property"
+            ? [.. (await NamedAsync(session, "this[]", "property", limit, cancel, noneRefused: false)).Symbols.Select(Found)]
+            : [];
         IReadOnlyList<SymbolInformation> found = await session.SymbolsAsync(query);
-        // The server's order is not by how well a name matches: the query's own name first, so a limit never cuts it.
+        // Each target framework finds a symbol again; the server's order is not by match, so the name itself first, which no limit cuts.
         List<SymbolInformation> kept = [.. found
             .Where(s => DocumentUris.GeneratedName(s.Location.Uri) is null && (kind is null || SymbolKinds.Name(s.Kind).Equals(kind, StringComparison.OrdinalIgnoreCase)))
+            .DistinctBy(s => (s.Name, s.Kind, s.Location.Uri, s.Location.Range.Start.Line, s.Location.Range.Start.Character))
             .OrderBy(s => NameMatch(s.Name, query))
-            .Take(limit)];
+            .ThenBy(s => SymbolKinds.Name(s.Kind) is "class" or "interface" or "struct" or "enum" ? 0 : 1)
+            .Take(Math.Max(0, limit - indexers.Count))];
         IReadOnlyList<Place> places = await Places([.. kept.Select(s => s.Location)], cancel);
-        return (IReadOnlyList<SymbolFound>)[.. kept.Select((s, i) => new SymbolFound(s.Name, SymbolKinds.Name(s.Kind), s.ContainerName, places[i].Path, places[i].Line, places[i].Column))];
+        return (IReadOnlyList<SymbolFound>)[.. indexers,
+            .. kept.Select((s, i) => new SymbolFound(s.Name, SymbolKinds.Name(s.Kind), ContainerOf(s.ContainerName), places[i].Path, places[i].Line, places[i].Column))];
+
+        static SymbolFound Found(NamedPlace n) => new(n.Name, n.Kind, n.Container, n.Path, n.Line, n.Column) { Id = n.Id };
     });
 
     /// <summary>How well a symbol's name matches a query: the name itself, then in another letter case, then one that starts
@@ -592,6 +631,20 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         : name.StartsWith(query, StringComparison.OrdinalIgnoreCase) ? 2
         : name.Contains(query, StringComparison.OrdinalIgnoreCase) ? 3
         : 4;
+
+    /// <summary>The type a symbol Go to Symbol found is in, as an exact find names it: its "in Type (project P (tfm))" without
+    /// the project, which its path says, and none for a type's own "project P (tfm)".</summary>
+    private static string? ContainerOf(string? container)
+    {
+        if (container is null)
+        {
+            return null;
+        }
+        int project = container.LastIndexOf(" (project ", StringComparison.Ordinal);
+        string within = project >= 0 ? container[..project] : container.StartsWith("project ", StringComparison.Ordinal) ? string.Empty : container;
+        within = within.StartsWith("in ", StringComparison.Ordinal) ? within[3..] : within;
+        return within.Length == 0 ? null : within;
+    }
 
     /// <summary>What a code tool asks about: a place an agent gave, or the one C# symbol it named (<see cref="NamedAsync"/>).</summary>
     private sealed record CodePlace(string Path, int Line, int Column);
@@ -625,12 +678,12 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
     private sealed record SymbolsNamed(IReadOnlyList<NamedPlace> Symbols, int More);
 
     /// <summary>The solution's own C# symbols a name names exactly, of a kind when one is given, at most limit; none is
-    /// refused, saying how to find a name like it.</summary>
-    private async Task<SymbolsNamed> NamedAsync(RoslynSession session, string name, string? kind, int limit, CancellationToken cancel)
+    /// refused, saying how to find a name like it, unless <paramref name="noneRefused"/> is false.</summary>
+    private async Task<SymbolsNamed> NamedAsync(RoslynSession session, string name, string? kind, int limit, CancellationToken cancel, bool noneRefused = true)
     {
         Roslyn.Extension.SymbolsFound found = await session.SymbolsNamedAsync(name, kind is null ? limit : 1000, cancel);
         List<Roslyn.Extension.NamedSymbol> kept = [.. found.Symbols.Where(s => kind is null || s.Kind.Equals(kind, StringComparison.OrdinalIgnoreCase))];
-        if (kept.Count == 0)
+        if (kept.Count == 0 && noneRefused)
         {
             throw new InvalidOperationException($"No {kind ?? "symbol"} of the solution's own code is named {name}: find_symbol finds names like it");
         }
@@ -649,10 +702,74 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         {
             (OpenDocument document, LspDocument lsp) = await Code(place.Path, cancel);
             Hover? hover = await lsp.HoverAsync(Offset(document, place.Line, place.Column));
-            each.Add($"{place}\n{(hover is null ? string.Empty : Shapes.Text(hover.Contents).Trim())}".TrimEnd());
+            each.Add($"{place}\n{(hover is null ? string.Empty : HoverText(hover))}".TrimEnd());
         }
         return string.Join("\n\n", each) + (named.More > 0 ? $"\n\nAnd {named.More} more: name one by its container, its parameters' types or its documentation id" : string.Empty);
     }
+
+    /// <summary>A hover card's words as an agent reads them: Markdown made plain text, its code fences, backslash escapes,
+    /// entities and line-break spaces taken out, the code in it kept as written.</summary>
+    private static string HoverText(Hover hover) =>
+        hover.Contents is { ValueKind: System.Text.Json.JsonValueKind.Object } content && content.TryGetProperty("kind", out System.Text.Json.JsonElement kind)
+            && kind.ValueKind == System.Text.Json.JsonValueKind.String && kind.GetString() == "plaintext"
+            ? Shapes.Text(hover.Contents).Trim()
+            : Plain(Shapes.Text(hover.Contents));
+
+    /// <summary>Markdown as plain text, a run of blank lines kept as one (<see cref="HoverText"/>).</summary>
+    private static string Plain(string markdown)
+    {
+        System.Text.StringBuilder text = new();
+        bool fenced = false;
+        bool gap = false;
+        foreach (string raw in markdown.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n'))
+        {
+            string line = raw.TrimEnd();
+            if (line.TrimStart().StartsWith("```", StringComparison.Ordinal))
+            {
+                fenced = !fenced;
+                continue;
+            }
+            string plain = fenced ? line : Unescaped(line);
+            if (plain.Trim().Length == 0)
+            {
+                gap = text.Length > 0;
+                continue;
+            }
+            text.Append(gap ? "\n" : string.Empty).Append(plain).Append('\n');
+            gap = false;
+        }
+        return text.ToString().TrimEnd();
+
+        // Outside a code span, a backslash before punctuation and an entity are Markdown's, not the text's.
+        static string Unescaped(string line)
+        {
+            System.Text.StringBuilder plain = new(line.Length);
+            bool code = false;
+            for (int i = 0; i < line.Length; i++)
+            {
+                char c = line[i];
+                if (c == '`')
+                {
+                    code = !code;
+                }
+                else if (!code && c == '\\' && i + 1 < line.Length && char.IsAscii(line[i + 1]) && (char.IsPunctuation(line[i + 1]) || char.IsSymbol(line[i + 1])))
+                {
+                    plain.Append(line[++i]);
+                    continue;
+                }
+                else if (!code && c == '&' && Entities.FirstOrDefault(e => string.CompareOrdinal(line, i, e.Written, 0, e.Written.Length) == 0) is { Written: { } written } entity)
+                {
+                    plain.Append(entity.Meant);
+                    i += written.Length - 1;
+                    continue;
+                }
+                plain.Append(c);
+            }
+            return plain.ToString();
+        }
+    }
+
+    private static readonly (string Written, char Meant)[] Entities = [("&nbsp;", ' '), ("&lt;", '<'), ("&gt;", '>'), ("&amp;", '&'), ("&quot;", '"'), ("&#39;", '\'')];
 
     /// <summary>Usages in the order an agent reads them: by file, then line and column, a source generator's files last.</summary>
     private static IReadOnlyList<Place> Sorted(IReadOnlyList<Place> places) =>
@@ -2084,6 +2201,12 @@ public sealed record ProjectInfo(string Name, string Path, string? OutputType, I
 public sealed record Finding(string Severity, string? Code, string Message, string? Path, int Line, int Column);
 
 public sealed record Place(string Path, int Line, int Column, string Text);
+
+/// <summary>usages' answer: the C# symbol the place took, as its card names it, how many places, and each file's places as
+/// "line:column text".</summary>
+public sealed record UsagesFound(string? Symbol, int Count, IReadOnlyList<FilePlaces> Files);
+
+public sealed record FilePlaces(string Path, IReadOnlyList<string> Places);
 
 public sealed record HierarchyEntry(string? Name, string? Detail, string Path, int Line, int Column, string Text);
 

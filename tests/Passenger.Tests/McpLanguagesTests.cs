@@ -48,8 +48,7 @@ public sealed class McpLanguagesTests(McpLanguagesTests.Restored restored) : Mcp
         Assert.Equal([(Path.Combine("Styles", "Palette.axaml"), 5), (Path.Combine("Styles", "Palette.axaml"), 9)],
             accents.Select(a => (a.GetProperty("path").GetString(), a.GetProperty("line").GetInt32())));
 
-        string[] uses = [.. (await Call(client, "usages", At(window, "MainWindow.axaml", "Name=\"G"))).EnumerateArray()
-            .Select(u => $"{u.GetProperty("path").GetString()}:{u.GetProperty("line").GetInt32()}")];
+        string[] uses = [.. Used(await Call(client, "usages", At(window, "MainWindow.axaml", "Name=\"G"))).Select(u => $"{u.Path}:{u.Line}")];
         Assert.True(uses.Contains("MainWindow.axaml:12") && uses.Contains("MainWindow.axaml:13") && uses.Contains("MainWindow.axaml.cs:10"),
             $"The button's name was not found where its file and its code-behind use it: {string.Join(", ", uses)}");
         // A binding's path is not what XAML's Find Usages finds, and the agent hears what it does find.
@@ -148,11 +147,10 @@ public sealed class McpLanguagesTests(McpLanguagesTests.Restored restored) : Mcp
         JsonElement library = Assert.Single((await Call(client, "definition", At(window, "MainWindow.xaml", "<StackPanel Margin=\"12\">\n        <TextBl"))).EnumerateArray());
         Assert.EndsWith("System.Windows.Controls.TextBlock.cs", library.GetProperty("path").GetString(), StringComparison.Ordinal);
 
-        string[] keyed = [.. (await Call(client, "usages", At(window, "MainWindow.xaml", "{StaticResource Acc"))).EnumerateArray()
-            .Select(u => $"{u.GetProperty("path").GetString()}:{u.GetProperty("line").GetInt32()}")];
+        string[] keyed = [.. Used(await Call(client, "usages", At(window, "MainWindow.xaml", "{StaticResource Acc"))).Select(u => $"{u.Path}:{u.Line}")];
         Assert.True(keyed.Contains("App.xaml:12") && keyed.Contains("MainWindow.xaml:30") && keyed.Contains($"{Path.Combine("Themes", "Brushes.xaml")}:4"),
             $"The brush's key was not found where the project's XAML uses and defines it: {string.Join(", ", keyed)}");
-        string[] named = [.. (await Call(client, "usages", At(window, "MainWindow.xaml", "x:Name=\"G"))).EnumerateArray().Select(u => u.GetProperty("text").GetString()!)];
+        string[] named = [.. Used(await Call(client, "usages", At(window, "MainWindow.xaml", "x:Name=\"G"))).Select(u => u.Text)];
         Assert.True(named.Any(u => u.Contains("Go.Content = \"Start\";", StringComparison.Ordinal)) && named.Any(u => u.Contains("ElementName=Go", StringComparison.Ordinal)),
             $"The button's name was not found where its file and its code-behind use it: {string.Join(" | ", named)}");
 
@@ -213,7 +211,7 @@ public sealed class McpLanguagesTests(McpLanguagesTests.Restored restored) : Mcp
         Assert.Contains("function greet(name: any): string", (await Call(client, "symbol_info", call)).GetString(), StringComparison.Ordinal);
         JsonElement declared = Assert.Single((await Call(client, "definition", call)).EnumerateArray());
         Assert.Equal((app, 1), (declared.GetProperty("path").GetString(), declared.GetProperty("line").GetInt32()));
-        Assert.Equal([1, 4], (await Call(client, "usages", call)).EnumerateArray().Select(u => u.GetProperty("line").GetInt32()).Order());
+        Assert.Equal([1, 4], Used(await Call(client, "usages", call)).Select(u => u.Line).Order());
 
         JsonElement problem = Assert.Single((await Call(client, "diagnostics", new() { ["path"] = app })).EnumerateArray(),
             d => d.GetProperty("message").GetString()!.Contains("(prefer-const)", StringComparison.Ordinal));

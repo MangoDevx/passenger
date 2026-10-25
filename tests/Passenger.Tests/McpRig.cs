@@ -518,6 +518,17 @@ public abstract class McpRig : IDisposable
 
     protected static string Text(CallToolResult result) => string.Concat(result.Content.OfType<TextContentBlock>().Select(t => t.Text));
 
+    /// <summary>usages' places, each file's "line:column text" read apart, in the answer's order.</summary>
+    protected static IReadOnlyList<(string Path, int Line, int Column, string Text)> Used(JsonElement usages) =>
+        [.. usages.GetProperty("files").EnumerateArray().SelectMany(file => file.GetProperty("places").EnumerateArray().Select(place =>
+        {
+            string said = place.GetString()!;
+            int space = said.IndexOf(' ', StringComparison.Ordinal);
+            string[] at = (space < 0 ? said : said[..space]).Split(':');
+            return (file.GetProperty("path").GetString()!, int.Parse(at[0], System.Globalization.CultureInfo.InvariantCulture),
+                int.Parse(at[1], System.Globalization.CultureInfo.InvariantCulture), space < 0 ? string.Empty : said[(space + 1)..]);
+        }))];
+
     /// <summary>A PNG's width and height, from its header.</summary>
     protected static (int Width, int Height) PngSize(byte[] png)
     {
