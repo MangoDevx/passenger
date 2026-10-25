@@ -536,27 +536,53 @@ public sealed partial class BuildRunController
     public static string Reran(string name, IReadOnlyList<string> restarted, string? more = null) => restarted.Count == 0
         ? $"{name}: nothing changed, nothing restarted" : $"{name}: restarted {string.Join(", ", restarted)} with the new build{more}";
 
-    /// <summary>A configuration's plan with its build before launch done: the plan to start, or why there is none (the
-    /// folder left meanwhile among the reasons).</summary>
-    private async Task<(LaunchPlan? Plan, string? Problem)> PrepareAsync(RunConfiguration chosen, string? arguments, Working work, bool build = true)
+    /// <summary>A configuration's plan with its build before launch done: the plan to start, or why there is none, the folder
+    /// left or Stop meanwhile among the reasons; <c>Unresolved</c> when the problem is the plan's own (what the configuration
+    /// runs could not be worked out), which a start shows where it shows its own state.</summary>
+    public async Task<(LaunchPlan? Plan, string? Problem, bool Unresolved)> PrepareAsync(RunConfiguration chosen, string? arguments, Working work, bool build = true)
     {
         (LaunchPlan? plan, string? problem) = await ResolvePlanAsync(chosen, arguments, work.Stopping);
-        if (build && plan?.Build is { } step && !work.IsStopped && await BuildBeforeLaunchAsync(step) is { Succeeded: false } unbuilt)
+        if (Checkpoint(work, chosen.Name) is { } stopped)
         {
-            return (null, work.IsStopped ? StoppedStarting(chosen.Name) : unbuilt.Message);
+            return (null, stopped, false);
         }
-        return session.IsEnded ? (null, Left) : work.IsStopped ? (null, StoppedStarting(chosen.Name)) : (plan, problem);
+        if (plan is null)
+        {
+            return (null, problem, true);
+        }
+        if (build && plan.Build is { } step && await BuildForAsync(step, work.Stopping) is { Succeeded: false } unbuilt)
+        {
+            return (null, Checkpoint(work, chosen.Name) ?? unbuilt.Message, false);
+        }
+        return Checkpoint(work, chosen.Name) is { } left ? (null, left, false) : (plan, null, false);
     }
 
     private const string Left = "The solution was closed";
 
-    /// <summary>A plan's build before launch, in the Build window, which comes forward only as Settings says for a build Run,
-    /// Debug or Profile starts.</summary>
-    public Task<BuildOutcome> BuildBeforeLaunchAsync(BuildStep step)
+    /// <summary>Why a start goes no further now, or null to go on: its folder has ended, or Stop has ended the start.</summary>
+    private string? Checkpoint(Working work, string name) => session.IsEnded ? Left : work.IsStopped ? StoppedStarting(name) : null;
+
+    /// <summary>What a start ended by a cancel says: its folder's end, else Stop's.</summary>
+    private string Canceled(Working work, string name) => session.IsEnded ? Left : StoppedStarting(name);
+
+    /// <summary>A start's build of what it starts, in the Build window, which comes forward only as Settings says for a build
+    /// Run, Debug or Profile begins: stopped as the start is (<paramref name="stopping"/>), as Stop stops a build.</summary>
+    public Task<BuildOutcome> BuildForAsync(BuildStep step, CancellationToken stopping) => BuildForAsync([step.Project], stopping, step.Framework, step.Output);
+
+    /// <summary>A start's build of projects one after another (<see cref="BuildForAsync(BuildStep, CancellationToken)"/>).</summary>
+    private async Task<BuildOutcome> BuildForAsync(IReadOnlyList<string> projects, CancellationToken stopping, string? framework = null, string? output = null)
     {
         TaskCompletionSource<BuildOutcome> built = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        Build(BuildKind.Build, [step.Project], outcome => built.TrySetResult(outcome), step.Framework, BuildCause.BeforeLaunch, step.Output);
-        return built.Task;
+        Build(BuildKind.Build, projects, outcome => built.TrySetResult(outcome), framework, BuildCause.BeforeLaunch, output);
+        // On the window's thread, and only while the build under way is this one; the folder's end stops it itself.
+        using CancellationTokenRegistration stop = stopping.Register(() => UiThread.Post(() =>
+        {
+            if (!built.Task.IsCompleted && !session.IsEnded)
+            {
+                session.Builder.Stop();
+            }
+        }));
+        return await built.Task;
     }
 
     /// <summary>Runs the chosen configuration, with these arguments in place of its own if given: its plan's program started
@@ -610,7 +636,7 @@ public sealed partial class BuildRunController
             // dotnet watch builds the project itself, and runs it again after an edit it cannot apply.
             bool watched = (hotReload ?? parts.Settings().HotReload) && chosen.Program.Length == 0;
             watching = watched;
-            (LaunchPlan? plan, string? problem) = await PrepareAsync(chosen, arguments, work, build: !watched);
+            (LaunchPlan? plan, string? problem, _) = await PrepareAsync(chosen, arguments, work, build: !watched);
             if (plan is null)
             {
                 return Said(problem!);
@@ -816,10 +842,14 @@ public sealed partial class BuildRunController
         return problem;
     }
 
-    /// <summary>Says why a launch did not happen, and gives it back.</summary>
+    /// <summary>Says why a launch did not happen, unless its folder has ended (the window says the next one's then), and gives
+    /// it back.</summary>
     private string Said(string problem)
     {
-        parts.Say(problem);
+        if (!session.IsEnded)
+        {
+            parts.Say(problem);
+        }
         return problem;
     }
 
@@ -841,17 +871,21 @@ public sealed partial class BuildRunController
                 RunConfiguration configuration = arguments is null ? chosen : chosen with { Arguments = arguments };
                 // A start of the same AppHosts under way (Run's, as Debug begins) ends first.
                 using StartTaken? taken = await TakeStartAsync([configuration.Project, .. configuration.LinkedAppHosts], work);
-                if (taken is null || session.IsEnded)
+                if (taken is null)
                 {
-                    return Said(StoppedStarting(chosen.Name));
+                    return Said(Canceled(work, chosen.Name));
+                }
+                if (Checkpoint(work, chosen.Name) is { } stopped)
+                {
+                    return Said(stopped);
                 }
                 if (parts.PrepareAspire is { } prepare && await prepare(configuration, work.Stopping) is { } notReady)
                 {
                     return Said(notReady);
                 }
-                if (session.IsEnded || work.IsStopped)
+                if (Checkpoint(work, chosen.Name) is { } prepared)
                 {
-                    return Said(StoppedStarting(chosen.Name));
+                    return Said(prepared);
                 }
                 // The same configuration's AppHosts running end first; an AppHost a test run holds is the test run's.
                 string[] hosts = [configuration.Project, .. configuration.LinkedAppHosts];
@@ -864,20 +898,20 @@ public sealed partial class BuildRunController
                     {
                         await session.Aspire.StopGroupAsync(group);
                     }
-                    if (session.IsEnded || work.IsStopped)
+                    if (Checkpoint(work, chosen.Name) is { } ended)
                     {
-                        return Said(StoppedStarting(chosen.Name));
+                        return Said(ended);
                     }
                 }
                 // Once, before any AppHost starts.
                 HttpsChoice https = await CertificateAsync(chosen.Name, await session.Aspire.ServingHttpsAsync(configuration), Path.GetDirectoryName(configuration.Project)!,
                     ContainerPlans.StateOf(parts.StateFolder(), session.Folder ?? Path.GetDirectoryName(configuration.Project)!), export: false, work);
-                if (session.IsEnded || work.IsStopped)
+                if (Checkpoint(work, chosen.Name) is { } asked)
                 {
-                    return Said(StoppedStarting(chosen.Name));
+                    return Said(asked);
                 }
                 parts.Dock.Show(ToolWindowIds.Aspire);
-                string? problem = await session.Aspire.StartAsync(configuration, mode, BuildBeforeLaunchAsync, work.Stopping, https);
+                string? problem = await session.Aspire.StartAsync(configuration, mode, step => BuildForAsync(step, work.Stopping), work.Stopping, https);
                 if (problem is not null)
                 {
                     return Said(problem);
@@ -891,7 +925,7 @@ public sealed partial class BuildRunController
             }
             catch (OperationCanceledException) when (work.IsStopped)
             {
-                return Said(StoppedStarting(chosen.Name));
+                return Said(Canceled(work, chosen.Name));
             }
             catch (Exception error) when (error is LaunchException or IOException or InvalidOperationException or System.Text.Json.JsonException)
             {
@@ -906,22 +940,28 @@ public sealed partial class BuildRunController
         }
     }
 
-    /// <summary>What an AppHost's start says once up, in the words every run of services says it: debugged, the services it
-    /// debugs (those marked Debug, else each it starts) under the debugger; run with Hot Reload; profiled, the service
-    /// recorded; or run.</summary>
+    /// <summary>What an AppHost's start says once up (<see cref="ServicesStarted"/>): the services it debugs are those marked
+    /// Debug, else each it starts; the service profiled is the one recorded.</summary>
     private static string AspireStarted(RunConfiguration configuration, RunStart mode, IReadOnlyList<AspireAppRun> started)
     {
         string[] marked = [.. configuration.ServiceActions.Where(pair => pair.Value == ServiceStart.Debug).Select(pair => pair.Key).Order(StringComparer.Ordinal)];
-        string debugged = marked.Length > 0 ? string.Join(" and ", marked) : "each .NET service it starts";
-        return mode switch
+        return ServicesStarted(configuration.Name, mode, mode switch
         {
-            RunStart.Debug => $"Debugging {configuration.Name}: {debugged} under the debugger",
-            RunStart.HotReload => $"Running {configuration.Name} with Hot Reload: a save applies its changes to its .NET services",
-            RunStart.Profile => $"Profiling {started.Select(app => app.Profiled).OfType<string>().FirstOrDefault() ?? "its service"} of {configuration.Name}: "
-                + "Get Snapshot when it has done what is to be measured",
-            _ => $"Running {configuration.Name}",
-        };
+            RunStart.Debug => marked.Length > 0 ? string.Join(" and ", marked) : "each .NET service it starts",
+            RunStart.Profile => started.Select(app => app.Profiled).OfType<string>().FirstOrDefault() ?? "its service",
+            _ => "its .NET services",
+        });
     }
+
+    /// <summary>What a run of services' start says once up, every kind's: debugged, the <paramref name="services"/> under the
+    /// debugger; run with Hot Reload, a save applying to them; profiled, the one recorded; or run.</summary>
+    private static string ServicesStarted(string name, RunStart how, string services) => how switch
+    {
+        RunStart.Debug => $"Debugging {name}: {services} under the debugger",
+        RunStart.HotReload => $"Running {name} with Hot Reload: a save applies its changes to {services}",
+        RunStart.Profile => $"Profiling {services} of {name}: Get Snapshot when it has done what is to be measured",
+        _ => $"Running {name}",
+    };
 
     public Task<string?> ProfileAspireAsync(RunConfiguration configuration, string? arguments = null, CancellationToken cancellation = default) =>
         RunAspireAsync(configuration, arguments, RunStart.Profile, cancellation);
@@ -938,13 +978,12 @@ public sealed partial class BuildRunController
         {
             return Said("Nothing to run: no executable project");
         }
-        if (session.Aspire.IsAspire(chosen) && session.Aspire.FindApp(chosen.Project) is { IsTest: false, Stopping: false } app && app.Runner.IsRunning)
+        switch (RestartedInPlace(chosen))
         {
-            return await RerunAspireAsync();
-        }
-        if (Containers is { Plan.Mode: ContainerMode.Fast } containers && containers.Plan.Name == chosen.Name && session.Runner.IsRunning)
-        {
-            return await RerunContainersAsync();
+            case AspireAppRun app:
+                return await RerunAspireAsync(chosen, app);
+            case ContainerRun containers:
+                return await RerunContainersAsync(containers);
         }
         // A container run of it run again whole keeps what it started later (StartContainersAsync).
         rerun = Containers is { } going && going.Name == chosen.Name ? going : null;
@@ -966,19 +1005,22 @@ public sealed partial class BuildRunController
         }
     }
 
-    public async Task<string?> RerunAspireAsync(CancellationToken cancellation = default)
+    /// <summary>Rerun's one choice: the run of services of the chosen configuration that Rerun restarts in place, what changed
+    /// in it alone (an AppHost's that runs, or its container run in fast mode, its log followed), or null when Rerun runs the
+    /// configuration again whole.</summary>
+    private ServiceRun? RestartedInPlace(RunConfiguration chosen) =>
+        session.Aspire.IsAspire(chosen) && session.Aspire.FindApp(chosen.Project) is { IsTest: false, Stopping: false } app && app.Runner.IsRunning ? app
+        : Containers is { Plan.Mode: ContainerMode.Fast } containers && containers.Plan.Name == chosen.Name && session.Runner.IsRunning ? containers
+        : null;
+
+    private async Task<string?> RerunAspireAsync(RunConfiguration chosen, AspireAppRun main)
     {
-        if (session.Configurations.Chosen is not { } chosen || session.Aspire.FindApp(chosen.Project) is not { } main)
-        {
-            return Said("The chosen Aspire configuration is not running");
-        }
         if (parts.Work.Begin(AppActions.RunProgram, $"Looking at what changed in {chosen.Name}…") is not { } work)
         {
             return Said(ActionWork.Busy(parts.Work.Of(AppActions.RunProgram)!));
         }
         using (work)
         using (BackgroundWork.Scope())
-        using (cancellation.Register(work.Cancel))
         {
             try
             {
@@ -1023,7 +1065,7 @@ public sealed partial class BuildRunController
         RunStart mode = main.Mode;
         parts.Say($"{chosen.Name}'s AppHost changed: stopping it to build and run it again…");
         await session.Aspire.StopGroupAsync(main.Group);
-        return session.IsEnded ? Left : await RunAspireAsync(again, null, mode, cancellation);
+        return session.IsEnded ? Left : await RunAspireAsync(again, null, mode);
     }
 
     /// <summary>Resolves and builds the chosen configuration, then launches its plan under the debugger, with these arguments
@@ -1080,7 +1122,7 @@ public sealed partial class BuildRunController
         {
             return left;
         }
-        (LaunchPlan? plan, string? problem) = await PrepareAsync(chosen, arguments, work);
+        (LaunchPlan? plan, string? problem, _) = await PrepareAsync(chosen, arguments, work);
         if (plan is null)
         {
             return problem;

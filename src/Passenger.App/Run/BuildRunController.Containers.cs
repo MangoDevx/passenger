@@ -57,7 +57,7 @@ public sealed partial class BuildRunController
         using StartTaken? taken = await TakeStartAsync([ContainerStarts], work);
         if (taken is null)
         {
-            return session.IsEnded ? Left : Said(StoppedStarting(chosen.Name));
+            return Said(Canceled(work, chosen.Name));
         }
         if (session.IsEnded)
         {
@@ -93,7 +93,7 @@ public sealed partial class BuildRunController
         }
         catch (OperationCanceledException)
         {
-            return Said(StoppedStarting(chosen.Name));
+            return Said(Canceled(work, chosen.Name));
         }
         if (!state.IsReady)
         {
@@ -115,7 +115,7 @@ public sealed partial class BuildRunController
             }
             catch (OperationCanceledException)
             {
-                return Said(StoppedStarting(chosen.Name));
+                return Said(Canceled(work, chosen.Name));
             }
         }
         work.Say($"Reading {chosen.Name}'s compose files…");
@@ -135,7 +135,7 @@ public sealed partial class BuildRunController
         }
         catch (OperationCanceledException) when (work.IsStopped)
         {
-            return Said(StoppedStarting(chosen.Name));
+            return Said(Canceled(work, chosen.Name));
         }
         catch (Exception refused) when (refused is LaunchException or ContainerCommandException or IOException or UnauthorizedAccessException or TimeoutException
             or System.ComponentModel.Win32Exception or System.Text.Json.JsonException)
@@ -146,12 +146,12 @@ public sealed partial class BuildRunController
         {
             if (await ReplacesOthersAsync(chosen.Name, plan, engine, work) is { } kept)
             {
-                return session.IsEnded ? Left : Said(kept);
+                return Said(session.IsEnded ? Left : kept);
             }
         }
         catch (OperationCanceledException)
         {
-            return session.IsEnded ? Left : Said(StoppedStarting(chosen.Name));
+            return Said(Canceled(work, chosen.Name));
         }
         List<(DotnetService Service, RunStart How)> holding = how switch
         {
@@ -173,35 +173,19 @@ public sealed partial class BuildRunController
         if (plan.Builds.Count > 0)
         {
             work.Say($"Building {string.Join(", ", plan.Builds.Select(Path.GetFileNameWithoutExtension))}…");
-            BuildOutcome built;
-            // The start ended (by a start that takes its place, or the folder's end) ends its build, as Stop's does.
-            using (work.Stopping.Register(() => UiThread.Post(() =>
-            {
-                // The folder's end stops it itself.
-                if (!session.IsEnded)
-                {
-                    session.Builder.Stop();
-                }
-            })))
-            {
-                built = await BuildProjectsAsync(plan.Builds);
-            }
+            BuildOutcome built = await BuildForAsync(plan.Builds, work.Stopping);
             if (!built.Succeeded)
             {
-                return work.IsStopped ? Said(StoppedStarting(chosen.Name)) : built.Message;
+                return Checkpoint(work, chosen.Name) is { } stopped ? Said(stopped) : built.Message;
             }
             if (plan.Dotnet.FirstOrDefault(d => d.Starts && !File.Exists(Path.Combine(d.Output, d.Assembly + ".dll"))) is { } unbuilt)
             {
                 return Said($"Could not run {chosen.Name}: {unbuilt.Assembly}.dll has not been built in {unbuilt.Output}");
             }
         }
-        if (session.IsEnded)
+        if (Checkpoint(work, chosen.Name) is { } readied)
         {
-            return Left;
-        }
-        if (work.IsStopped)
-        {
-            return Said(StoppedStarting(chosen.Name));
+            return Said(readied);
         }
         HttpsChoice https;
         try
@@ -211,20 +195,16 @@ public sealed partial class BuildRunController
         catch (OperationCanceledException)
         {
             // Stopped as dev-certs checked, made or exported it, or as the person was asked.
-            return session.IsEnded ? Left : Said(StoppedStarting(chosen.Name));
+            return Said(Canceled(work, chosen.Name));
         }
         foreach (string line in https.Said)
         {
             parts.Views.Run.Append($"{line}\n", error: true);
         }
         (DevelopmentCertificate.Exported? certificate, string? overHttp, bool unexported) = (https.Certificate, https.OverHttp, https.Failed);
-        if (session.IsEnded)
+        if (Checkpoint(work, chosen.Name) is { } certified)
         {
-            return Left;
-        }
-        if (work.IsStopped)
-        {
-            return Said(StoppedStarting(chosen.Name));
+            return Said(certified);
         }
         try
         {
@@ -233,19 +213,15 @@ public sealed partial class BuildRunController
         }
         catch (OperationCanceledException)
         {
-            return session.IsEnded ? Left : Said(StoppedStarting(chosen.Name));
+            return Said(Canceled(work, chosen.Name));
         }
         catch (Exception unwritten) when (unwritten is IOException or UnauthorizedAccessException)
         {
             return Said($"{chosen.Name} cannot run: Passenger's override could not be written: {unwritten.Message}");
         }
-        if (session.IsEnded)
+        if (Checkpoint(work, chosen.Name) is { } written)
         {
-            return Left;
-        }
-        if (work.IsStopped)
-        {
-            return Said(StoppedStarting(chosen.Name));
+            return Said(written);
         }
         work.Say($"Bringing {chosen.Name}'s services up…");
         ran = chosen.Name;
@@ -297,7 +273,7 @@ public sealed partial class BuildRunController
         }
         catch (OperationCanceledException)
         {
-            failed = StoppedStarting(chosen.Name);
+            failed = Canceled(work, chosen.Name);
         }
         catch (Exception unstarted) when (unstarted is FileNotFoundException or System.ComponentModel.Win32Exception or InvalidOperationException)
         {
@@ -305,7 +281,7 @@ public sealed partial class BuildRunController
         }
         if (failed is null && (session.IsEnded || work.IsStopped || run.IsStopped))
         {
-            failed = session.IsEnded ? Left : StoppedStarting(chosen.Name);
+            failed = Canceled(work, chosen.Name);
         }
         if (failed is not null)
         {
@@ -330,13 +306,7 @@ public sealed partial class BuildRunController
             await session.StopContainersAsync(run);
             return following;
         }
-        string what = how switch
-        {
-            RunStart.Debug => $"Debugging {chosen.Name}: {Named(debugged)} under the debugger",
-            RunStart.HotReload => $"Running {chosen.Name} with Hot Reload: a save applies its changes to {Named(debugged)}",
-            RunStart.Profile => $"Profiling {Named(debugged)} of {chosen.Name}: Get Snapshot when it has done what is to be measured",
-            _ => $"Running {chosen.Name}",
-        };
+        string what = ServicesStarted(chosen.Name, how, string.Join(" and ", debugged.Select(s => s.Service)));
         parts.Say($"{what}{(how == RunStart.Run ? ":" : ";")} {Plural.Of(plan.Dotnet.Count(d => plan.Starts(d.Service)), ".NET service")} from Passenger's build"
             + $"{(plan.Mode == ContainerMode.Images ? " images" : string.Empty)}, {Plural.Of(plan.Backing.Count, "other service")}; Stop takes them down"
             + (notes.Count > 0 ? $" ({string.Join("; ", notes)})" : string.Empty),
@@ -349,9 +319,6 @@ public sealed partial class BuildRunController
             parts.OpenBrowser(new LaunchPlan { Name = chosen.Name, Program = engine.Cli!, WorkingDirectory = plan.Folder, BrowserUrl = url }, session.Runner.Ended);
         }
         return null;
-
-
-        static string Named(IReadOnlyList<DotnetService> services) => string.Join(" and ", services.Select(s => s.Service));
     }
 
     /// <summary>Containers of the run's Compose project, of the services its <c>up</c> makes, that this Passenger did not make
@@ -467,16 +434,11 @@ public sealed partial class BuildRunController
         : run.Plan.KeepBacking && run.Plan.Backing.Count > 0 ? $"{ran} stopped: its .NET services were taken down, {string.Join(", ", run.Plan.Backing)} kept running"
         : $"{ran} stopped: its containers were taken down";
 
-    /// <summary>Rerun of a container run: its .NET services built again on the host, and only those whose build changed
-    /// restarted (their containers kept, reading the new build through the same mount; no image is built), a service held
-    /// for Hot Reload attached to again. Null once done, else why not; a run in images mode, or one already down, is run
-    /// again whole.</summary>
-    public async Task<string?> RerunContainersAsync()
+    /// <summary>Rerun of a container run in fast mode (<see cref="RestartedInPlace"/>): its .NET services built again on the
+    /// host, and only those whose build changed restarted (their containers kept, reading the new build through the same
+    /// mount; no image is built), a service held for Hot Reload attached to again. Null once done, else why not.</summary>
+    private async Task<string?> RerunContainersAsync(ContainerRun run)
     {
-        if (session.ContainerRun is not { IsStopped: false } run || run.Plan.Mode == ContainerMode.Images || !session.Runner.IsRunning)
-        {
-            return null;
-        }
         if (parts.Work.Begin(AppActions.RunProgram, $"Building {run.Plan.Name} again…") is not { } work)
         {
             return Said(ActionWork.Busy(parts.Work.Of(AppActions.RunProgram)!));
@@ -485,7 +447,7 @@ public sealed partial class BuildRunController
         {
             using IDisposable held = BackgroundWork.Scope();
             parts.Editors.SaveAll();
-            BuildOutcome built = await BuildProjectsAsync(run.Plan.Builds);
+            BuildOutcome built = await BuildForAsync(run.Plan.Builds, work.Stopping);
             if (!built.Succeeded)
             {
                 return Said(built.Message);
@@ -539,13 +501,5 @@ public sealed partial class BuildRunController
             }
             return Done(await RestartServicesAsync(run, dotnet, work, "restarted from the Containers window"), $"{run.Plan.Name}: restarted its services");
         }
-    }
-
-    /// <summary>The host's build of projects one after another.</summary>
-    private Task<BuildOutcome> BuildProjectsAsync(IReadOnlyList<string> projects)
-    {
-        TaskCompletionSource<BuildOutcome> built = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        Build(BuildKind.Build, projects, outcome => built.TrySetResult(outcome), cause: BuildCause.BeforeLaunch);
-        return built.Task;
     }
 }

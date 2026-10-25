@@ -961,13 +961,13 @@ public sealed partial class MigrationsController(MigrationsParts parts)
         bool covers = project == startup || startup.ProjectReferences.Count > 0 && References(startup, project, parts.Session().Projects, []);
         if (!covers)
         {
-            BuildOutcome first = await builds.BuildBeforeLaunchAsync(new BuildStep(project.Path, null));
+            BuildOutcome first = await builds.BuildForAsync(new BuildStep(project.Path, null), work.Stopping);
             if (!first.Succeeded)
             {
                 return first.Message;
             }
         }
-        BuildOutcome built = await builds.BuildBeforeLaunchAsync(new BuildStep(startup.Path, framework));
+        BuildOutcome built = await builds.BuildForAsync(new BuildStep(startup.Path, framework), work.Stopping);
         return built.Succeeded ? null : built.Message;
     }
 

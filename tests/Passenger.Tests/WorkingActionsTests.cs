@@ -84,6 +84,30 @@ public sealed class WorkingActionsTests : WorkingActionsFolders, IClassFixture<R
     }
 
     [AvaloniaFact]
+    public void Run_stopped_through_its_work_during_its_build_stops_the_build() => StoppedDuringBuild(window => window.RunAsync(), "Run");
+
+    [AvaloniaFact]
+    public void Profile_stopped_through_its_work_during_its_build_stops_the_build() => StoppedDuringBuild(window => window.ProfileAsync(), "Profile");
+
+    /// <summary>Starts the program, and once its build is under way stops the starts the way an agent that gives up on its
+    /// call does, through their work alone: the build is stopped there, not left to run to its end, and nothing runs.</summary>
+    private void StoppedDuringBuild(Func<MainWindow, Task<string?>> start, string action)
+    {
+        MainWindow window = Open();
+        List<bool> builds = [];
+        window.Builder.Exited += (_, _) => builds.Add(window.Builder.WasStopped);
+        Task<string?> starting = start(window);
+        // The first build of a folder never built is under way long enough to be stopped.
+        Ui.PumpUntil(() => window.Builder.IsRunning || starting.IsCompleted, $"{action}'s build to begin", TimeSpan.FromMinutes(1));
+        Assert.False(starting.IsCompleted, $"{action} ended before its build began: {(starting.IsCompleted ? starting.Result : null)}");
+        window.Actions.Work.Stop();
+        Assert.Equal("Hello was stopped as it started", Ui.Await(starting, $"{action}'s start to end once stopped during its build", TimeSpan.FromMinutes(2)));
+        Assert.True(builds is [true], $"{action} stopped during its build should stop the build, but its builds ended {string.Join(", ", builds.Select(b => b ? "stopped" : "run to their end"))}");
+        Assert.False(window.Runner.IsRunning || window.IsBuilding || window.Profiling is not null, $"Something ran or built once {action}'s start was stopped");
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public void Fetch_says_it_is_fetching_at_once_and_a_second_fetch_says_it_is_under_way()
     {
         string repository = TestFolders.Create("working-git-");

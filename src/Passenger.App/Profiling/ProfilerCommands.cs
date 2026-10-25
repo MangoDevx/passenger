@@ -259,18 +259,11 @@ public sealed class ProfilerCommands
         {
             return left;
         }
-        (LaunchPlan? plan, string? problem) = await builds.ResolvePlanAsync(chosen, arguments, work.Stopping);
-        if (plan?.Build is { } step && !work.IsStopped && await builds.BuildBeforeLaunchAsync(step) is { Succeeded: false } unbuilt)
+        (LaunchPlan? plan, string? problem, bool unresolved) = await builds.PrepareAsync(chosen, arguments, work);
+        // A failed build is the Build window's to show, a stop or the folder's end nobody's.
+        if (plan is null && !unresolved)
         {
-            return work.IsStopped ? BuildRunController.StoppedStarting(chosen.Name) : unbuilt.Message;
-        }
-        if (work.IsStopped)
-        {
-            return BuildRunController.StoppedStarting(chosen.Name);
-        }
-        if (profiled.IsEnded)
-        {
-            return "The solution was closed";
+            return problem;
         }
         parts.Dock.Show(ToolWindowIds.Profiler);
         if ((plan is null ? problem : plan.WhyNot("profile")) is { } why)

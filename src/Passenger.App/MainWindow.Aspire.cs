@@ -527,7 +527,7 @@ public partial class MainWindow
             throw new InvalidOperationException("The solution was closed");
         }
         app.Rebuilt[service.Project] = DateTime.UtcNow;
-        if (await buildRun.BuildBeforeLaunchAsync(new BuildStep(service.Project, service.Plan.Framework)) is { Succeeded: false } failed)
+        if (await buildRun.BuildForAsync(new BuildStep(service.Project, service.Plan.Framework), cancel) is { Succeeded: false } failed)
         {
             throw new InvalidOperationException(failed.Message);
         }
