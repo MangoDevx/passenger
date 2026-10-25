@@ -40,24 +40,22 @@ public static class Processes
             {
                 continue;
             }
-            // Held at its start for a debugger, so no pipe yet but attachable; with diagnostics off, nothing holds it.
-            bool held = Variable(id, RuntimeVariables.DefaultDiagnosticPortSuspend) == "1" && !DiagnosticsOff(id);
+            // Held at its start by its diagnostic port, so no debugger's pipe yet: attachable, unless its debugger is off.
+            bool held = HeldStart.Holds(name => Variable(id, name));
+            string? debuggerOff = HeldStart.DebuggerOff(name => Variable(id, name));
             found.Add(new ContainerProcess(process.Id, process.Name, process.CommandLine, process.User,
-                held && Variable(id, RuntimeVariables.ModifiableAssemblies) is { } modifiable && modifiable.Equals("debug", StringComparison.OrdinalIgnoreCase),
-                Optimized(process.Id, process.CommandLine), held ? null : WhyUnreachable(id)));
+                held && debuggerOff is null && Variable(id, RuntimeVariables.ModifiableAssemblies) is { } modifiable
+                    && modifiable.Equals("debug", StringComparison.OrdinalIgnoreCase),
+                Optimized(process.Id, process.CommandLine), debuggerOff ?? (held ? null : WhyUnreachable(id))));
         }
         return found;
     }
 
-    /// <summary>Why a .NET program opened no pipe for a debugger: diagnostics turned off, or its temporary folder elsewhere.</summary>
+    /// <summary>Why a .NET program with its debugger on opened no pipe for one: its temporary folder elsewhere, or unknown.</summary>
     private static string WhyUnreachable(int id) =>
-        DiagnosticsOff(id)
-            ? "Its runtime was started with DOTNET_EnableDiagnostics=0, which turns its debugger off: nothing can attach to it"
-            : Variable(id, "TMPDIR") is { Length: > 0 } temporary && !SameFolder(temporary, Path.GetTempPath())
-                ? $"Its runtime keeps the debugger's pipes in TMPDIR {temporary}, which the container's other programs do not share"
-                : "Its runtime opened no pipe for a debugger";
-
-    private static bool DiagnosticsOff(int id) => Variable(id, "DOTNET_EnableDiagnostics") == "0" || Variable(id, "DOTNET_EnableDiagnostics_Debugger") == "0";
+        Variable(id, "TMPDIR") is { Length: > 0 } temporary && !SameFolder(temporary, Path.GetTempPath())
+            ? $"Its runtime keeps the debugger's pipes in TMPDIR {temporary}, which the container's other programs do not share"
+            : "Its runtime opened no pipe for a debugger";
 
     private static bool SameFolder(string one, string other) => string.Equals(one.TrimEnd('/'), other.TrimEnd('/'), StringComparison.Ordinal);
 

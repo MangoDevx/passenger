@@ -26,6 +26,18 @@ public static class HeldStart
         }
     }
 
+    /// <summary>Why no debugger can reach a program whose environment (<paramref name="variable"/>: a variable's value, or
+    /// null) turns its runtime's debugger off, null while it is on. Such a program is never held at its start, since no
+    /// debugger would come to let it go, though its diagnostic port may still hold it.</summary>
+    public static string? DebuggerOff(Func<string, string?> variable) =>
+        ((string[])["DOTNET_EnableDiagnostics", "DOTNET_EnableDiagnostics_Debugger"]).FirstOrDefault(name => variable(name) == "0") is { } off
+            ? $"Its runtime was started with {off}=0, which turns its debugger off: nothing can attach to it"
+            : null;
+
+    /// <summary>Whether a runtime started with this environment waits at its start: asked to, with its diagnostic port on.</summary>
+    public static bool Holds(Func<string, string?> variable) => variable(RuntimeVariables.DefaultDiagnosticPortSuspend) == "1"
+        && variable("DOTNET_EnableDiagnostics") != "0" && variable("DOTNET_EnableDiagnostics_IPC") != "0";
+
     /// <summary>Lets go the runtime <paramref name="client"/> reaches, held at its start, its hold cleared first; a runtime
     /// not held takes the word as done. Null once let go, else why not; a port not listening yet is a
     /// <see cref="ServerNotAvailableException"/>, which <see cref="AtPortAsync"/> waits out.</summary>

@@ -505,7 +505,7 @@ public static class ContainerPlans
     /// built as deployed tagged apart from the one its files name); for each .NET service it starts, in fast mode its image's
     /// runtime stage running <c>dotnet /passenger/app/X.dll</c> as PID 1 over Passenger's build mounted read-only, in images
     /// mode a Debug build where its Dockerfile takes BUILD_CONFIGURATION; the development certificate and user secrets where
-    /// they serve; a service held for the debugger started held, its code open to Hot Reload. JSON, which Compose reads as YAML.</summary>
+    /// they serve; a service held for the debugger started held (its debugger on), its code open to Hot Reload. JSON, read as YAML.</summary>
     private static async Task<JsonObject> OverrideAsync(ComposeModel model, string project, IReadOnlyList<DotnetService> dotnet, ContainerMode mode, IReadOnlyList<string> labels,
         IReadOnlyList<ProjectModel> projects, string state, Dictionary<(string Service, int Port), int>? pinned, IReadOnlyCollection<string> held,
         IReadOnlyCollection<string> modifiable, DevelopmentCertificate.Exported? certificate, bool keepId, ContainerTelemetry? telemetry, CancellationToken cancel)
@@ -583,7 +583,8 @@ public static class ContainerPlans
                         entry["userns_mode"] = "keep-id";
                     }
                 }
-                if (held.Contains(service.Name))
+                // Held until what attaches lets it go, never where nothing can; the profiler's gets no changeable code to measure.
+                if (held.Contains(service.Name) && HeldStart.DebuggerOff(name => service.Environment.GetValueOrDefault(name)) is null)
                 {
                     foreach ((string name, string value) in HeldStart.Variables(changeable: modifiable.Contains(service.Name)))
                     {
@@ -1006,6 +1007,11 @@ public sealed class ContainerRun(ContainerPlan plan, ContainerEngine engine, Con
         if (found is not { } there)
         {
             return null;
+        }
+        if (there.Program.WhyNot is { } unreached)
+        {
+            // In the run's console, which still says it once a later word has taken the status bar's place.
+            Say(service, unreached, error: false);
         }
         ContainerPaths paths = Plan.Mode == ContainerMode.Images ? dotnet.Paths : ContainerPaths.None;
         AdapterPlace place = there.Reach.Adapter(there.Program.Program, paths) with

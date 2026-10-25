@@ -251,6 +251,58 @@ public sealed class ContainerRunDebuggingTests(ContainerRunDebuggingTests.Tools 
         }
     }
 
+    /// <summary>A service whose compose environment turns its runtime's debugger off, its diagnostic port left on (which would
+    /// take a hold, with no debugger coming to let it go), is never held: under Debug and under Profile it comes up and
+    /// serves, the run's console saying why neither reaches it, Debug's status too, and Profile refusing for want of one.</summary>
+    [AvaloniaFact]
+    public void A_service_whose_environment_turns_its_debugger_off_is_never_held_and_serves_under_Debug_and_Profile_saying_why()
+    {
+        Assert.SkipWhen(tools.WhyNot is not null, tools.WhyNot ?? string.Empty);
+        (string folder, string project) = Shop("off");
+        string compose = File.ReadAllText(Path.Combine(folder, "compose.yaml"));
+        TestFolders.Write(folder, "compose.yaml", compose.Replace("    depends_on:", "    environment: { DOTNET_EnableDiagnostics_Debugger: \"0\" }\n    depends_on:",
+            StringComparison.Ordinal));
+        MainWindow window = ContainerRunsTests.Open(folder);
+        RunConfiguration marked = window.Configurations.First(c => c.Kind == RunKind.Compose).Copied() with
+        {
+            Name = "Shop, web debugged",
+            ServiceActions = new Dictionary<string, ServiceStart> { ["web"] = ServiceStart.Debug, ["api"] = ServiceStart.Run },
+            Generated = false,
+        };
+        window.SetConfigurations([marked], marked.Name);
+        try
+        {
+            const string Why = "Its runtime was started with DOTNET_EnableDiagnostics_Debugger=0, which turns its debugger off: nothing can attach to it";
+            foreach ((string by, Func<Task<string?>> start) in (ReadOnlySpan<(string, Func<Task<string?>>)>)[("debugger", () => window.DebugAsync()),
+                ("profiler", () => window.ProfileAsync())])
+            {
+                string? refused = Ui.Await(start(), $"the run to come up under the {by}", TimeSpan.FromMinutes(5));
+                if (by == "debugger")
+                {
+                    Assert.True(refused is null, $"{refused}{Ui.BuildErrors(window)}\n{ContainerRunsTests.Run(window)}");
+                    Assert.Contains($"web runs without the debugger: {Why}", window.Status, StringComparison.Ordinal);
+                }
+                else
+                {
+                    Assert.Equal("Shop, web debugged started no .NET service to profile", refused);
+                }
+                Assert.Contains($"web: {Why}", ContainerRunsTests.Run(window), StringComparison.Ordinal);
+                int port = ContainerRunsTests.Published(project, "web");
+                Assert.True(Ui.Pumped(() => ContainerRunsTests.Answer(port) == "web 1", TimeSpan.FromMinutes(1)),
+                    $"web, under the {by}, did not answer: it was held at its start with nothing to let it go");
+                Assert.DoesNotContain(window.Debugger.Tabs, t => t.Name == "web" && t.IsLive);
+                Assert.Null(window.Profiling);
+                Docker.Stopped(window, project, $"Stop to take the services down after the {by}'s run");
+                Ui.WaitFor(() => !window.IsRunning, "the run's log to stop being followed");
+            }
+        }
+        finally
+        {
+            Docker.Stopped(window, project, "Stop to take the services down");
+            window.Close();
+        }
+    }
+
     /// <summary>ContainerRunsTests' Compose solution, each service's Program.cs and Message.cs as these tests stop in them.</summary>
     private static (string Folder, string Project) Shop(string name)
     {
