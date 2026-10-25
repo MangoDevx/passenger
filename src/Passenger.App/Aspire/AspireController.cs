@@ -228,8 +228,8 @@ public sealed partial class AspireController(ProjectSession workspace, string st
 
     /// <summary>The AppHosts of an Aspire configuration (it and those it links) that serve HTTPS on this machine, by name, as
     /// their launch profiles say: what the development certificate is checked for before any of them starts. Throws a
-    /// <see cref="LaunchException"/> for a single-file AppHost's profile that does not read. The configurations are the
-    /// window's, the profiles read off its thread.</summary>
+    /// <see cref="LaunchException"/> for a single-file AppHost's profile that is not there or does not run it. The
+    /// configurations are the window's, the profiles read off its thread.</summary>
     public async Task<IReadOnlyList<string>> ServingHttpsAsync(RunConfiguration configuration)
     {
         RunConfiguration[] candidates = [.. new[] { configuration }.Concat(configuration.LinkedAppHosts
@@ -237,7 +237,7 @@ public sealed partial class AspireController(ProjectSession workspace, string st
             .OfType<RunConfiguration>())];
         return await BackgroundWork.Run(() => (IReadOnlyList<string>)[.. candidates
             .Where(candidate => (Path.GetExtension(candidate.Project).Equals(".cs", StringComparison.OrdinalIgnoreCase)
-                ? ReadFileProfile(candidate, Path.GetDirectoryName(candidate.Project)!) : candidate).Environment
+                ? ReadFileProfile(candidate) : candidate).Environment
                 .Where(variable => AppHostAddresses.Contains(variable.Key))
                 .SelectMany(variable => variable.Value.Split(';'))
                 .Any(url => Uri.TryCreate(url.Trim(), UriKind.Absolute, out Uri? uri) && uri.Scheme == "https"
@@ -691,7 +691,7 @@ public sealed partial class AspireController(ProjectSession workspace, string st
             {
                 throw new LaunchException(unsupported);
             }
-            return ReadFileProfile(configuration, folder);
+            return ReadFileProfile(configuration);
         }, cancellation);
         string output = Path.Combine(stateFolder, "aspire", Convert.ToHexString(SHA256.HashData(
             System.Text.Encoding.UTF8.GetBytes(PathNames.Canonical(configuration.Project)))), "output");
@@ -730,50 +730,23 @@ public sealed partial class AspireController(ProjectSession workspace, string st
         };
     }
 
-    internal static RunConfiguration ReadFileProfile(RunConfiguration configuration, string folder)
+    /// <summary>A single-file AppHost's configuration with its launch profile's values (the one it names, else the first),
+    /// what the configuration sets itself kept; as it is with no profile to read and none named.</summary>
+    internal static RunConfiguration ReadFileProfile(RunConfiguration configuration)
     {
-        string path = Path.Combine(folder, "Properties", "launchSettings.json");
-        if (!File.Exists(path))
-        {
-            path = Path.ChangeExtension(configuration.Project, ".run.json");
-        }
-        if (!File.Exists(path))
+        IReadOnlyList<LaunchProfile> profiles = LaunchProfile.Read(LaunchProfile.FileSettingsPath(configuration.Project));
+        if (profiles.FirstOrDefault(profile => configuration.LaunchProfile.Length == 0 || profile.Name == configuration.LaunchProfile) is not { } chosen)
         {
             return configuration.LaunchProfile.Length == 0 ? configuration
                 : throw new LaunchException($"Launch profile {configuration.LaunchProfile} was not found");
         }
-        using JsonDocument settings = JsonDocument.Parse(File.ReadAllText(path), new JsonDocumentOptions
-        {
-            CommentHandling = JsonCommentHandling.Skip,
-            AllowTrailingCommas = true,
-        });
-        if (!settings.RootElement.TryGetProperty("profiles", out JsonElement profiles) || profiles.ValueKind != JsonValueKind.Object)
-        {
-            throw new LaunchException("The single-file AppHost launch profiles did not read");
-        }
-        JsonProperty chosen = profiles.EnumerateObject().FirstOrDefault(profile =>
-            configuration.LaunchProfile.Length == 0 || profile.Name == configuration.LaunchProfile);
-        if (chosen.Value.ValueKind == JsonValueKind.Undefined)
-        {
-            throw new LaunchException($"Launch profile {configuration.LaunchProfile} was not found");
-        }
-        JsonElement value = chosen.Value;
-        if (value.TryGetProperty("commandName", out JsonElement command) && command.GetString() != "Project")
+        // A profile naming no command runs the AppHost itself.
+        LaunchProfile profile = chosen.Command is null ? chosen with { Command = LaunchProfile.ProjectCommand } : chosen;
+        if (!profile.RunsProject)
         {
             throw new LaunchException("Single-file AppHosts require a Project launch profile");
         }
-        Dictionary<string, string> environment = [];
-        if (value.TryGetProperty("environmentVariables", out JsonElement variables))
-        {
-            foreach (JsonProperty variable in variables.EnumerateObject())
-            {
-                environment[variable.Name] = variable.Value.GetString() ?? string.Empty;
-            }
-        }
-        if (!environment.ContainsKey("ASPNETCORE_URLS") && value.TryGetProperty("applicationUrl", out JsonElement urls))
-        {
-            environment["ASPNETCORE_URLS"] = urls.GetString() ?? string.Empty;
-        }
+        Dictionary<string, string> environment = profile.Environment();
         foreach ((string name, string text) in configuration.Environment)
         {
             environment[name] = text;
@@ -781,10 +754,8 @@ public sealed partial class AspireController(ProjectSession workspace, string st
         return configuration with
         {
             Environment = environment,
-            Arguments = configuration.Arguments.Length > 0 ? configuration.Arguments
-                : value.TryGetProperty("commandLineArgs", out JsonElement arguments) ? arguments.GetString() ?? string.Empty : string.Empty,
-            WorkingDirectory = configuration.WorkingDirectory.Length > 0 ? configuration.WorkingDirectory
-                : value.TryGetProperty("workingDirectory", out JsonElement working) ? working.GetString() ?? string.Empty : string.Empty,
+            Arguments = configuration.Arguments.Length > 0 ? configuration.Arguments : profile.CommandLineArgs ?? string.Empty,
+            WorkingDirectory = configuration.WorkingDirectory.Length > 0 ? configuration.WorkingDirectory : profile.WorkingDirectory ?? string.Empty,
         };
     }
 

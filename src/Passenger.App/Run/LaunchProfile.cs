@@ -4,12 +4,13 @@ using Passenger.App.Workspace;
 
 namespace Passenger.App.Run;
 
-/// <summary>A launch profile from a project's <c>Properties/launchSettings.json</c>: what it launches (its
-/// <c>commandName</c>), with what arguments, environment and working directory, and the browser it opens. Passenger
-/// launches the two kinds that run a program (<see cref="ProjectCommand"/> and <see cref="ExecutableCommand"/>) and the
-/// two that run the project in a container (<c>Docker</c>, <c>SdkContainer</c>, with Visual Studio's container
-/// properties: its ports, whether it serves HTTPS, its <c>docker run</c> words and env files); every other kind is read
-/// too, and says why it does not run here.</summary>
+/// <summary>A launch profile from a project's <c>Properties/launchSettings.json</c> or a file-based program's
+/// <c>.run.json</c>: what it launches (its <c>commandName</c>), with what arguments, environment and working directory, and
+/// the browser it opens. Passenger launches the two kinds that run a program (<see cref="ProjectCommand"/> and
+/// <see cref="ExecutableCommand"/>), the two that run the project in a container (<c>Docker</c>, <c>SdkContainer</c>, with
+/// Visual Studio's container properties: its ports, whether it serves HTTPS, its <c>docker run</c> words and env files),
+/// and a Docker Compose project's (<see cref="DockerComposeCommand"/>, with its services' actions); every other kind is
+/// read too, and says why it does not run here.</summary>
 public sealed record LaunchProfile(
     string Name,
     string? Command,
@@ -45,6 +46,22 @@ public sealed record LaunchProfile(
     /// <summary>The env files the container reads (<c>containerRunEnvironmentFiles</c>, separated by ';').</summary>
     public string? EnvironmentFiles { get; init; }
 
+    /// <summary>A Docker Compose profile's start for each service it names (<c>serviceActions</c>, its own then its
+    /// <c>composeProfile</c>'s): <c>StartDebugging</c>, <c>DoNotStart</c> or <c>StartWithoutDebugging</c>.</summary>
+    public IReadOnlyDictionary<string, string> ServiceActions { get; init; } = new Dictionary<string, string>();
+
+    /// <summary>The Compose profiles a Docker Compose profile turns on (its <c>composeProfile</c>'s <c>includes</c>).</summary>
+    public IReadOnlyList<string> ComposeProfiles { get; init; } = [];
+
+    /// <summary>What a Docker Compose profile does once its services start (<c>composeLaunchAction</c>), as <c>LaunchBrowser</c>.</summary>
+    public string? ComposeLaunchAction { get; init; }
+
+    /// <summary>The service a Docker Compose profile launches (<c>composeLaunchServiceName</c>).</summary>
+    public string? ComposeLaunchService { get; init; }
+
+    /// <summary>The page a Docker Compose profile opens (<c>composeLaunchUrl</c>).</summary>
+    public string? ComposeLaunchUrl { get; init; }
+
     /// <summary>Whether it runs the project in a container: a <c>Docker</c> (its Dockerfile) or <c>SdkContainer</c>
     /// (the SDK's own container) profile.</summary>
     public bool RunsInContainer => Is(DockerCommand) || Is(SdkContainerCommand);
@@ -52,6 +69,9 @@ public sealed record LaunchProfile(
     public const string DockerCommand = "Docker";
 
     public const string SdkContainerCommand = "SdkContainer";
+
+    /// <summary>A Docker Compose project's (.dcproj) services, as its configurations run them.</summary>
+    public const string DockerComposeCommand = "DockerCompose";
 
     /// <summary>The project's own program, built.</summary>
     public const string ProjectCommand = "Project";
@@ -63,6 +83,14 @@ public sealed record LaunchProfile(
 
     public static string SettingsPath(ProjectModel project) => Path.Combine(project.Folder, "Properties", "launchSettings.json");
 
+    /// <summary>Where a file-based program's profiles are, as <c>dotnet run</c> reads them: its folder's
+    /// <c>Properties/launchSettings.json</c>, else the <c>.run.json</c> of its name beside it.</summary>
+    public static string FileSettingsPath(string file)
+    {
+        string settings = Path.Combine(Path.GetDirectoryName(file)!, "Properties", "launchSettings.json");
+        return File.Exists(settings) ? settings : Path.ChangeExtension(file, ".run.json");
+    }
+
     /// <summary>Null for a profile Passenger launches, else why it does not, for each command known.</summary>
     public string? Unsupported => Command switch
     {
@@ -72,7 +100,7 @@ public sealed record LaunchProfile(
         _ when Is("IIS") => "an IIS profile runs under IIS on Windows, which Passenger does not drive",
         _ when Is("MsixPackage") => "an MSIX package profile runs a deployed Windows package, which Passenger does not deploy",
         _ when Is("DebugRoslynComponent") => "a Roslyn component profile runs the compiler over another project, which Passenger does not",
-        _ when Is("DockerCompose") => "a Docker Compose profile belongs to a Docker Compose project (.dcproj), whose configurations run it",
+        _ when Is(DockerComposeCommand) => "a Docker Compose profile belongs to a Docker Compose project (.dcproj), whose configurations run it",
         _ when Is("WSL2") => "a WSL 2 profile runs in Linux under Windows, which Passenger does not start",
         _ => $"Passenger does not know the {Command} command",
     };
@@ -83,16 +111,33 @@ public sealed record LaunchProfile(
     public bool Is(string command) => string.Equals(Command, command, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>The project's profiles of every kind in the file's order; none when it has no settings or they do not read.</summary>
-    public static IReadOnlyList<LaunchProfile> Read(ProjectModel project)
+    public static IReadOnlyList<LaunchProfile> Read(ProjectModel project) => Read(SettingsPath(project));
+
+    /// <summary>A settings file's profiles of every kind in its order (a launchSettings.json, a .run.json); none when it is
+    /// not there or does not read.</summary>
+    public static IReadOnlyList<LaunchProfile> Read(string path)
     {
-        string path = SettingsPath(project);
-        if (!File.Exists(path))
+        try
+        {
+            return File.Exists(path) ? Parse(File.ReadAllText(path)) : [];
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            return [];
+        }
+    }
+
+    /// <summary>The profiles a settings file's text gives, in its order; none when it does not read. A value that is not a
+    /// string is taken as its JSON, as <c>dotnet run</c> takes it.</summary>
+    public static IReadOnlyList<LaunchProfile> Parse(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
         {
             return [];
         }
         try
         {
-            using JsonDocument settings = JsonDocument.Parse(File.ReadAllText(path), Lenient);
+            using JsonDocument settings = JsonDocument.Parse(text, Lenient);
             if (!settings.RootElement.TryGetProperty("profiles", out JsonElement profiles) || profiles.ValueKind != JsonValueKind.Object)
             {
                 return [];
@@ -105,17 +150,15 @@ public sealed record LaunchProfile(
                 {
                     continue;
                 }
-                Dictionary<string, string> environment = [];
-                if (value.TryGetProperty("environmentVariables", out JsonElement variables) && variables.ValueKind == JsonValueKind.Object)
+                JsonElement? compose = value.TryGetProperty("composeProfile", out JsonElement inProfile) && inProfile.ValueKind == JsonValueKind.Object ? inProfile : null;
+                Dictionary<string, string> actions = [];
+                foreach (JsonElement holder in compose is { } composeProfile ? (JsonElement[])[value, composeProfile] : [value])
                 {
-                    foreach (JsonProperty variable in variables.EnumerateObject())
-                    {
-                        environment[variable.Name] = variable.Value.ValueKind == JsonValueKind.String ? variable.Value.GetString()! : variable.Value.GetRawText();
-                    }
+                    Values(holder, "serviceActions", actions);
                 }
                 bool browser = value.TryGetProperty("launchBrowser", out JsonElement launch) && launch.ValueKind == JsonValueKind.True;
                 found.Add(new LaunchProfile(profile.Name, Text(value, "commandName"), Text(value, "executablePath"), Text(value, "commandLineArgs"),
-                    Text(value, "workingDirectory"), environment, Text(value, "applicationUrl"), browser, Text(value, "launchUrl"))
+                    Text(value, "workingDirectory"), Values(value, "environmentVariables", []), Text(value, "applicationUrl"), browser, Text(value, "launchUrl"))
                 {
                     HttpPort = Number(value, "httpPort"),
                     SslPort = Number(value, "sslPort"),
@@ -124,17 +167,35 @@ public sealed record LaunchProfile(
                     RunArguments = Text(value, RunArgumentsKeys[0]) ?? Text(value, RunArgumentsKeys[1]),
                     RunArgumentsKey = RunArgumentsKeys.FirstOrDefault(k => Text(value, k) is not null),
                     EnvironmentFiles = Text(value, "containerRunEnvironmentFiles"),
+                    ServiceActions = actions,
+                    ComposeProfiles = compose is { } c && c.TryGetProperty("includes", out JsonElement includes) && includes.ValueKind == JsonValueKind.Array
+                        ? [.. includes.EnumerateArray().Where(i => i.ValueKind == JsonValueKind.String).Select(i => i.GetString()!)] : [],
+                    ComposeLaunchAction = Text(value, "composeLaunchAction"),
+                    ComposeLaunchService = Text(value, "composeLaunchServiceName"),
+                    ComposeLaunchUrl = Text(value, "composeLaunchUrl"),
                 });
             }
             return found;
         }
-        catch (Exception error) when (error is JsonException or IOException or UnauthorizedAccessException)
+        catch (JsonException)
         {
             return [];
         }
 
         static string? Text(JsonElement value, string key) =>
             value.TryGetProperty(key, out JsonElement found) && found.ValueKind == JsonValueKind.String ? found.GetString() : null;
+
+        static Dictionary<string, string> Values(JsonElement value, string key, Dictionary<string, string> into)
+        {
+            if (value.TryGetProperty(key, out JsonElement values) && values.ValueKind == JsonValueKind.Object)
+            {
+                foreach (JsonProperty named in values.EnumerateObject())
+                {
+                    into[named.Name] = named.Value.ValueKind == JsonValueKind.String ? named.Value.GetString()! : named.Value.GetRawText();
+                }
+            }
+            return into;
+        }
 
         static int? Number(JsonElement value, string key)
         {
@@ -147,6 +208,21 @@ public sealed record LaunchProfile(
                 : found.ValueKind == JsonValueKind.String && int.TryParse(found.GetString(), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out port);
             return read && port is > 0 and < 65536 ? port : null;
         }
+    }
+
+    /// <summary>The ports the profiles listen on over HTTP (their <c>applicationUrl</c>s), in the order they first come.</summary>
+    public static IReadOnlyList<int> HttpPorts(IEnumerable<LaunchProfile> profiles)
+    {
+        List<int> ports = [];
+        foreach (string url in profiles.SelectMany(p => (p.ApplicationUrl ?? string.Empty).Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)))
+        {
+            if (Uri.TryCreate(url.Replace("*", "localhost", StringComparison.Ordinal).Replace("+", "localhost", StringComparison.Ordinal), UriKind.Absolute, out Uri? address)
+                && address.Scheme == Uri.UriSchemeHttp && !ports.Contains(address.Port))
+            {
+                ports.Add(address.Port);
+            }
+        }
+        return ports;
     }
 
     /// <summary>The environment a run of the profile gets: its variables, with its application URL as ASP.NET Core's

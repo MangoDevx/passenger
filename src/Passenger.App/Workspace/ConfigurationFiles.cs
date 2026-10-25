@@ -54,8 +54,6 @@ public sealed record GivenKey(string Key, GivenBy By, string? File, int Start, i
 /// inherits. What a key nothing gives is warned of against, completion leaves out as given, and Go to Declaration goes to.</summary>
 public static partial class ConfigurationFiles
 {
-    private static readonly JsonDocumentOptions Lenient = new() { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true };
-
     /// <summary>Whether a file is a settings file .NET's host reads: appsettings.json or appsettings.{anything}.json.</summary>
     public static bool IsSettings(string path) =>
         Path.GetFileName(path) is { } name && name.StartsWith("appsettings", StringComparison.OrdinalIgnoreCase)
@@ -79,19 +77,9 @@ public static partial class ConfigurationFiles
     public static IReadOnlyList<string> Environments(ConfigurationProject project, Func<string, string?> text)
     {
         HashSet<string> found = new(StringComparer.OrdinalIgnoreCase);
-        foreach (JsonElement profile in Profiles(text(project.LaunchSettings)))
+        foreach (Run.LaunchProfile profile in Run.LaunchProfile.Parse(text(project.LaunchSettings)))
         {
-            string? named = null;
-            if (profile.TryGetProperty("environmentVariables", out JsonElement variables) && variables.ValueKind == JsonValueKind.Object)
-            {
-                foreach (JsonProperty variable in variables.EnumerateObject())
-                {
-                    if (variable.Name is "ASPNETCORE_ENVIRONMENT" or "DOTNET_ENVIRONMENT" && variable.Value.ValueKind == JsonValueKind.String)
-                    {
-                        named ??= variable.Value.GetString();
-                    }
-                }
-            }
+            string? named = profile.EnvironmentVariables.FirstOrDefault(variable => variable.Key is "ASPNETCORE_ENVIRONMENT" or "DOTNET_ENVIRONMENT").Value;
             found.Add(string.IsNullOrWhiteSpace(named) ? "Development" : named);
         }
         return found.Count == 0 ? ["Development"] : [.. found];
@@ -264,26 +252,6 @@ public static partial class ConfigurationFiles
 
     [GeneratedRegex(@"(?<![\w.:-])(?<name>[A-Za-z_][\w.-]*__[\w.:-]+?)(?=\s*[:=""])")]
     private static partial Regex Variable();
-
-    private static IEnumerable<JsonElement> Profiles(string? text)
-    {
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return [];
-        }
-        try
-        {
-            using JsonDocument read = JsonDocument.Parse(text, Lenient);
-            return read.RootElement.ValueKind == JsonValueKind.Object && read.RootElement.TryGetProperty("profiles", out JsonElement profiles)
-                && profiles.ValueKind == JsonValueKind.Object
-                ? [.. profiles.EnumerateObject().Where(p => p.Value.ValueKind == JsonValueKind.Object).Select(p => p.Value.Clone())]
-                : [];
-        }
-        catch (JsonException)
-        {
-            return [];
-        }
-    }
 
     /// <summary>How long a quoted name is from its opening quote, both quotes in.</summary>
     private static int Quoted(string text, int start)

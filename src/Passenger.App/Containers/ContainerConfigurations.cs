@@ -1,4 +1,3 @@
-using System.Text.Json;
 using System.Xml.Linq;
 using Passenger.App.Run;
 using Passenger.App.Workspace;
@@ -195,65 +194,28 @@ public static class ContainerConfigurations
             Origin = $"Generated for the Docker Compose project {Path.GetFileName(dcproj)}",
         };
         List<RunConfiguration> made = [own];
-        foreach ((string profile, JsonElement value) in ComposeProfiles(folder))
+        foreach (LaunchProfile profile in LaunchProfile.Read(Path.Combine(folder, "Properties", "launchSettings.json")).Where(p => p.Is(LaunchProfile.DockerComposeCommand)))
         {
-            Dictionary<string, ServiceStart> actions = [];
-            JsonElement? composeProfile = value.TryGetProperty("composeProfile", out JsonElement found) && found.ValueKind == JsonValueKind.Object ? found : null;
-            foreach (JsonElement holder in composeProfile is { } inProfile ? (JsonElement[])[value, inProfile] : [value])
+            Dictionary<string, ServiceStart> actions = profile.ServiceActions.ToDictionary(told => told.Key, told => told.Value switch
             {
-                if (holder.TryGetProperty("serviceActions", out JsonElement serviceActions) && serviceActions.ValueKind == JsonValueKind.Object)
-                {
-                    foreach (JsonProperty told in serviceActions.EnumerateObject())
-                    {
-                        actions[told.Name] = told.Value.GetString() switch
-                        {
-                            "StartDebugging" => ServiceStart.Debug,
-                            "DoNotStart" => ServiceStart.DontStart,
-                            _ => ServiceStart.Run,
-                        };
-                    }
-                }
-            }
-            List<string> profiles = composeProfile is { } p && p.TryGetProperty("includes", out JsonElement includes) && includes.ValueKind == JsonValueKind.Array
-                ? [.. includes.EnumerateArray().Where(i => i.ValueKind == JsonValueKind.String).Select(i => i.GetString()!)] : [];
-            string action = ContainerEngine.Text(value, "composeLaunchAction") ?? string.Empty;
+                "StartDebugging" => ServiceStart.Debug,
+                "DoNotStart" => ServiceStart.DontStart,
+                _ => ServiceStart.Run,
+            });
+            string action = profile.ComposeLaunchAction ?? string.Empty;
             made.Add(own with
             {
-                Name = $"{name}: {profile}",
-                LaunchProfile = profile,
+                Name = $"{name}: {profile.Name}",
+                LaunchProfile = profile.Name,
                 ServiceActions = actions,
-                Profiles = profiles,
-                LaunchService = ContainerEngine.Text(value, "composeLaunchServiceName") ?? service,
+                Profiles = [.. profile.ComposeProfiles],
+                LaunchService = profile.ComposeLaunchService ?? service,
                 LaunchBrowser = action.Length > 0 ? string.Equals(action, "LaunchBrowser", StringComparison.OrdinalIgnoreCase) : browser,
-                BrowserUrl = ContainerEngine.Text(value, "composeLaunchUrl") ?? own.BrowserUrl,
-                Origin = $"Generated from the launch profile {profile} of the Docker Compose project {Path.GetFileName(dcproj)}",
+                BrowserUrl = profile.ComposeLaunchUrl ?? own.BrowserUrl,
+                Origin = $"Generated from the launch profile {profile.Name} of the Docker Compose project {Path.GetFileName(dcproj)}",
             });
         }
         return made;
-    }
-
-    /// <summary>The DockerCompose profiles of a .dcproj's Properties/launchSettings.json, in its order.</summary>
-    private static IEnumerable<(string Name, JsonElement Value)> ComposeProfiles(string folder)
-    {
-        if (Text(Path.Combine(folder, "Properties", "launchSettings.json")) is not { } settings)
-        {
-            return [];
-        }
-        try
-        {
-            using JsonDocument read = JsonDocument.Parse(settings, new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
-            if (!read.RootElement.TryGetProperty("profiles", out JsonElement profiles) || profiles.ValueKind != JsonValueKind.Object)
-            {
-                return [];
-            }
-            return [.. profiles.EnumerateObject()
-                .Where(p => p.Value.ValueKind == JsonValueKind.Object && string.Equals(ContainerEngine.Text(p.Value, "commandName"), "DockerCompose", StringComparison.OrdinalIgnoreCase))
-                .Select(p => (p.Name, p.Value.Clone()))];
-        }
-        catch (JsonException)
-        {
-            return [];
-        }
     }
 
     /// <summary>A compose file's overrides beside it, as Compose and Visual Studio pair them: compose.override.yaml for

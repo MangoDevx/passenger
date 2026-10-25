@@ -47,7 +47,7 @@ public static class DockerFiles
             }
         }
         bool web = AspNetCore(restores, all);
-        return new DockerProject(project.Path, bare, assembly, Newest(project.TargetFrameworks), web, web ? HttpPorts(project.Folder) : [], restores);
+        return new DockerProject(project.Path, bare, assembly, Newest(project.TargetFrameworks), web, web ? Run.LaunchProfile.HttpPorts(Run.LaunchProfile.Read(project)) : [], restores);
     }
 
     private const string AspNetCoreApp = "Microsoft.AspNetCore.App";
@@ -96,44 +96,6 @@ public static class DockerFiles
             .Where(f => f.StartsWith("net", StringComparison.OrdinalIgnoreCase) && Version.TryParse(f[3..], out Version? v) && v.Major >= 5)
             .OrderByDescending(f => Version.Parse(f[3..]))
             .FirstOrDefault();
-
-    /// <summary>The ports a project's launch profiles listen on over HTTP (applicationUrl), in the order they first come.</summary>
-    public static IReadOnlyList<int> HttpPorts(string folder)
-    {
-        string settings = System.IO.Path.Combine(folder, "Properties", "launchSettings.json");
-        List<int> ports = [];
-        try
-        {
-            if (FileText.Load(settings) is not { } file)
-            {
-                return [];
-            }
-            using JsonDocument read = JsonDocument.Parse(file.Text, new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
-            if (!read.RootElement.TryGetProperty("profiles", out JsonElement profiles) || profiles.ValueKind != JsonValueKind.Object)
-            {
-                return [];
-            }
-            foreach (JsonProperty profile in profiles.EnumerateObject())
-            {
-                if (profile.Value.ValueKind == JsonValueKind.Object && profile.Value.TryGetProperty("applicationUrl", out JsonElement urls) && urls.ValueKind == JsonValueKind.String)
-                {
-                    foreach (string url in urls.GetString()!.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-                    {
-                        if (Uri.TryCreate(url.Replace("*", "localhost", StringComparison.Ordinal).Replace("+", "localhost", StringComparison.Ordinal), UriKind.Absolute, out Uri? address)
-                            && address.Scheme == Uri.UriSchemeHttp && !ports.Contains(address.Port))
-                        {
-                            ports.Add(address.Port);
-                        }
-                    }
-                }
-            }
-        }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException)
-        {
-            // Profiles that do not read name no ports; the image's own (8080) stands.
-        }
-        return ports;
-    }
 
     /// <summary>The image tag of a target framework: 10.0 of net10.0; null for one that is not .NET 5 or later.</summary>
     private static string? Tag(string? framework) => framework is { Length: > 3 } && Version.TryParse(framework[3..], out Version? version)

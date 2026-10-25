@@ -480,12 +480,12 @@ public sealed class AspireTests : IClassFixture<AspireApp>, IDisposable
     }
 
     [AvaloniaFact(Skip = AspireApp.AppHostSkipped, SkipType = typeof(AspireApp), SkipWhen = nameof(AspireApp.IsUnavailable))]
-    public void A_discovered_single_file_AppHost_runs_through_the_window_and_one_beside_a_project_is_refused_before_starting_a_process()
+    public void A_discovered_single_file_AppHost_runs_through_the_window_with_its_profiles_number_value_and_one_beside_a_project_is_refused_before_starting_a_process()
     {
         Directory.CreateDirectory(project.PathOf("Loose"));
         string loose = PathNames.Canonical(project.Write("Loose/apphost.cs", $"#:sdk Aspire.AppHost.Sdk@{AspireApp.TemplatesVersion}\nvar builder = DistributedApplication.CreateBuilder(args);\nbuilder.Build().Run();\n"));
         project.Write("Loose/Sibling.csproj", TestProjects.Library());
-        string file = PathNames.Canonical(project.Write("apphost.cs", $"#:sdk Aspire.AppHost.Sdk@{AspireApp.TemplatesVersion}\n#:property AspireUseCliBundle=false\nusing Aspire.Hosting;\nusing Microsoft.Extensions.Hosting;\nvar builder = DistributedApplication.CreateBuilder(args);\nbuilder.Build().Run();\n"));
+        string file = PathNames.Canonical(project.Write("apphost.cs", $"#:sdk Aspire.AppHost.Sdk@{AspireApp.TemplatesVersion}\n#:property AspireUseCliBundle=false\nusing Aspire.Hosting;\nusing Microsoft.Extensions.Hosting;\nSystem.Console.WriteLine(\"passenger-profile-port: \" + System.Environment.GetEnvironmentVariable(\"PASSENGER_PROFILE_PORT\"));\nvar builder = DistributedApplication.CreateBuilder(args);\nbuilder.Build().Run();\n"));
         project.Write("apphost.run.json", JsonSerializer.Serialize(new Dictionary<string, object>
         {
             ["$schema"] = "https://json.schemastore.org/launchsettings.json",
@@ -505,8 +505,10 @@ public sealed class AspireTests : IClassFixture<AspireApp>, IDisposable
                     dotnetRunMessages = true,
                     launchBrowser = false,
                     applicationUrl = $"http://localhost:{AspireApp.FreePort()}",
-                    environmentVariables = new Dictionary<string, string>
+                    environmentVariables = new Dictionary<string, object>
                     {
+                        // A number, which dotnet run passes as its JSON.
+                        ["PASSENGER_PROFILE_PORT"] = 5000,
                         ["ASPNETCORE_ENVIRONMENT"] = "Development",
                         ["DOTNET_ENVIRONMENT"] = "Development",
                         ["ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL"] = $"http://localhost:{AspireApp.FreePort()}",
@@ -557,6 +559,8 @@ public sealed class AspireTests : IClassFixture<AspireApp>, IDisposable
             string built = window.BottomPanel.Build.Document.Snapshot.ToString();
             Assert.True(built.Contains($"build {file}", StringComparison.Ordinal) && built.Contains("--output", StringComparison.Ordinal),
                 $"The single-file AppHost was not built in the Build window:\n{built}");
+            Ui.WaitFor(() => AppHostSaid(window).Contains("passenger-profile-port: 5000", StringComparison.Ordinal),
+                () => $"the single-file AppHost given its profile's number value, which it said as:\n{Redacted(AppHostSaid(window))}");
             FindAction(window, "Show Aspire Resources");
             Ui.WaitFor(() => window.Aspire.ResourceSnapshots.Any(resource => resource.DisplayName == "aspire-dashboard" && resource.State == "Running"), "the single-file AppHost's native resource stream");
             AspireAppRun app = Assert.Single(window.AspireRuntime.Apps);
