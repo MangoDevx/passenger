@@ -182,35 +182,75 @@ public sealed class IdeErrorsTests : IDisposable
         window.Close();
     }
 
-    /// <summary>A lambda whose body is a bare discard of the work it starts: a handler, menu item, action or callback.
-    /// A member's own body (a method that starts its work and returns) is its callers' to say.</summary>
     [AvaloniaFact]
-    public void No_handler_action_or_callback_leaves_a_fault_in_the_work_it_starts_for_the_garbage_collector_to_find()
+    public void An_error_in_the_question_a_file_changed_here_and_on_disk_asks_is_shown_and_logged_as_it_happens_and_the_disk_keeps_its_text()
     {
-        Regex discarded = new(@"=>\s*_ = (?![a-z]+\.Exception\b)");
-        Regex member = new(@"^\s*(public|private|internal|protected)\b");
+        string path = Path.Combine(folder, "One.cs");
+        File.WriteAllText(path, "class One { }\n");
+        MainWindow window = Ui.OpenFolder(folder, languageServer: false);
+        window.OpenFile("One.cs");
+        Ui.Settle();
+        IdeErrors.Clear();
+        bool asked = false;
+        // The question fails after the watcher's method has returned, as the dialog it awaits would.
+        window.AskConflict = async _ =>
+        {
+            asked = true;
+            await Task.Yield();
+            throw new InvalidOperationException("The conflict's question went wrong");
+        };
+        window.EditorArea.CodeEditor.Selections = Passenger.Text.SelectionSet.Single(0);
+        window.KeyTextInput("public ");
+        Ui.Settle();
+
+        File.WriteAllText(path, "class One { int disk; }\n");
+        Ui.WaitFor(() => asked, "the File Cache Conflict question");
+        Ui.Settle();
+
+        Assert.True(IdeErrors.Errors.Any(e => e.Kind == "InvalidOperationException" && e.Message == "The conflict's question went wrong"),
+            $"The conflict question's error went unreported until its task would be collected; the IDE's errors: {string.Join("; ", IdeErrors.Errors.Select(e => e.Message))}");
+        Assert.Equal("IDE error: The conflict's question went wrong", window.Status);
+        Assert.Contains("The conflict's question went wrong", Ui.IdeLog(), StringComparison.Ordinal);
+        Assert.Equal("class One { int disk; }\n", File.ReadAllText(path));
+        // Thrown on purpose: the check that fails a test over a caught error is not to see it.
+        IdeErrors.Clear();
+        window.Close();
+    }
+
+    /// <summary>Every place src's code lets go of a task it started (DroppedTasks): a discard, a call as a statement, a
+    /// lambda for a delegate that returns nothing. Passed over: a continuation whose lambda only reads the task's
+    /// Exception, which marks a fault seen and cannot fault itself, and a project not built, the container tools
+    /// (only the solution's build and the release make them).</summary>
+    [AvaloniaFact]
+    public void Nothing_in_src_leaves_a_fault_in_the_work_it_starts_for_the_garbage_collector_to_find()
+    {
+        Regex onlySeen = new(@"\.ContinueWith\(\s*(static\s+)?(\w+)\s*=>\s*(_ = )?\2\.Exception\s*[,)]");
         string root = Passenger.Tests.Debugging.Helpers.Debuggees.Root;
         List<string> found = [];
-        foreach (string file in Directory.EnumerateFiles(Path.Combine(root, "src"), "*.cs", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
+        List<string> read = [];
+        foreach (string project in Directory.GetDirectories(Path.Combine(root, "src")).Order(StringComparer.Ordinal))
         {
-            string relative = Path.GetRelativePath(root, file).Replace('\\', '/');
-            if (relative.Contains("/obj/", StringComparison.Ordinal) || relative.Contains("/bin/", StringComparison.Ordinal))
+            string name = Path.GetFileName(project);
+            Match named = Regex.Match(File.ReadAllText(Path.Combine(project, $"{name}.csproj")), "<AssemblyName>([^<]+)</AssemblyName>");
+            string assembly = Path.Combine(root, "artifacts", "bin", name, "debug", $"{(named.Success ? named.Groups[1].Value : name)}.dll");
+            if (!File.Exists(assembly))
             {
                 continue;
             }
-            string text = File.ReadAllText(file);
-            foreach (Match match in discarded.Matches(text))
+            read.Add(name);
+            foreach ((string file, int line) in DroppedTasks.In(assembly))
             {
-                int start = text.LastIndexOf('\n', match.Index) + 1;
-                string line = text[start..text.IndexOf('\n', match.Index)];
-                if (!member.IsMatch(line))
+                string[] lines = File.ReadAllLines(file);
+                string statement = string.Join(' ', lines.Skip(line - 1).Take(3).Select(l => l.Trim()));
+                if (!onlySeen.IsMatch(statement))
                 {
-                    found.Add($"{relative}:{text.AsSpan(0, match.Index).Count('\n') + 1}: {line.Trim()}");
+                    found.Add($"{Path.GetRelativePath(root, file).Replace('\\', '/')}:{line}: {lines[line - 1].Trim()}");
                 }
             }
         }
-        Assert.True(found.Count == 0, $"Work started with a bare discard reports its fault only once the task is collected, which may be never; "
-            + $"give it to IdeErrors.Observe (Core.UnawaitedWork.Observe below the app):\n{string.Join('\n', found)}");
+        Assert.Contains("Passenger.App", read);
+        Assert.True(found.Count == 0, $"Work whose task is let go reports its fault only once the task is collected, which may be never; "
+            + $"give it to IdeErrors.Observe (Core.UnawaitedWork.Observe below the app):\n{string.Join('\n', found.Order(StringComparer.Ordinal))}");
     }
 
     [AvaloniaFact]
