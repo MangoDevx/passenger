@@ -30,6 +30,16 @@ internal static class Rules
         description: "An async void method's fault is thrown on whatever context it resumed on, where nothing can catch or "
             + "report it, and nothing can wait for it to end; an event handler starts a Task-returning method instead.");
 
+    public static readonly DiagnosticDescriptor AsyncVoidLambda = new(
+        "PSG0003",
+        "An async lambda is given where a void delegate is taken",
+        "This async lambda becomes async void as {0}: give it where a Task is taken, or start a Task-returning method from it",
+        Category,
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "An async lambda given to a delegate that returns void (an event's handler, an Action) is async void: "
+            + "its fault reaches nothing that can report it, and nothing waits for it to end.");
+
     public static readonly DiagnosticDescriptor KeysUnread = new(
         "PSG9001",
         "A resource keys file is not read",
