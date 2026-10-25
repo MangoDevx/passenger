@@ -531,7 +531,10 @@
         }
       },
       "passenger.text": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "Passenger.Core": "[0.2.0, )"
+        }
       },
       "passenger.xaml": {
         "type": "Project",

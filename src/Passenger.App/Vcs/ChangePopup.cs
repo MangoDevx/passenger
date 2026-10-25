@@ -4,7 +4,7 @@ using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Passenger.Editor;
+using Passenger.Text;
 
 namespace Passenger.App.Vcs;
 

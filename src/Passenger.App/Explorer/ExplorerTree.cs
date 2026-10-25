@@ -3,6 +3,7 @@ using Avalonia.Media;
 using Passenger.App.Workspace;
 using Passenger.Core;
 using Passenger.Host;
+using Passenger.Text;
 
 namespace Passenger.App.Explorer;
 

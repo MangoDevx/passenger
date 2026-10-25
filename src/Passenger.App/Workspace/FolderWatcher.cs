@@ -1,4 +1,5 @@
 using Passenger.Core;
+using Passenger.Text;
 
 namespace Passenger.App.Workspace;
 

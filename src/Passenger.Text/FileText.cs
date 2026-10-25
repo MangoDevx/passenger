@@ -1,8 +1,7 @@
 using System.Text;
 using Passenger.Core;
-using Passenger.Text;
 
-namespace Passenger.App.Workspace;
+namespace Passenger.Text;
 
 /// <summary>A file's text and how it was stored, so saving writes it back the same way: the same encoding (or UTF-8,
 /// when that cannot hold what was typed), a byte-order mark only if it had one, and its own line endings (kept by the

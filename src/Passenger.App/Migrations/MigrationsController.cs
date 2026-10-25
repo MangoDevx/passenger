@@ -7,6 +7,7 @@ using Passenger.App.Run;
 using Passenger.App.ToolWindows;
 using Passenger.App.Workspace;
 using Passenger.Core;
+using Passenger.Text;
 
 namespace Passenger.App.Migrations;
 

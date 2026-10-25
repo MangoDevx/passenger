@@ -248,7 +248,7 @@ public sealed class VcsTests : IDisposable
     public void A_file_saved_as_git_reads_the_folder_is_listed_as_changed_and_its_saves_temporary_file_never_is()
     {
         MainWindow window = Open();
-        string saving = Path.Combine(folder, "Shop.cs" + Passenger.App.Workspace.FileText.SaveSuffix);
+        string saving = Path.Combine(folder, "Shop.cs" + FileText.SaveSuffix);
         List<string> listed = [];
         window.Vcs.Changed += (_, _) => listed.AddRange(window.Vcs.Changes.Select(c => c.Name));
         window.EditorArea.CodeEditor.GoTo(new TextPosition(0, 0));
@@ -1131,7 +1131,7 @@ public sealed class VcsTests : IDisposable
         Assert.Equal(chosen, window.ExplorerView.SelectedNodes);
         Assert.Equal(loads, window.GitLog.Loads);
         Assert.Equal(3, window.FileIndex.Files.Count);
-        Assert.Empty(Directory.EnumerateFiles(folder, "*" + Passenger.App.Workspace.FileText.SaveSuffix, SearchOption.AllDirectories));
+        Assert.Empty(Directory.EnumerateFiles(folder, "*" + FileText.SaveSuffix, SearchOption.AllDirectories));
         window.Close();
     }
 

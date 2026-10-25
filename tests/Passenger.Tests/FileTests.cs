@@ -6,6 +6,7 @@ using Avalonia.VisualTree;
 using Passenger.App;
 using Passenger.Core;
 using Passenger.Editor;
+using Passenger.Text;
 
 namespace Passenger.Tests;
 
@@ -165,7 +166,7 @@ public sealed class FileTests : IDisposable
         string sentinel = Path.Combine(TestFolders.Create("save-sentinel-"), "sentinel.txt");
         File.WriteAllText(path, "class One { }\n");
         File.WriteAllText(sentinel, "keep this file\n");
-        string planted = path + Passenger.App.Workspace.FileText.SaveSuffix;
+        string planted = path + FileText.SaveSuffix;
         TestFolders.Link(planted, sentinel);
         MainWindow window = Open();
         try
@@ -175,7 +176,7 @@ public sealed class FileTests : IDisposable
             Assert.Equal("public class One { }\n", File.ReadAllText(path));
             Assert.Equal("keep this file\n", File.ReadAllText(sentinel));
             Assert.NotNull(new FileInfo(planted).LinkTarget);
-            Assert.Equal([planted], Directory.EnumerateFiles(folder, "*" + Passenger.App.Workspace.FileText.SaveSuffix));
+            Assert.Equal([planted], Directory.EnumerateFiles(folder, "*" + FileText.SaveSuffix));
         }
         finally
         {
@@ -237,7 +238,7 @@ public sealed class FileTests : IDisposable
             Assert.False(window.IsVisible, $"Quitting stopped at a file another program was reading: {window.Status}");
         }
         Assert.Equal("public class One { }\n", File.ReadAllText(path));
-        Assert.Empty(Directory.EnumerateFiles(folder, "*" + Passenger.App.Workspace.FileText.SaveSuffix));
+        Assert.Empty(Directory.EnumerateFiles(folder, "*" + FileText.SaveSuffix));
     }
 
     /// <summary>A save writes its temporary file under a name of its own, made new, so a link a cloned repository
@@ -249,7 +250,7 @@ public sealed class FileTests : IDisposable
         string elsewhere = Path.Combine(TestFolders.Create("save-elsewhere-"), "kept.txt");
         File.WriteAllText(path, "class One { }\n");
         File.WriteAllText(elsewhere, "keep this file\n");
-        string planted = path + Passenger.App.Workspace.FileText.SaveSuffix;
+        string planted = path + FileText.SaveSuffix;
         TestFolders.Link(planted, elsewhere);
         MainWindow window = Open();
         Edit(window, "One.cs", "public ");
@@ -258,7 +259,7 @@ public sealed class FileTests : IDisposable
         Assert.Equal("public class One { }\n", File.ReadAllText(path));
         Assert.True(File.ReadAllText(elsewhere) == "keep this file\n", "The save was written through a link beside the file, to the file it points at");
         Assert.NotNull(new FileInfo(planted).LinkTarget);
-        Assert.Equal([planted], Directory.EnumerateFiles(folder, "*" + Passenger.App.Workspace.FileText.SaveSuffix));
+        Assert.Equal([planted], Directory.EnumerateFiles(folder, "*" + FileText.SaveSuffix));
         window.Close();
     }
 

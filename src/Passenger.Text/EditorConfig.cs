@@ -2,9 +2,8 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
-using Passenger.Text;
 
-namespace Passenger.App.Workspace;
+namespace Passenger.Text;
 
 /// <summary>What the .editorconfig files over a file say of it (editorconfig.org): each from the file's folder up to the
 /// first marked <c>root = true</c>, the farthest read first, so the nearest file's sections, and a file's later ones, win

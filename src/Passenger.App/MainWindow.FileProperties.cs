@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Passenger.App.Workspace;
+using Passenger.Text;
 using A = Passenger.App.AppActions;
 
 namespace Passenger.App;

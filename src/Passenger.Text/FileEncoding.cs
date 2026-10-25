@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Passenger.App.Workspace;
+namespace Passenger.Text;
 
 /// <summary>An encoding a file is read or written in, by the name the status bar's encoding widget gives it: those it
 /// lists first, then under More the common ones of other scripts that .NET has here, its code pages (the shared

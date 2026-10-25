@@ -1,4 +1,3 @@
-using Passenger.Editor;
 using Passenger.Text;
 
 namespace Passenger.App.Vcs;

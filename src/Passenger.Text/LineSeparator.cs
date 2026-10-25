@@ -1,4 +1,4 @@
-namespace Passenger.App.Workspace;
+namespace Passenger.Text;
 
 /// <summary>How a file's lines end on disk. The editor's lines end at '\n', so a CR file's are held as '\n' and written
 /// as '\r'.</summary>

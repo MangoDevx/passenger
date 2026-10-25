@@ -2,7 +2,7 @@ using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 using NuGet.Configuration;
-using Passenger.App.Workspace;
+using Passenger.Text;
 using XmlText = Passenger.App.Workspace.XmlText;
 
 namespace Passenger.App.Packages;

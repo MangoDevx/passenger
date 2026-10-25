@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Passenger.Core;
+using Passenger.Text;
 
 namespace Passenger.App.Workspace;
 

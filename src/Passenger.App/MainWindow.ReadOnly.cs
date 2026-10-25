@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Passenger.App.Workspace;
+using Passenger.Text;
 
 namespace Passenger.App;
 

@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Passenger.App.Workspace;
+namespace Passenger.Text;
 
 /// <summary>What a macOS file keeps beside its bytes, given to the file a save writes before it is moved over the old one,
 /// as an edit in place would have kept it: its extended attributes (Finder's tags and colour label, a resource fork),

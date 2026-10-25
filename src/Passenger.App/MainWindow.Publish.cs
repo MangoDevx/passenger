@@ -5,6 +5,7 @@ using Passenger.App.Run;
 using Passenger.App.Workspace;
 using Passenger.Core;
 using Passenger.Host;
+using Passenger.Text;
 using A = Passenger.App.AppActions;
 
 namespace Passenger.App;

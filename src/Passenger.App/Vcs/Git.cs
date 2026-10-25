@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using Passenger.Core;
+using Passenger.Text;
 
 namespace Passenger.App.Vcs;
 
@@ -254,7 +255,7 @@ public sealed class Git
                     conflicts.Add(new GitConflict(path, Staged(unmerged[3]), Staged(unmerged[4]), Staged(unmerged[5])));
                     break;
                 // A save under way as git read the folder: the saved file's change, which the read after the save lists.
-                case '?' when Workspace.FileText.IsSaving(entry):
+                case '?' when FileText.IsSaving(entry):
                     break;
                 case '?':
                     changes.Add(new FileChange(Full(entry[2..]), ChangeKind.Unversioned));
