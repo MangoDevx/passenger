@@ -6,6 +6,7 @@ using Passenger.App.Workspace;
 using Passenger.Core;
 using Passenger.Lsp;
 using Passenger.Text;
+using Passenger.Workspace;
 using Passenger.Xaml.Localization;
 
 namespace Passenger.App.CSharp;

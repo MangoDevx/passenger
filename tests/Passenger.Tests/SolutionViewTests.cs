@@ -16,6 +16,7 @@ using Passenger.Core;
 using Passenger.Editor;
 using Passenger.Terminal;
 using Passenger.Text;
+using Passenger.Workspace;
 
 namespace Passenger.Tests;
 

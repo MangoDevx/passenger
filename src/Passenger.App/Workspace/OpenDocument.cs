@@ -7,6 +7,7 @@ using Passenger.Languages.CSharp;
 using Passenger.Languages.Markup;
 using Passenger.Lsp;
 using Passenger.Text;
+using Passenger.Workspace;
 
 namespace Passenger.App.Workspace;
 

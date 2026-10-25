@@ -3,7 +3,7 @@ using System.Xml;
 using System.Xml.Linq;
 using NuGet.Configuration;
 using Passenger.Text;
-using XmlText = Passenger.App.Workspace.XmlText;
+using XmlText = Passenger.Workspace.XmlText;
 
 namespace Passenger.App.Packages;
 

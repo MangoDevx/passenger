@@ -1,10 +1,10 @@
 using Avalonia;
 using Avalonia.Media;
-using Passenger.App.Workspace;
 using Passenger.Core;
 using Passenger.Host;
 using Passenger.Text;
 using Passenger.Vcs;
+using Passenger.Workspace;
 
 namespace Passenger.App.Explorer;
 

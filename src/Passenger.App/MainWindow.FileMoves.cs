@@ -2,6 +2,7 @@ using Passenger.App.Editors;
 using Passenger.App.Explorer;
 using Passenger.App.Workspace;
 using Passenger.Core;
+using Passenger.Workspace;
 using E = Passenger.Editor.EditorActions;
 
 namespace Passenger.App;

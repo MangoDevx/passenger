@@ -2,6 +2,7 @@ using Passenger.App.Web;
 using Passenger.App.Workspace;
 using Passenger.Lsp;
 using Passenger.Text;
+using Passenger.Workspace;
 using Passenger.Xaml.Features;
 
 namespace Passenger.App.CSharp;

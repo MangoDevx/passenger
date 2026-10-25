@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using Passenger.Core;
 
-namespace Passenger.App.Workspace;
+namespace Passenger.Workspace;
 
 /// <summary>The folders passed over wherever the open folder is walked (<see cref="FolderWalk"/>) or watched, and dimmed
 /// in the Explorer: version control's own stores, build output, dependencies and other IDEs' state. Go to File and Find in

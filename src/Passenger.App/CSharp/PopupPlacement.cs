@@ -1,6 +1,5 @@
 using Avalonia;
 using Avalonia.Controls;
-using Passenger.App.Workspace;
 using Passenger.Core;
 using Passenger.Lsp;
 

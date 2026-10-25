@@ -2,7 +2,6 @@ using Passenger.App.Debugging;
 using Passenger.App.LiveTree;
 using Passenger.App.Run;
 using Passenger.App.ToolWindows;
-using Passenger.App.Workspace;
 using Passenger.Core;
 using Passenger.Profiler;
 using System.Diagnostics;
@@ -10,6 +9,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text.Json;
+using Passenger.Workspace;
 
 namespace Passenger.App.Aspire;
 

@@ -7,6 +7,7 @@ using Passenger.Core;
 using Passenger.Lsp;
 using Passenger.Roslyn.Extension;
 using Passenger.Text;
+using Passenger.Workspace;
 
 namespace Passenger.App.Mcp;
 

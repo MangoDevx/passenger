@@ -1,7 +1,7 @@
 using System.Text;
 using Passenger.Text;
 
-namespace Passenger.App.Workspace;
+namespace Passenger.Workspace;
 
 /// <summary>What taking an encoding would do, whichever way it is taken.</summary>
 public enum Safety

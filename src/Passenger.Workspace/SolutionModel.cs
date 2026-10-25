@@ -3,7 +3,7 @@ using System.Xml.Linq;
 using Passenger.Core;
 using Passenger.Host;
 
-namespace Passenger.App.Workspace;
+namespace Passenger.Workspace;
 
 /// <summary>A solution as its file says it is: its folders, their files and its projects from the .slnx or .sln, read
 /// directly. What each project holds is MSBuild's evaluation of it, in the project host (<see cref="ProjectModels"/>),

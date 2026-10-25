@@ -2,7 +2,7 @@ using System.Security;
 using System.Xml;
 using System.Xml.Linq;
 
-namespace Passenger.App.Workspace;
+namespace Passenger.Workspace;
 
 /// <summary>An XML file's text (a nuget.config, a project, a .slnx) and the elements in it, changed in place: each change
 /// is a splice of the text, after which the elements are read from it again, so an element is looked up afresh for each

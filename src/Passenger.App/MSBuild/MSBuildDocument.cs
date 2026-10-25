@@ -4,6 +4,7 @@ using Passenger.Core;
 using Passenger.Editor;
 using Passenger.Host;
 using Passenger.Text;
+using Passenger.Workspace;
 using Passenger.Xaml.Syntax;
 
 namespace Passenger.App.MSBuild;

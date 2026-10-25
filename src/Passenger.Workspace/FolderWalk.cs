@@ -1,7 +1,7 @@
 using Passenger.Core;
 using Passenger.Text;
 
-namespace Passenger.App.Workspace;
+namespace Passenger.Workspace;
 
 /// <summary>The one walk of the open folder's files: Go to File's and Find in Files' index, Local History's look at a
 /// folder made or deleted elsewhere, the projects of a folder with no solution, a project's own files and the XAML a

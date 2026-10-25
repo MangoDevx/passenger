@@ -1,4 +1,5 @@
 using Passenger.Core;
+using Passenger.Workspace;
 using Passenger.Xaml.Features;
 
 namespace Passenger.App.Workspace;

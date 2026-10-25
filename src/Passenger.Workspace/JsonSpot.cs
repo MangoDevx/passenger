@@ -1,4 +1,4 @@
-namespace Passenger.App.Workspace;
+namespace Passenger.Workspace;
 
 /// <summary>Where a caret is in JSON as typed, half a line too (a configuration file's key or value being written): the
 /// names of the objects around it from the root (an array's item by its index), whether it is where a property's name goes

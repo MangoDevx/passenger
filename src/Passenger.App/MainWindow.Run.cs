@@ -6,6 +6,7 @@ using Passenger.App.Editors;
 using Passenger.App.Run;
 using Passenger.Core;
 using Passenger.Editor;
+using Passenger.Workspace;
 
 namespace Passenger.App;
 
@@ -122,7 +123,7 @@ public partial class MainWindow
     /// <summary>How Edit Configurations reads a Compose configuration's services: Compose's model through the window's engine,
     /// asked only once the engine answers as ready.</summary>
     private static Func<RunConfiguration, CancellationToken, Task<IReadOnlyList<(ComposeService Service, string? Project, bool Built)>>> ReadServices(
-        IReadOnlyList<Workspace.ProjectModel> projects, ContainerEngine engine) => async (configuration, cancel) =>
+        IReadOnlyList<ProjectModel> projects, ContainerEngine engine) => async (configuration, cancel) =>
         {
             EngineState state = await engine.StateAsync(cancel: cancel);
             return state.IsReady ? await ContainerPlans.ServicesAsync(configuration, projects, engine, cancel)

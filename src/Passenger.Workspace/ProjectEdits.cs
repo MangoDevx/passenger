@@ -3,7 +3,7 @@ using System.Xml.Linq;
 using Passenger.Core;
 using Passenger.Text;
 
-namespace Passenger.App.Workspace;
+namespace Passenger.Workspace;
 
 /// <summary>Add Reference and Remove on a project reference, a package reference added, its items following a file
 /// moved, and a property set (Add &gt; Docker Support's container properties), made to the project file's text through

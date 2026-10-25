@@ -1,8 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using Passenger.App.CSharp;
 using Passenger.App.Run;
-using Passenger.App.Workspace;
 using Passenger.Core;
+using Passenger.Workspace;
 
 namespace Passenger.App;
 

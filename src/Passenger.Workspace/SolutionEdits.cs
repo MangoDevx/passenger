@@ -3,7 +3,7 @@ using System.Xml.Linq;
 using Passenger.Core;
 using Passenger.Text;
 
-namespace Passenger.App.Workspace;
+namespace Passenger.Workspace;
 
 /// <summary>The Solution view's edits to a solution's file, a .sln or a .slnx: solution folders added, renamed and
 /// removed with all they hold, projects and files put in a folder, taken out again and followed where they moved. Each

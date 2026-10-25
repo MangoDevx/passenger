@@ -2,10 +2,10 @@ using System.Xml;
 using Avalonia.Controls;
 using Passenger.App.Editors;
 using Passenger.App.Run;
-using Passenger.App.Workspace;
 using Passenger.Core;
 using Passenger.Host;
 using Passenger.Text;
+using Passenger.Workspace;
 using A = Passenger.App.AppActions;
 
 namespace Passenger.App;

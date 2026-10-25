@@ -2,7 +2,7 @@ using System.Text.Json;
 using Passenger.Core;
 using Passenger.Text;
 
-namespace Passenger.App.Workspace;
+namespace Passenger.Workspace;
 
 /// <summary>What a project talks to (<see cref="BackingService.Needs"/>): the backing services its packages point to, and
 /// the connection strings of its appsettings.json that reach them.</summary>

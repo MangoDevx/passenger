@@ -5,7 +5,6 @@ using Avalonia.Controls.Documents;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
-using Passenger.App.Workspace;
 using Passenger.Editor;
 using Passenger.Text;
 using TextRun = Avalonia.Controls.Documents.Run;

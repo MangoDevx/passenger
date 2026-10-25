@@ -16,6 +16,7 @@ using Passenger.App.Workspace;
 using Passenger.Core;
 using Passenger.Inspector;
 using Passenger.Profiler;
+using Passenger.Workspace;
 using Passenger.Xaml.Projects;
 
 namespace Passenger.App;

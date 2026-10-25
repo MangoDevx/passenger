@@ -12,6 +12,7 @@ using Passenger.Dap;
 using Passenger.Editor;
 using Passenger.Lsp;
 using Passenger.Text;
+using Passenger.Workspace;
 
 namespace Passenger.App.Mcp;
 

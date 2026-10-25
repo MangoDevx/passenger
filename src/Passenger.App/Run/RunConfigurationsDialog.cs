@@ -4,8 +4,8 @@ using Avalonia.Controls.Templates;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
-using Passenger.App.Workspace;
 using Passenger.Roslyn.Extension;
+using Passenger.Workspace;
 
 namespace Passenger.App.Run;
 

@@ -5,7 +5,7 @@ using Avalonia.Controls.Templates;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Passenger.App.ToolWindows;
-using Passenger.App.Workspace;
+using Passenger.Workspace;
 
 namespace Passenger.App.Migrations;
 

@@ -12,6 +12,7 @@ using Passenger.App.Workspace;
 using Passenger.Editor;
 using Passenger.Text;
 using Passenger.Core;
+using Passenger.Workspace;
 
 namespace Passenger.App.Navigation;
 

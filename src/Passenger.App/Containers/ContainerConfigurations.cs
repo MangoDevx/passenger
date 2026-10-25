@@ -3,6 +3,7 @@ using Passenger.App.Run;
 using Passenger.App.Workspace;
 using Passenger.Core;
 using Passenger.Host;
+using Passenger.Workspace;
 
 namespace Passenger.App.Containers;
 
@@ -19,7 +20,7 @@ public static class ContainerConfigurations
 
     private static readonly Dictionary<string, (DateTime Written, string Text)> Read = new(StringComparer.Ordinal);
 
-    public static bool IsComposeProject(string path) => Path.GetExtension(path).Equals(".dcproj", StringComparison.OrdinalIgnoreCase);
+    public static bool IsComposeProject(string path) => WorkspaceModel.IsComposeProject(path);
 
     /// <summary>Every container configuration the workspace's files make; <paramref name="projects"/> are those loaded.</summary>
     public static IReadOnlyList<RunConfiguration> Generate(WorkspaceModel workspace, IReadOnlyList<ProjectModel> projects)

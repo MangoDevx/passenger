@@ -2,7 +2,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace Passenger.App.Workspace;
+namespace Passenger.Workspace;
 
 /// <summary>A JSON file changed as text where its values stand (launchSettings.json's profiles, an AppHost's appsettings.json
 /// and user secrets): a value replaced where it is, a member added after its object's last, indented as they are, one taken

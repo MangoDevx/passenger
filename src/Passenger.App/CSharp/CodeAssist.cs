@@ -8,6 +8,7 @@ using Passenger.App.Xaml;
 using Passenger.Editor;
 using Passenger.Lsp;
 using Passenger.Text;
+using Passenger.Workspace;
 using Passenger.Xaml;
 using Passenger.Xaml.Features;
 

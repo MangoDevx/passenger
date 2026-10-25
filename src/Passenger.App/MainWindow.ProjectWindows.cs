@@ -1,6 +1,5 @@
 using Avalonia.Controls;
 using Passenger.App.Settings;
-using Passenger.App.Workspace;
 using Passenger.Core;
 
 namespace Passenger.App;

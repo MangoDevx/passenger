@@ -1,4 +1,4 @@
-namespace Passenger.App.Workspace;
+namespace Passenger.Workspace;
 
 /// <summary>The open folder's solution and projects, decided here alone for the Explorer, the language server, Build,
 /// Run, NuGet and the test runner: the solution or project opened by name while it is there, else the solution at the
@@ -32,6 +32,9 @@ public sealed record WorkspaceModel(string Folder, SolutionModel? Solution, IRea
 
     public static bool IsProject(string path) => Path.GetExtension(path).Equals(".csproj", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>Whether a solution's project is a Docker Compose project (.dcproj).</summary>
+    public static bool IsComposeProject(string path) => Path.GetExtension(path).Equals(".dcproj", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>Reads a folder, with the solution or project it was opened by, which stays its workspace while it is there.
     /// A folder without either is walked for its projects, which is a worker's job, never the window's thread's.</summary>
     public static WorkspaceModel Read(string folder, string? named = null) =>
@@ -49,13 +52,13 @@ public sealed record WorkspaceModel(string Folder, SolutionModel? Solution, IRea
         string? path = named is not null && IsSolution(named) && File.Exists(named) ? named : SolutionModel.Find(folder);
         // A Docker Compose project (.dcproj) is read as XML for its run configurations, never loaded as a project.
         return path is not null && SolutionModel.Load(path) is { } solution
-            ? new WorkspaceModel(folder, solution, [.. solution.Projects.Where(p => !Containers.ContainerConfigurations.IsComposeProject(p.Path))])
+            ? new WorkspaceModel(folder, solution, [.. solution.Projects.Where(p => !IsComposeProject(p.Path))])
             : null;
     }
 
     /// <summary>The solution's Docker Compose projects (.dcproj), each a compose configuration of its own.</summary>
     public IReadOnlyList<string> ComposeProjects => Solution is null ? []
-        : [.. Solution.Projects.Where(p => p.Exists && Containers.ContainerConfigurations.IsComposeProject(p.Path)).Select(p => p.Path)];
+        : [.. Solution.Projects.Where(p => p.Exists && IsComposeProject(p.Path)).Select(p => p.Path)];
 
     /// <summary>The same workspace with each project as <paramref name="map"/> gives it: MSBuild's evaluation of it, in
     /// the solution's folders and in <see cref="Projects"/> alike.</summary>

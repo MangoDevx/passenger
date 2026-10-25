@@ -1,7 +1,6 @@
 using System.Text.Json;
 using Passenger.App.Editors;
 using Passenger.App.MSBuild;
-using Passenger.App.Workspace;
 using Passenger.Core;
 using Passenger.Editor;
 using Passenger.Lsp;

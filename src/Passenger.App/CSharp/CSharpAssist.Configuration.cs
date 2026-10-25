@@ -6,6 +6,7 @@ using Passenger.Core;
 using Passenger.Lsp;
 using Passenger.Roslyn.Extension;
 using Passenger.Text;
+using Passenger.Workspace;
 using Passenger.Xaml.Features;
 
 namespace Passenger.App.CSharp;

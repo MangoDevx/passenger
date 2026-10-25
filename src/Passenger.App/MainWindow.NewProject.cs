@@ -1,7 +1,7 @@
 using Passenger.App.Explorer;
 using Passenger.App.Templates;
-using Passenger.App.Workspace;
 using Passenger.Core;
+using Passenger.Workspace;
 
 namespace Passenger.App;
 

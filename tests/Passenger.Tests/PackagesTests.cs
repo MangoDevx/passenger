@@ -10,7 +10,7 @@ using Avalonia.VisualTree;
 using Passenger.App;
 using Passenger.App.Packages;
 using Passenger.App.ToolWindows;
-using Passenger.App.Workspace;
+using Passenger.Workspace;
 
 namespace Passenger.Tests;
 

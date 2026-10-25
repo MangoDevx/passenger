@@ -3,7 +3,7 @@ using System.Text.Json;
 using Passenger.Core;
 using Passenger.Host;
 
-namespace Passenger.App.Workspace;
+namespace Passenger.Workspace;
 
 /// <summary>The project host could not answer: it would not start (no SDK for the folder, no runtime that runs it), it
 /// ended while a request waited, or the request failed in it. The one failure a caller of <see cref="ProjectHost"/>
@@ -92,7 +92,7 @@ public sealed class ProjectHost : IAsyncDisposable
         {
             if (e.Data is { Length: > 0 } line)
             {
-                IdeErrors.Write($"Project host (process {process.Id}): {line}");
+                PassengerLog.Write($"Project host (process {process.Id}): {line}");
             }
         };
         process.BeginErrorReadLine();
@@ -292,7 +292,7 @@ public sealed class ProjectHost : IAsyncDisposable
         catch (Exception error)
         {
             why = $"the project host's answer could not be read ({error.GetType().Name}: {error.Message})";
-            IdeErrors.Write($"Project host (process {ProcessId}) was ended: {why}");
+            PassengerLog.Write($"Project host (process {ProcessId}) was ended: {why}");
             ChildProcesses.Kill(process);
         }
         Fail(why);
@@ -358,7 +358,7 @@ public static class ProjectHosts
                 }
             }
             ProjectHost started = await ProjectHost.StartAsync(folder, cancel).ConfigureAwait(false);
-            IdeErrors.Write($"Project host (process {started.ProcessId}) started with the .NET SDK {started.Version} for {folder}");
+            PassengerLog.Write($"Project host (process {started.ProcessId}) started with the .NET SDK {started.Version} for {folder}");
             Running.Add(started);
             return started;
         }

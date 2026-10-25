@@ -1,6 +1,6 @@
 using System.Text;
 using System.Text.Json;
-using Passenger.App.Workspace;
+using Passenger.Workspace;
 
 namespace Passenger.App.Run;
 

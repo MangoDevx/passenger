@@ -8,6 +8,7 @@ using Passenger.Editor;
 using Passenger.Host;
 using Passenger.Lsp;
 using Passenger.Roslyn.Extension;
+using Passenger.Workspace;
 
 namespace Passenger.App.Workspace;
 

@@ -3,6 +3,7 @@ using Passenger.App.Workspace;
 using Passenger.Core;
 using Passenger.Editor;
 using Passenger.Host;
+using Passenger.Workspace;
 
 namespace Passenger.App.MSBuild;
 

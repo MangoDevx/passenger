@@ -3,11 +3,11 @@ using ModelContextProtocol.Server;
 using Passenger.App.Packages;
 using Passenger.App.Profiling;
 using Passenger.App.Vcs;
-using Passenger.App.Workspace;
 using Passenger.Core;
 using Passenger.Terminal;
 using Passenger.Text;
 using Passenger.Vcs;
+using Passenger.Workspace;
 
 namespace Passenger.App.Mcp;
 

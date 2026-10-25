@@ -1,4 +1,4 @@
-namespace Passenger.App.Workspace;
+namespace Passenger.Workspace;
 
 /// <summary>Where the platforms differ in watching a folder, and only here: macOS and Windows watch a whole tree
 /// through one handle, where Linux's inotify takes a watch for every folder from a small pool the user's programs

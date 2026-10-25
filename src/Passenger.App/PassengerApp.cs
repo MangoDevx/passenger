@@ -1,8 +1,8 @@
 using Avalonia;
 using Avalonia.Controls;
 using Passenger.App.Discord;
-using Passenger.App.Workspace;
 using Passenger.Core;
+using Passenger.Workspace;
 
 namespace Passenger.App;
 

@@ -3,6 +3,7 @@ using System.Diagnostics;
 using Passenger.App.State;
 using Passenger.Core;
 using Passenger.Host;
+using Passenger.Workspace;
 
 namespace Passenger.App.Workspace;
 

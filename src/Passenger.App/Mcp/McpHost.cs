@@ -9,7 +9,6 @@ using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Passenger.App.State;
-using Passenger.App.Workspace;
 using Passenger.Core;
 
 namespace Passenger.App.Mcp;

@@ -1,6 +1,7 @@
 using Passenger.App.Workspace;
 using Passenger.Core;
 using Passenger.Text;
+using Passenger.Workspace;
 
 namespace Passenger.App;
 
