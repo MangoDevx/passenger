@@ -107,9 +107,10 @@ referenced projects twice).
 - **Work off the UI thread that changes what is drawn goes through `BackgroundWork`** (`Run`, and `Debounce` rather than
   a `DispatcherTimer`), so screenshots and tests wait for it; one that mustn't hold them says why in a comment.
 - **One threading rule.** Controls, documents, the window's `ProjectSession` and its parts, controllers and views belong
-  to the UI thread (`UiThread.Check()` in entry points). Text, Lsp, Dap, Debugger and Profiler never reference Avalonia
-  and raise events on any thread; Editor, Languages and Terminal on the UI thread. The App crosses from another thread
-  only through `UiThread` (`Post`, `Marshal` for a library's handler, `InvokeAsync` to wait for an answer).
+  to the UI thread (`UiThread.Check()` in entry points). Text, Vcs, Workspace, Packages, Lsp, Dap, Debugger and Profiler
+  never reference Avalonia and raise events on any thread; Editor, Languages and Terminal on the UI thread. The App
+  crosses from another thread only through `UiThread` (`Post`, `Marshal` for a library's handler, `InvokeAsync` to wait
+  for an answer).
 - **Paths are canonical** (`PathNames.Canonical`, symlinks resolved, as MSBuild and Roslyn report them); compare with
   `PathNames.Comparer`/`Same`/`IsUnder`, walk a project's folders with `FoldersUnder` and the open folder's files with
   `FilesUnder` (`IsSystemFile` passed over). Show one to a person with `PathNames.Shown`.
@@ -148,10 +149,13 @@ Projects in `src/`:
 - `Passenger.Core`: what everything shares, no UI. `ChildProcesses` (`RunAsync`'s limit, a 2 s `OutputGrace` after exit,
   `mostOutput`; `StartAsync` forks off the UI thread, since a fork costs a large process tens of ms, #233),
   `Dotnet`/`Programs`/`ShellEnvironment` (tools found as the login shell would), `PathNames`, `AtomicFile`,
-  `SocketFolders` (every Unix socket, short paths), `DotnetProcesses` (attachable programs), `InFlight`, `BackgroundWork`.
+  `SocketFolders` (every Unix socket, short paths), `DotnetProcesses` (attachable programs), `InFlight`,
+  `BackgroundWork`, `Product` (the one place the version is read), `PassengerLog` (passenger.log for code below the App,
+  never `IdeLog`), `WebAddress`.
 - `Passenger.Text`: the rope (an immutable B-tree, so every version is a thread-safe snapshot), `TextDocument` (undo,
   LSP-ordered changes; carry offsets with `TextEditing.Map*` over the change's `SortedEdits` as it came), carets, every
-  editing command as a pure function to an `EditPlan`, `MarkupIndent`, `WordDiff`, `FuzzyMatch` (allocates nothing).
+  editing command as a pure function to an `EditPlan`, `MarkupIndent`, `WordDiff`, `FuzzyMatch` (allocates nothing),
+  `FileText` (encoding, BOM, `.editorconfig`, line separator), `ChangeMark`.
 - `Passenger.Editor`: the `CodeEditor` control (partials), `Keymap` and `EditorActions` (presets), `IHighlighter`. With
   soft wrap, whatever turns an offset into a place goes through `Rows`/`RowSpan`. Wraps (`WrapMap`), rows (`RowMap`),
   folds (`FoldList`), hints (`HintList`) and built lines (`LineRuns`) are runs an edit moves only where it reaches, so a
@@ -178,6 +182,8 @@ Projects in `src/`:
   (design-time, as Roslyn's build host), `inspect` (MSBuild files' code help), `properties`, `hold` (no generating
   design-time build while Passenger builds: Windows lets one writer have a file), `cancel`. Results are stamped with what
   they read, so a reopen redoes only what changed; a Windows-only framework loads with EnableWindowsTargeting off Windows.
+- `Passenger.Vcs`, `Passenger.Workspace`, `Passenger.Packages`: the App's Git, folder model and NuGet code that
+  needs no UI, referencing no Avalonia; what belongs to the UI thread stays in the App's folder of the same name.
 - `Passenger.Dap`, `Passenger.Debugger` (+`.Interop`), `Passenger.DebugAdapter`: Passenger's own debugger (begun from
   SharpDbg and ICorDebugSharp, MIT) behind its own DAP, in a process of its own under `debugger/`.
   `Passenger.ContainerTools` is `passenger-tools`, what runs inside a Linux container (`dap`, `processes`, `trace`,
@@ -196,7 +202,7 @@ Projects in `src/`:
 `src/Passenger.App`, by area:
 - **Shell.** `PassengerApp` (the process root: every open goes through `OpenProject`), `MainWindow` and its partials,
   `ProjectSession` (one folder's services made and ended together; a handler acts only while its session is bound,
-  `Bind`), `StatusBar` (`StatusPlace` makes its words a link), `Product` (the one place the version is read),
+  `Bind`), `StatusBar` (`StatusPlace` makes its words a link),
   `PopupHost`, `IdeKeys` (the one keymap in every window but a dialog; a part with keys of its own is an `IOwnKeys`).
   The toolbar is the main window's title bar: anything new on it goes inside `ToolbarStart` or `ToolbarEnd`, or Windows
   takes a press on it for the caption's. Logs are `logs/` under the state root (`IdeLog`: passenger.log, roslyn/,
@@ -252,10 +258,11 @@ Projects in `src/`:
   `LiveTreeController`, `BindingErrors`, `BindingValuesController`.
 - **Tests window.** `TestFinder` (tests from code before any build), `TestRunners` (a Testing Platform app to
   `TestingPlatformRunner`, the rest to `VsTestRunner`, the only file that knows VSTest's object model), `TestTree`.
-- **The rest,** each folder named for its job: `Vcs` (`Git` over porcelain v2, `VcsController`, `ThreeWayMerge`),
-  `Packages` (`FeedSet`, `NuGetView`, every package change's one path, credentials only to their feed's host), `History`
-  (Local History), `Navigation`, `Workspace` (`SolutionModel`, `SolutionEdits` and
-  `ProjectEdits` change files as text, never `dotnet sln`/`add reference`), `Welcome`, `Templates` (every `dotnet new`
+- **The rest,** each folder named for its job: `Vcs` (`VcsController`; `Git` over porcelain v2 and `ThreeWayMerge`
+  in Passenger.Vcs), `Packages` (`NuGetView`, `FolderPackages`, every package change's one path; feeds, `FeedSet` and
+  nuget.config in Passenger.Packages, credentials only to their feed's host), `History` (Local History), `Navigation`,
+  `Workspace` (the UI's part; `SolutionModel`, `ProjectHosts` and `SolutionEdits`/`ProjectEdits`, which change files as
+  text, never `dotnet sln`/`add reference`, in Passenger.Workspace), `Welcome`, `Templates` (every `dotnet new`
   through `ProjectTemplates.New`/`NewCommand`), `Updates` (`Releases`, `Updater`; only an installed copy updates itself;
   What's New from `docs/release-notes/X.Y.Z.md`), `Settings`, `State`, `Discord`.
 - **MCP.** `PassengerTools` (every tool, run on the UI thread, answering with what its operation returned), `McpHost`
