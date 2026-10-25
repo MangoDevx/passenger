@@ -27,7 +27,6 @@ public partial class MainWindow
     /// <summary>The session's programs and builds go now, so a server lets go of its port; the rest are asked to end.</summary>
     private void EndChildren()
     {
-        nuget?.StopChange();
         _ = terminal?.CloseAllAsync();
         Ended = session.CloseAsync(
             ("the solution left before", ending),

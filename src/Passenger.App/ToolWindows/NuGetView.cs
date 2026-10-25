@@ -30,14 +30,12 @@ public sealed record PackageRow(string Id, string Version, string Description, s
 /// typed, else what the feed chosen beside the query finds; the chosen package's versions and a row per project to Install,
 /// Update or Remove it through the .NET command line, whose restore uses those feeds and their credentials. A version with
 /// a known vulnerability (the audit's VulnerabilityInfo, as restore reads it) is marked with its advisories, and Update
-/// offers the least version that fixes it. Sources: the files and their feeds (<see cref="NuGetSourcesView"/>).</summary>
+/// offers the least version that fixes it. Sources: the files and their feeds (<see cref="NuGetSourcesView"/>). A view over
+/// the folder's <see cref="FolderPackages"/>, its session's.</summary>
 public sealed class NuGetView : DockPanel
 {
     private static readonly TimeSpan Pause = TimeSpan.FromMilliseconds(300);
 
-    private readonly Func<IReadOnlyList<ProjectModel>> projects;
-    private readonly Func<string?> root;
-    private readonly PackageManager manager = new();
     private readonly StackPanel tabs = new() { Orientation = Orientation.Horizontal, Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
     private readonly ContentControl body = new();
     private readonly DockPanel packages = new();
@@ -53,25 +51,13 @@ public sealed class NuGetView : DockPanel
     private CancellationTokenSource? showing;
     private IReadOnlyList<PackageRow> rows = [];
     private IReadOnlyList<string> versions = [];
-    private PackageSourceSet sources = PackageSourceSet.None;
-    private Dictionary<string, IPackageFeed> feeds = new(StringComparer.OrdinalIgnoreCase);
-    private IPackageFeed? given;
-    private Task? reading;
-
-    /// <summary>The audit's known vulnerabilities, read once the sources are and a listed package is installed.</summary>
-    private Task<VulnerabilityData>? audit;
+    private FolderPackages model;
     private bool choosing;
-    private bool busy;
 
-    /// <summary>The package change under way, as its work says it.</summary>
-    private string? changing;
-
-    /// <param name="projects">The workspace's projects, whose packages the window lists and changes.</param>
-    /// <param name="root">The folder NuGet's configuration is read from: the solution's, else the one open.</param>
-    public NuGetView(Func<IReadOnlyList<ProjectModel>> projects, Func<string?> root)
+    /// <param name="folder">The folder's packages, which the window lists and changes.</param>
+    public NuGetView(FolderPackages folder)
     {
-        this.projects = projects;
-        this.root = root;
+        model = folder;
         search = new TextBox { Classes = { "search" }, PlaceholderText = "Search packages", Margin = new Thickness(8, 0) };
         chooser = new ComboBox { Classes = { "compact" }, MinWidth = 130, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0) };
         ToolTip.SetTip(chooser, "The feeds searched");
@@ -121,12 +107,6 @@ public sealed class NuGetView : DockPanel
             [DockProperty] = Dock.Bottom,
         };
         log.Bind(TextBox.BorderBrushProperty, log.GetResourceObservable("Passenger.Divider"));
-        manager.Line += (_, line) =>
-        {
-            log.IsVisible = true;
-            log.Text = $"{log.Text}{line}\n";
-            log.CaretIndex = log.Text.Length;
-        };
         DockPanel right = new();
         right.Children.Add(log);
         right.Children.Add(new ScrollViewer { Content = details });
@@ -142,6 +122,7 @@ public sealed class NuGetView : DockPanel
         Sources = new NuGetSourcesView(this);
         Children.Add(body);
         ShowPackages();
+        Follow(model);
         AttachedToVisualTree += (_, _) =>
         {
             _ = Shown();
@@ -149,13 +130,58 @@ public sealed class NuGetView : DockPanel
         };
     }
 
-    /// <summary>Raised after a package change, done or not, with the files it changed, so the editors take them from disk and
-    /// the solution is read again before whoever asked for it is answered.</summary>
-    public event EventHandler<PackageOutcome>? Changed;
+    /// <summary>The folder's packages the window shows, its session's.</summary>
+    public FolderPackages Packages => model;
 
-    /// <summary>Saves the open files before a change rewrites a project or a nuget.config, so what is rewritten holds their
-    /// edits.</summary>
-    public Action? SaveFirst { get; set; }
+    /// <summary>Shows another folder's packages from now on, its session's in place of the last's; its sources read if the
+    /// last folder's had been, so the feeds offered are its own.</summary>
+    public void Bind(FolderPackages next)
+    {
+        if (next == model)
+        {
+            return;
+        }
+        bool read = model.Sources != PackageSourceSet.None;
+        model.Line -= OnLine;
+        model.SourcesChanged -= OnSourcesChanged;
+        model.ChangeBegun -= OnChangeBegun;
+        model.Changed -= OnChanged;
+        model = next;
+        Follow(next);
+        if (next.Sources == PackageSourceSet.None && read)
+        {
+            _ = ReloadSourcesAsync(list: false);
+        }
+    }
+
+    /// <summary>Hears what the folder's packages say, and offers their feeds when they are read already.</summary>
+    private void Follow(FolderPackages packages)
+    {
+        packages.Line += OnLine;
+        packages.SourcesChanged += OnSourcesChanged;
+        packages.ChangeBegun += OnChangeBegun;
+        packages.Changed += OnChanged;
+        if (packages.Sources != PackageSourceSet.None)
+        {
+            OnSourcesChanged(packages, EventArgs.Empty);
+        }
+    }
+
+    private void OnLine(object? sender, string line)
+    {
+        log.IsVisible = true;
+        log.Text = $"{log.Text}{line}\n";
+        log.CaretIndex = log.Text.Length;
+    }
+
+    private void OnChangeBegun(object? sender, string stage) => status.Text = "Working…";
+
+    /// <summary>A package change ended, whoever asked for it: said, and the list read again.</summary>
+    private void OnChanged(object? sender, PackageOutcome outcome)
+    {
+        status.Text = outcome.Done ? "Done" : "The change failed; the log says why";
+        _ = RefreshAsync();
+    }
 
     /// <summary>An advisory's link clicked, for the browser.</summary>
     public event EventHandler<Uri>? LinkClicked;
@@ -170,7 +196,7 @@ public sealed class NuGetView : DockPanel
     public bool ShowsSources => body.Content == Sources;
 
     /// <summary>The folder's package sources as last read.</summary>
-    public PackageSourceSet PackageSources => sources;
+    public PackageSourceSet PackageSources => model.Sources;
 
     /// <summary>What the feed chooser offers: All Feeds, then each enabled feed by name.</summary>
     public IReadOnlyList<string> FeedChoices => [.. chooser.Items.OfType<string>()];
@@ -183,39 +209,11 @@ public sealed class NuGetView : DockPanel
             ?? throw new ArgumentException($"The NuGet window has no feed {value}; it offers {string.Join(", ", FeedChoices)}");
     }
 
-    /// <summary>Where packages are searched: the chooser's feeds, unless one is set.</summary>
+    /// <summary>Where packages are searched: the chooser's feeds, unless one is set (the folder's packages' own).</summary>
     public IPackageFeed Feed
     {
-        get => given ?? Chosen(ChosenFeed);
-        set => given = value;
-    }
-
-    /// <summary>A feed by its name, or All Feeds when none is given, once the folder's sources are read, even before the
-    /// window was ever shown.</summary>
-    public async Task<IPackageFeed> FeedAsync(string? name)
-    {
-        if (given is not null)
-        {
-            return given;
-        }
-        if (sources == PackageSourceSet.None || sources.Root != (root() ?? string.Empty))
-        {
-            await ReloadSourcesAsync();
-        }
-        return Chosen(name ?? FeedSet.All);
-    }
-
-    /// <summary>A feed by its name in the folder's configuration, or All Feeds.</summary>
-    public IPackageFeed Chosen(string name)
-    {
-        IPackageFeed[] enabled = [.. sources.Enabled.Select(f => feeds[f.Name])];
-        if (name.Equals(FeedSet.All, StringComparison.OrdinalIgnoreCase))
-        {
-            return new FeedSet(FeedSet.All, enabled, sources.Allows);
-        }
-        return enabled.FirstOrDefault(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase)) is { } one
-            ? new FeedSet(one.Name, [one], sources.Allows)
-            : throw new ArgumentException($"No enabled feed is named {name}; the folder's nuget.config files enable {string.Join(", ", enabled.Select(f => f.Name))}");
+        get => model.Given ?? model.Chosen(ChosenFeed);
+        set => model.Given = value;
     }
 
     public IReadOnlyList<PackageRow> Rows => rows;
@@ -239,7 +237,7 @@ public sealed class NuGetView : DockPanel
 
     public string Log => log.Text ?? string.Empty;
 
-    public bool IsBusy => busy;
+    public bool IsBusy => model.IsBusy;
 
     public void ShowPackages() => Show(packages);
 
@@ -254,17 +252,9 @@ public sealed class NuGetView : DockPanel
     /// while it is still enabled, and lists again.</summary>
     public async Task ReloadSourcesAsync(bool list = true)
     {
-        string folder = root() ?? string.Empty;
+        // Held to the list shown next, so a screenshot waits for it rather than for the sources alone.
         using IDisposable held = BackgroundWork.Scope();
-        Task<PackageSourceSet> read = BackgroundWork.Run(() => folder.Length == 0 ? PackageSourceSet.None : PackageSourceSet.Load(folder));
-        reading = read;
-        PackageSourceSet loaded = await read;
-        if (reading != read)
-        {
-            return;
-        }
-        Take(loaded);
-        if (list)
+        if (await model.ReloadSourcesAsync() && list)
         {
             await RefreshAsync();
         }
@@ -276,10 +266,10 @@ public sealed class NuGetView : DockPanel
         asking?.Cancel();
         CancellationTokenSource cancel = asking = new();
         string? chosen = Selected?.Id;
-        Dictionary<string, Dictionary<string, string?>> installed = Installed();
+        Dictionary<string, Dictionary<string, string?>> installed = model.Installed();
         // The feed's answer is the list shown next, so a screenshot waits for it rather than for "Searching".
         using IDisposable held = BackgroundWork.Scope();
-        if (sources.Root != (root() ?? string.Empty) && given is null)
+        if (!model.IsCurrent && model.Given is null)
         {
             await ReloadSourcesAsync();
             return;
@@ -313,7 +303,7 @@ public sealed class NuGetView : DockPanel
             {
                 return;
             }
-            Task<VulnerabilityData>? auditing = found.Any(r => r.IsInstalled) ? Audit() : null;
+            Task<VulnerabilityData>? auditing = found.Any(r => r.IsInstalled) ? model.Audit() : null;
             if (auditing is { IsCompletedSuccessfully: true })
             {
                 found = Marked(found, auditing.Result);
@@ -356,34 +346,8 @@ public sealed class NuGetView : DockPanel
         }
     }
 
-    /// <summary>The known vulnerabilities, read from the audit's feeds the first time a listed package is installed after
-    /// the sources were read.</summary>
-    private Task<VulnerabilityData> Audit()
-    {
-        IReadOnlyList<FeedSource> audited = sources.Audited;
-        return audit ??= BackgroundWork.Run(() => VulnerabilityData.ReadAsync(audited, CancellationToken.None));
-    }
-
-    /// <summary>The known vulnerabilities of the folder's audit feeds, read once its sources are, even before the window was
-    /// ever shown; none when no feed could say.</summary>
-    public async Task<VulnerabilityData> VulnerabilitiesAsync()
-    {
-        if (sources == PackageSourceSet.None || sources.Root != (root() ?? string.Empty))
-        {
-            await ReloadSourcesAsync(list: false);
-        }
-        try
-        {
-            return await Audit();
-        }
-        catch (Exception failed) when (FeedSet.IsFeedFailure(failed))
-        {
-            return VulnerabilityData.None;
-        }
-    }
-
     /// <summary>The vulnerabilities as far as they are known: none until they are read, or when they could not be.</summary>
-    private VulnerabilityData Known => audit is { IsCompletedSuccessfully: true } read ? read.Result : VulnerabilityData.None;
+    private VulnerabilityData Known => model.Known;
 
     /// <summary>Marks the rows shown once the vulnerabilities are known, unless another list took their place.</summary>
     private async Task MarkAsync(Task<VulnerabilityData> auditing, CancellationTokenSource cancel)
@@ -452,54 +416,24 @@ public sealed class NuGetView : DockPanel
     public async Task<bool> InstallAsync(ProjectModel project) =>
         Selected is { } row && (ChosenVersion ?? row.Version) is { Length: > 0 } version
         && (BeforeInstall is null || await BeforeInstall(project, row.Id, version))
-        && (await InstallAsync(project, row.Id, version)).Done;
+        && (await model.InstallAsync(project, row.Id, version)).Done;
 
     /// <summary>Asked before the window's own Install or Update of a package in a project, with its id and version: whether
     /// it goes on as asked (false when the person cancelled, or had it made another way, as EF Core's packages moved with
     /// their provider).</summary>
     public Func<ProjectModel, string, string, Task<bool>>? BeforeInstall { get; set; }
 
-    public async Task<bool> RemoveAsync(ProjectModel project) => Selected is { } row && (await RemoveAsync(project, row.Id)).Done;
-
-    /// <summary>Adds a package to a project at a version, or moves it to that version: the one way a package goes in
-    /// (<see cref="ChangeAsync"/>).</summary>
-    public Task<PackageOutcome> InstallAsync(ProjectModel project, string id, string version) =>
-        ChangeAsync($"Installing {id} {version} in {project.Name}…", project, () => manager.InstallAsync(project.Path, id, version));
-
-    /// <summary>Moves several packages of a project to their versions together, as one change of the window's one way
-    /// (<see cref="ChangeAsync"/>): EF Core's packages with the provider that supports them.</summary>
-    public Task<PackageOutcome> InstallSetAsync(ProjectModel project, IReadOnlyList<(string Id, string Version)> packages) =>
-        ChangeAsync($"Moving {string.Join(", ", packages.Select(p => $"{p.Id} to {p.Version}"))} in {project.Name}…", project, () => manager.InstallSetAsync(project.Path, packages));
-
-    /// <summary>Takes a package out of a project (Remove).</summary>
-    public Task<PackageOutcome> RemoveAsync(ProjectModel project, string id) =>
-        ChangeAsync($"Removing {id} from {project.Name}…", project, () => manager.RemoveAsync(project.Path, id));
-
-    /// <summary>What a package change's work is held under in the window, which no action names.</summary>
-    public const string Changing = "nuget.change";
-
-    /// <summary>The window's work under way, which a package change shows itself in until it ends.</summary>
-    public ActionWork? Work { get; set; }
-
-    /// <summary>Ends a package change still under way, as the IDE closes.</summary>
-    public void StopChange() => manager.Stop();
+    /// <summary>Takes the chosen package out of a project (Remove).</summary>
+    public async Task<bool> RemoveAsync(ProjectModel project) => Selected is { } row && (await model.RemoveAsync(project, row.Id)).Done;
 
     /// <summary>Reads the sources the first time the window is shown, or lists again once they are read.</summary>
-    private Task Shown() => sources == PackageSourceSet.None && given is null ? ReloadSourcesAsync() : RefreshAsync();
+    private Task Shown() => !model.IsCurrent && model.Given is null ? ReloadSourcesAsync() : RefreshAsync();
 
-    /// <summary>Takes sources just read: their feeds, and the chooser's choices, keeping its choice while it is still there.</summary>
-    private void Take(PackageSourceSet loaded)
+    /// <summary>Sources just read: the chooser's choices, keeping its choice while it is still there, and the Sources tab.</summary>
+    private void OnSourcesChanged(object? sender, EventArgs e)
     {
-        Dictionary<string, IPackageFeed> made = new(StringComparer.OrdinalIgnoreCase);
-        foreach (FeedSource source in loaded.Feeds)
-        {
-            // A feed kept when nothing about it changed, so its service index is not asked for again.
-            made[source.Name] = feeds.TryGetValue(source.Name, out IPackageFeed? kept) && sources.Feeds.Contains(source) ? kept : PackageFeeds.For(source);
-        }
+        PackageSourceSet loaded = model.Sources;
         string was = ChosenFeed;
-        sources = loaded;
-        feeds = made;
-        audit = null;
         choosing = true;
         try
         {
@@ -536,94 +470,6 @@ public sealed class NuGetView : DockPanel
             }
         };
         return tab;
-    }
-
-    /// <summary>A package change, whoever asks for it: one at a time (another asked meanwhile is refused, saying what is under
-    /// way), the open files saved first, shown as the window's work under <see cref="Changing"/>, which <see cref="StopChange"/>
-    /// ends; then the files it changed told (<see cref="Changed"/>) and the list read again.</summary>
-    private async Task<PackageOutcome> ChangeAsync(string stage, ProjectModel project, Func<Task<bool>> change)
-    {
-        if (busy)
-        {
-            return new PackageOutcome(false, [], []) { Refused = Work?.Of(Changing) is { } under ? ActionWork.Busy(under) : $"Already under way: {changing}" };
-        }
-        busy = true;
-        changing = stage;
-        status.Text = "Working…";
-        using IDisposable held = BackgroundWork.Scope();
-        using Working? working = Work?.Begin(Changing, stage, stoppable: false);
-        List<string> said = [];
-        EventHandler<string> heard = (_, line) => said.Add(line);
-        manager.Line += heard;
-        IReadOnlyList<string> files = PackageFiles(project);
-        byte[]?[] before;
-        bool done;
-        try
-        {
-            SaveFirst?.Invoke();
-            // Read once the open files are saved: what the save wrote is not the change's.
-            before = [.. files.Select(Bytes)];
-            done = await change();
-        }
-        finally
-        {
-            busy = false;
-            changing = null;
-            manager.Line -= heard;
-        }
-        PackageOutcome outcome = new(done, [.. files.Where((file, i) => !(Bytes(file) ?? []).AsSpan().SequenceEqual(before[i] ?? []))], said);
-        status.Text = done ? "Done" : "The change failed; the log says why";
-        Changed?.Invoke(this, outcome);
-        await RefreshAsync();
-        return outcome;
-
-        static byte[]? Bytes(string file)
-        {
-            try
-            {
-                return File.Exists(file) ? File.ReadAllBytes(file) : null;
-            }
-            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-            {
-                return null;
-            }
-        }
-    }
-
-    /// <summary>The files a package change can write: the project, and under central package management the nearest
-    /// Directory.Packages.props, where dotnet add package puts the version.</summary>
-    private static IReadOnlyList<string> PackageFiles(ProjectModel project)
-    {
-        List<string> files = [project.Path];
-        for (string? at = Path.GetDirectoryName(project.Path); at is not null; at = Path.GetDirectoryName(at))
-        {
-            string props = Path.Combine(at, "Directory.Packages.props");
-            if (File.Exists(props))
-            {
-                files.Add(PathNames.Canonical(props));
-                break;
-            }
-        }
-        return files;
-    }
-
-    /// <summary>The packages the projects reference: by package, each project's version (null where only central
-    /// management would know and it does not say).</summary>
-    private Dictionary<string, Dictionary<string, string?>> Installed()
-    {
-        Dictionary<string, Dictionary<string, string?>> installed = new(StringComparer.OrdinalIgnoreCase);
-        foreach (ProjectModel project in projects())
-        {
-            foreach ((string name, string? version) in project.Packages)
-            {
-                if (!installed.TryGetValue(name, out Dictionary<string, string?>? byProject))
-                {
-                    installed[name] = byProject = [];
-                }
-                byProject[project.Path] = version;
-            }
-        }
-        return installed;
     }
 
     private int IndexOf(PackageRow row)
@@ -762,7 +608,7 @@ public sealed class NuGetView : DockPanel
         }
         panel.Children.Clear();
         panel.Children.Add(new TextBlock { Text = "Projects", FontWeight = FontWeight.SemiBold });
-        foreach (ProjectModel project in projects().Where(p => p.Exists).OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase))
+        foreach (ProjectModel project in model.Projects.Where(p => p.Exists).OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase))
         {
             bool has = row.Installed.TryGetValue(project.Path, out string? at);
             IReadOnlyList<Advisory> affecting = at is null ? [] : Known.Of(row.Id, at);
@@ -798,7 +644,7 @@ public sealed class NuGetView : DockPanel
 
     private Button Action(string label, Func<Task<bool>> run)
     {
-        Button button = new() { Content = label, IsEnabled = !busy };
+        Button button = new() { Content = label, IsEnabled = !model.IsBusy };
         button.Click += (_, _) => _ = run();
         return button;
     }

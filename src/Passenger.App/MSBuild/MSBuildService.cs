@@ -9,7 +9,7 @@ namespace Passenger.App.MSBuild;
 /// <summary>The code help in a folder's MSBuild files: every open project, .props and .targets given an
 /// <see cref="MSBuildDocument"/>, each evaluated through the project it belongs to (itself, the workspace's project whose
 /// evaluation imports it, or the one Go to Declaration came from) in the folder's project host, with the open files'
-/// unsaved text in place of the disk's. Package ids, versions and advisories come from the window's NuGet. A UI-thread
+/// unsaved text in place of the disk's. Package ids, versions and advisories come from the folder's packages. A UI-thread
 /// object; the host and the feeds are asked off it.</summary>
 public sealed class MSBuildService(Func<string?> folder, Func<WorkspaceModel?> workspace) : IDisposable
 {
@@ -21,10 +21,10 @@ public sealed class MSBuildService(Func<string?> folder, Func<WorkspaceModel?> w
     private Task<IReadOnlyList<string>>? sdks;
     private bool disposed;
 
-    /// <summary>The folder's package feeds (All Feeds), the window's NuGet's.</summary>
+    /// <summary>The folder's package feeds (All Feeds), its session's packages'.</summary>
     public Func<Task<IPackageFeed>>? Feed { get; set; }
 
-    /// <summary>What the folder's audit feeds know of vulnerable packages, the window's NuGet's.</summary>
+    /// <summary>What the folder's audit feeds know of vulnerable packages, its session's packages'.</summary>
     public Func<Task<VulnerabilityData>>? Vulnerabilities { get; set; }
 
     /// <summary>Something to say in the status bar: why a project could not be evaluated, or a feed did not answer.</summary>

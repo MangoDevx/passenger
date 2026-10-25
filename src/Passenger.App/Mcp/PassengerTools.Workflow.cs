@@ -193,7 +193,7 @@ public sealed partial class PassengerTools
     public Task<IReadOnlyList<PackageSummary>> NuGetSearch(string query, bool prerelease = false,
         [Description("A feed's name, as the NuGet window lists it")] string? feed = null,
         CancellationToken cancel = default) => OnUi(cancel, async () =>
-        await (await window.NuGet.FeedAsync(feed)).SearchAsync(query, prerelease, cancel));
+        await (await Session.Packages.FeedAsync(feed)).SearchAsync(query, prerelease, cancel));
 
     [McpServerTool(Name = "nuget_install", Title = "Install or remove a package", Destructive = true), Description(
         "Adds a package to a project (its name or .csproj) at a version (else the newest on the folder's enabled feeds), or " +
@@ -205,16 +205,16 @@ public sealed partial class PassengerTools
         ProjectModel chosen = Project(project);
         if (remove)
         {
-            AgentCall.Follow(window.Actions.Work, ToolWindows.NuGetView.Changing);
-            return new PackageChange(id, null, chosen.Name, Changed(await window.NuGet.RemoveAsync(chosen, id)));
+            AgentCall.Follow(window.Actions.Work, FolderPackages.Changing);
+            return new PackageChange(id, null, chosen.Name, Changed(await Session.Packages.RemoveAsync(chosen, id)));
         }
         AgentCall.Say($"Finding {id} on the folder's feeds");
-        IPackageFeed feeds = await window.NuGet.FeedAsync(null);
+        IPackageFeed feeds = await Session.Packages.FeedAsync(null);
         string at = version ?? (await feeds.VersionsAsync(id, prerelease: false, cancel)).FirstOrDefault()
             ?? throw new ArgumentException($"{feeds.Name} has no package {id}");
         AgentCall.Say(null);
-        AgentCall.Follow(window.Actions.Work, ToolWindows.NuGetView.Changing);
-        return new PackageChange(id, at, chosen.Name, Changed(await window.NuGet.InstallAsync(chosen, id, at)));
+        AgentCall.Follow(window.Actions.Work, FolderPackages.Changing);
+        return new PackageChange(id, at, chosen.Name, Changed(await Session.Packages.InstallAsync(chosen, id, at)));
     });
 
     /// <summary>The files a package change wrote, named as the answer names them (the window's change took them into the

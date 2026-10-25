@@ -195,7 +195,6 @@ public partial class MainWindow
     {
         ProjectSession leaving = session;
         IdeErrors.Write($"Closed {leaving.Folder}");
-        nuget?.StopChange();
         Task terminals = Task.CompletedTask;
         if (terminal is { Tabs.Count: > 0 })
         {
@@ -242,6 +241,7 @@ public partial class MainWindow
         BindBookmarks(next);
         BindEndpoints(next);
         BindMigrations(next);
+        BindPackages(next);
         BindContainers(next);
         // Files open as it binds (a file opened with no folder) are its too.
         foreach (Workspace.OpenDocument document in Editors.Documents)
@@ -286,8 +286,6 @@ public partial class MainWindow
                 status.Text = message;
             }
         };
-        next.MSBuild.Feed = () => NuGet.FeedAsync(null);
-        next.MSBuild.Vulnerabilities = () => NuGet.VulnerabilitiesAsync();
         if (next.Web is { } web)
         {
             web.StateChanged += (_, _) =>

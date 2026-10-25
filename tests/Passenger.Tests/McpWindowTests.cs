@@ -57,7 +57,7 @@ public sealed class McpWindowTests : McpRig, IClassFixture<RestoredFolders>
         List<string> worked = [];
         window.Actions.Work.Changed += (_, change) =>
         {
-            if (change.Work.Id == global::Passenger.App.ToolWindows.NuGetView.Changing && !change.Ended)
+            if (change.Work.Id == global::Passenger.App.Packages.FolderPackages.Changing && !change.Ended)
             {
                 worked.Add(change.Work.Stage);
             }
@@ -93,6 +93,44 @@ public sealed class McpWindowTests : McpRig, IClassFixture<RestoredFolders>
         finally
         {
             File.WriteAllText(Path.Combine(library, "go"), string.Empty);
+            Gone(client);
+            window.Close();
+        }
+    }
+
+    /// <summary>An agent searches the folder's feeds and installs a package with the NuGet window never built, its view
+    /// made only as the person opens it, where the package is listed installed.</summary>
+    [AvaloniaFact]
+    public void An_agents_package_search_and_install_leave_the_nuget_window_unbuilt_until_the_person_opens_it()
+    {
+        string library = PathNames.Canonical(TestFolders.Create("mcp-nuget-unbuilt-"));
+        DeleteAtEnd(library);
+        string feed = Directory.CreateDirectory(Path.Combine(library, "feed")).FullName;
+        File.WriteAllBytes(Path.Combine(feed, "Passenger.Sample.1.0.0.nupkg"), StandInFeed.Package("Passenger.Sample", "1.0.0"));
+        File.WriteAllText(Path.Combine(library, "nuget.config"),
+            "<configuration>\n  <packageSources>\n    <clear />\n    <add key=\"local\" value=\"feed\" />\n  </packageSources>\n"
+            + "  <config>\n    <add key=\"globalPackagesFolder\" value=\"packages\" />\n  </config>\n</configuration>\n");
+        File.WriteAllText(Path.Combine(library, "Lib.csproj"), TestProjects.Library());
+        MainWindow window = AgentsWindow(library, languageServer: false);
+        McpClient client = Await(Task.Run(() => Start(["--mcp-attach", ProcessId])), "the agent attaching");
+        try
+        {
+            JsonElement found = Assert.Single(Await(Task.Run(() => Call(client, "nuget_search", new() { ["query"] = "sample", ["feed"] = "local" })), "the agent's search").EnumerateArray());
+            Assert.Equal("Passenger.Sample", found.GetProperty("id").GetString());
+            Task<JsonElement> installing = Task.Run(() => Call(client, "nuget_install", new() { ["project"] = "Lib", ["id"] = "Passenger.Sample" }));
+            Press(Question(window, "the question for the agent's install"), "Allow");
+            JsonElement installed = Await(installing, "the agent's install");
+            Assert.Equal(["Lib.csproj"], installed.GetProperty("changed").EnumerateArray().Select(f => f.GetString()!));
+            Assert.False(window.DockHost[ToolWindowIds.NuGet]!.IsBuilt, "The agent's package search or install built the hidden NuGet window's view");
+
+            window.Perform(AppActions.ShowNuGet);
+            global::Passenger.App.ToolWindows.NuGetView nuget = window.NuGet;
+            Ui.Landed(() => nuget.Selected is { Id: "Passenger.Sample", IsInstalled: true }, "the NuGet window, opened, to list the agent's package as installed");
+            Assert.True(nuget.FeedChoices.SequenceEqual([global::Passenger.App.Packages.FeedSet.All, "local"]),
+                $"The NuGet window opened after the agent read the feeds offers [{string.Join(", ", nuget.FeedChoices)}], not All Feeds and the folder's feed");
+        }
+        finally
+        {
             Gone(client);
             window.Close();
         }

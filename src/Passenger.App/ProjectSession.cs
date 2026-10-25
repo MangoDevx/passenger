@@ -4,6 +4,7 @@ using Passenger.App.Debugging;
 using Passenger.App.Editors;
 using Passenger.App.History;
 using Passenger.App.LiveTree;
+using Passenger.App.Packages;
 using Passenger.App.Navigation;
 using Passenger.App.Profiling;
 using Passenger.App.Run;
@@ -119,7 +120,16 @@ public sealed class ProjectSession : IAsyncDisposable
         // What a Git operation changes in the files is one change set of the folder's Local History, under its name.
         Vcs.Activity = name => LocalHistory?.During(name);
         Models.Changed += (_, changed) => OnEvaluated(changed);
-        MSBuild = new MSBuild.MSBuildService(() => Folder, () => Workspace);
+        Packages = new FolderPackages(() => Projects, () => Solution?.Path is { } solution ? Path.GetDirectoryName(solution) : Folder)
+        {
+            Work = setup.Work,
+            SaveFirst = () => setup.Editors.SaveAll(),
+        };
+        MSBuild = new MSBuild.MSBuildService(() => Folder, () => Workspace)
+        {
+            Feed = () => Packages.FeedAsync(null),
+            Vulnerabilities = () => Packages.VulnerabilitiesAsync(),
+        };
         DesignTimeBuilds = new ProjectBuilds(LoadOrderAsync, () => Workspace is { } open ? ProjectModels.Properties(open) : new Dictionary<string, string>());
     }
 
@@ -497,6 +507,10 @@ public sealed class ProjectSession : IAsyncDisposable
 
     /// <summary>The code help in the folder's project, .props and .targets files, from MSBuild's evaluation in the project host.</summary>
     public MSBuild.MSBuildService MSBuild { get; }
+
+    /// <summary>The folder's NuGet: its package sources, feeds and known vulnerabilities, and the one way its projects'
+    /// packages change, which the NuGet window, MSBuild files' code help, Migrations and an agent all use.</summary>
+    public FolderPackages Packages { get; }
 
     /// <summary>JavaScript, TypeScript, HTML, CSS and JSON for the folder's files, each kind's language server started as
     /// its first file opens; null with no folder.</summary>
@@ -923,6 +937,7 @@ public sealed class ProjectSession : IAsyncDisposable
         parts.Add(("the Aspire applications", Aspire.DisposeAsync().AsTask()));
         Runner.Stop();
         Builder.Stop();
+        Packages.Stop();
         InTerminal?.Stop();
         ProfileStarting?.Cancel();
         foreach (Run.StartUnderWay start in Starting.ToList())
