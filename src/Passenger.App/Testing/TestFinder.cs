@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using Passenger.App.Workspace;
 using Passenger.Core;
@@ -20,7 +19,7 @@ public sealed class TestFinder
 
     /// <summary>Closed files' reads by path, with the write time and length they were read at: a file read again only
     /// once it has changed. Filled by the workers that read them.</summary>
-    private readonly ConcurrentDictionary<string, (DateTime Written, long Length, FileTests Tests)> onDisk = new(StringComparer.Ordinal);
+    private readonly FileMemo<FileTests> onDisk = new();
 
     /// <summary>Open files' reads, which stand for the file while it is open.</summary>
     private readonly Dictionary<string, FileTests> open = new(StringComparer.Ordinal);
@@ -205,25 +204,9 @@ public sealed class TestFinder
         return found;
     }
 
-    /// <summary>Reads a closed file's tests unless it has not changed since they were read. A worker's.</summary>
-    private void ReadFile(string path)
-    {
-        try
-        {
-            FileInfo file = new(path);
-            if (!file.Exists || onDisk.TryGetValue(path, out var known) && known.Written == file.LastWriteTimeUtc && known.Length == file.Length)
-            {
-                return;
-            }
-            DateTime written = file.LastWriteTimeUtc;
-            long length = file.Length;
-            onDisk[path] = (written, length, TestsAtCaret.Read(File.ReadAllText(path)));
-        }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-        {
-            // Being written: the watcher says so again once it has been.
-        }
-    }
+    /// <summary>Reads a closed file's tests unless it has not changed since they were read; one being written is read once
+    /// the watcher says so again. A worker's.</summary>
+    private void ReadFile(string path) => onDisk.Get(path, file => TestsAtCaret.Read(File.ReadAllText(file)));
 
     /// <summary>Tells the projects' tests as their files now read, open ones from their own parse, for those that changed
     /// (or all of them, once a listing has ended, which may have found none).</summary>
@@ -239,9 +222,9 @@ public sealed class TestFinder
                 {
                     files[path] = typed;
                 }
-                else if (onDisk.TryGetValue(path, out var read))
+                else if (onDisk.Kept(path) is { } read)
                 {
-                    files[path] = read.Tests;
+                    files[path] = read;
                 }
             }
             // A file made in the editor and not yet listed.

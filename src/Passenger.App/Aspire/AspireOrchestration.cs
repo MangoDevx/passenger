@@ -132,7 +132,7 @@ public static class AspireOrchestration
                 cancel.ThrowIfCancellationRequested();
                 if (!result.Succeeded)
                 {
-                    throw new InvalidOperationException($"Could not create {shortName}: {ProjectTemplates.Said(result)}");
+                    throw new InvalidOperationException($"Could not create {shortName}: {result.Said}");
                 }
                 string generated = Path.GetDirectoryName(Staged(project))!;
                 foreach (string file in Directory.EnumerateFiles(generated, "*", SearchOption.AllDirectories))

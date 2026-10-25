@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 
 namespace Passenger.Core;
@@ -5,6 +6,51 @@ namespace Passenger.Core;
 /// <summary>Where the .NET command line is, found with the login shell's PATH (<see cref="ShellEnvironment"/>).</summary>
 public static class Dotnet
 {
+    /// <summary>The SDK each folder's dotnet names, by the folder and the global.json over it as it stood when asked.</summary>
+    private static readonly ConcurrentDictionary<string, Lazy<Task<string>>> Sdks = new(PathNames.Comparer);
+
+    /// <summary>The SDK a folder's dotnet runs (its global.json's, else the newest), as <c>dotnet --version</c> names it
+    /// there: asked once for the folder and the global.json over it as it stands, and again after <see cref="ForgetSdks"/>;
+    /// an <see cref="InvalidOperationException"/> saying why when it names none, which is asked again next time.</summary>
+    public static async Task<string> SdkAsync(string folder, CancellationToken cancel = default)
+    {
+        string key = $"{folder}\n{GlobalJsonOver(folder)}";
+        Lazy<Task<string>> once = Sdks.GetOrAdd(key, _ => new Lazy<Task<string>>(() => AskSdkAsync(folder)));
+        try
+        {
+            return await once.Value.WaitAsync(cancel).ConfigureAwait(false);
+        }
+        catch (Exception) when (once.Value.IsFaulted)
+        {
+            Sdks.TryRemove(KeyValuePair.Create(key, once));
+            throw;
+        }
+    }
+
+    /// <summary>Lets go of the SDKs named, once one is installed or removed.</summary>
+    public static void ForgetSdks() => Sdks.Clear();
+
+    private static async Task<string> AskSdkAsync(string folder)
+    {
+        ChildResult version = await ChildProcesses.RunAsync(ChildProcesses.DotnetCommand(["--version"], folder), limit: TimeSpan.FromMinutes(1)).ConfigureAwait(false);
+        string sdk = version.Output.Trim();
+        return version.Succeeded && sdk.Length > 0 ? sdk : throw new InvalidOperationException($"dotnet --version failed: {version.Said}");
+    }
+
+    /// <summary>The global.json dotnet reads in a folder (the nearest over it) with its last write and length; empty for none.</summary>
+    private static string GlobalJsonOver(string folder)
+    {
+        for (string? at = folder; at is not null; at = Path.GetDirectoryName(at))
+        {
+            FileInfo file = new(Path.Combine(at, "global.json"));
+            if (file.Exists)
+            {
+                return $"{file.FullName}\n{file.LastWriteTimeUtc.Ticks}\n{file.Length}";
+            }
+        }
+        return string.Empty;
+    }
+
     /// <summary>The <c>dotnet</c> that runs this app (framework-dependent, its runtime three folders under the host), else
     /// one on DOTNET_ROOT or the PATH, else where the installers put it.</summary>
     public static string Host()

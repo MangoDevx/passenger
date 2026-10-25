@@ -146,26 +146,13 @@ public static partial class ProjectTemplates
         }
     }
 
-    /// <summary>The SDK a folder's dotnet runs (its global.json's), as <c>dotnet --version</c> says.</summary>
+    /// <summary>The SDK a folder's dotnet runs (<see cref="Dotnet.SdkAsync"/>), kept as the one it said last.</summary>
     private static async Task<string> SdkAsync(string folder)
     {
-        ChildResult version = await ChildProcesses.RunAsync(ChildProcesses.DotnetCommand(["--version"], folder), limit: TimeSpan.FromMinutes(1));
-        string sdk = version.Output.Trim();
-        if (!version.Succeeded || sdk.Length == 0)
-        {
-            throw new InvalidOperationException($"dotnet --version failed: {Said(version)}");
-        }
+        string sdk = await Dotnet.SdkAsync(folder);
         Sdks[folder] = sdk;
         lastSdk = sdk;
         return sdk;
-    }
-
-    /// <summary>What a failed <c>dotnet</c> said: its errors, else its output, else its exit code.</summary>
-    public static string Said(ChildResult result)
-    {
-        string said = (result.Error.Trim().Length > 0 ? result.Error : result.Output).Trim();
-        string[] lines = said.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-        return lines.Length == 0 ? $"it exited with {result.ExitCode}" : string.Join(' ', lines.Take(6));
     }
 
     internal static int LanguageOrder(string language) => language switch { "C#" => 0, "F#" => 1, "VB" => 2, _ => 3 };
@@ -260,7 +247,7 @@ public static partial class ProjectTemplates
         ChildResult listed = await ChildProcesses.RunAsync(NewCommand(["list", "--type", "project"], folder), limit: TimeSpan.FromMinutes(3));
         if (!listed.Succeeded)
         {
-            throw new InvalidOperationException($"dotnet new list failed: {Said(listed)}");
+            throw new InvalidOperationException($"dotnet new list failed: {listed.Said}");
         }
         string root = TemplateRoot(custom)
             ?? throw new InvalidOperationException("Neither DOTNET_CLI_HOME nor the home folder is set, so dotnet new keeps no templates to read");

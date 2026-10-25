@@ -523,7 +523,7 @@ public sealed class PublishDialog : Window
         Enable();
         PublishOptions options = Options();
         PublishRequest request = new(project.Path, ProfileName.Length > 0 ? ProfileName : null, options.Configuration, options.Framework);
-        command.Text = $"dotnet publish {Quoted(System.IO.Path.GetRelativePath(open, project.Path))} {string.Join(' ', request.Command().Select(Quoted))}";
+        command.Text = $"dotnet publish {ChildProcesses.Quote(System.IO.Path.GetRelativePath(open, project.Path))} {string.Join(' ', request.Command().Select(ChildProcesses.Quote))}";
         if (folderNamed)
         {
             Destination = loaded is not null && options.Folder == loaded.Folder ? loadedDestination
@@ -538,8 +538,6 @@ public sealed class PublishDialog : Window
         {
             Say(WhyNot());
         }
-
-        static string Quoted(string word) => word.Contains(' ', StringComparison.Ordinal) ? $"\"{word}\"" : word;
     }
 
     /// <summary>MSBuild's default folder for the options as they stand, shown once worked out.</summary>

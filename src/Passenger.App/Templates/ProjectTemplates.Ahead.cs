@@ -19,7 +19,7 @@ public static partial class ProjectTemplates
     private static readonly ConcurrentDictionary<(string Sdk, string? Hive), TemplateCatalog> Newest = new();
 
     /// <summary>The SDK each folder's dotnet said last.</summary>
-    private static readonly ConcurrentDictionary<string, string> Sdks = new(StringComparer.Ordinal);
+    private static readonly ConcurrentDictionary<string, string> Sdks = new(PathNames.Comparer);
 
     /// <summary>The folders the templates were last asked for, newest first: read again when what they come from changes.</summary>
     private static readonly List<string> Asked = [];
@@ -172,6 +172,7 @@ public static partial class ProjectTemplates
             }
             Forget();
             Sdks.Clear();
+            Dotnet.ForgetSdks();
             string[] folders;
             lock (Asked)
             {

@@ -43,12 +43,20 @@ public sealed class VsTestRunner : ITestRunner
 
     private VsTestRunner(VsTestConsoleWrapper console) => this.console = console;
 
-    /// <summary>A runner for a folder: vstest.console from the SDK `dotnet --version` names there.</summary>
+    /// <summary>A runner for a folder: vstest.console from the SDK `dotnet --version` names there (<see cref="Dotnet.SdkAsync"/>),
+    /// saying why when it names none.</summary>
     public static async Task<ITestRunner> StartAsync(string folder, CancellationToken cancellation = default)
     {
-        ProcessStartInfo version = ChildProcesses.DotnetCommand(["--version"], folder);
-        string host = version.FileName;
-        string sdk = (await ChildProcesses.RunAsync(version, cancel: cancellation)).Output.Trim();
+        string sdk;
+        try
+        {
+            sdk = await Dotnet.SdkAsync(folder, cancellation);
+        }
+        catch (InvalidOperationException unnamed)
+        {
+            throw new InvalidOperationException($"VSTest cannot start: the folder's .NET SDK could not be named ({unnamed.Message})", unnamed);
+        }
+        string host = Dotnet.Host();
         string console = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(host))!, "sdk", sdk, "vstest.console.dll");
         if (!File.Exists(console))
         {

@@ -1,7 +1,5 @@
 using System.Net.Sockets;
 using System.Reflection;
-using System.Reflection.Metadata;
-using System.Reflection.PortableExecutable;
 using System.Runtime.Loader;
 using System.Text;
 using System.Text.Json;
@@ -239,12 +237,9 @@ public sealed class LiveApp : IDisposable
             {
                 return false;
             }
-            using FileStream stream = File.OpenRead(built);
-            using PEReader pe = new(stream);
-            MetadataReader metadata = pe.GetMetadataReader();
-            return metadata.AssemblyReferences.Any(handle => metadata.GetString(metadata.GetAssemblyReference(handle).Name) is "PresentationFramework" or "PresentationCore");
+            return AssemblyFacts.Read(built)?.References.Any(r => r.Name is "PresentationFramework" or "PresentationCore") == true;
         }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException or BadImageFormatException or InvalidOperationException)
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
             return false;
         }

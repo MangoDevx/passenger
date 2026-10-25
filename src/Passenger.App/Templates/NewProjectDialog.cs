@@ -408,7 +408,7 @@ public sealed class NewProjectDialog : Window
             ChildResult made = await RunAsync(Arguments(plan.ProjectFolder), plan.Root, cancel.Token);
             if (!made.Succeeded)
             {
-                await FailedAsync($"{NameGiven} could not be created: {ProjectTemplates.Said(made)}", plan, existed);
+                await FailedAsync($"{NameGiven} could not be created: {made.Said}", plan, existed);
                 return;
             }
             List<string> projects = ProjectsIn(plan.ProjectFolder);
@@ -470,7 +470,7 @@ public sealed class NewProjectDialog : Window
         ChildResult solution = await RunAsync(["sln", "--name", SolutionName, "--output", plan.Root, .. FormatArguments()], plan.Root, cancel);
         if (!solution.Succeeded)
         {
-            await FailedAsync($"The solution could not be created: {ProjectTemplates.Said(solution)}", plan, existed);
+            await FailedAsync($"The solution could not be created: {solution.Said}", plan, existed);
         }
         return solution.Succeeded;
     }
@@ -983,7 +983,7 @@ public sealed class NewProjectDialog : Window
             editor.IsEnabled = ProjectTemplates.IsEnabled(option.EnabledWhen, values);
             row.Opacity = editor.IsEnabled ? 1 : 0.55;
         }
-        command.Text = template is null ? string.Empty : $"dotnet new {string.Join(' ', Arguments(null).Select(Quoted))}";
+        command.Text = template is null ? string.Empty : $"dotnet new {string.Join(' ', Arguments(null).Select(ChildProcesses.Quote))}";
     }
 
     /// <summary>A name typed: the project's follows the solution's until the person types one of its own.</summary>
@@ -1068,8 +1068,6 @@ public sealed class NewProjectDialog : Window
     }
 
     private static bool IsTrue(string value) => value.Equals("true", StringComparison.OrdinalIgnoreCase);
-
-    private static string Quoted(string argument) => argument.Length == 0 || argument.Any(char.IsWhiteSpace) ? $"\"{argument}\"" : argument;
 
     private void Fail(string? why)
     {

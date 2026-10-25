@@ -1,6 +1,4 @@
 using System.Globalization;
-using System.Reflection.Metadata;
-using System.Reflection.PortableExecutable;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Passenger.Core;
@@ -130,39 +128,9 @@ public static class Processes
                 return false;
             }
             string path = Path.IsPathRooted(assembly) ? assembly : Path.Combine(new DirectoryInfo($"/proc/{id}/cwd").ResolveLinkTarget(true)?.FullName ?? "/", assembly);
-            if (!File.Exists(path))
-            {
-                return false;
-            }
-            using FileStream stream = File.OpenRead(path);
-            using PEReader pe = new(stream);
-            MetadataReader metadata = pe.GetMetadataReader();
-            foreach (CustomAttributeHandle handle in metadata.GetAssemblyDefinition().GetCustomAttributes())
-            {
-                CustomAttribute attribute = metadata.GetCustomAttribute(handle);
-                if (attribute.Constructor.Kind == HandleKind.MemberReference
-                    && metadata.GetMemberReference((MemberReferenceHandle)attribute.Constructor).Parent is { Kind: HandleKind.TypeReference } parent
-                    && metadata.GetString(metadata.GetTypeReference((TypeReferenceHandle)parent).Name) == "DebuggableAttribute")
-                {
-                    BlobReader value = metadata.GetBlobReader(attribute.Value);
-                    value.ReadUInt16();
-                    // DebuggingModes as one int (6 bytes with the named arguments' count), or the older two bools (4).
-                    int modes;
-                    if (value.RemainingBytes >= 6)
-                    {
-                        modes = value.ReadInt32();
-                    }
-                    else
-                    {
-                        value.ReadBoolean();
-                        modes = value.ReadBoolean() ? (int)System.Diagnostics.DebuggableAttribute.DebuggingModes.DisableOptimizations : 0;
-                    }
-                    return (modes & (int)System.Diagnostics.DebuggableAttribute.DebuggingModes.DisableOptimizations) == 0;
-                }
-            }
-            return true;
+            return AssemblyFacts.Read(path) is { Optimized: true };
         }
-        catch (Exception unreadable) when (unreadable is IOException or UnauthorizedAccessException or BadImageFormatException or InvalidOperationException)
+        catch (Exception unreadable) when (unreadable is IOException or UnauthorizedAccessException)
         {
             return false;
         }

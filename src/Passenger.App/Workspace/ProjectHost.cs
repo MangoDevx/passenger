@@ -136,11 +136,6 @@ public sealed class ProjectHost : IAsyncDisposable
         }
     }
 
-    /// <summary>The SDK a folder's projects would load with, which a host of another SDK cannot evaluate them for.</summary>
-    public async Task<SdkAnswer> SdkForAsync(string folder, CancellationToken cancel = default) =>
-        (await AskAsync(HostMethods.Sdk, new SdkParams(folder), null, cancel)).Deserialize<SdkAnswer>(HostJson.Options)
-            ?? throw new ProjectHostFailed("the project host gave no answer for the SDK");
-
     /// <summary>Evaluates projects, handing each over as it is evaluated (a multi-targeted one twice: its outer evaluation,
     /// then complete), on the reader's thread; done once every one has been.</summary>
     public async Task<EvaluateDone> EvaluateAsync(IReadOnlyList<string> projects, IReadOnlyDictionary<string, string> properties, Action<EvaluatedProject> evaluated, CancellationToken cancel = default) =>
@@ -378,18 +373,20 @@ public static class ProjectHosts
         try
         {
             Running.RemoveAll(h => h.HasExited);
-            if (Running.FirstOrDefault() is { } asked)
+            if (Running.Count > 0)
             {
-                SdkAnswer sdk;
+                string? wanted;
                 try
                 {
-                    sdk = await asked.SdkForAsync(folder, cancel).ConfigureAwait(false);
+                    wanted = await Dotnet.SdkAsync(folder, cancel).ConfigureAwait(false);
                 }
-                catch (ProjectHostFailed)
+                catch (Exception unnamed) when (unnamed is InvalidOperationException or IOException or TimeoutException)
                 {
-                    sdk = new SdkAnswer(null, null);
+                    // The host started for the folder says why it loads no SDK.
+                    wanted = null;
                 }
-                if (sdk.Sdk is { } wanted && Running.FirstOrDefault(h => PathNames.Same(h.Sdk, wanted)) is { } same)
+                // A host's SDK is MSBuild's folder, named for its version under the dotnet's sdk folder.
+                if (wanted is not null && Running.FirstOrDefault(h => Path.GetFileName(Path.TrimEndingDirectorySeparator(h.Sdk)) == wanted) is { } same)
                 {
                     return same;
                 }

@@ -129,36 +129,8 @@ public static class ContainerTools
 
     /// <summary>The version a folder's tools say they are (their assembly's informational version, less its commit), read
     /// from their files without running them; null when it cannot be read.</summary>
-    public static string? VersionOf(string folder)
-    {
-        string assembly = Path.Combine(folder, $"{Executable}.dll");
-        try
-        {
-            using FileStream file = File.OpenRead(assembly);
-            using System.Reflection.PortableExecutable.PEReader pe = new(file);
-            System.Reflection.Metadata.MetadataReader metadata = System.Reflection.Metadata.PEReaderExtensions.GetMetadataReader(pe);
-            foreach (System.Reflection.Metadata.CustomAttributeHandle handle in metadata.GetAssemblyDefinition().GetCustomAttributes())
-            {
-                System.Reflection.Metadata.CustomAttribute attribute = metadata.GetCustomAttribute(handle);
-                if (attribute.Constructor.Kind != System.Reflection.Metadata.HandleKind.MemberReference)
-                {
-                    continue;
-                }
-                System.Reflection.Metadata.MemberReference constructor = metadata.GetMemberReference((System.Reflection.Metadata.MemberReferenceHandle)attribute.Constructor);
-                if (constructor.Parent.Kind != System.Reflection.Metadata.HandleKind.TypeReference
-                    || metadata.GetString(metadata.GetTypeReference((System.Reflection.Metadata.TypeReferenceHandle)constructor.Parent).Name) != "AssemblyInformationalVersionAttribute")
-                {
-                    continue;
-                }
-                System.Reflection.Metadata.BlobReader value = metadata.GetBlobReader(attribute.Value);
-                return value.ReadUInt16() == 1 && value.ReadSerializedString() is { } said ? said.Split('+')[0] : null;
-            }
-        }
-        catch (Exception unread) when (unread is IOException or UnauthorizedAccessException or BadImageFormatException or InvalidOperationException)
-        {
-        }
-        return null;
-    }
+    public static string? VersionOf(string folder) =>
+        AssemblyFacts.Read(Path.Combine(folder, $"{Executable}.dll"))?.InformationalVersion?.Split('+')[0];
 
     /// <summary>The tools of a release downloaded, checked and unpacked into <paramref name="cached"/>.</summary>
     private static async Task<string> DownloadAsync(ContainerToolsSource source, string version, string rid, string cached, Action<string>? say, CancellationToken cancel)

@@ -395,7 +395,9 @@ public static class ChildProcesses
             ? [Quote(said(start.FileName)), .. start.ArgumentList.Select(a => Quote(said(a)))]
             : [Quote(said(start.FileName)), said(start.Arguments)]);
 
-    private static string Quote(string word) =>
+    /// <summary>A word of a command line as it is shown: in double quotes, its own escaped, when it is empty or holds a
+    /// space or a quote, else as it is.</summary>
+    public static string Quote(string word) =>
         word.Length > 0 && !word.Any(c => char.IsWhiteSpace(c) || c is '"' or '\'') ? word : $"\"{word.Replace("\"", "\\\"", StringComparison.Ordinal)}\"";
 
     private static void OnExited(Process process, ProcessStartInfo start, string command, long began, IReadOnlyCollection<int>? answers)
@@ -424,6 +426,17 @@ public sealed class ChildOutputException(string message) : IOException(message);
 public sealed record ChildResult(int ExitCode, string Output, string Error)
 {
     public bool Succeeded => ExitCode == 0;
+
+    /// <summary>What a failed child said: its errors, else its output (their first six lines, joined), else its exit code.</summary>
+    public string Said
+    {
+        get
+        {
+            string said = (Error.Trim().Length > 0 ? Error : Output).Trim();
+            string[] lines = said.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            return lines.Length == 0 ? $"it exited with {ExitCode}" : string.Join(' ', lines.Take(6));
+        }
+    }
 }
 
 /// <summary>A child's start: its process, the command as it ran, and the folder it runs in (the IDE's own when empty); its

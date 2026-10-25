@@ -23,9 +23,6 @@ public sealed record HostReply
 
 public static class HostMethods
 {
-    /// <summary><see cref="SdkParams"/> to <see cref="SdkAnswer"/>: the SDK a folder's projects would load with.</summary>
-    public const string Sdk = "sdk";
-
     /// <summary><see cref="EvaluateParams"/>: an <see cref="EvaluatedProject"/> partial per project as each is evaluated,
     /// then <see cref="EvaluateDone"/>.</summary>
     public const string Evaluate = "evaluate";
@@ -65,11 +62,6 @@ public static class HostJson
 
 /// <summary>The SDK the host loaded: its folder (MSBuild's) and version.</summary>
 public sealed record HostReady(string Sdk, string Version);
-
-public sealed record SdkParams(string Folder);
-
-/// <summary>The SDK a folder picks (its global.json, else the newest), or why none.</summary>
-public sealed record SdkAnswer(string? Sdk, string? Problem);
 
 /// <summary>Projects to evaluate, with the global properties they are evaluated with (the solution's).</summary>
 public sealed record EvaluateParams(IReadOnlyList<string> Projects, IReadOnlyDictionary<string, string> Properties);

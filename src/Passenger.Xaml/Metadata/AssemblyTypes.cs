@@ -1,9 +1,9 @@
-using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Reflection.PortableExecutable;
+using Passenger.Core;
 
 namespace Passenger.Xaml.Metadata;
 
@@ -13,7 +13,7 @@ namespace Passenger.Xaml.Metadata;
 /// and the framework's reference assemblies every project and window shares are read once.</summary>
 public sealed class AssemblyTypes
 {
-    private static readonly ConcurrentDictionary<string, (DateTime Written, long Length, Lazy<AssemblyTypes?> Read)> Cache = new(StringComparer.Ordinal);
+    private static readonly FileMemo<AssemblyTypes> Cache = new();
 
     /// <summary>The attributes a XAML dialect reads, by their short names; every other is left unread.</summary>
     private static readonly HashSet<string> Wanted = new(StringComparer.Ordinal)
@@ -112,20 +112,7 @@ public sealed class AssemblyTypes
 
     /// <summary>An assembly's types, read once per file and the time it was last written; null for a file that is not
     /// one (a native library, or one being written).</summary>
-    public static AssemblyTypes? Get(string path)
-    {
-        FileInfo file = new(path);
-        if (!file.Exists)
-        {
-            return null;
-        }
-        DateTime written = file.LastWriteTimeUtc;
-        long length = file.Length;
-        (DateTime Written, long Length, Lazy<AssemblyTypes?> Read) entry = Cache.AddOrUpdate(path,
-            _ => (written, length, new Lazy<AssemblyTypes?>(() => TryRead(path))),
-            (_, held) => held.Written == written && held.Length == length ? held : (written, length, new Lazy<AssemblyTypes?>(() => TryRead(path))));
-        return entry.Read.Value;
-    }
+    public static AssemblyTypes? Get(string path) => Cache.Get(path, TryRead);
 
     private static AssemblyTypes? TryRead(string path)
     {

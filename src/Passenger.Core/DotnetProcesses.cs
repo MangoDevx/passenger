@@ -325,9 +325,8 @@ public static partial class DotnetProcesses
         return new DotnetProcess(id, name, Joined(arguments), UserName(uid), uid == GetEffectiveUserId());
     }
 
-    /// <summary>Arguments as one command line, each holding a space or a quote in quotes.</summary>
-    private static string Joined(IEnumerable<string> arguments) =>
-        string.Join(' ', arguments.Select(a => a.Length == 0 || a.Any(c => char.IsWhiteSpace(c) || c == '"') ? $"\"{a.Replace("\"", "\\\"", StringComparison.Ordinal)}\"" : a));
+    /// <summary>Arguments as one command line, as a command is shown (<see cref="ChildProcesses.Quote"/>).</summary>
+    private static string Joined(IEnumerable<string> arguments) => string.Join(' ', arguments.Select(ChildProcesses.Quote));
 
     // Windows: the process opened for limited queries, which a process of another user allows unless it is protected.
 

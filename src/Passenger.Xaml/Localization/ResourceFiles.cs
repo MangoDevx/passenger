@@ -1,7 +1,7 @@
-using System.Collections.Concurrent;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Passenger.Core;
 using Passenger.Text;
 using Passenger.Xaml.Syntax;
 
@@ -116,7 +116,7 @@ public sealed record ResourceGap(string Key, string BasePath, ResourceFile File,
 /// it changed; both read on any thread, so off the UI thread.</summary>
 public static class ResourceFiles
 {
-    private static readonly ConcurrentDictionary<string, (long Length, DateTime Written, ResourceFile File)> Read = new(StringComparer.Ordinal);
+    private static readonly FileMemo<ResourceFile> Read = new();
     private static readonly ConditionalWeakTable<TextSnapshot, ResourceFile> ReadOpen = [];
     private static readonly Lazy<HashSet<string>> KnownCultures = new(() =>
         new HashSet<string>(CultureInfo.GetCultures(CultureTypes.AllCultures).Select(c => c.Name).Where(n => n.Length > 0), StringComparer.OrdinalIgnoreCase));
@@ -275,25 +275,7 @@ public static class ResourceFiles
         {
             return ReadOpen.GetValue(snapshot, text => Parse(path, culture, format, text.ToString()));
         }
-        try
-        {
-            FileInfo info = new(path);
-            if (!info.Exists)
-            {
-                return null;
-            }
-            if (Read.TryGetValue(path, out var known) && known.Length == info.Length && known.Written == info.LastWriteTimeUtc)
-            {
-                return known.File;
-            }
-            ResourceFile file = Parse(path, culture, format, File.ReadAllText(path));
-            Read[path] = (info.Length, info.LastWriteTimeUtc, file);
-            return file;
-        }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-        {
-            return null;
-        }
+        return Read.Get(path, file => Parse(file, culture, format, File.ReadAllText(file)));
     }
 
     /// <summary>A language's file read from its text: a .resx's string entries (an entry of another type, a file's or an

@@ -53,7 +53,6 @@ public sealed class Server(TextWriter protocol, HostReady ready)
         {
             object result = request.Method switch
             {
-                HostMethods.Sdk => Sdk(Read<SdkParams>(request)),
                 HostMethods.Evaluate => Evaluate(request.Id, Read<EvaluateParams>(request), cancel.Token),
                 HostMethods.Build => await Build(request.Id, Read<BuildParams>(request), cancel.Token),
                 HostMethods.Cancel => Cancel(Read<CancelParams>(request)),
@@ -94,9 +93,6 @@ public sealed class Server(TextWriter protocol, HostReady ready)
 
     private static T Read<T>(HostRequest request) =>
         request.Params.Deserialize<T>(HostJson.Options) ?? throw new InvalidOperationException($"{request.Method} was sent no parameters");
-
-    private SdkAnswer Sdk(SdkParams asked) =>
-        Sdks.For(asked.Folder, out string? problem) is { } sdk ? new SdkAnswer(sdk.MSBuildPath, null) : new SdkAnswer(null, problem);
 
     private EvaluateDone Evaluate(int id, EvaluateParams asked, CancellationToken cancel)
     {

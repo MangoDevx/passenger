@@ -2,8 +2,6 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
-using System.Reflection.Metadata;
-using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Text.Json.Nodes;
 using Passenger.Core;
@@ -42,36 +40,19 @@ public sealed class TestingPlatformRunner : ITestRunner
     /// platform's build says so in the assembly (since 1.8); one built by an older platform is a program that references it.</summary>
     public static bool IsApplication(string assembly)
     {
-        try
-        {
-            using FileStream file = File.OpenRead(assembly);
-            using PEReader image = new(file);
-            if (!image.HasMetadata)
-            {
-                return false;
-            }
-            MetadataReader metadata = image.GetMetadataReader();
-            foreach (CustomAttributeHandle handle in metadata.GetAssemblyDefinition().GetCustomAttributes())
-            {
-                CustomAttribute attribute = metadata.GetCustomAttribute(handle);
-                if (AttributeName(metadata, attribute) != "System.Reflection.AssemblyMetadataAttribute")
-                {
-                    continue;
-                }
-                BlobReader value = metadata.GetBlobReader(attribute.Value);
-                if (value.ReadUInt16() == 1 && value.ReadSerializedString() == ApplicationMetadata)
-                {
-                    return string.Equals(value.ReadSerializedString(), "true", StringComparison.OrdinalIgnoreCase);
-                }
-            }
-            Version? platform = metadata.AssemblyReferences.Select(r => metadata.GetAssemblyReference(r))
-                .Where(r => metadata.GetString(r.Name) == "Microsoft.Testing.Platform").Select(r => r.Version).FirstOrDefault();
-            return platform is { Major: 1, Minor: < 8 } && image.PEHeaders.CorHeader is { EntryPointTokenOrRelativeVirtualAddress: not 0 };
-        }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException or BadImageFormatException or InvalidOperationException)
+        if (AssemblyFacts.Read(assembly) is not { } facts)
         {
             return false;
         }
+        foreach ((string key, string? value) in facts.Metadata)
+        {
+            if (key == ApplicationMetadata)
+            {
+                return string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+            }
+        }
+        Version? platform = facts.References.Where(r => r.Name == "Microsoft.Testing.Platform").Select(r => r.Version).FirstOrDefault();
+        return platform is { Major: 1, Minor: < 8 } && facts.HasEntryPoint;
     }
 
     /// <summary>The tests in built Testing Platform applications, each asked in its own process, all at once. One whose
@@ -267,23 +248,6 @@ public sealed class TestingPlatformRunner : ITestRunner
                 Attachments = node.Attachments,
             }
             : null;
-    }
-
-    /// <summary>The name of a custom attribute's type, as its constructor's owner names it.</summary>
-    private static string? AttributeName(MetadataReader metadata, CustomAttribute attribute)
-    {
-        EntityHandle owner = attribute.Constructor.Kind switch
-        {
-            HandleKind.MemberReference => metadata.GetMemberReference((MemberReferenceHandle)attribute.Constructor).Parent,
-            HandleKind.MethodDefinition => metadata.GetMethodDefinition((MethodDefinitionHandle)attribute.Constructor).GetDeclaringType(),
-            _ => default,
-        };
-        return owner.Kind switch
-        {
-            HandleKind.TypeReference when metadata.GetTypeReference((TypeReferenceHandle)owner) is var type => $"{metadata.GetString(type.Namespace)}.{metadata.GetString(type.Name)}",
-            HandleKind.TypeDefinition when metadata.GetTypeDefinition((TypeDefinitionHandle)owner) is var type => $"{metadata.GetString(type.Namespace)}.{metadata.GetString(type.Name)}",
-            _ => null,
-        };
     }
 
     /// <summary>What the platform said of a test host as a message for the person, in the log, and in vstest.log.</summary>
