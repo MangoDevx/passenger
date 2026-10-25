@@ -794,26 +794,17 @@ public static class Ui
     /// Hit testing reads the last frame drawn, so until then a click lands on what the window showed before.</summary>
     private static bool Drawn()
     {
-        object media = MediaContext.GetValue(null) ?? throw new InvalidOperationException("Avalonia has no media context");
+        object media = Passenger.Inspector.AvaloniaHooks.MediaContext();
         return NextRender.GetValue(media) is null
             && ((IReadOnlyCollection<Avalonia.Rendering.Composition.Compositor>)RequestedCommits.GetValue(media)!).Count == 0
             && ((System.Collections.ICollection)PendingBatches.GetValue(media)!).Count == 0;
     }
 
-    private static readonly Type MediaContextType = typeof(Visual).Assembly.GetType("Avalonia.Media.MediaContext")
-        ?? throw new MissingMemberException("Avalonia no longer has its MediaContext, by which a settle sees its frames drawn");
+    private static readonly FieldInfo NextRender = Passenger.Inspector.AvaloniaHooks.MediaContextField("_nextRenderOp");
 
-    private static readonly PropertyInfo MediaContext = MediaContextType.GetProperty("Instance", BindingFlags.Static | BindingFlags.Public)
-        ?? throw new MissingMemberException("Avalonia's MediaContext no longer has its Instance");
+    private static readonly FieldInfo RequestedCommits = Passenger.Inspector.AvaloniaHooks.MediaContextField("_requestedCommits");
 
-    private static readonly FieldInfo NextRender = MediaContextField("_nextRenderOp");
-
-    private static readonly FieldInfo RequestedCommits = MediaContextField("_requestedCommits");
-
-    private static readonly FieldInfo PendingBatches = MediaContextField("_pendingCompositionBatches");
-
-    private static FieldInfo MediaContextField(string name) => MediaContextType.GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)
-        ?? throw new MissingFieldException($"Avalonia's MediaContext no longer has {name}, by which a settle sees its frames drawn");
+    private static readonly FieldInfo PendingBatches = Passenger.Inspector.AvaloniaHooks.MediaContextField("_pendingCompositionBatches");
 
     /// <summary>What the IDE was busy with as a wait gave up: each hold of background work by where it was taken, and each
     /// piece of work in flight, with how long it had been under way.</summary>

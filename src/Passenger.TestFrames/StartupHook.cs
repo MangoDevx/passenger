@@ -1,6 +1,6 @@
 using System.Reflection;
-using System.Runtime.Loader;
 using Passenger.Core;
+using Passenger.Inspector;
 using Passenger.TestFrames;
 
 /// <summary>Run before the test program's Main, as DOTNET_STARTUP_HOOKS names this assembly, only in a test run
@@ -23,12 +23,12 @@ internal static class StartupHook
         Unlist();
         try
         {
-            if (!OnAvalonia12())
+            if (!AppAvaloniaContext.ProgramAvalonia().Served)
             {
                 return;
             }
             string self = typeof(StartupHook).Assembly.Location;
-            Assembly inside = new AppAvaloniaContext(self).LoadFromAssemblyPath(self);
+            Assembly inside = new AppAvaloniaContext("Passenger test frames", self).LoadFromAssemblyPath(self);
             inside.GetType("Passenger.TestFrames.Frames", throwOnError: true)!
                 .GetMethod("Watch", BindingFlags.Public | BindingFlags.Static)!
                 .Invoke(null, null);
@@ -45,22 +45,4 @@ internal static class StartupHook
         Environment.SetEnvironmentVariable(Variables.Frames, null);
         StartupHooks.TakeOut(typeof(StartupHook).Assembly.Location);
     }
-
-    /// <summary>Whether the program will load Avalonia 12, from the assemblies the runtime was given for it.</summary>
-    private static bool OnAvalonia12()
-    {
-        string? path = (AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string)?.Split(Path.PathSeparator)
-            .FirstOrDefault(p => string.Equals(Path.GetFileName(p), "Avalonia.Base.dll", StringComparison.OrdinalIgnoreCase));
-        return path is not null && AssemblyName.GetAssemblyName(path).Version?.Major == StartupHooks.AvaloniaMajor;
-    }
-}
-
-/// <summary>Where the hook runs: its own context, which takes Avalonia's assemblies from the test program whatever their 12.x
-/// version, since the default context would refuse one older than the 12.x it was compiled against.</summary>
-internal sealed class AppAvaloniaContext(string hook) : AssemblyLoadContext($"Passenger test frames ({Path.GetFileName(hook)})")
-{
-    protected override Assembly? Load(AssemblyName name) =>
-        name.Name is { } simple && (simple.StartsWith("Avalonia", StringComparison.Ordinal) || simple.StartsWith("MicroCom", StringComparison.Ordinal))
-            ? Default.LoadFromAssemblyName(new AssemblyName(simple))
-            : null;
 }

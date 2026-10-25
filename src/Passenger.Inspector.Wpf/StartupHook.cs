@@ -48,10 +48,5 @@ internal static class StartupHook
     }
 
     /// <summary>Why the inspector cannot serve the app: it has no WPF among the assemblies it will load.</summary>
-    private static string? Problem()
-    {
-        bool wpf = (AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string)?.Split(Path.PathSeparator)
-            .Any(p => string.Equals(Path.GetFileName(p), "PresentationFramework.dll", StringComparison.OrdinalIgnoreCase)) == true;
-        return wpf ? null : "The app does not use WPF";
-    }
+    private static string? Problem() => StartupHooks.TrustedAssembly("PresentationFramework.dll") is null ? "The app does not use WPF" : null;
 }

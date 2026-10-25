@@ -81,24 +81,6 @@ internal static class Pictures
     }
 
     /// <summary>The popups shown over a window, and theirs over them, from the top levels Avalonia draws.</summary>
-    private static IEnumerable<PopupRoot> Popups(TopLevel top)
-    {
-        foreach (PopupRoot popup in Inspector.Drawn().OfType<PopupRoot>())
-        {
-            if (popup.IsVisible && Owner(popup) == top)
-            {
-                yield return popup;
-            }
-        }
-
-        static TopLevel Owner(PopupRoot popup)
-        {
-            TopLevel owner = popup.ParentTopLevel;
-            while (owner is PopupRoot { ParentTopLevel: { } parent })
-            {
-                owner = parent;
-            }
-            return owner;
-        }
-    }
+    private static IEnumerable<PopupRoot> Popups(TopLevel top) =>
+        AvaloniaHooks.Drawn().OfType<PopupRoot>().Where(popup => popup.IsVisible && AvaloniaHooks.Owner(popup) == top);
 }

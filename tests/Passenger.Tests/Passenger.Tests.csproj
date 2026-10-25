@@ -27,6 +27,11 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Avalonia's media context, whose fields a settle reads, as Passenger's hooks into an Avalonia program read it. -->
+    <Compile Include="../../src/Passenger.Inspector/AvaloniaHooks.cs" Link="AvaloniaHooks.cs" />
+  </ItemGroup>
+
   <!-- Avalonia's templates, restored from nuget.org as every package is and served to the tests from the package cache
        as a local feed (AvaloniaApp.Feed), so installing them never reaches nuget.org at test time. -->
   <ItemGroup>

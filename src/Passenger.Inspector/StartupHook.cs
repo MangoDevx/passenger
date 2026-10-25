@@ -1,5 +1,4 @@
 using System.Reflection;
-using System.Runtime.Loader;
 using Passenger.Core;
 using Passenger.Inspector;
 
@@ -27,15 +26,17 @@ internal static class StartupHook
         try
         {
             Thread main = Thread.CurrentThread;
-            (Version? avalonia, string? problem) = Avalonia();
-            if (problem is not null)
+            (Version? avalonia, bool served) = AppAvaloniaContext.ProgramAvalonia();
+            if (!served)
             {
-                Connection.Refuse(socket, avalonia, problem);
+                Connection.Refuse(socket, avalonia, avalonia is null
+                    ? "The app does not use Avalonia"
+                    : $"The app runs Avalonia {avalonia.ToString(3)}; the Live Visual Tree needs Avalonia {StartupHooks.AvaloniaMajor}");
                 return;
             }
             AppContext.SetSwitch(AvaloniaDiagnostics, true);
             string self = typeof(StartupHook).Assembly.Location;
-            Assembly inside = new AppAvaloniaContext(self).LoadFromAssemblyPath(self);
+            Assembly inside = new AppAvaloniaContext("Passenger inspector", self).LoadFromAssemblyPath(self);
             // An evaluation of BindingValues.Read finds this copy first: it hands the read to the one that inspects.
             BindingValues.Live = inside.GetType("Passenger.Inspector.BindingValues", throwOnError: true)!
                 .GetMethod(nameof(BindingValues.Read), BindingFlags.Public | BindingFlags.Static)!
@@ -60,29 +61,4 @@ internal static class StartupHook
         Environment.SetEnvironmentVariable(Wire.OverlaysVariable, null);
         StartupHooks.TakeOut(typeof(StartupHook).Assembly.Location);
     }
-
-    /// <summary>The app's Avalonia, from the assemblies it will load, and why the inspector cannot serve it, if it cannot.</summary>
-    private static (Version? Version, string? Problem) Avalonia()
-    {
-        string? path = (AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string)?.Split(Path.PathSeparator)
-            .FirstOrDefault(p => string.Equals(Path.GetFileName(p), "Avalonia.Base.dll", StringComparison.OrdinalIgnoreCase));
-        if (path is null)
-        {
-            return (null, "The app does not use Avalonia");
-        }
-        Version? version = AssemblyName.GetAssemblyName(path).Version;
-        return version?.Major == StartupHooks.AvaloniaMajor
-            ? (version, null)
-            : (version, $"The app runs Avalonia {version?.ToString(3)}; the Live Visual Tree needs Avalonia {StartupHooks.AvaloniaMajor}");
-    }
-}
-
-/// <summary>Where the inspector runs: its own context, which takes Avalonia's assemblies from the app whatever their 12.x
-/// version, since the default context would refuse one older than the 12.x it was compiled against.</summary>
-internal sealed class AppAvaloniaContext(string inspector) : AssemblyLoadContext($"Passenger inspector ({Path.GetFileName(inspector)})")
-{
-    protected override Assembly? Load(AssemblyName name) =>
-        name.Name is { } simple && (simple.StartsWith("Avalonia", StringComparison.Ordinal) || simple.StartsWith("MicroCom", StringComparison.Ordinal))
-            ? Default.LoadFromAssemblyName(new AssemblyName(simple))
-            : null;
 }

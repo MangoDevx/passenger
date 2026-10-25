@@ -17,6 +17,12 @@ public static class StartupHooks
         return others is { Length: > 0 } ? $"{hook}{Path.PathSeparator}{others}" : hook;
     }
 
+    /// <summary>The path of an assembly the program will load, by its file's name ("Avalonia.Base.dll"), from those the runtime
+    /// was given for it (its trusted platform assemblies); null when it has none of that name.</summary>
+    public static string? TrustedAssembly(string file) =>
+        (AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string)?.Split(Path.PathSeparator)
+            .FirstOrDefault(p => string.Equals(Path.GetFileName(p), file, StringComparison.OrdinalIgnoreCase));
+
     /// <summary>A hook, by its assembly's path, out of this process's startup hooks, so the programs it starts do not load
     /// it; the other hooks stay.</summary>
     public static void TakeOut(string hook)

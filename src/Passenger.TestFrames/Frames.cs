@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -10,6 +9,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
+using Passenger.Inspector;
 
 namespace Passenger.TestFrames;
 
@@ -148,7 +148,7 @@ public static class Frames
         {
             return null;
         }
-        foreach (PopupRoot popup in shown.OfType<PopupRoot>().Where(p => Owner(p) == window))
+        foreach (PopupRoot popup in shown.OfType<PopupRoot>().Where(p => AvaloniaHooks.Owner(p) == window))
         {
             using WriteableBitmap? over = Capture(popup);
             if (over is not null)
@@ -198,25 +198,7 @@ public static class Frames
         }
     }
 
-    /// <summary>The window a popup is over, through the popups it is over.</summary>
-    private static TopLevel Owner(PopupRoot popup)
-    {
-        TopLevel owner = popup.ParentTopLevel;
-        while (owner is PopupRoot { ParentTopLevel: { } parent })
-        {
-            owner = parent;
-        }
-        return owner;
-    }
-
     /// <summary>The windows and popups Avalonia's media context draws, those shown: every one the test opened and has not
-    /// closed, which is no public list.</summary>
-    private static List<TopLevel> Shown()
-    {
-        Type? context = typeof(Visual).Assembly.GetType("Avalonia.Media.MediaContext");
-        object? instance = context?.GetProperty("Instance", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)?.GetValue(null);
-        return context?.GetField("_topLevels", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(instance) is IDictionary drawn
-            ? [.. drawn.Keys.OfType<TopLevel>().Where(t => t.IsVisible && t.PlatformImpl is not null)]
-            : [];
-    }
+    /// closed.</summary>
+    private static List<TopLevel> Shown() => [.. AvaloniaHooks.Drawn().Where(t => t.IsVisible && t.PlatformImpl is not null)];
 }

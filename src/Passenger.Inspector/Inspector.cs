@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -152,7 +150,7 @@ internal sealed class Inspector : Inspecting<Visual>
                 tops.Add(single);
                 break;
         }
-        foreach (TopLevel top in Drawn())
+        foreach (TopLevel top in AvaloniaHooks.Drawn())
         {
             if (!tops.Contains(top))
             {
@@ -160,23 +158,6 @@ internal sealed class Inspector : Inspecting<Visual>
             }
         }
         return tops;
-    }
-
-    /// <summary>The top levels Avalonia's media context draws: every window and popup shown, which is no public list.</summary>
-    internal static List<TopLevel> Drawn()
-    {
-        try
-        {
-            Type? context = typeof(Visual).Assembly.GetType("Avalonia.Media.MediaContext");
-            object? instance = context?.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static)?.GetValue(null);
-            return context?.GetField("_topLevels", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(instance) is IDictionary drawn
-                ? [.. drawn.Keys.OfType<TopLevel>()]
-                : [];
-        }
-        catch (Exception error) when (error is TargetInvocationException or MemberAccessException or InvalidOperationException)
-        {
-            return [];
-        }
     }
 
     /// <summary>A visual and what it holds; with an agent's look, also where it is and whether what clips it (its window, a
