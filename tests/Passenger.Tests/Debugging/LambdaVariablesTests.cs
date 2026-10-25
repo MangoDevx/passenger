@@ -8,7 +8,7 @@ namespace Passenger.Tests.Debugging;
 public class LambdaVariablesTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
-    public async Task SharpDbgCli_InLambda_VariablesRequest_Returns_InScopeVariables()
+    public async Task A_stop_in_a_lambda_lists_the_variables_in_its_scope()
     {
         bool startSuspended = true;
         using DebugSession debugProtocolHost = DebugSession.ForAttach(testOutputHelper, startSuspended, out Process p2);

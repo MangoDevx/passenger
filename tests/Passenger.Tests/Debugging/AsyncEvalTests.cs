@@ -8,7 +8,7 @@ namespace Passenger.Tests.Debugging;
 public class AsyncEvalTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
-    public async Task AsyncMethod_EvaluationRequest_Returns()
+    public async Task An_evaluation_in_an_async_method_reads_what_the_method_sees()
     {
         bool startSuspended = true;
 

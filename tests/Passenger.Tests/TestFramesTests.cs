@@ -147,12 +147,7 @@ public sealed class HeadlessTestsFolder : IDisposable
         }
         """;
 
-    private void Write(string relative, string text)
-    {
-        string path = Path.Combine(Folder, relative);
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, text);
-    }
+    private void Write(string relative, string text) => TestFolders.Write(Folder, relative, text);
 }
 
 /// <summary>A failing Avalonia headless test shows what its windows looked like as it failed: run from the Unit Tests

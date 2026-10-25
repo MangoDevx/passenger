@@ -199,10 +199,7 @@ public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
     public void An_agent_on_an_older_protocol_is_answered_in_its_own_version_through_attach()
     {
         string older = Plain("mcp-older-");
-        MainWindow window = new() { Width = 1200, Height = 800, StartsLanguageServer = false };
-        window.Show();
-        window.OpenFolder(older);
-        Ui.Settle();
+        MainWindow window = Ui.OpenFolder(older, languageServer: false);
         window.ApplySettings(window.Settings with { McpServer = true });
         McpClient client = Await(Task.Run(() => Start(["--mcp-attach", ProcessId], protocol: "2025-11-25")), "the agent attaching");
         try
@@ -365,10 +362,7 @@ public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
         string first = Plain("mcp-first-");
         string second = Plain("mcp-second-");
         string third = Plain("mcp-third-");
-        MainWindow window = new() { Width = 1200, Height = 800, StartsLanguageServer = false };
-        window.Show();
-        window.OpenFolder(first);
-        Ui.Settle();
+        MainWindow window = Ui.OpenFolder(first, languageServer: false);
         McpClient client = Await(Task.Run(() => Start(["--mcp-attach", ProcessId])), "the agent attaching");
         try
         {

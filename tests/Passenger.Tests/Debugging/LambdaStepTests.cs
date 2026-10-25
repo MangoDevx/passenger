@@ -8,7 +8,7 @@ namespace Passenger.Tests.Debugging;
 public class LambdaStepTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
-    public async Task SharpDbgCli_StepRequests_InLambda_Returns_StoppedEventsAtCorrectLocation()
+    public async Task Steps_into_and_through_a_lambda_stop_at_each_of_its_lines_in_turn()
     {
         bool startSuspended = true;
         using DebugSession debugProtocolHost = DebugSession.ForAttach(testOutputHelper, startSuspended, out Process p2);

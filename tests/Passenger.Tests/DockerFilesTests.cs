@@ -945,10 +945,7 @@ public sealed class DockerFilesTests : IClassFixture<DockerFilesTests.Shop>
     /// <summary>A window on a folder of the test's own, opened as the solution or project named.</summary>
     private static MainWindow OpenOwn(string opened)
     {
-        MainWindow window = new() { Width = 1200, Height = 800, Autosaves = false, StartsLanguageServer = false };
-        window.Show();
-        window.OpenFolder(opened);
-        Ui.Settle();
+        MainWindow window = Ui.OpenFolder(opened, languageServer: false, autosaves: false);
         return window;
     }
 

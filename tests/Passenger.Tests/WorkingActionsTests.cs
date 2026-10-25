@@ -113,10 +113,7 @@ public sealed class WorkingActionsTests : WorkingActionsFolders, IClassFixture<R
         string repository = TestFolders.Create("working-git-");
         File.WriteAllText(Path.Combine(repository, "readme.txt"), "a\n");
         TestGit.Init(repository);
-        MainWindow window = new() { Width = 1200, Height = 800 };
-        window.Show();
-        window.OpenFolder(repository);
-        Ui.Settle();
+        MainWindow window = Ui.OpenFolder(repository);
         try
         {
             Assert.True(window.Perform(AppActions.Fetch));
@@ -245,10 +242,5 @@ public abstract class WorkingActionsFolders : IDisposable
 
     protected static string[] Lines(string text) => text.Split('\n', StringSplitOptions.TrimEntries);
 
-    protected static void Write(string root, string relative, string text)
-    {
-        string path = Path.Combine(root, relative);
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, text);
-    }
+    protected static void Write(string root, string relative, string text) => TestFolders.Write(root, relative, text);
 }

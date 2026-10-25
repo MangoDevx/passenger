@@ -312,12 +312,7 @@ public sealed class IndentationTests : IDisposable
         window.Close();
     }
 
-    private void Write(string name, string text)
-    {
-        string path = Path.Combine(folder, name);
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, text);
-    }
+    private void Write(string name, string text) => TestFolders.Write(folder, name, text);
 
     /// <summary>A window on the folder, with a file of it open when one is named; it saves only when asked.</summary>
     private MainWindow Open(string? file)

@@ -23,10 +23,7 @@ public sealed class MenuTests : IDisposable
     [AvaloniaFact]
     public void Settings_applied_again_keep_the_menu_bar_macOS_was_given_with_each_menu_once()
     {
-        MainWindow window = new() { Width = 1200, Height = 800 };
-        window.Show();
-        window.OpenFolder(folder);
-        Ui.Settle();
+        MainWindow window = Ui.OpenFolder(folder);
         NativeMenu given = NativeMenu.GetMenu(window)!;
         int menus = given.Items.Count;
 
@@ -111,10 +108,7 @@ public sealed class MenuTests : IDisposable
     [AvaloniaFact]
     public void A_toolbar_menu_opened_by_a_click_takes_the_keys_so_escape_closes_it_and_the_arrows_and_enter_choose()
     {
-        MainWindow window = new() { Width = 1200, Height = 800 };
-        window.Show();
-        window.OpenFolder(folder);
-        Ui.Settle();
+        MainWindow window = Ui.OpenFolder(folder);
         window.SetConfigurations([new RunConfiguration { Name = "First" }, new RunConfiguration { Name = "Second" }], "First");
         Ui.Settle();
 

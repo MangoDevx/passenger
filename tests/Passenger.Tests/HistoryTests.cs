@@ -243,12 +243,7 @@ public sealed class HistoryTests : IDisposable
 
     private string Full(string relative) => PathNames.Canonical(Path.Combine(folder, relative));
 
-    private void Write(string relative, string text)
-    {
-        string path = Path.Combine(folder, relative);
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, text);
-    }
+    private void Write(string relative, string text) => TestFolders.Write(folder, relative, text);
 
     private string Git(params string[] arguments) => TestGit.Run(folder, arguments);
 }

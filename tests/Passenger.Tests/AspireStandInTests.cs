@@ -192,10 +192,7 @@ public sealed class AspireStandInTests(StandInAppHost project) : IClassFixture<S
             }
         }
         ChildProcesses.Started += Heard;
-        MainWindow window = new() { Width = 1200, Height = 800, Autosaves = false, StartsLanguageServer = false };
-        window.Show();
-        window.OpenFolder(project.Folder);
-        Ui.Settle();
+        MainWindow window = Ui.OpenFolder(project.Folder, languageServer: false, autosaves: false);
         try
         {
             Ui.WaitFor(() => window.Configurations.Any(configuration => configuration.Name == StandInAppHost.Configuration), "the stand-in AppHost's Aspire configuration");

@@ -14,7 +14,7 @@ public class StepTests(ITestOutputHelper testOutputHelper)
     /// they should on the thread that stopped, a breakpoint inside a call stepped over stopping there, and a Step Into
     /// landing in code without source going on to the next user code.</summary>
     [Fact]
-    public async Task SharpDbgCli_StepRequests_Returns_StoppedEventsAtCorrectLocation()
+    public async Task Step_Into_Over_and_Out_each_stop_where_the_code_goes_next()
     {
         bool startSuspended = true;
 
@@ -123,7 +123,7 @@ public class StepTests(ITestOutputHelper testOutputHelper)
     /// line after; a breakpoint on a multi-line switch expression is stopped at; and Step Into a module without symbols
     /// stops in its decompiled source.</summary>
     [Fact]
-    public async Task SharpDbgCli_StepOverToBreakpointedLine_SwitchExpressionBreakpoint_and_StepIntoModuleWithoutSymbols()
+    public async Task A_step_onto_a_breakpoints_line_stops_once_a_switch_expression_is_stopped_in_and_a_step_into_code_without_symbols_shows_it_decompiled()
     {
         bool startSuspended = true;
 

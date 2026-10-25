@@ -431,7 +431,7 @@ public sealed class ConflictsTests : IDisposable
         Assert.True(!result.Succeeded && Unmerged().Length > 0, $"git {string.Join(' ', arguments)} was to stop for conflicts: {result.Error}{result.Output}");
     }
 
-    private void Write(string name, string text) => File.WriteAllText(Path.Combine(folder, name), text);
+    private void Write(string name, string text) => TestFolders.Write(folder, name, text);
 
     private string Read(string name) => File.ReadAllText(Path.Combine(folder, name));
 

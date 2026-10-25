@@ -63,10 +63,7 @@ public sealed class BuildRunTests : IClassFixture<RestoredFolders>, IDisposable
         Assert.True(File.Exists(apphost), $"The build made no apphost at {apphost}");
         File.Delete(apphost);
 
-        MainWindow window = new() { Width = 1200, Height = 800 };
-        window.Show();
-        window.OpenFolder(Path.Combine(Folder, "Zebra.slnx"));
-        Ui.Settle();
+        MainWindow window = Ui.OpenFolder(Path.Combine(Folder, "Zebra.slnx"));
         try
         {
             Assert.Equal("Zebra", window.Solution?.Name);

@@ -8,7 +8,7 @@ namespace Passenger.Tests.Debugging;
 public class ConditionalBreakpointTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
-    public async Task ConditionalBreakpoint_WithLambda_IsRejected()
+    public async Task A_condition_with_a_lambda_is_refused_saying_why()
     {
         bool startSuspended = true;
         using DebugSession debugProtocolHost = DebugSession.ForAttach(testOutputHelper, startSuspended, out Process p2);
@@ -54,7 +54,7 @@ public class ConditionalBreakpointTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async Task ConditionalBreakpoint_WithTrueCondition_Stops()
+    public async Task A_breakpoint_whose_condition_holds_stops()
     {
         bool startSuspended = true;
 
@@ -79,7 +79,7 @@ public class ConditionalBreakpointTests(ITestOutputHelper testOutputHelper)
     [Theory]
     [InlineData("noSuchName")]
     [InlineData("myInt")]
-    public async Task ConditionalBreakpoint_WhoseConditionCannotBeTold_StopsAndSaysWhy(string condition)
+    public async Task A_breakpoint_whose_condition_cannot_be_told_stops_and_says_why(string condition)
     {
         bool startSuspended = true;
 
@@ -109,7 +109,7 @@ public class ConditionalBreakpointTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async Task ConditionalBreakpoint_WithFalseCondition_DoesNotStop()
+    public async Task A_breakpoint_whose_condition_fails_never_stops()
     {
         bool startSuspended = true;
 
@@ -141,7 +141,7 @@ public class ConditionalBreakpointTests(ITestOutputHelper testOutputHelper)
     [InlineData("==2")]
     [InlineData("2")]
     [InlineData("= 2")]
-    public async Task HitCondition_EqualsN_StopsOnNthHit(string hitCondition)
+    public async Task A_hit_count_of_N_stops_on_the_Nth_hit_alone(string hitCondition)
     {
         bool startSuspended = true;
         string hitConditionFilePath = Debuggees.Source("DebuggableConsoleApp", "HitConditionClass.cs");
@@ -253,7 +253,7 @@ public class ConditionalBreakpointTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async Task HitCondition_GreaterThanOrEqual_StopsAfterThreshold()
+    public async Task A_hit_count_of_at_least_N_stops_on_every_hit_from_the_Nth()
     {
         bool startSuspended = true;
         string hitConditionFilePath = Debuggees.Source("DebuggableConsoleApp", "HitConditionClass.cs");
@@ -294,7 +294,7 @@ public class ConditionalBreakpointTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async Task HitCondition_Modulo_StopsEveryNthHit()
+    public async Task A_hit_count_of_every_N_stops_on_every_Nth_hit()
     {
         bool startSuspended = true;
         string hitConditionFilePath = Debuggees.Source("DebuggableConsoleApp", "HitConditionClass.cs");

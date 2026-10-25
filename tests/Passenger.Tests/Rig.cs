@@ -539,12 +539,14 @@ public static class TestFolders
         }
     }
 
-    /// <summary>A file of a test's folder written, the folders it is in made first.</summary>
-    public static void Write(string folder, string relative, string text)
+    /// <summary>A file of a test's folder written, the folders it is in made first; its full path, its separators the
+    /// system's, as the IDE's own paths are.</summary>
+    public static string Write(string folder, string relative, string text)
     {
-        string path = Path.Combine(folder, relative);
+        string path = Path.GetFullPath(Path.Combine(folder, relative));
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(path, text);
+        return path;
     }
 
     public static void Begin(string test) => Made[test] = [];
@@ -1001,6 +1003,19 @@ public static class Ui
         Settle();
     }
 
+    /// <summary>A drag with the left button from one point of a window to another (its units), through ten moves between,
+    /// as a person's hand goes.</summary>
+    public static void Drag(TopLevel window, Point from, Point to)
+    {
+        window.MouseDown(from, MouseButton.Left);
+        for (int step = 1; step <= 10; step++)
+        {
+            window.MouseMove(from + ((to - from) * (step / 10.0)), RawInputModifiers.LeftMouseButton);
+        }
+        window.MouseUp(to, MouseButton.Left);
+        Settle();
+    }
+
     private static void Click(Control control, Point? at, MouseButton button, RawInputModifiers modifiers, bool settle)
     {
         (TopLevel top, Point point) = Aim(control, at);
@@ -1060,10 +1075,10 @@ public static class Ui
 
     /// <summary>A person's window shown on a folder, once the folder's opening work has landed; without the C# language
     /// server for a test that asks nothing of C# (<see cref="Passenger.App.MainWindow.StartsLanguageServer"/>), which then
-    /// waits for no server's start, load or restore.</summary>
-    public static Passenger.App.MainWindow OpenFolder(string folder, double width = 1200, double height = 800, bool languageServer = true)
+    /// waits for no server's start, load or restore; saving only when asked for a test that reads what it left unsaved.</summary>
+    public static Passenger.App.MainWindow OpenFolder(string folder, double width = 1200, double height = 800, bool languageServer = true, bool autosaves = true)
     {
-        Passenger.App.MainWindow window = new() { Width = width, Height = height, StartsLanguageServer = languageServer };
+        Passenger.App.MainWindow window = new() { Width = width, Height = height, StartsLanguageServer = languageServer, Autosaves = autosaves };
         window.Show();
         window.OpenFolder(folder);
         Settle();

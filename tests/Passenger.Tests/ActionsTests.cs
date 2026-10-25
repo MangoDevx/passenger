@@ -86,10 +86,7 @@ public sealed class ActionsTests : IDisposable
     [AvaloniaFact]
     public void A_shortcut_kept_under_a_service_actions_former_id_runs_the_one_action_it_is_now()
     {
-        MainWindow window = new() { Width = 1200, Height = 800 };
-        window.Show();
-        window.OpenFolder(folder);
-        Ui.Settle();
+        MainWindow window = Ui.OpenFolder(folder);
         string keys = OperatingSystem.IsMacOS() ? "meta alt shift K" : "control alt shift K";
         window.ApplySettings(window.Settings with { Shortcuts = new() { ["app.aspire.debug"] = [keys] } });
         try

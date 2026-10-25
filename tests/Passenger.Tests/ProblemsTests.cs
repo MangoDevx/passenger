@@ -364,5 +364,5 @@ public sealed class ProblemsTests : IClassFixture<RestoredFolders>, IDisposable
         Ui.ChooseFromMenu(rows, "Go to");
     }
 
-    private void Write(string name, string text) => File.WriteAllText(Path.Combine(folder, name), text);
+    private void Write(string name, string text) => TestFolders.Write(folder, name, text);
 }

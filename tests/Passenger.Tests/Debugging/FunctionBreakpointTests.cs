@@ -8,7 +8,7 @@ namespace Passenger.Tests.Debugging;
 public class FunctionBreakpointTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
-    public async Task SharpDbgCli_SetFunctionBreakpoint_NoFQN_BreaksOnAllMatchingMethods()
+    public async Task A_function_breakpoint_by_a_bare_method_name_stops_in_every_method_of_that_name()
     {
         bool startSuspended = true;
         using DebugSession debugProtocolHost = DebugSession.ForAttach(testOutputHelper, startSuspended, out Process p2);
@@ -47,7 +47,7 @@ public class FunctionBreakpointTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async Task SharpDbgCli_SetFunctionBreakpoint_FQN_BreaksOnMatchingMethod()
+    public async Task A_function_breakpoint_by_a_full_name_stops_in_that_method_alone()
     {
         bool startSuspended = true;
         using DebugSession debugProtocolHost = DebugSession.ForAttach(testOutputHelper, startSuspended, out Process p2);
@@ -73,7 +73,7 @@ public class FunctionBreakpointTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async Task SharpDbgCli_SetFunctionBreakpoint_GenericClass_BreaksOnMatchingMethod()
+    public async Task A_function_breakpoint_on_a_generic_classs_method_stops_in_it()
     {
         bool startSuspended = true;
         using DebugSession debugProtocolHost = DebugSession.ForAttach(testOutputHelper, startSuspended, out Process p2);
@@ -129,7 +129,7 @@ public class FunctionBreakpointTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async Task SharpDbgCli_SetFunctionBreakpoint_NoParametersSpecified_BreaksOnAllMethodOverloads()
+    public async Task A_function_breakpoint_naming_no_parameters_stops_in_every_overload()
     {
         bool startSuspended = true;
         using DebugSession debugProtocolHost = DebugSession.ForAttach(testOutputHelper, startSuspended, out Process p2);
@@ -188,7 +188,7 @@ public class FunctionBreakpointTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async Task SharpDbgCli_SetFunctionBreakpoint_MethodParametersSpecified_BreaksOnSingleMatchingOverload()
+    public async Task A_function_breakpoint_naming_its_parameters_stops_in_that_overload_alone()
     {
         bool startSuspended = true;
         using DebugSession debugProtocolHost = DebugSession.ForAttach(testOutputHelper, startSuspended, out Process p2);

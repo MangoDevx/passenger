@@ -290,13 +290,7 @@ public abstract class TestingPlatformFolders : IDisposable
         return made;
     }
 
-    protected static string Write(string root, string relative, string text)
-    {
-        string path = Path.Combine(root, relative);
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, text);
-        return path;
-    }
+    protected static string Write(string root, string relative, string text) => TestFolders.Write(root, relative, text);
 
     /// <summary>The Unit Tests window's rows as a person reads them, indented by depth.</summary>
     protected static List<string> Shown(MainWindow window) => [.. window.Tests.Tree.Rows.Select(r => new string(' ', r.Depth * 2) + r.Name)];

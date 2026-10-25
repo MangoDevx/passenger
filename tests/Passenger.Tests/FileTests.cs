@@ -109,10 +109,7 @@ public sealed class FileTests : IDisposable
         {
             file.SetLength(65 * 1024 * 1024);
         }
-        MainWindow window = new() { Width = 1200, Height = 800 };
-        window.Show();
-        window.OpenFolder(folder);
-        Ui.Settle();
+        MainWindow window = Ui.OpenFolder(folder);
         long before = GC.GetAllocatedBytesForCurrentThread();
         string? why = window.OpenFile("huge.log");
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;

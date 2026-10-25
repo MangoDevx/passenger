@@ -1687,10 +1687,7 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
     /// <summary>A window on the class's project, with no C# language server: the rules are the window's, whatever C# says.</summary>
     private MainWindow Open(double width, double height)
     {
-        MainWindow window = new() { Width = width, Height = height, Autosaves = false, StartsLanguageServer = false };
-        window.Show();
-        window.OpenFolder(project.Folder);
-        Ui.Settle();
+        MainWindow window = Ui.OpenFolder(project.Folder, width: width, height: height, languageServer: false, autosaves: false);
         return window;
     }
 

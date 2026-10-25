@@ -8,7 +8,7 @@ namespace Passenger.Tests.Debugging;
 public class AsyncVariablesTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
-    public async Task AsyncMethod_VariablesRequest_ReturnsCorrectVariables()
+    public async Task A_stop_in_an_async_method_lists_its_locals_as_they_are()
     {
         bool startSuspended = true;
 

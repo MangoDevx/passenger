@@ -9,7 +9,7 @@ namespace Passenger.Tests.Debugging;
 public class ExceptionTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
-    public async Task SharpDbgCli_Exception_VariablesHasExceptionScope()
+    public async Task At_an_exceptions_stop_the_exception_is_listed_with_the_locals_and_evaluates()
     {
         bool startSuspended = true;
         using DebugSession debugProtocolHost = DebugSession.ForAttach(testOutputHelper, startSuspended, out Process p2);
@@ -87,7 +87,7 @@ public class ExceptionTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async Task ExceptionInExternalCode_JustMyCodeEnabled_HasNoSourceInfo()
+    public async Task An_exception_thrown_in_code_not_the_programs_own_stops_with_no_source_under_Just_My_Code()
     {
         bool startSuspended = true;
         using DebugSession debugProtocolHost = DebugSession.ForAttach(testOutputHelper, startSuspended, out Process p2);

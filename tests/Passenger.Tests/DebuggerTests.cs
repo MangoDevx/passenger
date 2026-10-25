@@ -2035,13 +2035,7 @@ public sealed class DebuggerTests : IClassFixture<DebuggerTests.Sum>, IClassFixt
     }
 
     /// <summary>A file written into the test's own folder, which it takes for a program of its own.</summary>
-    private string Write(string relative, string text)
-    {
-        string path = Path.Combine(PathNames.Canonical(Fresh()), relative);
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, text);
-        return path;
-    }
+    private string Write(string relative, string text) => TestFolders.Write(PathNames.Canonical(Fresh()), relative, text);
 
     /// <summary>A window on <see cref="Sleeper"/> with its Program.cs open, which never saves what the test types, a
     /// configuration of its own (named apart from the project's generated one) giving the program the file to write its id

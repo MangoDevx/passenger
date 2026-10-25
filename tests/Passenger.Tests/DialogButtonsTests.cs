@@ -41,10 +41,7 @@ public sealed class DialogButtonsTests : IDisposable
         using IDisposable worn = UiRulesTests.Wearing(look);
         // A solution, which Add Aspire Orchestration adds to; no C# language server, which no dialog here asks of.
         File.WriteAllText(Path.Combine(folder, "Dialogs.slnx"), "<Solution />\n");
-        MainWindow window = new() { Width = 1200, Height = 800, StartsLanguageServer = false };
-        window.Show();
-        window.OpenFolder(folder);
-        Ui.Settle();
+        MainWindow window = Ui.OpenFolder(folder, languageServer: false);
         try
         {
             window.Perform(AppActions.About);

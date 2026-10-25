@@ -71,10 +71,7 @@ public sealed class McpContainersTests : McpRig, IClassFixture<RestoredFolders>
         Assert.SkipWhen(Docker.WhyNot is not null, Docker.WhyNot ?? string.Empty);
         string name = Docker.Container("exec", "sleep 600");
         string notes = Plain("mcp-ctr-");
-        MainWindow window = new() { Width = 1200, Height = 800 };
-        window.Show();
-        window.OpenFolder(notes);
-        Ui.Settle();
+        MainWindow window = Ui.OpenFolder(notes);
         McpClient client = Await(Task.Run(() => Start(["--mcp-attach", ProcessId])), "the agent attaching");
         try
         {
@@ -178,10 +175,7 @@ public sealed class McpContainersTests : McpRig, IClassFixture<RestoredFolders>
     public void Containers_a_passenger_of_this_machine_that_is_gone_left_are_removed_as_the_next_one_starts_and_another_machines_stay()
     {
         Assert.SkipWhen(Docker.WhyNot is not null, Docker.WhyNot ?? string.Empty);
-        MainWindow window = new() { Width = 1200, Height = 800 };
-        window.Show();
-        window.OpenFolder(Plain("mcp-left-"));
-        Ui.Settle();
+        MainWindow window = Ui.OpenFolder(Plain("mcp-left-"));
         // The labels a folder's containers carry, which also record that this state labelled something: a start then looks.
         string[] labels = [.. window.Session.Containers.Labels.Where(word => word != "--label")];
         ContainerLabels.Flush();

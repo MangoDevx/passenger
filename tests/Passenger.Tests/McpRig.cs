@@ -206,10 +206,7 @@ public abstract class McpRig : IDisposable
     /// asks nothing of C# code.</summary>
     protected static MainWindow AgentsWindow(string at, bool languageServer = true)
     {
-        MainWindow window = new() { Width = 1200, Height = 800, StartsLanguageServer = languageServer };
-        window.Show();
-        window.OpenFolder(at);
-        Ui.Settle();
+        MainWindow window = Ui.OpenFolder(at, languageServer: languageServer);
         window.ApplySettings(window.Settings with { McpServer = true });
         Assert.True(window.AgentSocket is not null, $"The window does not listen for agents: {window.Status}");
         return window;
@@ -448,7 +445,7 @@ public abstract class McpRig : IDisposable
             ? local.GetProperty("value").GetString()
             : null;
 
-    protected void Write(string relative, string text) => File.WriteAllText(Path.Combine(Folder, relative), text);
+    protected void Write(string relative, string text) => TestFolders.Write(Folder, relative, text);
 
     /// <summary>A working tree under a folder (work), one commit in and Notes.txt changed since, whose origin is a bare
     /// repository beside it (remote.git) that refuses every push when <paramref name="refusing"/>, its pre-receive hook

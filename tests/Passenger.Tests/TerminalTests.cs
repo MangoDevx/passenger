@@ -527,10 +527,7 @@ public sealed class TerminalTests
     {
         string project = PathNames.Canonical(Debugging.Helpers.Debuggees.CopyTo("TerminalConsoleApp", folder));
         Restore.Run(folder);
-        MainWindow window = new() { Width = 1200, Height = 800, StartsLanguageServer = false };
-        window.Show();
-        window.OpenFolder(folder);
-        Ui.Settle();
+        MainWindow window = Ui.OpenFolder(folder, languageServer: false);
         window.SetConfigurations([new RunConfiguration { Name = "Keys", Project = project, Arguments = arguments, Console = ConsoleKind.Terminal }], "Keys");
         return window;
     }
@@ -637,10 +634,7 @@ public sealed class TerminalTests
         TerminalView view = window.TerminalPanel.View;
         Point from = view.TranslatePoint(view.PointOf(fromLine, fromColumn), window)!.Value;
         Point to = view.TranslatePoint(view.PointOf(toLine, toColumn), window)!.Value;
-        window.MouseDown(from, MouseButton.Left);
-        window.MouseMove(to, RawInputModifiers.LeftMouseButton);
-        window.MouseUp(to, MouseButton.Left);
-        Ui.Settle();
+        Ui.Drag(window, from, to);
     }
 
     /// <summary>The window over a folder, its Terminal open on the system's plain shell (cmd.exe on Windows, sh elsewhere).</summary>

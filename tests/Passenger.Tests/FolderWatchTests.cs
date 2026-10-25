@@ -626,12 +626,7 @@ public sealed class FolderWatchTests : IDisposable
 
     private static readonly string Project = TestProjects.Console();
 
-    private void Write(string relative, string text)
-    {
-        string path = Path.Combine(folder, relative);
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, text);
-    }
+    private void Write(string relative, string text) => TestFolders.Write(folder, relative, text);
 
     /// <summary>A window on the folder, watching it the platform's way unless told another; with the C# language server
     /// only where a test asks C# of it, so a project's folder starts and restores none for nothing.</summary>
