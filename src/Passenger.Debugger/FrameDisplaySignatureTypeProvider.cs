@@ -20,8 +20,8 @@ internal sealed class FrameDisplaySignatureTypeProvider : ISignatureTypeProvider
     public string GetPinnedType(string elementType) => elementType;
     public string GetPointerType(string elementType) => elementType + "*";
     public string GetSZArrayType(string elementType) => elementType + "[]";
-    public string GetTypeFromDefinition(MetadataReader reader, TypeDefinitionHandle handle, byte rawTypeKind) => FunctionBreakpointSignatureTypeProvider.GetTypeName(reader, handle);
-    public string GetTypeFromReference(MetadataReader reader, TypeReferenceHandle handle, byte rawTypeKind) => FunctionBreakpointSignatureTypeProvider.GetTypeName(reader, handle);
+    public string GetTypeFromDefinition(MetadataReader reader, TypeDefinitionHandle handle, byte rawTypeKind) => MetadataTypeNames.Of(reader, handle, '.');
+    public string GetTypeFromReference(MetadataReader reader, TypeReferenceHandle handle, byte rawTypeKind) => MetadataTypeNames.Of(reader, handle, '.');
     public string GetTypeFromSpecification(MetadataReader reader, FrameDisplayGenericContext genericContext, TypeSpecificationHandle handle, byte rawTypeKind) =>
         reader.GetTypeSpecification(handle).DecodeSignature(this, genericContext);
 

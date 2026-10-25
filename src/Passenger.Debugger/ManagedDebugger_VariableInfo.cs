@@ -323,9 +323,9 @@ public partial class ManagedDebugger
                 MetadataReader peMetadataReader = GetModuleInfoForModule(currentType.Class.Module).MetadataReader.PeMetadataReader;
                 string? interfaceName = interfaceHandle.Kind switch
                 {
-                    HandleKind.TypeDefinition => FunctionBreakpointSignatureTypeProvider.GetTypeName(peMetadataReader, (TypeDefinitionHandle)interfaceHandle),
-                    HandleKind.TypeReference => FunctionBreakpointSignatureTypeProvider.GetTypeName(peMetadataReader, (TypeReferenceHandle)interfaceHandle),
-                    HandleKind.TypeSpecification => peMetadataReader.GetTypeSpecification((TypeSpecificationHandle)interfaceHandle).DecodeSignature(new FunctionBreakpointSignatureTypeProvider(), null),
+                    HandleKind.TypeDefinition => MetadataTypeNames.Of(peMetadataReader, (TypeDefinitionHandle)interfaceHandle, '.'),
+                    HandleKind.TypeReference => MetadataTypeNames.Of(peMetadataReader, (TypeReferenceHandle)interfaceHandle, '.'),
+                    HandleKind.TypeSpecification => peMetadataReader.GetTypeSpecification((TypeSpecificationHandle)interfaceHandle).DecodeSignature(SignatureKeyProvider.Dotted, null),
                     _ => null
                 };
                 if (interfaceName is not null && named(interfaceName))
@@ -544,7 +544,7 @@ public partial class ManagedDebugger
 
         MetadataReader reader = moduleInfo.MetadataReader.PeMetadataReader;
         FieldDefinition field = reader.GetFieldDefinition((FieldDefinitionHandle)handle);
-        string typeName = field.DecodeSignature(new FunctionBreakpointSignatureTypeProvider(), null);
+        string typeName = field.DecodeSignature(SignatureKeyProvider.Dotted, null);
         EntityHandle typeHandle = field.DecodeSignature(FieldTypeHandleProvider.Instance, null);
         return (ClassNameToMaybeLanguageAlias(typeName), moduleInfo, typeHandle);
     }

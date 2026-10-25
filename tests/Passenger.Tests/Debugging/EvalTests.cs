@@ -566,4 +566,25 @@ public class EvalTests(ITestOutputHelper testOutputHelper)
         debugProtocolHost.WithEvaluateRequest(stackFrameId, "_testInt", out EvaluateResponse? evaluateResponse);
         Assert.Equal("4", evaluateResponse.Result);
     }
+
+    /// <summary>An evaluation calls the program's own methods that take and return a type nested in another of its types,
+    /// each found as the program declares it.</summary>
+    [Fact]
+    public async Task An_evaluation_calls_a_method_that_takes_a_nested_type()
+    {
+        using DebugSession host = DebugSession.ForAttach(testOutputHelper, true, out Process program);
+        await host
+            .WithInitializeRequest()
+            .WithAttachRequest(program.Id)
+            .WaitForInitializedEvent();
+        host
+            .WithBreakpointsRequest(22, Debuggees.Source("DebuggableConsoleApp", "MyClass.cs"))
+            .WithConfigurationDoneRequest()
+            .WithOptionalResumeRuntime(program.Id, true);
+
+        StoppedEvent stopped = await host.WaitForStoppedEvent();
+        host.WithStackTraceRequest(stopped.ThreadId!.Value, out StackTraceResponse stack)
+            .WithEvaluateRequest(stack.StackFrames[0].Id, "NestedTypeCalls.ValueOf(NestedTypeCalls.Nested(5))", out EvaluateResponse called);
+        Assert.True(called.Result == "5", $"A call taking MyClassContainingAnotherClass.MyNestedClass evaluated to {called.Result}, not the 5 it was given");
+    }
 }

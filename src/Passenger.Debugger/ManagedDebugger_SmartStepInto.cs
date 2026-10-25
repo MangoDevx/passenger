@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 using System.Text.RegularExpressions;
@@ -377,12 +376,12 @@ public partial class ManagedDebugger
             return null;
         }
         string name = reader.GetString(member.Name);
-        string signature = SignatureKey.Of(member.DecodeMethodSignature(SignatureKey.Instance, null));
+        string signature = SignatureKeyProvider.Of(member.DecodeMethodSignature(SignatureKeyProvider.Instance, null));
         MetadataReader ownerReader = owner.MetadataReader.PeMetadataReader;
         foreach (MethodDefinitionHandle candidate in ownerReader.GetTypeDefinition(type).GetMethods())
         {
             MethodDefinition definition = ownerReader.GetMethodDefinition(candidate);
-            if (ownerReader.GetString(definition.Name) == name && SignatureKey.Of(definition.DecodeSignature(SignatureKey.Instance, null)) == signature)
+            if (ownerReader.GetString(definition.Name) == name && SignatureKeyProvider.Of(definition.DecodeSignature(SignatureKeyProvider.Instance, null)) == signature)
             {
                 return (owner, MetadataTokens.GetToken(candidate));
             }
@@ -559,45 +558,5 @@ public partial class ManagedDebugger
             _smartStep = null;
             smart.Breakpoint.TryActivate(false);
         }
-    }
-
-    /// <summary>A method signature as text that two modules write alike: types by their namespaces and names.</summary>
-    private sealed class SignatureKey : ISignatureTypeProvider<string, object?>
-    {
-        public static SignatureKey Instance { get; } = new();
-
-        public static string Of(MethodSignature<string> signature) =>
-            $"{signature.GenericParameterCount}|{signature.ReturnType}({string.Join(",", signature.ParameterTypes)})";
-
-        public string GetArrayType(string elementType, ArrayShape shape) => $"{elementType}[{shape.Rank}]";
-        public string GetByReferenceType(string elementType) => elementType + "&";
-        public string GetFunctionPointerType(MethodSignature<string> signature) => "fnptr";
-        public string GetGenericInstantiation(string genericType, ImmutableArray<string> typeArguments) => $"{genericType}<{string.Join(",", typeArguments)}>";
-        public string GetGenericMethodParameter(object? genericContext, int index) => $"!!{index}";
-        public string GetGenericTypeParameter(object? genericContext, int index) => $"!{index}";
-        public string GetModifiedType(string modifier, string unmodifiedType, bool isRequired) => unmodifiedType;
-        public string GetPinnedType(string elementType) => elementType;
-        public string GetPointerType(string elementType) => elementType + "*";
-        public string GetPrimitiveType(PrimitiveTypeCode typeCode) => typeCode.ToString();
-        public string GetSZArrayType(string elementType) => elementType + "[]";
-
-        public string GetTypeFromDefinition(MetadataReader reader, TypeDefinitionHandle handle, byte rawTypeKind)
-        {
-            TypeDefinition type = reader.GetTypeDefinition(handle);
-            string name = reader.GetString(type.Name);
-            return type.GetDeclaringType().IsNil ? $"{reader.GetString(type.Namespace)}.{name}" : $"{GetTypeFromDefinition(reader, type.GetDeclaringType(), rawTypeKind)}/{name}";
-        }
-
-        public string GetTypeFromReference(MetadataReader reader, TypeReferenceHandle handle, byte rawTypeKind)
-        {
-            TypeReference type = reader.GetTypeReference(handle);
-            string name = reader.GetString(type.Name);
-            return type.ResolutionScope.Kind == HandleKind.TypeReference
-                ? $"{GetTypeFromReference(reader, (TypeReferenceHandle)type.ResolutionScope, rawTypeKind)}/{name}"
-                : $"{reader.GetString(type.Namespace)}.{name}";
-        }
-
-        public string GetTypeFromSpecification(MetadataReader reader, object? genericContext, TypeSpecificationHandle handle, byte rawTypeKind) =>
-            reader.GetTypeSpecification(handle).DecodeSignature(this, genericContext);
     }
 }

@@ -43,7 +43,7 @@ internal sealed class EvaluationMetadataResolver(ManagedDebugger debugger, Metad
         evaluationReader.GetMethodDefinition(handle).DecodeSignature(new RuntimeTypeSignatureProvider(this), genericContext: null).ReturnType;
 
     public MethodSignature<string> ResolveEvaluationMethodSignature(MethodDefinitionHandle handle) =>
-        evaluationReader.GetMethodDefinition(handle).DecodeSignature(SignatureNameProvider.Instance, genericContext: null);
+        evaluationReader.GetMethodDefinition(handle).DecodeSignature(SignatureKeyProvider.Instance, genericContext: null);
 
     public TypeDefinitionHandle GetEvaluationMethodDeclaringType(MethodDefinitionHandle handle) =>
         evaluationReader.GetMethodDefinition(handle).GetDeclaringType();
@@ -187,7 +187,7 @@ internal sealed class EvaluationMetadataResolver(ManagedDebugger debugger, Metad
         MemberReference member = evaluationReader.GetMemberReference((MemberReferenceHandle)handle);
         ResolvedRuntimeType declaringType = ResolveType(member.Parent);
         string name = evaluationReader.GetString(member.Name);
-        MethodSignature<string> expectedSignature = member.DecodeMethodSignature(SignatureNameProvider.Instance, genericContext: null);
+        string expected = SignatureKeyProvider.Of(member.DecodeMethodSignature(SignatureKeyProvider.Instance, genericContext: null));
         MetadataReader reader = declaringType.Module.MetadataReader.PeMetadataReader;
         foreach (MethodDefinitionHandle methodHandle in reader.GetTypeDefinition(declaringType.Handle).GetMethods())
         {
@@ -197,8 +197,8 @@ internal sealed class EvaluationMetadataResolver(ManagedDebugger debugger, Metad
                 continue;
             }
 
-            MethodSignature<string> signature = method.DecodeSignature(SignatureNameProvider.Instance, genericContext: null);
-            if (SignaturesEqual(expectedSignature, signature))
+            MethodSignature<string> signature = method.DecodeSignature(SignatureKeyProvider.Instance, genericContext: null);
+            if (SignatureKeyProvider.Of(signature) == expected)
             {
                 ResolvedRuntimeMethod result = new ResolvedRuntimeMethod(declaringType, methodHandle, name, signature, (method.Attributes & MethodAttributes.Static) != 0, methodTypeArguments);
                 _methodCache[token] = result;
@@ -244,7 +244,7 @@ internal sealed class EvaluationMetadataResolver(ManagedDebugger debugger, Metad
         MethodDefinition method = evaluationReader.GetMethodDefinition(methodHandle);
         result = new ResolvedEvaluationMethod(
             methodHandle,
-            method.DecodeSignature(SignatureNameProvider.Instance, genericContext: null),
+            method.DecodeSignature(SignatureKeyProvider.Instance, genericContext: null),
             (method.Attributes & MethodAttributes.Static) != 0);
         return true;
     }
@@ -359,7 +359,7 @@ internal sealed class EvaluationMetadataResolver(ManagedDebugger debugger, Metad
                 continue;
             }
 
-            MethodSignature<string> signature = method.DecodeSignature(SignatureNameProvider.Instance, genericContext: null);
+            MethodSignature<string> signature = method.DecodeSignature(SignatureKeyProvider.Instance, genericContext: null);
             if (signature.ParameterTypes.SequenceEqual(parameterTypes))
             {
                 ResolvedRuntimeMethod result = new ResolvedRuntimeMethod(declaringType, handle, methodName, signature, (method.Attributes & MethodAttributes.Static) != 0);
@@ -612,19 +612,7 @@ internal sealed class EvaluationMetadataResolver(ManagedDebugger debugger, Metad
     private static bool IsSystemValueType(MetadataReader reader, StringHandle @namespace, StringHandle name) =>
         reader.GetString(@namespace) == "System" && reader.GetString(name) is "ValueType" or "Enum";
 
-    private static string GetTypeName(ResolvedRuntimeType type)
-    {
-        MetadataReader reader = type.Module.MetadataReader.PeMetadataReader;
-        TypeDefinition definition = reader.GetTypeDefinition(type.Handle);
-        string name = reader.GetString(definition.Name);
-        TypeDefinitionHandle declaringType = definition.GetDeclaringType();
-        if (!declaringType.IsNil)
-        {
-            return $"{GetTypeName(new ResolvedRuntimeType(type.Module, declaringType))}+{name}";
-        }
-        string @namespace = reader.GetString(definition.Namespace);
-        return string.IsNullOrEmpty(@namespace) ? name : $"{@namespace}.{name}";
-    }
+    private static string GetTypeName(ResolvedRuntimeType type) => MetadataTypeNames.Of(type.Module.MetadataReader.PeMetadataReader, type.Handle);
 
     private string GetReflectionTypeName(ResolvedCilType type)
     {
@@ -635,7 +623,7 @@ internal sealed class EvaluationMetadataResolver(ManagedDebugger debugger, Metad
         }
         if (type.Primitive is { } primitive)
         {
-            return GetPrimitiveTypeName(primitive);
+            return MetadataTypeNames.Of(primitive);
         }
 
         ResolvedRuntimeType runtimeType = type.RuntimeType ?? throw new TypeLoadException("The CIL type is unresolved");
@@ -676,78 +664,6 @@ internal sealed class EvaluationMetadataResolver(ManagedDebugger debugger, Metad
         }
 
         return assemblyName.FullName!;
-    }
-
-    private static string GetPrimitiveTypeName(PrimitiveTypeCode primitive) => primitive switch
-    {
-        PrimitiveTypeCode.Boolean => "System.Boolean",
-        PrimitiveTypeCode.Byte => "System.Byte",
-        PrimitiveTypeCode.SByte => "System.SByte",
-        PrimitiveTypeCode.Char => "System.Char",
-        PrimitiveTypeCode.Int16 => "System.Int16",
-        PrimitiveTypeCode.UInt16 => "System.UInt16",
-        PrimitiveTypeCode.Int32 => "System.Int32",
-        PrimitiveTypeCode.UInt32 => "System.UInt32",
-        PrimitiveTypeCode.Int64 => "System.Int64",
-        PrimitiveTypeCode.UInt64 => "System.UInt64",
-        PrimitiveTypeCode.Single => "System.Single",
-        PrimitiveTypeCode.Double => "System.Double",
-        PrimitiveTypeCode.String => "System.String",
-        PrimitiveTypeCode.Object => "System.Object",
-        PrimitiveTypeCode.IntPtr => "System.IntPtr",
-        PrimitiveTypeCode.UIntPtr => "System.UIntPtr",
-        _ => throw new NotSupportedException($"Primitive type '{primitive}' is not supported")
-    };
-
-    private static bool SignaturesEqual(MethodSignature<string> left, MethodSignature<string> right)
-    {
-        return left.GenericParameterCount == right.GenericParameterCount &&
-            left.ParameterTypes.Length == right.ParameterTypes.Length &&
-            left.ParameterTypes.Zip(right.ParameterTypes).All(types => TypesCompatible(types.First, types.Second)) &&
-            TypesCompatible(left.ReturnType, right.ReturnType);
-    }
-
-    private static bool TypesCompatible(string expected, string actual) => expected == actual;
-
-    private sealed class SignatureNameProvider : ISignatureTypeProvider<string, object?>
-    {
-        public static SignatureNameProvider Instance { get; } = new();
-        public string GetArrayType(string elementType, ArrayShape shape) => $"{elementType}[{new string(',', shape.Rank - 1)}]";
-        public string GetByReferenceType(string elementType) => elementType + "&";
-        public string GetFunctionPointerType(MethodSignature<string> signature) => "fnptr";
-        public string GetGenericInstantiation(string genericType, ImmutableArray<string> typeArguments) => $"{genericType}<{string.Join(",", typeArguments)}>";
-        public string GetGenericMethodParameter(object? genericContext, int index) => $"!!{index}";
-        public string GetGenericTypeParameter(object? genericContext, int index) => $"!{index}";
-        public string GetModifiedType(string modifier, string unmodifiedType, bool isRequired) => unmodifiedType;
-        public string GetPinnedType(string elementType) => elementType;
-        public string GetPointerType(string elementType) => elementType + "*";
-        public string GetSZArrayType(string elementType) => elementType + "[]";
-        public string GetPrimitiveType(PrimitiveTypeCode typeCode) => typeCode.ToString();
-        public string GetTypeFromDefinition(MetadataReader reader, TypeDefinitionHandle handle, byte rawTypeKind) => GetFullName(reader, handle);
-        public string GetTypeFromReference(MetadataReader reader, TypeReferenceHandle handle, byte rawTypeKind) => GetFullName(reader, handle);
-        public string GetTypeFromSpecification(MetadataReader reader, object? genericContext, TypeSpecificationHandle handle, byte rawTypeKind) =>
-            reader.GetTypeSpecification(handle).DecodeSignature(this, genericContext);
-
-        private static string GetFullName(MetadataReader reader, TypeDefinitionHandle handle)
-        {
-            TypeDefinition type = reader.GetTypeDefinition(handle);
-            string ns = reader.GetString(type.Namespace);
-            string name = reader.GetString(type.Name);
-            return string.IsNullOrEmpty(ns) ? name : $"{ns}.{name}";
-        }
-
-        private static string GetFullName(MetadataReader reader, TypeReferenceHandle handle)
-        {
-            TypeReference type = reader.GetTypeReference(handle);
-            string name = reader.GetString(type.Name);
-            if (type.ResolutionScope.Kind == HandleKind.TypeReference)
-            {
-                return $"{GetFullName(reader, (TypeReferenceHandle)type.ResolutionScope)}+{name}";
-            }
-
-            string ns = reader.GetString(type.Namespace);
-            return string.IsNullOrEmpty(ns) ? name : $"{ns}.{name}";
-        }
     }
 
     private sealed class RuntimeTypeSignatureProvider(EvaluationMetadataResolver resolver) : ISignatureTypeProvider<ResolvedCilType, object?>

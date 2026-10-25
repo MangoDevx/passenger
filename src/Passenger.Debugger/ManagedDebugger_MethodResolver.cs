@@ -149,28 +149,7 @@ public partial class ManagedDebugger
         public CorElementType GetPointerType(CorElementType elementType) => CorElementType.PTR;
         public CorElementType GetSZArrayType(CorElementType elementType) => CorElementType.SZARRAY;
 
-        public CorElementType GetPrimitiveType(PrimitiveTypeCode typeCode) => typeCode switch
-        {
-            PrimitiveTypeCode.Void => CorElementType.VOID,
-            PrimitiveTypeCode.Boolean => CorElementType.BOOLEAN,
-            PrimitiveTypeCode.Char => CorElementType.CHAR,
-            PrimitiveTypeCode.SByte => CorElementType.I1,
-            PrimitiveTypeCode.Byte => CorElementType.U1,
-            PrimitiveTypeCode.Int16 => CorElementType.I2,
-            PrimitiveTypeCode.UInt16 => CorElementType.U2,
-            PrimitiveTypeCode.Int32 => CorElementType.I4,
-            PrimitiveTypeCode.UInt32 => CorElementType.U4,
-            PrimitiveTypeCode.Int64 => CorElementType.I8,
-            PrimitiveTypeCode.UInt64 => CorElementType.U8,
-            PrimitiveTypeCode.Single => CorElementType.R4,
-            PrimitiveTypeCode.Double => CorElementType.R8,
-            PrimitiveTypeCode.String => CorElementType.STRING,
-            PrimitiveTypeCode.TypedReference => CorElementType.TYPEDBYREF,
-            PrimitiveTypeCode.IntPtr => CorElementType.I,
-            PrimitiveTypeCode.UIntPtr => CorElementType.U,
-            PrimitiveTypeCode.Object => CorElementType.OBJECT,
-            _ => CorElementType.END
-        };
+        public CorElementType GetPrimitiveType(PrimitiveTypeCode typeCode) => MetadataTypeNames.ElementTypeOf(typeCode);
 
         public CorElementType GetTypeFromDefinition(MetadataReader reader, TypeDefinitionHandle handle, byte rawTypeKind) =>
             rawTypeKind == (byte)SignatureTypeKind.ValueType ? CorElementType.VALUETYPE : CorElementType.CLASS;

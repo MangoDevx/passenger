@@ -603,7 +603,7 @@ internal sealed class CilInterpreter(ManagedDebugger debugger, RuntimeAssemblyPr
                 run.Compiled.GetDecodedMethod(evaluationMethod.Handle),
                 methodArguments.Select(value => (ICilLocation)new TemporaryLocation(value)).ToArray(),
                 CreateTemporaryLocals(resolver, resolver.GetEvaluationMethodBody(evaluationMethod.Handle).LocalSignature));
-            if (evaluationMethod.Signature.ReturnType != PrimitiveTypeCode.Void.ToString())
+            if (evaluationMethod.Signature.ReturnType != MetadataTypeNames.Of(PrimitiveTypeCode.Void))
             {
                 stack.Push(methodResult);
             }
@@ -706,7 +706,7 @@ internal sealed class CilInterpreter(ManagedDebugger debugger, RuntimeAssemblyPr
                 copy.Home.Write(CilValue.FromDebuggeeValue(copy.Box.UnwrapDebugValue()));
             }
         }
-        if (method.Signature.ReturnType != PrimitiveTypeCode.Void.ToString())
+        if (method.Signature.ReturnType != MetadataTypeNames.Of(PrimitiveTypeCode.Void))
         {
             stack.Push(callResult is null
                 ? CilValue.Null()
@@ -923,24 +923,11 @@ internal sealed class CilInterpreter(ManagedDebugger debugger, RuntimeAssemblyPr
         return result;
     }
 
-    private static CorElementType? GetPrimitiveElementType(PrimitiveTypeCode? primitive) => primitive switch
-    {
-        PrimitiveTypeCode.Boolean => CorElementType.BOOLEAN,
-        PrimitiveTypeCode.Char => CorElementType.CHAR,
-        PrimitiveTypeCode.SByte => CorElementType.I1,
-        PrimitiveTypeCode.Byte => CorElementType.U1,
-        PrimitiveTypeCode.Int16 => CorElementType.I2,
-        PrimitiveTypeCode.UInt16 => CorElementType.U2,
-        PrimitiveTypeCode.Int32 => CorElementType.I4,
-        PrimitiveTypeCode.UInt32 => CorElementType.U4,
-        PrimitiveTypeCode.Int64 => CorElementType.I8,
-        PrimitiveTypeCode.UInt64 => CorElementType.U8,
-        PrimitiveTypeCode.Single => CorElementType.R4,
-        PrimitiveTypeCode.Double => CorElementType.R8,
-        PrimitiveTypeCode.IntPtr => CorElementType.I,
-        PrimitiveTypeCode.UIntPtr => CorElementType.U,
-        _ => null
-    };
+    /// <summary>A primitive value type's element type, null for any other type.</summary>
+    private static CorElementType? GetPrimitiveElementType(PrimitiveTypeCode? primitive) =>
+        primitive is { } code && MetadataTypeNames.ElementTypeOf(code) is var element
+            && element is not (CorElementType.VOID or CorElementType.STRING or CorElementType.OBJECT or CorElementType.TYPEDBYREF or CorElementType.END)
+            ? element : null;
 
     private async ValueTask<ICorDebugValue> GetStaticFieldValue(ResolvedRuntimeField field, EvaluationMetadataResolver resolver, CompiledExpressionEvaluationContext context)
     {
@@ -1024,7 +1011,7 @@ internal sealed class CilInterpreter(ManagedDebugger debugger, RuntimeAssemblyPr
 
         // NewArray makes only primitive and reference arrays; others come from Array.CreateInstance.
         ICorDebugValue arrayType = await GetSystemTypeAsync(elementCilType, resolver, context, handles) ?? throw new InvalidOperationException("Failed to resolve the element type for array allocation");
-        ResolvedRuntimeMethod createInstance = resolver.ResolveRuntimeMethod("System", "Array", "CreateInstance", "System.Type", PrimitiveTypeCode.Int32.ToString());
+        ResolvedRuntimeMethod createInstance = resolver.ResolveRuntimeMethod("System", "Array", "CreateInstance", "System.Type", MetadataTypeNames.Of(PrimitiveTypeCode.Int32));
         ICorDebugValue lengthValue = await MaterializeAsync(CilValue.FromPrimitive(checked((int)length)), context, handles);
         return handles.Track(await eval.CallParameterizedFunctionAsync(
             debugger.ProcessRuntimeEventsUntilEvalEvent,
@@ -1085,7 +1072,7 @@ internal sealed class CilInterpreter(ManagedDebugger debugger, RuntimeAssemblyPr
     {
         ICorDebugValue typeValue = await GetSystemTypeAsync(targetType, resolver, context, handles)
             ?? throw new InvalidOperationException("Failed to resolve the target System.Type");
-        ResolvedRuntimeMethod method = resolver.ResolveRuntimeMethod("System", "Type", "IsInstanceOfType", PrimitiveTypeCode.Object.ToString());
+        ResolvedRuntimeMethod method = resolver.ResolveRuntimeMethod("System", "Type", "IsInstanceOfType", MetadataTypeNames.Of(PrimitiveTypeCode.Object));
         ICorDebugValue sourceValue = value.CorValue ?? throw new NotSupportedException("Runtime type checks require a debuggee value");
         ICorDebugEval eval = context.Thread.CreateEval();
         ICorDebugValue? result = handles.Track(await eval.CallParameterizedFunctionAsync(
@@ -1102,7 +1089,7 @@ internal sealed class CilInterpreter(ManagedDebugger debugger, RuntimeAssemblyPr
 
     private async Task<ICorDebugValue?> GetSystemTypeAsync(ResolvedCilType type, EvaluationMetadataResolver resolver, CompiledExpressionEvaluationContext context, EvaluationHandleScope handles)
     {
-        ResolvedRuntimeMethod getType = resolver.ResolveRuntimeMethod("System", "Type", "GetType", PrimitiveTypeCode.String.ToString());
+        ResolvedRuntimeMethod getType = resolver.ResolveRuntimeMethod("System", "Type", "GetType", MetadataTypeNames.Of(PrimitiveTypeCode.String));
         ICorDebugEval eval = context.Thread.CreateEval();
         ICorDebugValue typeName = handles.Track(await eval.NewStringAsync(
             debugger.ProcessRuntimeEventsUntilEvalEvent,
@@ -1584,7 +1571,7 @@ internal sealed class CilInterpreter(ManagedDebugger debugger, RuntimeAssemblyPr
         {
             receiver = (await BoxAsync(value, receiver.ExactType, context, handles)).CorValue!;
         }
-        ResolvedRuntimeMethod concat = resolver.ResolveRuntimeMethod("System", "String", "Concat", PrimitiveTypeCode.Object.ToString());
+        ResolvedRuntimeMethod concat = resolver.ResolveRuntimeMethod("System", "String", "Concat", MetadataTypeNames.Of(PrimitiveTypeCode.Object));
         ICorDebugEval eval = context.Thread.CreateEval();
         ICorDebugValue? result = handles.Track(await eval.CallParameterizedFunctionAsync(
             debugger.ProcessRuntimeEventsUntilEvalEvent,

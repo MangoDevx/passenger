@@ -81,7 +81,7 @@ internal sealed class DebuggeeDelegateAssemblyLoader(
         }
 
         ICorDebugValue assembly = await CreateByteArrayAsync(Materializer.Assembly);
-        ResolvedRuntimeMethod load = resolver.ResolveRuntimeMethod("System.Reflection", "Assembly", "Load", "Byte[]");
+        ResolvedRuntimeMethod load = resolver.ResolveRuntimeMethod("System.Reflection", "Assembly", "Load", MetadataTypeNames.Of(PrimitiveTypeCode.Byte) + "[]");
         handles.Track(await context.Thread.CreateEval().CallParameterizedFunctionAsync(
             debugger.ProcessRuntimeEventsUntilEvalEvent,
             debugger.EvalStatus,
