@@ -86,6 +86,7 @@ public sealed class ConfigurationTests : IClassFixture<ConfigurationTests.Projec
     [AvaloniaFact]
     public void Go_to_Declaration_goes_from_a_key_to_its_property_and_from_a_read_to_where_it_is_given()
     {
+        WebLanguagesTests.SkipWithoutNode();
         MainWindow window = project.Open(project.PathOf("Shop/appsettings.json"));
         try
         {
