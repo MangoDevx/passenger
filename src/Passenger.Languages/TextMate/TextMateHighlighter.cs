@@ -140,7 +140,7 @@ public sealed partial class TextMateHighlighter : IHighlighter, IBraceMatcher, I
             tail = Math.Min(tail, batch.Tail);
         }
         BackgroundWork.Begin();
-        Task.Run(() => Pass(old, text, first, tail, passVersion)).ContinueWith(done => OnUi(() =>
+        UnawaitedWork.Observe(Task.Run(() => Pass(old, text, first, tail, passVersion)).ContinueWith(done => OnUi(() =>
         {
             try
             {
@@ -162,7 +162,7 @@ public sealed partial class TextMateHighlighter : IHighlighter, IBraceMatcher, I
             {
                 BackgroundWork.End();
             }
-        }), TaskScheduler.Default);
+        }), TaskScheduler.Default));
     }
 
     /// <summary>Reads the lines of <paramref name="text"/> from <paramref name="first"/> on, with the state the line above

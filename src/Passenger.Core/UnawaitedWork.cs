@@ -1,8 +1,8 @@
 namespace Passenger.Core;
 
-/// <summary>Work a handler or callback starts and nothing awaits, for code that knows nothing of the app: a fault goes, as
-/// the task faults, to the reporter the app gives as it starts (<see cref="Install"/>), never only to the task's
-/// finalizer. In a process that gives none, the fault is left unobserved.</summary>
+/// <summary>Work started that nothing awaits, for code that knows nothing of the app: a fault goes, as the task faults,
+/// to the reporter the app gives as it starts (<see cref="Install"/>), never only to the task's finalizer. In a process
+/// that gives none, the fault is left unobserved.</summary>
 public static class UnawaitedWork
 {
     private static volatile Action<Exception>? reporter;

@@ -245,7 +245,7 @@ public partial class ManagedDebugger
             SingleWriter = false
         });
         _callbacks.OnAnyEvent += QueueEvent;
-        _ = Task.Run(ProcessRuntimeEventQueue);
+        Core.UnawaitedWork.Observe(Task.Run(ProcessRuntimeEventQueue));
     }
 
     private void QueueEvent(object? sender, CorDebugManagedCallbackEventArgs e)
@@ -388,8 +388,8 @@ public partial class ManagedDebugger
         }
         int continued = _continued;
         _logger?.Invoke($"{e.GetType().Name} waits for {wanted.Name}'s symbols to be decompiled");
-        DecompileAsync(wanted).ContinueWith(_ => _runtimeEventChannel.Writer.TryWrite(new AfterDecompiling(e, continued)),
-            CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+        Core.UnawaitedWork.Observe(DecompileAsync(wanted).ContinueWith(_ => _runtimeEventChannel.Writer.TryWrite(new AfterDecompiling(e, continued)),
+            CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default));
         return true;
     }
 

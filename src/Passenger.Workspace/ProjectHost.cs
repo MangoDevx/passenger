@@ -118,7 +118,7 @@ public sealed class ProjectHost : IAsyncDisposable
             }
             HostReady ready = reply.Result?.Deserialize<HostReady>(HostJson.Options) ?? throw new ProjectHostFailed("the project host did not say which SDK it loaded");
             ProjectHost host = new(process, ready, folder, globalJson);
-            _ = Task.Run(host.ReadAsync);
+            UnawaitedWork.Observe(Task.Run(host.ReadAsync));
             return host;
         }
         catch (Exception error)
@@ -200,7 +200,7 @@ public sealed class ProjectHost : IAsyncDisposable
             }
         }, release);
         // Answered only as it ends: released, or with the host.
-        _ = asked.ContinueWith(ended =>
+        UnawaitedWork.Observe(asked.ContinueWith(ended =>
         {
             if (ended.Exception?.InnerException is { } failed)
             {
@@ -210,7 +210,7 @@ public sealed class ProjectHost : IAsyncDisposable
             {
                 held.TrySetCanceled(release);
             }
-        }, TaskScheduler.Default);
+        }, TaskScheduler.Default));
         await held.Task;
     }
 

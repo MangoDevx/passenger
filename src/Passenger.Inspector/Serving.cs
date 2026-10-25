@@ -73,7 +73,7 @@ internal static class Serving
         InspectorTrace.Step("said hello");
         while (connection.Read() is { } request)
         {
-            _ = AnswerAsync(app, connection, request);
+            InspectorTrace.Observe(AnswerAsync(app, connection, request));
         }
         InspectorTrace.Step("Passenger has gone");
         app.Close();
@@ -281,6 +281,12 @@ internal static class InspectorTrace
     private static readonly string? TraceFile = Environment.GetEnvironmentVariable(Wire.TraceVariable) is { Length: > 0 } file ? file : null;
 
     private static readonly object Tracer = new();
+
+    /// <summary>Work the inspector starts and nothing awaits: its fault goes to the trace as it faults, never to the
+    /// app's own handler of unobserved tasks once the task is collected.</summary>
+    public static void Observe(Task work) =>
+        _ = work.ContinueWith(static faulted => Step($"unawaited work failed: {faulted.Exception}"), CancellationToken.None,
+            TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
 
     /// <summary>A step of the inspector's to the trace file, while <see cref="Wire.TraceVariable"/> names one.</summary>
     public static void Step(string step)
