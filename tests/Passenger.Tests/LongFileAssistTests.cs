@@ -260,8 +260,9 @@ public sealed class LongFileAssistTests : IClassFixture<LongFileAssistTests.Proj
 
     /// <summary>A file of 20,000 lines is a million numbers of tokens, which the server takes a second to make and the
     /// IDE megabytes to read: while typing goes on with pauses, only the lines on screen are asked for again, and what
-    /// only the server colours on screen is coloured from them; once typing stops, the whole file is asked for once.
-    /// Counted in the protocol's own trace.</summary>
+    /// only the server colours on screen is coloured from them; once typing stops, the whole file is asked for once, a word
+    /// from the server that its colours moved read before that request crossed asking nothing more, however late it is
+    /// parsed. Counted in the protocol's own trace, once the colours have nothing more to ask.</summary>
     [AvaloniaFact]
     public void Typing_with_pauses_in_a_file_of_twenty_thousand_lines_asks_for_the_screens_colours_and_the_whole_files_once_it_stops()
     {
@@ -280,6 +281,7 @@ public sealed class LongFileAssistTests : IClassFixture<LongFileAssistTests.Proj
             int far = source.LastIndexOf("value98 * 3", StringComparison.Ordinal);
             Ui.WaitFor(() => KindAt(far) == TokenKind.Local, "the server's colours on the file's last local");
             Ui.Settle();
+            Passenger.Languages.CSharp.SemanticHighlighter colours = Assert.IsType<Passenger.Languages.CSharp.SemanticHighlighter>(document.Highlighter);
             // Every colour request and refresh as the wire had them, for a failure to say.
             System.Diagnostics.Stopwatch clock = System.Diagnostics.Stopwatch.StartNew();
             System.Collections.Concurrent.ConcurrentQueue<string> wire = new();
@@ -321,8 +323,8 @@ public sealed class LongFileAssistTests : IClassFixture<LongFileAssistTests.Proj
             Assert.True(whole == 0, $"The whole file's colours were asked for {whole} times while typing went on with pauses:\n{string.Join('\n', wire)}");
 
             Ui.PumpUntil(() => Volatile.Read(ref whole) > 0, "the whole file's colours once typing stopped");
-            Ui.Settle();
-            Ui.Hold(TimeSpan.FromSeconds(3), "past the idle a needless second ask would wait out after the screen's colours, which no settle waits for");
+            // A needless second ask waits out the idle after the screen's colours, which no settle waits for, and is still asking.
+            Ui.PumpUntil(() => !colours.Asking, "the colours' last ask answered, a needless second one included");
             Ui.Settle();
             int refreshes = Volatile.Read(ref refreshedSince);
             Assert.True(whole <= 1 + refreshes,

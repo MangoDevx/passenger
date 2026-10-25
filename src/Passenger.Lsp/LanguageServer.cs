@@ -366,7 +366,7 @@ public sealed class LanguageServer : IAsyncDisposable
         Process process = ChildProcesses.Start(start);
         // Every message passes the trace from initialize on, so one turned on while the server runs starts at the next.
         TracedStream input = new(process.StandardInput.BaseStream, process.Id, "-->");
-        TracedStream output = new(process.StandardOutput.BaseStream, process.Id, "<--");
+        TracedStream output = new(process.StandardOutput.BaseStream, process.Id, "<--", across: input);
         ServerLog log;
         try
         {

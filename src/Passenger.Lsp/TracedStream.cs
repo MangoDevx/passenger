@@ -7,8 +7,9 @@ namespace Passenger.Lsp;
 /// <summary>A language server's input or output, passed through unchanged, each message that crosses it handed whole to
 /// <see cref="LanguageServer.Trace"/> while one is set. The header-delimited frames are followed all along, so a trace
 /// turned on mid-conversation starts at the next message; a frame that does not read as one ends the tracing of this
-/// stream, never the connection.</summary>
-internal sealed class TracedStream(Stream inner, int server, string direction) : Stream
+/// stream, never the connection. The output notes, as each message's last byte is read, how many had then crossed the
+/// input (<paramref name="across"/>), the order the trace shows.</summary>
+internal sealed class TracedStream(Stream inner, int server, string direction, TracedStream? across = null) : Stream
 {
     /// <summary>The most of one message a trace keeps: a completion list or a file's colours can be megabytes.</summary>
     private const int Kept = 64 * 1024;
@@ -21,6 +22,7 @@ internal sealed class TracedStream(Stream inner, int server, string direction) :
     private bool tracing;
     private bool lost;
     private long crossed;
+    private readonly Queue<long> crossedAcross = [];
 
     /// <summary>How many messages have crossed whole so far, each counted once its last byte has; past any count once the
     /// frames no longer read, so that nothing is taken to have come before a message that may have crossed.</summary>
@@ -32,6 +34,16 @@ internal sealed class TracedStream(Stream inner, int server, string direction) :
             {
                 return lost ? long.MaxValue : crossed;
             }
+        }
+    }
+
+    /// <summary>How many messages had crossed <c>across</c> whole when the next message read off this one had, each told
+    /// once and in order; past any count where none was noted, the frames no longer read.</summary>
+    public long CrossedAcrossBeforeNext()
+    {
+        lock (gate)
+        {
+            return crossedAcross.TryDequeue(out long at) ? at : long.MaxValue;
         }
     }
 
@@ -194,6 +206,10 @@ internal sealed class TracedStream(Stream inner, int server, string direction) :
     {
         remaining = -1;
         crossed++;
+        if (across is not null)
+        {
+            crossedAcross.Enqueue(across.Crossed);
+        }
         if (tracing && LanguageServer.Trace is { } trace)
         {
             string message = Encoding.UTF8.GetString(body.GetBuffer(), 0, (int)body.Length);

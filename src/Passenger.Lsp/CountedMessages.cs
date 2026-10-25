@@ -4,22 +4,22 @@ using StreamJsonRpc.Protocol;
 
 namespace Passenger.Lsp;
 
-/// <summary>The connection's header-delimited messages, each of the server's words that its colours moved noted as it is
-/// read off the connection with how many messages had then crossed to the server whole: the client handles what the server
-/// sends one message at a time, in order, so a word handled after a request went out may have arrived before it, and a
-/// request waits for its writing and then for the copy to the server's input after its caller sends it
-/// (<see cref="SentRequest"/>).</summary>
+/// <summary>The connection's header-delimited messages, each of the server's words that its colours moved noted with how
+/// many messages had crossed to the server whole as its last byte was read off the connection, which its parsing follows
+/// later: the client handles what the server sends one message at a time, in order, so a word handled after a request
+/// went out may have arrived before it, and a request waits for its writing and then for the copy to the server's input
+/// after its caller sends it (<see cref="SentRequest"/>).</summary>
 internal sealed class CountedMessages : HeaderDelimitedMessageHandler
 {
-    private readonly TracedStream input;
+    private readonly TracedStream output;
     private readonly ConditionalWeakTable<object, SentRequest> followed = new();
     private long written;
     private long lastWordAfter = -1;
 
-    public CountedMessages(TracedStream input, Stream output, IJsonRpcMessageFormatter formatter)
+    public CountedMessages(TracedStream input, TracedStream output, IJsonRpcMessageFormatter formatter)
         : base(input, output, formatter)
     {
-        this.input = input;
+        this.output = output;
     }
 
     /// <summary>The messages that had crossed to the server whole when its last word that its colours moved was read; -1
@@ -35,9 +35,13 @@ internal sealed class CountedMessages : HeaderDelimitedMessageHandler
     protected override async ValueTask<JsonRpcMessage?> ReadCoreAsync(CancellationToken cancellationToken)
     {
         JsonRpcMessage? message = await base.ReadCoreAsync(cancellationToken).ConfigureAwait(false);
-        if (message is JsonRpcRequest { Method: "workspace/semanticTokens/refresh" })
+        if (message is not null)
         {
-            Interlocked.Exchange(ref lastWordAfter, input.Crossed);
+            long crossed = output.CrossedAcrossBeforeNext();
+            if (message is JsonRpcRequest { Method: "workspace/semanticTokens/refresh" })
+            {
+                Interlocked.Exchange(ref lastWordAfter, crossed);
+            }
         }
         return message;
     }
