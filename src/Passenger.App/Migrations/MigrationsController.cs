@@ -847,7 +847,7 @@ public sealed partial class MigrationsController(MigrationsParts parts)
             return missing.Message;
         }
         parts.Views.Build.Append($"{ChildProcesses.Shown(start)}\n");
-        Task<EfOutcome> running = EfRun.RunAsync(start, Tell, work.Stopping);
+        Task<EfOutcome> running = EfRun.RunAsync(start, parts.Views.Build.Sink, work.Stopping);
         BackgroundWork.Track(running);
         EfOutcome outcome = await running;
         return outcome.ExitCode == 0 ? null
@@ -1022,7 +1022,7 @@ public sealed partial class MigrationsController(MigrationsParts parts)
         // The database a run gives is said by where it reaches, its connection string being the environment's.
         parts.Views.Build.Append($"\n{ChildProcesses.Shown(start)}\n"
             + (setting.Database is { } database ? $"Against {database.Where}\n" : string.Empty));
-        Task<EfOutcome> running = EfRun.RunAsync(start, Tell, work.Stopping);
+        Task<EfOutcome> running = EfRun.RunAsync(start, parts.Views.Build.Sink, work.Stopping);
         BackgroundWork.Track(running);
         EfOutcome outcome = await running;
         // A manifest's tool the folder never restored, whose package the cache holds: restored, reaching no feed, and run again.
@@ -1115,9 +1115,6 @@ public sealed partial class MigrationsController(MigrationsParts parts)
 
     /// <summary>Whether dotnet said the manifest's tools are not restored, before the tool ran.</summary>
     private static bool NotRestored(EfOutcome outcome) => outcome.Lines.Any(l => EfRun.Split(l).Kind.Length == 0 && l.Contains("dotnet tool restore", StringComparison.Ordinal));
-
-    /// <summary>A line of dotnet ef's, to the Build window on the UI thread.</summary>
-    private void Tell(string line) => UiThread.Post(() => parts.Views.Build.Append($"{line}\n"));
 
     private static IReadOnlyList<EfContext> ReadContexts(string data)
     {

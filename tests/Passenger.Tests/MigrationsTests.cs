@@ -17,11 +17,15 @@ public sealed class MigrationsTests
     /// <summary>The longest a build and a dotnet ef command take together on a developer's machine, scaled by the run.</summary>
     private static readonly TimeSpan Slow = TimeSpan.FromMinutes(2);
 
+    /// <summary>The Migrations window's commands as a person makes them, dotnet ef's lines in the Build window as a program's
+    /// output (what it answers, its <c>data:</c> lines, left out of it).</summary>
     [AvaloniaFact]
     public void Migrations_are_added_applied_rolled_back_and_scripted_against_the_runs_database()
     {
         string folder = ShopApp.Make(design: true, tool: ShopApp.Version);
         MainWindow window = Ui.OpenFolder(folder, languageServer: false);
+        System.Text.StringBuilder programs = new();
+        window.BottomPanel.Build.Written += (_, text) => programs.Append(text);
         try
         {
             window.ShowToolWindow(ToolWindowIds.Migrations);
@@ -31,6 +35,11 @@ public sealed class MigrationsTests
 
             Add(window, "Initial");
             Assert.Equal([("Initial", (bool?)false)], Rows(window));
+            window.BottomPanel.Build.Flush();
+            string console = window.BottomPanel.Build.Document.Snapshot.ToString();
+            Assert.True(programs.ToString().Split('\n').Any(line => EfRun.Split(line).Kind is "info" or "warn"),
+                $"dotnet ef's lines did not reach the Build window as a program's output, which was:\n{programs}\nThe window's:\n{console}");
+            Assert.DoesNotContain(console.Split('\n'), line => EfRun.Split(line).Kind == "data");
 
             Tool(window, AppActions.UpdateDatabase);
             Ui.WaitFor(() => Rows(window) is [(_, true)], $"Initial applied to the database ({window.Status})", Slow);

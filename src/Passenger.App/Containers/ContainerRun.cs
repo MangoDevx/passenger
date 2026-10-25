@@ -1489,69 +1489,22 @@ public sealed class ContainerRun(ContainerPlan plan, ContainerEngine engine, Con
         return published.Succeeded ? null : $"{Plan.Name} could not be made as deployed: dotnet publish ended with exit code {published.ExitCode}; the Run window has what it said";
     }
 
+    /// <summary>A command run into the run's console (<see cref="ConsoleCommand"/>), its words first, its secrets masked as
+    /// Compose echoes what it interpolated, Compose's progress on standard error its ordinary text; its exit code and its
+    /// last lines, which say why it failed.</summary>
     private async Task<ChildResult> StreamAsync(ProcessStartInfo start, CancellationToken cancel)
     {
-        start.RedirectStandardOutput = true;
-        start.RedirectStandardError = true;
         console.Write($"{ChildProcesses.Shown(start)}\n");
-        Queue<string> said = new();
-        using Process process = await ChildProcesses.StartAsync(start);
-        // What Compose says of a failure echoes what it interpolated: its secrets masked.
-        Func<string, string> shown = ContainerSecrets.Masking(Plan.Folder);
-        Task output = console.PumpAsync(process.StandardOutput, ConsoleStream.Output, lines: Line, shown: shown);
-        // Compose writes its progress to standard error: the console's ordinary text, not an error's.
-        Task errors = console.PumpAsync(process.StandardError, ConsoleStream.Output, lines: Line, shown: shown);
-        try
-        {
-            await process.WaitForExitAsync(cancel);
-        }
-        catch (OperationCanceledException)
-        {
-            ChildProcesses.Kill(process);
-            // Gone before its caller goes on: Compose killed makes nothing more after a take-down has looked.
-            await Within(process.WaitForExitAsync(), TimeSpan.FromSeconds(5));
-            throw;
-        }
-        await Within(Task.WhenAll(output, errors), TimeSpan.FromSeconds(5));
-        lock (said)
-        {
-            return new ChildResult(process.ExitCode, string.Join('\n', said), string.Empty);
-        }
+        ConsoleOutcome ran = await ConsoleCommand.RunAsync(console, start, cancel, Line, ContainerSecrets.Masking(Plan.Folder), errors: ConsoleStream.Output);
+        return new ChildResult(ran.ExitCode, string.Join('\n', ran.Last), string.Empty);
 
-        // Each line read: its last lines say why it failed.
         void Line(string line)
         {
-            lock (said)
-            {
-                said.Enqueue(line);
-                if (said.Count > 8)
-                {
-                    said.Dequeue();
-                }
-            }
             // An image's build that fails says where in the workspace's files.
             if (Plan.Mode == ContainerMode.Images && BuildOutput.Parse(line, Plan.Paths) is { } problem)
             {
                 UiThread.Post(() => ProblemFound?.Invoke(this, problem));
             }
-        }
-    }
-
-    /// <summary>Waits for a process's end or its output's for a while at most: one that comes later, or fails (its pipe
-    /// broken as it was killed), is let go, its failure observed.</summary>
-    private static async Task Within(Task task, TimeSpan limit)
-    {
-        try
-        {
-            await task.WaitAsync(limit);
-        }
-        catch (TimeoutException)
-        {
-            _ = task.ContinueWith(static late => _ = late.Exception, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
-        }
-        catch (Exception ended) when (ended is IOException or ObjectDisposedException or InvalidOperationException)
-        {
-            // Its output ended with the process.
         }
     }
 

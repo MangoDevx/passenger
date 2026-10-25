@@ -1,5 +1,6 @@
 using System.Diagnostics;
-using Passenger.Core;
+using System.Text;
+using Passenger.App.ToolWindows;
 
 namespace Passenger.App.Migrations;
 
@@ -15,68 +16,81 @@ public sealed record EfOutcome(int ExitCode, string Data, IReadOnlyList<string> 
     public static EfOutcome Unstarted(string why) => new(-1, string.Empty, [why], [], [why]);
 }
 
-/// <summary>Runs <c>dotnet ef</c> through <see cref="ChildProcesses"/>, each line told as it comes and read by its prefix
-/// (<c>data:</c>, <c>error:</c>, <c>warn:</c>, <c>info:</c>); a line with none is dotnet's own.</summary>
+/// <summary>Runs <c>dotnet ef</c> into a console (<see cref="ConsoleCommand"/>), each line read by its prefix as it comes
+/// (<c>data:</c>, <c>error:</c>, <c>warn:</c>, <c>info:</c>; a line with none is dotnet's own), its <c>data:</c> lines,
+/// what it answers, kept out of the console.</summary>
 public static class EfRun
 {
     /// <summary>The width of every prefix, padded: <c>data:    </c>, <c>error:   </c>, <c>verbose: </c>.</summary>
     private const int PrefixWidth = 9;
 
-    public static async Task<EfOutcome> RunAsync(ProcessStartInfo start, Action<string> told, CancellationToken stop)
+    public static async Task<EfOutcome> RunAsync(ProcessStartInfo start, ConsoleSink console, CancellationToken stop)
     {
-        start.RedirectStandardOutput = true;
-        start.RedirectStandardError = true;
-        Process process;
+        List<string> lines = [];
+        List<string> data = [];
+        List<string> errors = [];
+        List<string> warnings = [];
+        object gate = new();
+        int exitCode;
         try
         {
-            process = await ChildProcesses.StartAsync(start);
+            exitCode = (await ConsoleCommand.RunAsync(console, start, stop, Read, WithoutData)).ExitCode;
         }
         catch (Exception failed) when (failed is System.ComponentModel.Win32Exception or InvalidOperationException or FileNotFoundException)
         {
             return EfOutcome.Unstarted($"Could not start {Path.GetFileName(start.FileName)}: {failed.Message}");
         }
-        using (process)
+        catch (OperationCanceledException) when (stop.IsCancellationRequested)
         {
-            List<string> lines = [];
-            List<string> data = [];
-            List<string> errors = [];
-            List<string> warnings = [];
-            object gate = new();
-            using CancellationTokenRegistration stopping = stop.Register(() => ChildProcesses.Kill(process));
-            Task output = Task.Run(() => PumpAsync(process.StandardOutput));
-            Task error = Task.Run(() => PumpAsync(process.StandardError));
-            await process.WaitForExitAsync(CancellationToken.None);
-            await ChildProcesses.OutputEndsAsync(process, Task.WhenAll(output, error), CancellationToken.None);
+            exitCode = -1;
+        }
+        lock (gate)
+        {
+            return new EfOutcome(exitCode, string.Join('\n', data), [.. errors], [.. warnings], [.. lines]);
+        }
+
+        void Read(string line)
+        {
             lock (gate)
             {
-                return new EfOutcome(stop.IsCancellationRequested ? -1 : process.ExitCode, string.Join('\n', data), [.. errors], [.. warnings], [.. lines]);
-            }
-
-            async Task PumpAsync(StreamReader reader)
-            {
-                while (await reader.ReadLineAsync(CancellationToken.None) is { } line)
+                lines.Add(line);
+                (string kind, string said) = Split(line);
+                switch (kind)
                 {
-                    lock (gate)
-                    {
-                        lines.Add(line);
-                        (string kind, string said) = Split(line);
-                        switch (kind)
-                        {
-                            case "data":
-                                data.Add(said);
-                                break;
-                            case "error":
-                                errors.Add(said);
-                                break;
-                            case "warn":
-                                warnings.Add(said);
-                                break;
-                        }
-                    }
-                    told(line);
+                    case "data":
+                        data.Add(said);
+                        break;
+                    case "error":
+                        errors.Add(said);
+                        break;
+                    case "warn":
+                        warnings.Add(said);
+                        break;
                 }
             }
         }
+    }
+
+    /// <summary>Whole lines as the console shows them: their <c>data:</c> lines left out.</summary>
+    private static string WithoutData(string text)
+    {
+        if (!text.Contains("data:", StringComparison.Ordinal))
+        {
+            return text;
+        }
+        StringBuilder shown = new();
+        int at = 0;
+        while (at < text.Length)
+        {
+            int end = text.IndexOf('\n', at);
+            int next = end < 0 ? text.Length : end + 1;
+            if (Split(text[at..next].TrimEnd('\r', '\n')).Kind != "data")
+            {
+                shown.Append(text, at, next - at);
+            }
+            at = next;
+        }
+        return shown.ToString();
     }
 
     /// <summary>A line's prefix and what follows it; "" for a line with none, which is dotnet's own.</summary>
