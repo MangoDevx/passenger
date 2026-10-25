@@ -114,6 +114,36 @@ public sealed class IdeErrorsTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void An_error_in_what_replace_all_set_going_is_shown_and_logged_as_it_happens_not_once_its_task_is_collected()
+    {
+        File.WriteAllText(Path.Combine(folder, "Alpha.cs"), "class Alpha { int count; }\n");
+        MainWindow window = Ui.OpenFolder(folder);
+        Passenger.App.Navigation.FindInFilesPopup popup = window.ShowFindInFiles(replace: true)!;
+        popup.Text = "count";
+        Task searching = popup.SearchAsync();
+        Ui.WaitFor(() => searching.IsCompleted, "the search for count");
+        IdeErrors.Clear();
+        // The question fails after Replace All's handler has returned, as work it awaits would.
+        window.Confirm = async (_, _, _) =>
+        {
+            await Task.Yield();
+            throw new InvalidOperationException("The question went wrong");
+        };
+        popup.Replacement = "total";
+        popup.RequestReplace();
+        Ui.Settle();
+
+        Assert.True(IdeErrors.Errors.Any(e => e.Kind == "InvalidOperationException" && e.Message == "The question went wrong"),
+            $"Replace All's error went unreported until its task would be collected; the IDE's errors: {string.Join("; ", IdeErrors.Errors.Select(e => e.Message))}");
+        Assert.Equal("IDE error: The question went wrong", window.Status);
+        Assert.Contains("The question went wrong", Ui.IdeLog(), StringComparison.Ordinal);
+        Assert.Equal("class Alpha { int count; }\n", File.ReadAllText(Path.Combine(folder, "Alpha.cs")));
+        // Thrown on purpose: the check that fails a test over a caught error is not to see it.
+        IdeErrors.Clear();
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public void The_same_error_again_and_again_is_one_row_with_its_count_and_a_log_rotated_under_its_size_cap()
     {
         long limit = IdeErrors.LogLimit;

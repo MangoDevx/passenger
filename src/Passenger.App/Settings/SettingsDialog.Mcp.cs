@@ -110,22 +110,25 @@ public sealed partial class SettingsDialog
         void AddBlock(Control row, string title, string words) => options.Add(new Option(McpPage, title, row, $"{McpPage} {title} {words}"));
     }
 
+    /// <summary>A setup's text to the clipboard, its Copy then saying Copied and every other setup's Copy again.</summary>
+    private async Task CopySetupAsync(Button copy, string text)
+    {
+        if (Clipboard is { } clipboard)
+        {
+            await clipboard.SetTextAsync(text);
+        }
+        foreach (Button other in copyButtons.Values)
+        {
+            other.Content = other == copy ? "Copied" : "Copy";
+        }
+    }
+
     /// <summary>One agent's setup: its heading with Copy at the right, what to do with it, and the text to copy as code.</summary>
     private Control SetupBlock(string title, string text, string note)
     {
         Button copy = new() { Content = "Copy" };
         copyButtons[title] = copy;
-        copy.Click += async (_, _) =>
-        {
-            if (Clipboard is { } clipboard)
-            {
-                await clipboard.SetTextAsync(text);
-            }
-            foreach (Button other in copyButtons.Values)
-            {
-                other.Content = other == copy ? "Copied" : "Copy";
-            }
-        };
+        copy.Click += (_, _) => IdeErrors.Observe(CopySetupAsync(copy, text));
         DockPanel head = new();
         DockPanel.SetDock(copy, Dock.Right);
         head.Children.Add(copy);

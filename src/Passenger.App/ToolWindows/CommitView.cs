@@ -145,24 +145,7 @@ public sealed class CommitView : DockPanel, IOwnKeys
         placeholder = new TextBlock { Classes = { "emptyText" } };
 
         amend = new CheckBox { Content = "Amend", Margin = new Thickness(10, 4, 0, 0) };
-        amend.IsCheckedChanged += async (_, _) =>
-        {
-            if (amend.IsChecked == true)
-            {
-                // Amend starts from the last commit's message, and unchecking it gives back what was typed.
-                beforeAmend = message!.Text;
-                if (await vcs.LastMessageAsync() is { } last && (beforeAmend ?? string.Empty).Trim().Length == 0)
-                {
-                    message.Text = last;
-                }
-            }
-            else if (beforeAmend is not null)
-            {
-                message!.Text = beforeAmend;
-                beforeAmend = null;
-            }
-            UpdateButtons();
-        };
+        amend.IsCheckedChanged += (_, _) => IdeErrors.Observe(AmendChangedAsync());
         message = new TextBox
         {
             Classes = { "search" },
@@ -244,6 +227,25 @@ public sealed class CommitView : DockPanel, IOwnKeys
     }
 
     private void OnChanged(object? sender, EventArgs e) => Fill();
+
+    /// <summary>Amend checked starts from the last commit's message, and unchecked gives back what was typed.</summary>
+    private async Task AmendChangedAsync()
+    {
+        if (amend.IsChecked == true)
+        {
+            beforeAmend = message.Text;
+            if (await vcs.LastMessageAsync() is { } last && (beforeAmend ?? string.Empty).Trim().Length == 0)
+            {
+                message.Text = last;
+            }
+        }
+        else if (beforeAmend is not null)
+        {
+            message.Text = beforeAmend;
+            beforeAmend = null;
+        }
+        UpdateButtons();
+    }
 
     private void OnBusyChanged(object? sender, EventArgs e) => UpdateButtons();
 

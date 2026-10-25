@@ -89,7 +89,7 @@ public static class IdeErrors
         installed = true;
         TaskScheduler.UnobservedTaskException += (_, e) =>
         {
-            Report(e.Exception.InnerExceptions.Count == 1 ? e.Exception.InnerException! : e.Exception);
+            Report(Single(e.Exception));
             e.SetObserved();
         };
         // Past saving: an exception off the UI thread still ends the process, but leaves its reason in the log.
@@ -154,6 +154,16 @@ public static class IdeErrors
         Write(reported.Count == 1 ? $"Error: {details}" : $"Error, occurred {reported.Count} times: {reported.Kind}: {reported.Message}");
         Dispatcher.UIThread.Post(() => Raised?.Invoke(null, reported));
     }
+
+    /// <summary>Work a handler, menu item, action or callback starts and nothing awaits: its fault is reported as it
+    /// faults, as an exception escaping the handler itself is, never only once the task is collected. A cancelled task
+    /// is no fault.</summary>
+    public static void Observe(Task work) =>
+        _ = work.ContinueWith(faulted => Report(Single(faulted.Exception!)), CancellationToken.None,
+            TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+
+    /// <summary>A task's one exception as itself; several as the AggregateException holding them.</summary>
+    private static Exception Single(AggregateException error) => error.InnerExceptions.Count == 1 ? error.InnerException! : error;
 
     /// <summary>Forgets the errors shown (Clear All); the log keeps them.</summary>
     public static void Clear()

@@ -103,8 +103,8 @@ public partial class MainWindow
         ToolWindows.CommitView view = commitView = new ToolWindows.CommitView(session.Vcs);
         view.OpenRequested += (_, path) => OpenFile(path);
         view.DiffRequested += (_, path) => _ = ShowDiffAsync(path);
-        view.RollbackRequested += async (_, changes) => await RollbackAsync(changes);
-        view.DeleteRequested += async (_, path) => await DeleteAsync(path);
+        view.RollbackRequested += (_, changes) => IdeErrors.Observe(RollbackAsync(changes));
+        view.DeleteRequested += (_, path) => IdeErrors.Observe(DeleteAsync(path));
         view.IgnoreRequested += (_, path) => Ignore(path);
         view.ResolveRequested += (_, _) => ShowConflicts();
         view.MergeRequested += (_, path) => _ = MergeAsync(path);
@@ -124,15 +124,7 @@ public partial class MainWindow
             NamePopup popup = new($"New Branch from {commit.Short}", string.Empty, async name => (await session.Vcs.NewBranchAtAsync(name, commit.Hash)).Problem);
             popups.Show(popup, _ => { });
         };
-        view.ResetRequested += async (_, reset) =>
-        {
-            if (reset.Mode == ResetMode.Hard && !await Confirm("Reset Current Branch to Here",
-                $"Move {session.Vcs.Branch ?? "HEAD"} to {reset.Commit.Short} and drop every change since, committed or not?", "Reset"))
-            {
-                return;
-            }
-            await session.Vcs.ResetAsync(reset.Commit.Hash, reset.Mode);
-        };
+        view.ResetRequested += (_, reset) => IdeErrors.Observe(ResetToAsync(reset));
         FollowBranches(view.Log.Branches!);
         return view;
     }
@@ -507,6 +499,17 @@ public partial class MainWindow
     }
 
     private static DiffView? DiffWithKeys(ActionContext context) => (context.Focused as Visual)?.FindAncestorOfType<DiffView>(includeSelf: true);
+
+    /// <summary>The Git window's Reset Current Branch to Here: a hard reset, which drops changes, only once confirmed.</summary>
+    private async Task ResetToAsync((CommitInfo Commit, ResetMode Mode) reset)
+    {
+        if (reset.Mode == ResetMode.Hard && !await Confirm("Reset Current Branch to Here",
+            $"Move {session.Vcs.Branch ?? "HEAD"} to {reset.Commit.Short} and drop every change since, committed or not?", "Reset"))
+        {
+            return;
+        }
+        await session.Vcs.ResetAsync(reset.Commit.Hash, reset.Mode);
+    }
 
     private async Task RollbackAsync(IReadOnlyList<FileChange> changes)
     {

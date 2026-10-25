@@ -50,19 +50,25 @@ public partial class MainWindow
         ConflictsDialog dialog = null!;
         dialog = new ConflictsDialog(session.Vcs, conflict => MergeAsync(conflict.Path, dialog));
         conflictsDialog = dialog;
-        dialog.Closed += async (_, _) =>
+        dialog.Closed += (_, _) =>
         {
             conflictsDialog = null;
-            // Closed as the last file was resolved, while that is still being read.
-            await session.Vcs.Idle;
-            if (session.Vcs.Merge.Operation is MergeOperation.Rebase && session.Vcs.Conflicts.Count == 0
-                && await Confirm("Resolve Conflicts", "All conflicts have been resolved. Do you want to continue rebase?", "Continue Rebase"))
-            {
-                await session.Vcs.ContinueRebaseAsync();
-            }
+            IdeErrors.Observe(OfferToContinueRebaseAsync());
         };
         _ = dialog.ShowDialog(this);
         return dialog;
+    }
+
+    /// <summary>Once the Conflicts dialog closes with a rebase's last conflict resolved, whether to continue the rebase.</summary>
+    private async Task OfferToContinueRebaseAsync()
+    {
+        // Closed as the last file was resolved, while that is still being read.
+        await session.Vcs.Idle;
+        if (session.Vcs.Merge.Operation is MergeOperation.Rebase && session.Vcs.Conflicts.Count == 0
+            && await Confirm("Resolve Conflicts", "All conflicts have been resolved. Do you want to continue rebase?", "Continue Rebase"))
+        {
+            await session.Vcs.ContinueRebaseAsync();
+        }
     }
 
     /// <summary>The merge window on a conflicted file, over the Conflicts dialog (or this window), done once it closes:
