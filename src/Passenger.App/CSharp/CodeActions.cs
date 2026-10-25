@@ -57,7 +57,7 @@ internal sealed partial class CodeActions(AssistContext context, PopupPlacement 
         if (now.Asks is { } asks)
         {
             // Not awaited: the question holds no background work, so a settle waits on the IDE, never on the person.
-            _ = AskAndMakeAsync(now.Title.TrimEnd('…'), asks);
+            IdeErrors.Observe(AskAndMakeAsync(now.Title.TrimEnd('…'), asks));
             return;
         }
         Editor.ApplyEdits([new TextEdit(now.Range.Start, now.Range.Length, now.Text)], SelectionSet.Single(now.Range.Start + (now.Caret ?? now.Text.Length)));
@@ -340,7 +340,7 @@ internal sealed partial class CodeActions(AssistContext context, PopupPlacement 
             }
         });
         popups.WhenClosed(opened.Dispose);
-        _ = OfferFileRenames(box, document, word.Start);
+        IdeErrors.Observe(OfferFileRenames(box, document, word.Start));
     }
 
     /// <summary>The name a rename at an offset of a file renames: a web language's through its own characters (CSS's

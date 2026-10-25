@@ -17,11 +17,11 @@ internal sealed partial class CSharpAssist(AssistContext context, PopupPlacement
         int caret = context.Caret;
         if (last == '.' || (context.InRazor && last is '<' or '@'))
         {
-            _ = completion.Start(last.ToString());
+            IdeErrors.Observe(completion.Start(last.ToString()));
         }
         else if (AssistContext.IsIdentifierChar(last) && !char.IsDigit(last) && context.WordStart(caret) == caret - 1)
         {
-            _ = completion.Start(null);
+            IdeErrors.Observe(completion.Start(null));
         }
         parameters.AfterTyped(last);
         return true;
@@ -106,13 +106,13 @@ internal sealed partial class CSharpAssist(AssistContext context, PopupPlacement
     {
         if (AspireRoleOfShown != Aspire.AspireRole.None && context.Editors.Active is { } aspire && MayNameResource(caret))
         {
-            _ = popups.Carried("Rename", async () =>
+            IdeErrors.Observe(popups.Carried("Rename", async () =>
             {
                 if (!await ShowAspireRename(aspire, caret) && context.Editors.Active == aspire)
                 {
                     actions.ShowServerRename();
                 }
-            }, closeModal: false);
+            }, closeModal: false));
             return true;
         }
         actions.ShowServerRename();

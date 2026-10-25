@@ -80,7 +80,7 @@ public sealed class CodeAssist
                 // A value's card in use (its keys, its menu, a value being typed) stays over what else the pointer rests on.
                 if (editor == Editor && !quickInfo.ValuesInUse)
                 {
-                    _ = e.Hint is { } hint ? quickInfo.ShowHint(hint, e.Point) : quickInfo.Show(e.Offset, e.Point);
+                    IdeErrors.Observe(e.Hint is { } hint ? quickInfo.ShowHint(hint, e.Point) : quickInfo.Show(e.Offset, e.Point));
                 }
             };
             editor.HoverEnded += (_, _) => quickInfo.PointerLeft();
@@ -103,7 +103,7 @@ public sealed class CodeAssist
             {
                 if (editor == Editor)
                 {
-                    _ = navigation.GoToDefinition(offset);
+                    IdeErrors.Observe(navigation.GoToDefinition(offset));
                 }
             };
         });

@@ -109,7 +109,7 @@ internal sealed class QuickInfo
             values.FocusRow();
             return;
         }
-        _ = Show(context.Caret, Editor.PointOf(context.Caret));
+        IdeErrors.Observe(Show(context.Caret, Editor.PointOf(context.Caret)));
     }
 
     public async Task Show(int offset, Point point)

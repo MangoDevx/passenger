@@ -88,7 +88,7 @@ public sealed class MarkdownPreview : ScrollViewer
         if (onScreen)
         {
             Hear(next);
-            _ = RenderAsync();
+            IdeErrors.Observe(RenderAsync());
         }
     }
 

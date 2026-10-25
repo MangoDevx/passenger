@@ -189,7 +189,7 @@ internal sealed class ServerDiagnostics(OpenDocument document, bool holdsChecks)
         CancellationTokenSource cancel = new();
         pulling = cancel;
         BackgroundWork.Begin();
-        _ = PullAsync(delay, ask, cancel.Token, holdsChecks ? document.Checking() : null);
+        IdeErrors.Observe(PullAsync(delay, ask, cancel.Token, holdsChecks ? document.Checking() : null));
     }
 
     /// <summary>The server's diagnostics of the file, when they answer the text as it stands and no later ask has begun.</summary>

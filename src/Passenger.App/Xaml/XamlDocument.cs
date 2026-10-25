@@ -42,7 +42,7 @@ public sealed class XamlDocument : IDisposable
         Loading = loading;
         analysing = new Debounce(Settle, AnalyseAsync, document.Checking);
         document.Text.Changed += OnChanged;
-        _ = AnalyseAsync();
+        IdeErrors.Observe(AnalyseAsync());
     }
 
     public OpenDocument Document { get; }

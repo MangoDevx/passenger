@@ -189,7 +189,7 @@ public sealed class HierarchyView : DockPanel
         }
         else
         {
-            _ = ExpandAsync(row);
+            IdeErrors.Observe(ExpandAsync(row));
         }
     }
 

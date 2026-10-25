@@ -417,7 +417,7 @@ public sealed class WebLanguages : IAsyncDisposable
         configured = node;
         finding = null;
         Eslint.Reset();
-        _ = Prettier.ResetAsync();
+        IdeErrors.Observe(Prettier.ResetAsync());
         foreach ((WebServerKind kind, NodeServer server) in servers.ToList())
         {
             Replace(kind, server);
@@ -657,7 +657,7 @@ public sealed class WebLanguages : IAsyncDisposable
     /// the reason given, which their banners say.</summary>
     private void Replace(WebServerKind kind, NodeServer server, string? stopped = null)
     {
-        _ = server.End();
+        IdeErrors.Observe(server.End());
         List<OpenDocument> open = [.. documents.Where(d => d.Value.Kind == kind).Select(d => d.Key)];
         foreach (OpenDocument document in open)
         {

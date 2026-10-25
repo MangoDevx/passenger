@@ -41,7 +41,7 @@ internal sealed class MSBuildAssist : LanguageAssist
         int caret = Editor.Selections.Primary.Caret;
         if (MSBuildTrigger(text) || (AssistContext.IsIdentifierChar(last) && !char.IsDigit(last) && context.WordStart(caret) == caret - 1))
         {
-            _ = completion.Start(null);
+            IdeErrors.Observe(completion.Start(null));
         }
         return true;
     }
@@ -194,7 +194,7 @@ internal sealed class MSBuildAssist : LanguageAssist
         }
         if (item.Reopen)
         {
-            _ = completion.Start(null);
+            IdeErrors.Observe(completion.Start(null));
         }
     }
 

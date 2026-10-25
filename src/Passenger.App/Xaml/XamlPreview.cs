@@ -172,13 +172,13 @@ public sealed class XamlPreview : IDisposable
         }
         IDisposable held = BackgroundWork.Scope();
         waiting = held;
-        _ = Task.Delay(Answer).ContinueWith(_ => UiThread.Post(() =>
+        IdeErrors.Observe(Task.Delay(Answer).ContinueWith(_ => UiThread.Post(() =>
         {
             if (waiting == held)
             {
                 Let();
             }
-        }), TaskScheduler.Default);
+        }), TaskScheduler.Default));
     }
 
     internal void Let()

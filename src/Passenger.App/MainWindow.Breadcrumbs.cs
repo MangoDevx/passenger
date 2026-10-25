@@ -65,7 +65,7 @@ public partial class MainWindow
     {
         if (Editors.Active is { } document && outlined != document.Path)
         {
-            _ = OutlineAsync();
+            IdeErrors.Observe(OutlineAsync());
         }
     }
 

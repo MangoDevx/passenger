@@ -150,7 +150,7 @@ public sealed class EslintService : IAsyncDisposable
             lint.Dispose();
         }
         documents.Clear();
-        _ = server?.End();
+        IdeErrors.Observe(server?.End() ?? Task.CompletedTask);
         server = null;
         said.Clear();
     }

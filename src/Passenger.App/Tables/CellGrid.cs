@@ -183,7 +183,7 @@ public sealed class CellGrid : Control
         switch (action)
         {
             case EditorActions.Copy:
-                _ = Copy();
+                IdeErrors.Observe(Copy());
                 return true;
             case EditorActions.SelectAll when table is not null:
                 Choose((0, 0), (table.RowCount - 1, table.ColumnCount - 1));

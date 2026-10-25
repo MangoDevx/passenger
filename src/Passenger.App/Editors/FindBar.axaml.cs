@@ -183,7 +183,7 @@ public partial class FindBar : UserControl
         if (grid is not null)
         {
             editor.SetHighlights([], -1);
-            _ = SearchCells(grid, jump);
+            IdeErrors.Observe(SearchCells(grid, jump));
             return;
         }
         TextSnapshot text = editor.Document.Snapshot;

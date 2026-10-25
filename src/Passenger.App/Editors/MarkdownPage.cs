@@ -72,7 +72,7 @@ public sealed class MarkdownPicture : Panel
         Children.Add(alt);
         if (load is not null)
         {
-            _ = ShowAsync(load(file));
+            IdeErrors.Observe(ShowAsync(load(file)));
         }
     }
 

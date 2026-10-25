@@ -164,7 +164,7 @@ public sealed class XamlService : IDisposable
                 continue;
             }
             HashSet<string> open = [.. documents.Keys.Select(d => d.Path)];
-            _ = UpdateAsync(loading, builder =>
+            IdeErrors.Observe(UpdateAsync(loading, builder =>
             {
                 XamlProject? made = null;
                 foreach (string file in files)
@@ -179,7 +179,7 @@ public sealed class XamlService : IDisposable
                     }
                 }
                 return made;
-            });
+            }));
         }
     }
 
@@ -252,7 +252,7 @@ public sealed class XamlService : IDisposable
         Task<XamlProjectBuilder?> builder = BackgroundWork.Run(() => XamlProjectBuilder.For(project, DotnetRoot.Value, IdeErrors.Report, evaluations));
         loading = new XamlLoading(project, builder, LoadAsync(builder, texts));
         projects[project] = loading;
-        _ = AnnounceAsync(loading);
+        IdeErrors.Observe(AnnounceAsync(loading));
         return loading;
     }
 
@@ -333,7 +333,7 @@ public sealed class XamlService : IDisposable
         {
             document.Follow(again);
         }
-        _ = AnnounceAsync(again);
+        IdeErrors.Observe(AnnounceAsync(again));
     }
 
     private Dictionary<string, TextSnapshot> OpenTexts()

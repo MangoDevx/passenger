@@ -130,7 +130,7 @@ public partial class MainWindow
         EventHandler<DocumentChangedEventArgs> changed = (_, _) => typing.Restart();
         shown.Text.Changed += changed;
         previews[shown] = new(preview, pane, typing, changed);
-        _ = preview.StartAsync();
+        IdeErrors.Observe(preview.StartAsync());
         return pane;
     }
 
@@ -173,7 +173,7 @@ public partial class MainWindow
         }
         foreach (XamlPreview preview in previews.Values.Select(p => p.Preview))
         {
-            _ = preview.RestartAsync();
+            IdeErrors.Observe(preview.RestartAsync());
         }
     }
 

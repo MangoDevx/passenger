@@ -70,7 +70,7 @@ public sealed partial class CSharpDocument : IServerDocument, IDisposable
         if (Lsp is { IsRazor: false } lsp)
         {
             BackgroundWork.Begin();
-            _ = FindContextsAsync(lsp);
+            IdeErrors.Observe(FindContextsAsync(lsp));
         }
     }
 

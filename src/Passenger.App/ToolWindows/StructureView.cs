@@ -106,7 +106,7 @@ public sealed class StructureView : DockPanel
         if (source?.Invoke() is { Lsp: not null })
         {
             settle.Stop();
-            _ = Refresh();
+            IdeErrors.Observe(Refresh());
         }
         else
         {
@@ -120,7 +120,7 @@ public sealed class StructureView : DockPanel
     {
         if (shown && asking is null && source?.Invoke() is { Lsp: not null } now && outlined != now.Path)
         {
-            _ = Refresh();
+            IdeErrors.Observe(Refresh());
         }
     }
 
@@ -139,7 +139,7 @@ public sealed class StructureView : DockPanel
     {
         base.OnAttachedToVisualTree(e);
         shown = true;
-        _ = Refresh();
+        IdeErrors.Observe(Refresh());
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)

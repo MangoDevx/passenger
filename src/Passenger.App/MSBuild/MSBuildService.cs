@@ -95,7 +95,7 @@ public sealed class MSBuildService(Func<string?> folder, Func<WorkspaceModel?> w
     {
         foreach (MSBuildDocument other in documents.Values.Where(d => d != from && d.Project is { } own && PathNames.Same(own, insight.Project)).ToList())
         {
-            _ = other.AdoptAsync(insight, texts);
+            IdeErrors.Observe(other.AdoptAsync(insight, texts));
         }
     }
 

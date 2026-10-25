@@ -33,7 +33,7 @@ internal sealed class ParameterInfo
     {
         if (last is '(' or ',')
         {
-            _ = Show();
+            IdeErrors.Observe(Show());
         }
         else if (last is ')' or ';')
         {

@@ -53,7 +53,7 @@ internal sealed partial class XamlAssist : LanguageAssist
         int caret = Editor.Selections.Primary.Caret;
         if (XamlTrigger(text) || (AssistContext.IsIdentifierChar(last) && !char.IsDigit(last) && context.WordStart(caret) == caret - 1))
         {
-            _ = completion.Start(null);
+            IdeErrors.Observe(completion.Start(null));
         }
         return true;
     }
@@ -124,7 +124,7 @@ internal sealed partial class XamlAssist : LanguageAssist
         {
             return false;
         }
-        _ = popups.Carried("Rename", () => XamlRename(xaml), closeModal: false);
+        IdeErrors.Observe(popups.Carried("Rename", () => XamlRename(xaml), closeModal: false));
         return true;
     }
 
@@ -231,7 +231,7 @@ internal sealed partial class XamlAssist : LanguageAssist
         }
         if (completion.IsOpen || (Editor.Document.Version == version && Editor.Selections.Primary.Caret == caret))
         {
-            _ = completion.Start(null);
+            IdeErrors.Observe(completion.Start(null));
         }
     }
 
@@ -253,7 +253,7 @@ internal sealed partial class XamlAssist : LanguageAssist
         }
         if (item.Reopen)
         {
-            _ = completion.Start(null);
+            IdeErrors.Observe(completion.Start(null));
         }
     }
 
@@ -672,7 +672,7 @@ internal sealed partial class XamlAssist : LanguageAssist
             else if (choice?.Value is CodeActions.XamlRefactoring refactoring && context.Editors.Active == document)
             {
                 // Not awaited: its dialog waits for the person, which no screenshot or test should wait out.
-                _ = actions.RunXamlRefactoring(refactoring);
+                IdeErrors.Observe(actions.RunXamlRefactoring(refactoring));
             }
             return Task.CompletedTask;
         });

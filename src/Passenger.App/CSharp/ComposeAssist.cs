@@ -41,13 +41,13 @@ internal sealed class ComposeAssist(AssistContext context, PopupPlacement popups
         {
             return false;
         }
-        _ = popups.Carried("Rename", async () =>
+        IdeErrors.Observe(popups.Carried("Rename", async () =>
         {
             if (!await ShowComposeRename(yaml, compose, caret) && context.Editors.Active == compose)
             {
                 actions.ShowServerRename();
             }
-        }, closeModal: false);
+        }, closeModal: false));
         return true;
     }
 

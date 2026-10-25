@@ -133,7 +133,7 @@ public sealed class WebDocument : IServerDocument, IDisposable
         }
         pushLimit?.Cancel();
         CancellationTokenSource limit = pushLimit = new CancellationTokenSource();
-        _ = Task.Delay(PushLimit, limit.Token).ContinueWith(waited =>
+        IdeErrors.Observe(Task.Delay(PushLimit, limit.Token).ContinueWith(waited =>
         {
             if (!waited.IsCanceled)
             {
@@ -145,7 +145,7 @@ public sealed class WebDocument : IServerDocument, IDisposable
                     }
                 });
             }
-        }, CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+        }, CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default));
     }
 
     private void PushLanded()

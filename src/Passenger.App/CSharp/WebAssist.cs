@@ -105,11 +105,11 @@ internal sealed partial class WebAssist(AssistContext context, PopupPlacement po
         int caret = Editor.Selections.Primary.Caret;
         if (text.Length == 1 && web.CompletionTriggers.Contains(text))
         {
-            _ = completion.Start(text);
+            IdeErrors.Observe(completion.Start(text));
         }
         else if ((char.IsLetter(last) || last is '_' or '$') && WebWordStart(web, caret) == caret - 1)
         {
-            _ = completion.Start(null);
+            IdeErrors.Observe(completion.Start(null));
         }
         // A script's call shows its signature after its bracket or comma; any file's closing bracket or semicolon hides it.
         if (web.Kind is WebServerKind.TypeScript or WebServerKind.Html || last is ')' or ';')
@@ -215,7 +215,7 @@ internal sealed partial class WebAssist(AssistContext context, PopupPlacement po
         int caret = Editor.Selections.Primary.Caret;
         // The text the outline is asked of, whose places the edit is made in and carried through what is typed since.
         ChangeTracker asked = new(document.Text);
-        _ = popups.Carried("Rename", async () =>
+        IdeErrors.Observe(popups.Carried("Rename", async () =>
         {
             bool shown = false;
             try
@@ -261,7 +261,7 @@ internal sealed partial class WebAssist(AssistContext context, PopupPlacement po
                     asked.Dispose();
                 }
             }
-        }, closeModal: false);
+        }, closeModal: false));
     }
 
     /// <summary>The JSON property whose name is at an offset of the text the outline is of: its path from the top, and its

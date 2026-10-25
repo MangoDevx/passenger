@@ -44,7 +44,7 @@ public sealed class SymbolPopup : SearchPopup<SymbolRow>
     {
         this.search = search;
         typing = new Debounce(Pause, Refresh);
-        _ = Refresh();
+        IdeErrors.Observe(Refresh());
     }
 
     /// <summary>The popup's switch turned, before it asks again; its search reads what it is now.</summary>
@@ -61,7 +61,7 @@ public sealed class SymbolPopup : SearchPopup<SymbolRow>
     protected override void OptionTurned()
     {
         OptionChanged?.Invoke(this, IsOptionChecked);
-        _ = Refresh();
+        IdeErrors.Observe(Refresh());
     }
 
     protected override Control Draw(SymbolRow row) => Row(row);

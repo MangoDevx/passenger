@@ -26,7 +26,7 @@ public partial class MainWindow
         HashSet<string> referenced = new(all.FirstOrDefault(p => PathNames.Same(p.Path, project))?.ProjectReferences ?? [], StringComparer.Ordinal);
         HashSet<string> dependents = Dependents(all, project);
         AddReferenceDialog dialog = new(name, [.. others.Select(p => new ReferenceChoice(p.Path, p.Name, InFolder(p.Path), referenced.Contains(p.Path), dependents.Contains(p.Path)))]);
-        _ = ApplyAsync();
+        IdeErrors.Observe(ApplyAsync());
         return dialog;
 
         async Task ApplyAsync()

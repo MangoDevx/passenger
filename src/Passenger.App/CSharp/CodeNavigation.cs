@@ -284,6 +284,6 @@ internal sealed class CodeNavigation(AssistContext context, PopupPlacement popup
             ? problems.FirstOrDefault(m => m.Range.Start > caret, problems[0])
             : problems.LastOrDefault(m => m.Range.Start < caret, problems[^1]);
         Editor.Selections = SelectionSet.Single(target.Range.Start);
-        _ = quickInfo.Show(target.Range.Start, Editor.PointOf(target.Range.Start));
+        IdeErrors.Observe(quickInfo.Show(target.Range.Start, Editor.PointOf(target.Range.Start)));
     }
 }

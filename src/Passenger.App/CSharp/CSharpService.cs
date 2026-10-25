@@ -355,7 +355,7 @@ public sealed class CSharpService : IAsyncDisposable
         analysing = cancel;
         foreach (string? source in running.Server.WorkspaceDiagnosticSources)
         {
-            _ = AnalyseAsync(running, source, cancel.Token);
+            IdeErrors.Observe(AnalyseAsync(running, source, cancel.Token));
         }
     }
 
@@ -510,7 +510,7 @@ public sealed class CSharpService : IAsyncDisposable
         starting = cancel;
         SetState("Starting C#…");
         BackgroundWork.Begin();
-        _ = Run(workspace, cancel.Token);
+        IdeErrors.Observe(Run(workspace, cancel.Token));
     }
 
     /// <summary>Gives an open document its C# features, now or once the server is ready: a C# file, or a Razor file
@@ -679,8 +679,8 @@ public sealed class CSharpService : IAsyncDisposable
                     await started.DisposeAsync();
                     return;
                 }
-                _ = TimeFirstColoursAsync(started, began);
-                _ = TimeActiveFileAsync(started, began);
+                IdeErrors.Observe(TimeFirstColoursAsync(started, began));
+                IdeErrors.Observe(TimeActiveFileAsync(started, began));
             }
             TaskCompletionSource loaded = new(TaskCreationOptions.RunContinuationsAsynchronously);
             EventHandler onLoaded = (_, _) => loaded.TrySetResult();
@@ -1080,7 +1080,7 @@ public sealed class CSharpService : IAsyncDisposable
         ForgetLoadProblems();
         analysing?.Cancel();
         ForgetReports();
-        _ = lost.DisposeAsync();
+        IdeErrors.Observe(lost.DisposeAsync().AsTask());
         foreach (OpenDocument open in documents.Keys.ToList())
         {
             Detach(open);

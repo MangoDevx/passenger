@@ -86,7 +86,7 @@ internal sealed partial class CodeCompletion
                     completion.Move(9);
                     return true;
                 case EditorActions.NewLine or EditorActions.Indent:
-                    _ = Commit();
+                    IdeErrors.Observe(Commit());
                     return true;
                 case EditorActions.Escape:
                     Close();
@@ -108,13 +108,13 @@ internal sealed partial class CodeCompletion
                 if (open is { IsIncomplete: true })
                 {
                     // The server listed only some of what fits: what is typed now narrows it to the rest.
-                    _ = Start(null, incomplete: true);
+                    IdeErrors.Observe(Start(null, incomplete: true));
                 }
                 return;
             }
             if (CommitsOn(text) is { } end)
             {
-                _ = CommitOn(text, end);
+                IdeErrors.Observe(CommitOn(text, end));
                 return;
             }
             Close();
@@ -312,7 +312,7 @@ internal sealed partial class CodeCompletion
         {
             return;
         }
-        _ = FilterAsync(narrowing, ++filters);
+        IdeErrors.Observe(FilterAsync(narrowing, ++filters));
     }
 
     private async Task FilterAsync(Narrowing narrowing, int asked)
@@ -351,7 +351,7 @@ internal sealed partial class CodeCompletion
         if (opening && narrowing.List.DescribedAsItOpens)
         {
             // The first item's documentation beside the list as it opens, which its selection came too early to show.
-            _ = DescribeSelected();
+            IdeErrors.Observe(DescribeSelected());
         }
     }
 
