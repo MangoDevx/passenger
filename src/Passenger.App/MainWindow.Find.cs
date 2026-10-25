@@ -22,7 +22,7 @@ public partial class MainWindow
     {
         Dock.Add(new Docking.ToolWindow(ToolWindowIds.Find, "Find", "Icon.Search", () =>
         {
-            find = new FindView(path => TextOf(path)?.ToString());
+            find = new FindView(path => Editors.TextOf(path)?.ToString());
             find.GoToRequested += (_, usage) => NavigateTo(usage.Path, new TextPosition(usage.Line, usage.Column));
             return find;
         }, Docking.ToolAnchor.BottomLeft) { Action = AppActions.ShowFind, ActionTitle = "Find Tool Window" });
@@ -44,7 +44,7 @@ public partial class MainWindow
         List<(string Path, TextSnapshot? Open, ParsedText? Syntax, string Project, List<LspLocation> Here)> files =
             [.. locations.GroupBy(l => paths[l.Uri], StringComparer.Ordinal).Select(file =>
             {
-                OpenDocument? open = Editors.Documents.FirstOrDefault(d => d.Path == file.Key);
+                OpenDocument? open = Editors.Find(file.Key);
                 return (file.Key, open?.Text.Snapshot, open?.Syntax?.Current, ProjectNameOf(file.Key), file.ToList());
             })];
         List<Usage> usages = await BackgroundWork.Run(() =>

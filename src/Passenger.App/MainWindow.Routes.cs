@@ -342,7 +342,7 @@ public partial class MainWindow
         string? address = ProfileAddress(route.Project);
         try
         {
-            if (Editors.Documents.FirstOrDefault(d => PathNames.Same(d.Path, path)) is { } document)
+            if (Editors.Find(path) is { } document)
             {
                 if (document.IsReadOnly)
                 {
@@ -442,7 +442,7 @@ public partial class MainWindow
     /// <summary>The routes the request on an .http file's line calls, for Go to Declaration from it.</summary>
     private IReadOnlyList<LspLocation> HttpRouteTargets(string path, int line)
     {
-        if (Editors.Documents.FirstOrDefault(d => PathNames.Same(d.Path, path)) is not { } document
+        if (Editors.Find(path) is not { } document
             || RouteRequests.RequestAt(path, document.Text.Snapshot.ToString(), line) is not { } request)
         {
             return [];
@@ -454,7 +454,7 @@ public partial class MainWindow
     /// <summary>The .http requests that call the route an open file declares at an offset: null where it declares none.</summary>
     private (string Title, IReadOnlyList<LspLocation> Requests)? RouteCallers(string path, int offset)
     {
-        if (Editors.Documents.FirstOrDefault(d => PathNames.Same(d.Path, path)) is not { } document)
+        if (Editors.Find(path) is not { } document)
         {
             return null;
         }

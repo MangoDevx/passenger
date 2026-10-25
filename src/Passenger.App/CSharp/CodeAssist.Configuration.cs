@@ -247,7 +247,7 @@ public sealed partial class CodeAssist
         {
             return false;
         }
-        Func<string, string?> text = service()?.Texts?.Invoke() ?? ConfigurationFiles.Disk;
+        Func<string, string?> text = editors.Texts().Text;
         IReadOnlyList<(GivenKey Given, LspLocation Place)> given = await BackgroundWork.Run(() =>
         {
             Dictionary<string, ServerLines?> lines = new(StringComparer.Ordinal);
@@ -314,7 +314,7 @@ public sealed partial class CodeAssist
         {
             return null;
         }
-        Func<string, string?> text = service()?.Texts?.Invoke() ?? ConfigurationFiles.Disk;
+        Func<string, string?> text = editors.Texts().Text;
         IReadOnlyList<GivenKey> given = await BackgroundWork.Run(() => ConfigurationFiles.Where(ConfigurationFiles.Given(project, text), found.Key, found.Kind != ConfigurationKinds.Read));
         return given.Count == 0 ? $"{found.Key}: given by nothing {project.Name} runs with"
             : $"{found.Key}:\n" + string.Join('\n', given.Select(g => $"{(g.By == GivenBy.UserSecrets ? "user secrets" : Path.GetFileName(g.File))}"
@@ -351,8 +351,7 @@ public sealed partial class CodeAssist
         {
             return RefactorOutcome.Refused($"{key} was not set: {file.Name} is in no project");
         }
-        Func<string, string?> text = path => editors.Documents.FirstOrDefault(d => Passenger.Core.PathNames.Same(d.Path, path))?.Text.Snapshot.ToString()
-            ?? ConfigurationFiles.Disk(path);
+        Func<string, string?> text = editors.Texts().Text;
         if (ConfigurationFiles.Gives(ConfigurationFiles.Given(project, text), key, section: false))
         {
             return RefactorOutcome.Refused($"{key} was not set: {project.Name}'s configuration gives it already");

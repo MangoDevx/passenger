@@ -211,7 +211,7 @@ public partial class MainWindow
                     refused.Add($"{Path.GetFileName(path)} (its content is no longer kept)");
                     continue;
                 }
-                OpenDocument? open = Editors.Documents.FirstOrDefault(d => PathNames.Same(d.Path, path));
+                OpenDocument? open = Editors.Find(path);
                 try
                 {
                     // A tab holding none of the file's text (a preview's, a workbook's, a binary file's) shows the bytes written.

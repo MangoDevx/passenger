@@ -198,7 +198,7 @@ public sealed partial class EditorArea : UserControl
     public string? Open(string path)
     {
         string full = PathNames.Canonical(path);
-        if (documents.FirstOrDefault(d => d.Path == full) is { } open)
+        if (Find(full) is { } open)
         {
             Activate(open);
             return null;
@@ -769,7 +769,7 @@ public sealed partial class EditorArea : UserControl
     private OpenDocument? Load(string path, bool asBytes = true)
     {
         string full = PathNames.Canonical(path);
-        if (documents.FirstOrDefault(d => d.Path == full) is { } open)
+        if (Find(full) is { } open)
         {
             return open;
         }

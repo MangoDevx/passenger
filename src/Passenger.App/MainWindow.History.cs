@@ -1,3 +1,4 @@
+using Passenger.App.Editors;
 using Passenger.App.Explorer;
 using Passenger.App.Vcs;
 using Passenger.App.Workspace;
@@ -137,9 +138,9 @@ public partial class MainWindow
             throw new InvalidOperationException("Show History for Selection needs a file, not a folder");
         }
         // The editor's lines are the last commit's once the changes above them are taken back.
-        OpenDocument? open = Editors.Documents.FirstOrDefault(d => d.Path == path);
+        OpenDocument? open = Editors.Find(path) is { HoldsText: true } held ? held : null;
         FileDiff? diff = open is not null ? await session.Vcs.DiffAsync(open) : null;
-        if (diff is null && open is null && await session.Vcs.HeadTextAsync(path) is { } head && File.Exists(path) && FileText.Load(path)?.Text is { } saved)
+        if (diff is null && open is null && await session.Vcs.HeadTextAsync(path) is { } head && EditorArea.ReadText(path) is { } saved)
         {
             TextSnapshot text = new TextDocument(saved).Snapshot;
             diff = await BackgroundWork.Run(() => FileDiff.Compare(head, text));
@@ -218,8 +219,8 @@ public partial class MainWindow
             status.Text = $"{Path.GetFileName(then)} is not in {version}";
             return null;
         }
-        OpenDocument? open = Editors.Documents.FirstOrDefault(d => d.Path == path);
-        TextDocument mine = open?.Text ?? new TextDocument(File.Exists(path) ? FileText.Load(path)?.Text ?? string.Empty : string.Empty);
+        OpenDocument? open = Editors.Find(path) is { HoldsText: true } held ? held : null;
+        TextDocument mine = open?.Text ?? new TextDocument(EditorArea.ReadText(path) ?? string.Empty);
         TextSnapshot text = mine.Snapshot;
         FileDiff diff = await BackgroundWork.Run(() => FileDiff.Compare(theirs, text));
         return OpenLocalDiff(path, open, mine, diff, version);

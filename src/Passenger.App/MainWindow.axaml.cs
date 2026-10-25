@@ -64,7 +64,7 @@ public partial class MainWindow : Window
         session = ProjectSession.None(Setup());
         status = new StatusBar(StatusMessage, StatusText, StatusIcon, StatusWorking, CaretText, IndentText, LanguageText, LineSeparatorButton, LineEndingText, EncodingButton, EncodingText);
         popups = new PopupHost(Overlay, OverlayHost, Editors, () => session.Debug.Breakpoints);
-        navigator = new Navigation.Navigator(new Navigation.NavigatorParts(Editors, () => session, popups, status, path => OpenFile(path), TextOf));
+        navigator = new Navigation.Navigator(new Navigation.NavigatorParts(Editors, () => session, popups, status, path => OpenFile(path), Editors.TextOf));
         // One keymap for the whole window, seen before any control: editor actions go to the editor with the focus.
         windowKeys = new IdeKeys(this, keys, popups, OnKey, OnActivity, OnLeft);
         windowKeys.Attach(this);

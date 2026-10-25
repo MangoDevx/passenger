@@ -143,8 +143,7 @@ public sealed partial class CodeAssist
         {
             return RefactorOutcome.Refused($"{name} was not set: {file.Name} is no longer an AppHost's");
         }
-        Func<string, string?> text = path => editors.Documents.FirstOrDefault(d => Passenger.Core.PathNames.Same(d.Path, path))?.Text.Snapshot.ToString()
-            ?? ServerPlaces.Read(path)?.ToString();
+        Func<string, string?> text = editors.Texts().Text;
         if (AspireParameters.HasValue(host, name, text))
         {
             return RefactorOutcome.Refused($"{name} was not set: the AppHost's configuration has a value for it already");

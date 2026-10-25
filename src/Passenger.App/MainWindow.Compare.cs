@@ -1,3 +1,4 @@
+using Passenger.App.Editors;
 using Passenger.App.Explorer;
 using Passenger.App.Vcs;
 using Passenger.App.Workspace;
@@ -28,11 +29,9 @@ public partial class MainWindow
     /// edit there is the file's; otherwise it is read-only.</summary>
     public async Task<DiffWindow> CompareFilesAsync(string left, string right)
     {
-        string before = Editors.Documents.FirstOrDefault(d => PathNames.Same(d.Path, left)) is { } leftOpen
-            ? leftOpen.Text.Snapshot.ToString()
-            : FileText.Load(left)?.Text ?? string.Empty;
-        OpenDocument? open = Editors.Documents.FirstOrDefault(d => PathNames.Same(d.Path, right));
-        TextDocument mine = open?.Text ?? new TextDocument(FileText.Load(right)?.Text ?? string.Empty);
+        string before = Editors.TextOf(left)?.ToString() ?? string.Empty;
+        OpenDocument? open = Editors.Find(right) is { HoldsText: true } held ? held : null;
+        TextDocument mine = open?.Text ?? new TextDocument(EditorArea.ReadText(right) ?? string.Empty);
         TextSnapshot text = mine.Snapshot;
         FileDiff diff = await BackgroundWork.Run(() => FileDiff.Compare(before, text));
         return OpenLocalDiff(right, open, mine, diff, InFolder(left), other: left);

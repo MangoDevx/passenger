@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
+using Passenger.App.Editors;
 using Passenger.App.Vcs;
 using Passenger.App.Workspace;
 using Passenger.Editor;
@@ -283,8 +284,8 @@ public partial class MainWindow
             status.Text = "The folder is not in a Git repository";
             return null;
         }
-        OpenDocument? open = Editors.Documents.FirstOrDefault(d => d.Path == path);
-        TextDocument mine = open?.Text ?? new TextDocument(File.Exists(path) ? FileText.Load(path)?.Text ?? string.Empty : string.Empty);
+        OpenDocument? open = Editors.Find(path) is { HoldsText: true } held ? held : null;
+        TextDocument mine = open?.Text ?? new TextDocument(EditorArea.ReadText(path) ?? string.Empty);
         // An open file's differences are its change bars' own when they are of its text now.
         if (open is null || await session.Vcs.DiffAsync(open) is not { } diff)
         {

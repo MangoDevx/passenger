@@ -86,7 +86,7 @@ public sealed class ProjectSession : IAsyncDisposable
         Containers = new Containers.FolderContainers(folder, setup.Engine());
         Vcs.Work = setup.Work;
         // A XAML file's localized strings read from the .resx and XLIFF files as the editor has them.
-        Xaml.Snapshots = () => ConfigurationFiles.Snapshots(setup.Editors.Documents);
+        Xaml.Snapshots = () => setup.Editors.Texts().Open;
         Xaml.Evaluations = path => evaluations.GetValueOrDefault(path);
         Debug = new DebugController(setup.Editors, setup.Views.Debug)
         {
@@ -256,7 +256,7 @@ public sealed class ProjectSession : IAsyncDisposable
             return [];
         }
         string secrets = PathNames.Canonical(UserSecrets.FileOf(id)!);
-        return [.. Projects.Select(ConfigurationOf).Where(c => c.SecretsIn(ConfigurationFiles.Disk) is { } own && PathNames.Same(own, secrets))];
+        return [.. Projects.Select(ConfigurationOf).Where(c => c.SecretsIn(EditorArea.ReadText) is { } own && PathNames.Same(own, secrets))];
     }
 
     /// <summary>The name of the project a file belongs to, as Find and Problems group by it; outside them all,
@@ -819,8 +819,7 @@ public sealed class ProjectSession : IAsyncDisposable
                     : null,
                 ComposeGaps = () => Web?.Checks.Gaps ?? [],
                 ConfigurationOf = ConfigurationOf,
-                Texts = () => ConfigurationFiles.Reader(setup.Editors.Documents),
-                Snapshots = () => ConfigurationFiles.Snapshots(setup.Editors.Documents),
+                Texts = setup.Editors.Texts,
             };
             CSharpChanged?.Invoke(this, EventArgs.Empty);
             CSharpService started = CSharp;

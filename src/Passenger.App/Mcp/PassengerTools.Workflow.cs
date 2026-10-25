@@ -72,9 +72,9 @@ public sealed partial class PassengerTools
         string name = Relative(full).Replace('\\', '/');
         await Session.Vcs.Opened;
         string head = await Session.Vcs.HeadTextAsync(full) ?? string.Empty;
-        TextSnapshot? open = Editors.Documents.FirstOrDefault(d => d.Path == full)?.Text.Snapshot;
+        Passenger.App.Editors.OpenTexts texts = Editors.Texts();
         // Reading and comparing a large file would hold the person's window: the thread pool does both.
-        string diff = await BackgroundWork.Run(() => LineDiff.Unified(head, open?.ToString() ?? (File.Exists(full) ? File.ReadAllText(full) : string.Empty), name), cancel);
+        string diff = await BackgroundWork.Run(() => LineDiff.Unified(head, texts.Text(full) ?? string.Empty, name), cancel);
         return diff.Length == 0 ? "No changes" : diff;
     });
 

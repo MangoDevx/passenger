@@ -206,6 +206,37 @@ public sealed class AspireCodeHelpTests : IClassFixture<AspireCodeHelpTests.Proj
             .Where(m => m.Message.StartsWith("Parameter '", StringComparison.Ordinal)).Select(m => m.Message.Split('\'')[1])];
     }
 
+    /// <summary>A parameter's value typed into the AppHost's appsettings.json is its value before it is saved: the mark on the
+    /// parameter goes once typing pauses, read from the text the editor has, as its fix reads it, and the file on disk stays
+    /// as it was.</summary>
+    [AvaloniaFact]
+    public void A_parameter_s_value_typed_in_appsettings_and_not_saved_takes_its_mark_away()
+    {
+        string program = PathNames.Canonical(project.PathOf("Host/Program.cs"));
+        string settings = PathNames.Canonical(project.PathOf("Host/appsettings.json"));
+        project.Write("Host/Program.cs", Project.Host.Replace("builder.Build().Run();", "var mode = builder.AddParameter(\"mode\");\nbuilder.Build().Run();", StringComparison.Ordinal));
+        string written = "{\n  \"Parameters\": {\n    \"given\": \"set\"\n  }\n}\n";
+        project.Write("Host/appsettings.json", written);
+        MainWindow window = project.Open(program);
+        try
+        {
+            Ui.WaitFor(() => Unset().SetEquals(["mode"]), "the parameter with no value to be marked");
+            window.OpenFile(settings);
+            Ui.Settle();
+            Typing.Replace(window, "\"given\": \"set\"", "\"mode\": \"fast\"");
+            Ui.WaitFor(() => Unset().Count == 0, () => $"the mark to go once appsettings.json in the editor gives mode a value, saved or not: {string.Join(", ", Unset())}");
+            Assert.True(window.EditorArea.Find(settings)?.IsModified == true, "appsettings.json was saved, so the test no longer shows the editor's text is read");
+            Assert.Equal(written, File.ReadAllText(settings));
+        }
+        finally
+        {
+            window.Close();
+        }
+
+        HashSet<string> Unset() => [.. window.EditorArea.Find(program)!.Markers
+            .Where(m => m.Message.StartsWith("Parameter '", StringComparison.Ordinal)).Select(m => m.Message.Split('\'')[1])];
+    }
+
     [AvaloniaFact]
     public void Connection_completion_offers_only_connected_resources_and_a_connection_warning_offers_a_native_reference_fix_undo_takes_back()
     {

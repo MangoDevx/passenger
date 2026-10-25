@@ -19,7 +19,7 @@ public partial class MainWindow
         Dock.Add(new Docking.ToolWindow(ToolWindowIds.Bookmarks, "Bookmarks", "Icon.Bookmark", () =>
         {
             bookmarksView = new(session.Bookmarks, (path, line) =>
-                Editors.Documents.FirstOrDefault(d => d.Path == path) is { } open && line < open.Text.Snapshot.LineCount ? open.Text.Snapshot.GetLineText(line) : string.Empty);
+                Editors.Find(path) is { HoldsText: true } open && line < open.Text.Snapshot.LineCount ? open.Text.Snapshot.GetLineText(line) : string.Empty);
             bookmarksView.GoToRequested += (_, bookmark) => NavigateTo(bookmark.Path, new TextPosition(bookmark.Line, 0));
             return bookmarksView;
         }, Docking.ToolAnchor.LeftBottom)

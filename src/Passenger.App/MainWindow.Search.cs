@@ -26,7 +26,7 @@ public partial class MainWindow
             return null;
         }
         Navigation.FindChoices choices = new(on ?? KeptScope(), Projects, session.FindScope.RecentDirectories, ScopeNames(), findSettings.RecentFileMasks);
-        Navigation.FindInFilesPopup popup = new(SearchFiles, TextOf, replace, navigator.SelectedWord(), choices, settings.Ligatures);
+        Navigation.FindInFilesPopup popup = new(SearchFiles, Editors.TextOf, replace, navigator.SelectedWord(), choices, settings.Ligatures);
         popup.ScopeChanged += (_, scope) => KeepFindScope(scope, closing: false);
         // However it closes: a match chosen, Escape, a click outside.
         popup.DetachedFromVisualTree += (_, _) => KeepFindScope(popup.Scope, closing: true);
@@ -196,7 +196,7 @@ public partial class MainWindow
         List<(string Path, string Why)> refused = [];
         foreach (string path in paths)
         {
-            if (Editors.Documents.FirstOrDefault(d => d.Path == path) is { } open)
+            if (Editors.Find(path) is { } open)
             {
                 if (!open.HoldsText)
                 {
@@ -272,13 +272,6 @@ public partial class MainWindow
 
     private Task<IReadOnlyList<SearchMatch>> SearchFiles(SearchQuery query, SearchScope scope, CancellationToken cancellation)
     {
-        // A preview's or a workbook's tab holds no text, so its file is searched as a closed one is, and passed over as binary.
-        Dictionary<string, TextSnapshot> open = Editors.Documents.Where(d => d.HoldsText).ToDictionary(d => d.Path, d => d.Text.Snapshot);
-        return FileSearch.FindAsync(session.Index.Root ?? Folder!, session.Index.Files, Place(scope), query, open, cancellation);
+        return FileSearch.FindAsync(session.Index.Root ?? Folder!, session.Index.Files, Place(scope), query, Editors.Texts(), cancellation);
     }
-
-    /// <summary>A file's text for the preview: the editor's when it is open.</summary>
-    private TextSnapshot? TextOf(string path) =>
-        Editors.Documents.FirstOrDefault(d => d.Path == path && d.HoldsText)?.Text.Snapshot
-        ?? (FileSearch.Read(path) is { } text ? TextSnapshot.From(text) : null);
 }

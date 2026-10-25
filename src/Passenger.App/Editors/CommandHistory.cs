@@ -214,7 +214,7 @@ public sealed class CommandHistory
     /// wrote; null when it can.</summary>
     private string? Made(Creation made)
     {
-        string? now = editors.Documents.FirstOrDefault(d => d.Path == made.Path) is { } open
+        string? now = editors.Find(made.Path) is { } open
             ? open.Text.Snapshot.ToString()
             : File.Exists(made.Path) ? FileText.Load(made.Path)?.Text : null;
         return now is null ? $"{Path.GetFileName(made.Path)} is no longer there"

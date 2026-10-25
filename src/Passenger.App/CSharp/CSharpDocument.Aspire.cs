@@ -94,7 +94,8 @@ public sealed partial class CSharpDocument
     }
 
     /// <summary>An AppHost's parameters that take their value from its configuration alone and have none there (its
-    /// appsettings*.json, its user secrets), each a warning on its name; the files are read off the UI thread, values never.</summary>
+    /// appsettings*.json, its user secrets, as the editor has them when open), each a warning on its name; the files are
+    /// read off the UI thread, values never.</summary>
     private async Task<IReadOnlyList<Diagnostic>> AspireUnsetParametersAsync(LspDocument lsp, CancellationToken cancel)
     {
         if (service.AspireAppHostOf?.Invoke(document.Path) is not { } host)
@@ -108,8 +109,8 @@ public sealed partial class CSharpDocument
             {
                 return [];
             }
-            AspireParameter[] unset = await BackgroundWork.Run(() => found.Parameters
-                .Where(p => !Aspire.AspireParameters.HasValue(host, p.Name, path => ServerPlaces.Read(path)?.ToString())).ToArray());
+            Editors.OpenTexts texts = service.OpenTexts();
+            AspireParameter[] unset = await BackgroundWork.Run(() => found.Parameters.Where(p => !Aspire.AspireParameters.HasValue(host, p.Name, texts.Text)).ToArray());
             return [.. unset.Select(p => new Diagnostic
             {
                 Range = new LspRange(new LspPosition(p.Start.Line, p.Start.Character), new LspPosition(p.End.Line, p.End.Character)),

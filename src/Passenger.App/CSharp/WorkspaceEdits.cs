@@ -127,7 +127,7 @@ public static class WorkspaceEdits
                 continue;
             }
             string path = DocumentUris.ToPath(change.Uri);
-            OpenDocument? open = editors.Documents.FirstOrDefault(d => d.Path == path);
+            OpenDocument? open = editors.Find(path);
             if (open is not null)
             {
                 if (Placed(open, change, asked?.Trackers.GetValueOrDefault(open)) is not { } edits)
@@ -293,7 +293,7 @@ public static class WorkspaceEdits
                 // Written as a save writes, in the charset its .editorconfig names.
                 FileEncoding charset = EditorConfig.For(resource.Path).Charset ?? FileEncoding.Utf8;
                 FileText.Save(resource.Path, string.Empty, charset.Encoding, charset.Bom);
-                editors.Documents.FirstOrDefault(d => d.Path == resource.Path)?.Reload(overUnsaved: true);
+                editors.Find(resource.Path)?.Reload(overUnsaved: true);
                 break;
             }
             case "rename" when resource.To is { } to:

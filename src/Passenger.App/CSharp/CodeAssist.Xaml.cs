@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Passenger.App.Editors;
 using Passenger.App.Workspace;
 using Passenger.App.Xaml;
 using Passenger.Editor;
@@ -228,7 +229,7 @@ public sealed partial class CodeAssist
             {
                 if (await Fetch(hub) is { } local)
                 {
-                    known.AddRange(Included(ReadText(local), hub, theme.Name).Where(f => !known.Contains(f)));
+                    known.AddRange(Included(EditorArea.ReadText(local) ?? string.Empty, hub, theme.Name).Where(f => !known.Contains(f)));
                 }
             }
         }
@@ -250,7 +251,7 @@ public sealed partial class CodeAssist
             {
                 continue;
             }
-            string text = ReadText(local);
+            string text = EditorArea.ReadText(local) ?? string.Empty;
             Match where = place.Match(text);
             if (where.Success)
             {
@@ -341,22 +342,8 @@ public sealed partial class CodeAssist
     /// <summary>Where an offset of a file is: in its open text, else its text on disk.</summary>
     private TextPosition PositionIn(string path, int offset)
     {
-        TextSnapshot text = editors.Documents.FirstOrDefault(d => d.Path == path)?.Text.Snapshot ?? TextSnapshot.From(ReadText(path));
+        TextSnapshot text = editors.TextOf(path) ?? TextSnapshot.Empty;
         return text.GetPosition(Math.Min(offset, text.Length));
-    }
-
-    /// <summary>A file not open as its edits read it (<see cref="WorkspaceEdits"/>): in its own encoding, a lone carriage
-    /// return's lines as a line feed's, so places found in it are where the edit puts them.</summary>
-    private static string ReadText(string path)
-    {
-        try
-        {
-            return FileText.Load(path)?.Text ?? string.Empty;
-        }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-        {
-            return string.Empty;
-        }
     }
 
     /// <summary>A range of a file as a place for the Find window, which reads it in the server's lines as the server's are.</summary>
@@ -404,9 +391,10 @@ public sealed partial class CodeAssist
         else if (symbol.Targets.Count > 0 && symbol.Targets[0].Kind == XamlTargetKind.Resource)
         {
             string key = symbol.Name;
+            OpenTexts texts = editors.Texts();
             foreach (string path in file.Project.Files.Keys.Order(StringComparer.Ordinal))
             {
-                string text = editors.Documents.FirstOrDefault(d => d.Path == path)?.Text.Snapshot.ToString() ?? ReadText(path);
+                string text = texts.Text(path) ?? string.Empty;
                 if (!text.Contains(key, StringComparison.Ordinal))
                 {
                     continue;
@@ -436,8 +424,8 @@ public sealed partial class CodeAssist
         Regex word = new($@"(?<![\w.]){Regex.Escape(name)}\b", RegexOptions.CultureInvariant);
         foreach (string path in files)
         {
-            OpenDocument? open = editors.Documents.FirstOrDefault(d => d.Path == path);
-            string text = open?.Text.Snapshot.ToString() ?? ReadText(path);
+            OpenDocument? open = editors.Find(path);
+            string text = editors.TextOf(path)?.ToString() ?? string.Empty;
             foreach (Match mention in word.Matches(text).Take(5))
             {
                 LspDocument? shown = null;
@@ -650,7 +638,7 @@ public sealed partial class CodeAssist
         {
             return null;
         }
-        string[] lines = ReadText(path).Split('\n');
+        string[] lines = (EditorArea.ReadText(path) ?? string.Empty).Split('\n');
         for (int at = Math.Min(line, lines.Length - 1); at >= 0; at--)
         {
             if (LineDirective().Match(lines[at]) is { Success: true } directive)
@@ -665,7 +653,8 @@ public sealed partial class CodeAssist
     [GeneratedRegex(@"^\s*#line\s+\d+\s+""(?<file>[^""]+\.xaml)""")]
     private static partial Regex LineDirective();
 
-    private string ReadOpenOrDisk(string path) => editors.Documents.FirstOrDefault(d => d.Path == path)?.Text.Snapshot.ToString() ?? ReadText(path);
+    /// <summary>A file's text as the editor has it, else the disk's (<see cref="EditorArea.TextOf"/>); empty when it cannot be read.</summary>
+    private string ReadOpenOrDisk(string path) => editors.TextOf(path)?.ToString() ?? string.Empty;
 
     [GeneratedRegex(@"(?<class>[\w.]+)\.g\.cs")]
     private static partial Regex GeneratedFile();

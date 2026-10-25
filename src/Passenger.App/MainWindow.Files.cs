@@ -240,7 +240,7 @@ public partial class MainWindow
         {
             return csharp?.Unready("Renaming the type") ?? "Renaming the type needs the C# language server, which runs for a folder";
         }
-        OpenDocument? open = Editors.Documents.FirstOrDefault(d => d.Path == path);
+        OpenDocument? open = Editors.Find(path);
         // A file not open is shown to the server for the question alone, never opened in a tab.
         Lsp.LspDocument? shown = null;
         BackgroundWork.Begin();

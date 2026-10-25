@@ -65,15 +65,10 @@ public partial class MainWindow
     private void WriteColour(OpenDocument document, ColourUse use, Argb colour)
     {
         string path = use.WritePath ?? document.Path;
-        OpenDocument? open = Editors.Documents.FirstOrDefault(d => d.Path == path);
-        string text;
-        try
+        OpenDocument? open = Editors.Find(path);
+        if (Editors.TextOf(path)?.ToString() is not { } text)
         {
-            text = open?.Text.Snapshot.ToString() ?? File.ReadAllText(path);
-        }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-        {
-            status.Text = $"{Path.GetFileName(path)} could not be read: {error.Message}";
+            status.Text = $"{Path.GetFileName(path)} could not be read";
             return;
         }
         TextRange range = use.WriteRange!.Value;

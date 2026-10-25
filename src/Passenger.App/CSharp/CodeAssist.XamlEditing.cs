@@ -83,7 +83,7 @@ public sealed partial class CodeAssist
                 Message?.Invoke(this, why ?? $"{name} is not available here");
                 return;
             }
-            Func<string, string?> texts = XamlTexts();
+            Func<string, string?> texts = editors.Texts().Text;
             IReadOnlyList<ResourcePlace> places = await BackgroundWork.Run(() => XamlRefactorings.Places(file, styles: false, texts));
             dialog = new ExtractResourceDialog(value, places, key => XamlRefactorings.KeyProblem(file, key), (key, place, everywhere) =>
             {
@@ -125,7 +125,7 @@ public sealed partial class CodeAssist
                 Message?.Invoke(this, why ?? $"{name} is not available here");
                 return;
             }
-            Func<string, string?> texts = XamlTexts();
+            Func<string, string?> texts = editors.Texts().Text;
             IReadOnlyList<ResourcePlace> places = await BackgroundWork.Run(() => XamlRefactorings.Places(file, styles: source.ByClass, texts));
             dialog = new ExtractStyleDialog(source, places, styleName => XamlRefactorings.StyleNameProblem(file, source, styleName), (styleName, chosen, place) =>
             {
@@ -165,13 +165,6 @@ public sealed partial class CodeAssist
         return editors.Active == document ? (file, caret) : (null, 0);
     }
 
-    /// <summary>The XAML files' texts as the editors have them, read from disk for one not open, for work off the UI thread.</summary>
-    internal Func<string, string?> XamlTexts()
-    {
-        Dictionary<string, string> open = editors.Documents.Where(d => XamlService.IsXaml(d.Path)).ToDictionary(d => d.Path, d => d.Text.Snapshot.ToString(), StringComparer.Ordinal);
-        return path => open.TryGetValue(path, out string? text) ? text : File.Exists(path) ? ReadText(path) : null;
-    }
-
     /// <summary>A refactoring's or fix's changes to files made as one command (XAML's, an Aspire parameter's value set; Undo takes back
     /// every file, a file made included): each file's edits made from its text as it is now, open or on disk. Null once made; else why not.</summary>
     internal string? ApplyFileChanges(string name, IReadOnlyList<XamlFileChange> changes)
@@ -182,7 +175,7 @@ public sealed partial class CodeAssist
             string uri = DocumentUris.FromPath(change.Path);
             if (change.Made is { } made)
             {
-                if (File.Exists(change.Path) || editors.Documents.Any(d => d.Path == change.Path))
+                if (File.Exists(change.Path) || editors.Find(change.Path) is not null)
                 {
                     return $"{Path.GetFileName(change.Path)} is already there";
                 }

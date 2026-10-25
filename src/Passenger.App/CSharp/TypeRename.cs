@@ -141,7 +141,7 @@ public static class TypeRename
     /// <summary>A C# file's syntax and the text it read: an open file's as it stands, else the disk's, parsed.</summary>
     private static (SyntaxNode Root, TextSnapshot Text)? Syntax(EditorArea editors, string path)
     {
-        if (editors.Documents.FirstOrDefault(d => d.Path == path) is { } open)
+        if (editors.Find(path) is { } open)
         {
             return open.Syntax?.Current is { } current ? (current.Root, current.Text) : null;
         }

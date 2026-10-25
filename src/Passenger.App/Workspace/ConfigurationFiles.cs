@@ -56,42 +56,6 @@ public static partial class ConfigurationFiles
 {
     private static readonly JsonDocumentOptions Lenient = new() { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true };
 
-    /// <summary>A reader of files' texts for work off the UI thread: the open files' as the editor has them now (each a
-    /// snapshot, which any thread reads), the rest from the disk; null for a file that is not there or does not read.</summary>
-    public static Func<string, string?> Reader(IEnumerable<OpenDocument> open)
-    {
-        Dictionary<string, Passenger.Text.TextSnapshot> texts = new(PathNames.Comparer);
-        foreach (OpenDocument document in open.Where(d => d.HoldsText))
-        {
-            texts[document.Path] = document.Text.Snapshot;
-        }
-        return path => texts.TryGetValue(path, out Passenger.Text.TextSnapshot? text) ? text.ToString() : Disk(path);
-    }
-
-    /// <summary>The open files' texts as the editor has them now, each a snapshot any thread reads; null for a file not open.</summary>
-    public static Func<string, Passenger.Text.TextSnapshot?> Snapshots(IEnumerable<OpenDocument> open)
-    {
-        Dictionary<string, Passenger.Text.TextSnapshot> texts = new(PathNames.Comparer);
-        foreach (OpenDocument document in open.Where(d => d.HoldsText))
-        {
-            texts[document.Path] = document.Text.Snapshot;
-        }
-        return path => texts.GetValueOrDefault(path);
-    }
-
-    /// <summary>A file's text from the disk; null for one that is not there or does not read.</summary>
-    public static string? Disk(string path)
-    {
-        try
-        {
-            return File.Exists(path) ? FileText.Load(path)?.Text : null;
-        }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-        {
-            return null;
-        }
-    }
-
     /// <summary>Whether a file is a settings file .NET's host reads: appsettings.json or appsettings.{anything}.json.</summary>
     public static bool IsSettings(string path) =>
         Path.GetFileName(path) is { } name && name.StartsWith("appsettings", StringComparison.OrdinalIgnoreCase)

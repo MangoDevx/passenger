@@ -1720,7 +1720,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
     private async Task<OpenDocument> DocumentAsync(string path, CancellationToken cancel)
     {
         string full = Resolve(path);
-        if (Editors.Documents.FirstOrDefault(d => d.Path == full) is { } open)
+        if (Editors.Find(full) is { } open)
         {
             await open.TakeDiskTextAsync(cancel);
             return open;
@@ -1729,7 +1729,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         {
             throw new FileNotFoundException($"{full} could not be opened: {problem}");
         }
-        return Editors.Documents.FirstOrDefault(d => d.Path == full)
+        return Editors.Find(full)
             ?? throw new FileNotFoundException($"{full} is not open in the editor");
     }
 

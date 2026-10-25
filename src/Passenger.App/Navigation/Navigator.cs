@@ -200,7 +200,7 @@ public sealed class Navigator
     /// file that can no longer be read.</summary>
     private RecentLocation? Location(HistoryPlace place, Dictionary<string, (TextSnapshot Text, IHighlighter? Colours)> files, List<IDisposable> made)
     {
-        OpenDocument? open = Editors.Documents.FirstOrDefault(d => d.Path == place.Path);
+        OpenDocument? open = Editors.Find(place.Path);
         if (!files.TryGetValue(place.Path, out (TextSnapshot Text, IHighlighter? Colours) file))
         {
             if (open is not null)

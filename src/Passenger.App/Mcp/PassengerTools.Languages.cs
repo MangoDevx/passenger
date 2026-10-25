@@ -445,7 +445,7 @@ public sealed partial class PassengerTools
         int line = text.GetLineFromOffset(Math.Min(offset, text.Length));
         offered.AddRange(found.Where(d => text.GetLineFromOffset(Math.Min(d.Range.Start, text.Length)) == line)
             .SelectMany(d => d.Fixes).Select(f => new XamlAction(f.Title, "quickfix", [], f)));
-        Func<string, string?> texts = window.Assist.XamlTexts();
+        Func<string, string?> texts = Editors.Texts().Text;
         if (await BackgroundWork.Run(() => XamlRefactorings.ValueAt(file, offset).Value) is { } value)
         {
             IReadOnlyList<ResourcePlace> places = await BackgroundWork.Run(() => XamlRefactorings.Places(file, styles: false, texts));
@@ -487,7 +487,7 @@ public sealed partial class PassengerTools
                 Editors.SaveAll();
                 return $"Applied {what} to {string.Join(", ", changes.Select(c => Relative(c.Path)).Distinct())}";
         }
-        Func<string, string?> texts = window.Assist.XamlTexts();
+        Func<string, string?> texts = Editors.Texts().Text;
         if (chosen.Made is ExtractableValue value)
         {
             ResourcePlace place = PlaceChosen(await BackgroundWork.Run(() => XamlRefactorings.Places(xaml.File, styles: false, texts)));

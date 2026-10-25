@@ -20,10 +20,10 @@ public sealed partial class CSharpDocument
     internal bool MayReadConfiguration => Holds(ConfigurationWords);
 
     /// <summary>A settings file, user secrets or launch profile changed: pulled again when the file was warned of a key or may
-    /// read one.</summary>
+    /// read one, or is an AppHost's, whose parameters' values are read there.</summary>
     internal void ConfigurationChanged()
     {
-        if (diagnostics.Placed.Any(d => d.Source == ConfigurationDiagnosticSource) || MayReadConfiguration)
+        if (diagnostics.Placed.Any(d => d.Source == ConfigurationDiagnosticSource) || MayReadConfiguration || AspireRole == Aspire.AspireRole.AppHost)
         {
             Pull(TimeSpan.Zero);
         }
@@ -83,7 +83,7 @@ public sealed partial class CSharpDocument
         {
             return [];
         }
-        Func<string, string?> text = service.Texts?.Invoke() ?? ConfigurationFiles.Disk;
+        Func<string, string?> text = service.OpenTexts().Text;
         (IReadOnlyList<GivenKey> given, IReadOnlyList<string> environments) = await BackgroundWork.Run(() =>
             (ConfigurationFiles.Given(project, text), ConfigurationFiles.Environments(project, text)));
         string settings = string.Join(" or ", environments.Select(e => $"appsettings.{e}.json").Prepend("appsettings.json"));

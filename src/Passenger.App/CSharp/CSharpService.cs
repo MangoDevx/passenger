@@ -1100,17 +1100,16 @@ public sealed class CSharpService : IAsyncDisposable
     /// against which its reads of keys nothing gives are warned of; none without a session, which warns of none.</summary>
     public Func<string, Workspace.ConfigurationProject?>? ConfigurationOf { get; init; }
 
-    /// <summary>A reader of files' texts for work off the UI thread, the open files' as the editor has them now
-    /// (<see cref="Workspace.ConfigurationFiles.Reader"/>); the disk's without a session.</summary>
-    public Func<Func<string, string?>>? Texts { get; init; }
+    /// <summary>The open files' texts as the editor has them now, for work off the UI thread (<see cref="Editors.EditorArea.Texts"/>);
+    /// the disk's alone without a session.</summary>
+    public Func<Editors.OpenTexts>? Texts { get; init; }
 
-    /// <summary>A settings file, user secrets or launch profile changed: each open file that warned of a key nothing gave, or
-    /// that reads configuration, pulls its diagnostics again; no other file.</summary>
+    /// <summary>The open files' texts now (<see cref="Texts"/>), taken on the UI thread.</summary>
+    internal Editors.OpenTexts OpenTexts() => Texts?.Invoke() ?? Editors.OpenTexts.None;
+
+    /// <summary>A settings file, user secrets or launch profile changed: each open file that warned of a key nothing gave, that
+    /// reads configuration, or is an AppHost's, pulls its diagnostics again; no other file.</summary>
     internal void ConfigurationChanged() => Each(document => document.ConfigurationChanged());
-
-    /// <summary>The open files' texts as the editor has them now, each a snapshot any thread reads, for the resource files read
-    /// off the UI thread; none open without a session.</summary>
-    public Func<Func<string, TextSnapshot?>>? Snapshots { get; init; }
 
     /// <summary>A .resx or XLIFF file changed: each open file that reads localized strings, or was warned of one a language
     /// lacks, pulls its diagnostics again; no other file.</summary>
@@ -1138,7 +1137,7 @@ public sealed class CSharpService : IAsyncDisposable
         {
             return new Localized([], [], []);
         }
-        Func<string, TextSnapshot?> open = Snapshots?.Invoke() ?? (_ => null);
+        Func<string, TextSnapshot?> open = OpenTexts().Open;
         return await BackgroundWork.Run(() =>
         {
             IReadOnlyList<ResourceSet?> sets = [.. found.Resources.Select(r => Localized.SetOf(r, open))];

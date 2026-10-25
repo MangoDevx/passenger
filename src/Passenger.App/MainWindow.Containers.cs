@@ -318,7 +318,7 @@ public partial class MainWindow
     private void OpenCopy(string copy)
     {
         string full = PathNames.Canonical(copy);
-        if (Editors.Documents.FirstOrDefault(d => d.Path == full) is { } open && open.ChangedOnDisk())
+        if (Editors.Find(full) is { } open && open.ChangedOnDisk())
         {
             open.Reload(overUnsaved: true);
         }

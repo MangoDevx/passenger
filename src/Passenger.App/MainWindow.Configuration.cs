@@ -2,6 +2,7 @@ using Passenger.App.Editors;
 using Passenger.App.Explorer;
 using Passenger.App.Workspace;
 using Passenger.Core;
+using Passenger.Editor;
 using Passenger.Text;
 using A = Passenger.App.AppActions;
 
@@ -9,12 +10,24 @@ namespace Passenger.App;
 
 /// <summary>A project's configuration as the window follows it: Manage User Secrets on a project (the Solution view's row, Find
 /// Action on the file shown's project), which gives it a UserSecretsId where it has none and opens its secrets.json, made when
-/// missing; and a settings file, user secrets or launch profile saved, after which the open C# files' reads of keys nothing
-/// gave are looked at again, as their reads of localized keys are after a .resx or XLIFF file is saved.</summary>
+/// missing; and a settings file, user secrets or launch profile typed in, after which the open C# files' reads of keys nothing
+/// gave and an AppHost's parameters are looked at again once typing pauses, as their reads of localized keys are after a .resx
+/// or XLIFF file is saved.</summary>
 public partial class MainWindow
 {
+    /// <summary>How long typing in a settings file pauses before what reads its keys is looked at again.</summary>
+    private static readonly TimeSpan ConfigurationPause = TimeSpan.FromMilliseconds(600);
+
+    private Debounce? configurationTyped;
+
     private void AddConfiguration()
     {
+        configurationTyped = new Debounce(ConfigurationPause, () =>
+        {
+            session.CSharp?.ConfigurationChanged();
+            return Task.CompletedTask;
+        });
+        Closed += (_, _) => configurationTyped.Stop();
         actions!.Add(new IdeAction(A.ManageUserSecrets, "Manage User Secrets", ExplorerGroup, c => ManageUserSecrets(SecretsProjectOf(c)!.Path))
         {
             WhyNot = c => SecretsProjectOf(c) is not null ? null
@@ -26,7 +39,7 @@ public partial class MainWindow
             if (ConfigurationFiles.IsSettings(document.Path) || ConfigurationFiles.SecretsIdOf(document.Path) is not null
                 || Path.GetFileName(document.Path).Equals("launchSettings.json", StringComparison.OrdinalIgnoreCase))
             {
-                document.Saved += (_, _) => session.CSharp?.ConfigurationChanged();
+                document.Text.Changed += (_, _) => configurationTyped.Restart();
             }
             else if (Passenger.Xaml.Localization.ResourceFiles.Holds(document.Path))
             {
@@ -53,7 +66,7 @@ public partial class MainWindow
         }
         string name = Path.GetFileNameWithoutExtension(model.Path);
         string? id = model.Property(Passenger.Host.CarriedProperties.UserSecretsId) is { Length: > 0 } evaluated ? evaluated
-            : ConfigurationFiles.Disk(model.Path) is { } text ? ProjectEdits.PropertyIn(text, "UserSecretsId") : null;
+            : EditorArea.ReadText(model.Path) is { } text ? ProjectEdits.PropertyIn(text, "UserSecretsId") : null;
         bool given = id is null;
         id ??= Guid.NewGuid().ToString();
         if (UserSecrets.FileOf(id) is not { } secrets)

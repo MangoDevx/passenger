@@ -48,7 +48,7 @@ public static class FileSearch
     /// <summary>The matches in the files of a place (every file the index has, or those a scope and a mask leave), file
     /// by file in the index's order, at most <see cref="MostMatches"/>.</summary>
     public static Task<IReadOnlyList<SearchMatch>> FindAsync(string root, IReadOnlyList<string> files, SearchPlace place, SearchQuery query,
-        IReadOnlyDictionary<string, TextSnapshot> open, CancellationToken cancellation) => BackgroundWork.Run(() =>
+        Editors.OpenTexts open, CancellationToken cancellation) => BackgroundWork.Run(() =>
     {
         List<SearchMatch> found = [];
         if (query.IsEmpty || Problem(query) is not null)
@@ -58,7 +58,8 @@ public static class FileSearch
         foreach (string path in place.Paths(root, files))
         {
             cancellation.ThrowIfCancellationRequested();
-            TextSnapshot? text = open.TryGetValue(path, out TextSnapshot? snapshot) ? snapshot : Read(path) is { } read ? TextSnapshot.From(read) : null;
+            // A preview's or a workbook's tab holds no text, so its file is searched as a closed one is, and passed over as binary.
+            TextSnapshot? text = open.Open(path) ?? Read(path);
             if (text is null)
             {
                 continue;
@@ -77,20 +78,9 @@ public static class FileSearch
         return (IReadOnlyList<SearchMatch>)found;
     }, cancellation);
 
-    /// <summary>A file's text as the editor reads it (its BOM's encoding, a UTF-16 file's included), read once; null for
-    /// one that is binary (<see cref="FileText.LooksBinary"/>), too large or unreadable.</summary>
-    public static string? Read(string path)
-    {
-        try
-        {
-            FileInfo file = new(path);
-            return file.Exists && file.Length <= LargestFile ? FileText.Load(path)?.Text : null;
-        }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-        {
-            return null;
-        }
-    }
+    /// <summary>A closed file's text as the editor reads it (<see cref="Editors.EditorArea.Read"/>); null for one that is
+    /// binary (<see cref="FileText.LooksBinary"/>), too large or unreadable.</summary>
+    private static TextSnapshot? Read(string path) => new FileInfo(path) is { Exists: true, Length: <= LargestFile } ? Editors.EditorArea.Read(path) : null;
 
     /// <summary>The text with every match replaced, a regex's groups ($1, ${name}) filled in from each match as the
     /// Find bar's Replace fills them.</summary>

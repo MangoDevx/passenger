@@ -203,7 +203,7 @@ public sealed partial class CodeAssist
         }
         string path = DocumentUris.ToPath(declared[0].Uri);
         string? root = service()?.Session?.Folder;
-        OpenDocument? open = editors.Documents.FirstOrDefault(d => d.Path == path);
+        OpenDocument? open = editors.Find(path);
         if (root is null || !PathNames.IsUnder(path, root) || !path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase) || open?.IsReadOnly == true)
         {
             return (null, "Safe Delete deletes only what this folder's own code declares");

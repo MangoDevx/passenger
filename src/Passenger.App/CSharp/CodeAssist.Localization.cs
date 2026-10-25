@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Passenger.App.Editors;
 using Passenger.App.Workspace;
 using Passenger.App.Xaml;
 using Passenger.Editor;
@@ -79,11 +80,11 @@ public sealed partial class CodeAssist
         IReadOnlyList<(string, TextPosition, LspPosition, string)> places = [];
         if (set is not null)
         {
-            Dictionary<string, TextSnapshot?> texts = set.Files.Select(f => f.Path).Distinct().ToDictionary(p => p, p => editors.Documents.FirstOrDefault(d => d.Path == p)?.Text.Snapshot);
+            OpenTexts texts = editors.Texts();
             places = await BackgroundWork.Run(() => (IReadOnlyList<(string, TextPosition, LspPosition, string)>)[.. set.Files.Select(f => (File: f, Entry: f.Entry(read.Key)))
                 .Where(f => f.Entry is not null).Select(f =>
                 {
-                    TextSnapshot? text = texts[f.File.Path] ?? ServerPlaces.Read(f.File.Path);
+                    TextSnapshot? text = texts.TextOf(f.File.Path);
                     int at = Math.Min(f.Entry!.NameStart, text?.Length ?? 0);
                     TextPosition position = text?.GetPosition(at) ?? new TextPosition(0, 0);
                     return (f.File.Path, position, text is null ? new LspPosition(0, 0) : ServerLines.Of(text).PositionOf(at),
@@ -155,7 +156,7 @@ public sealed partial class CodeAssist
     /// resource's files, read off the UI thread with the open ones as the editor has them; null elsewhere.</summary>
     private async Task<(LocalizedStatic Read, ResourceSet? Set)?> XamlLocalizedAtAsync(XamlFile file, int offset)
     {
-        Func<string, TextSnapshot?> open = ConfigurationFiles.Snapshots(editors.Documents);
+        Func<string, TextSnapshot?> open = editors.Texts().Open;
         return await BackgroundWork.Run(() => XamlLocalization.At(file, offset) is { } read ? (read, read.SetOf(open)) : ((LocalizedStatic, ResourceSet?)?)null);
     }
 
@@ -231,10 +232,10 @@ public sealed partial class CodeAssist
     {
         string name = Path.GetFileName(target);
         bool xliff = target.EndsWith(".xlf", StringComparison.OrdinalIgnoreCase);
-        TextSnapshot? open = editors.Documents.FirstOrDefault(d => d.Path == target)?.Text.Snapshot;
+        OpenTexts texts = editors.Texts();
         (string? was, string? now, string? problem) = await BackgroundWork.Run(() =>
         {
-            string text = open?.ToString() ?? ReadText(target);
+            string text = texts.Text(target) ?? string.Empty;
             ResourceFile read = ResourceFiles.Parse(target, culture, xliff ? ResourceFormat.Xliff : ResourceFormat.Resx, text);
             if (read.Entry(key) is { Translated: true })
             {

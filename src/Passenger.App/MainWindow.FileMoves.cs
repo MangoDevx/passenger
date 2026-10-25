@@ -211,7 +211,7 @@ public partial class MainWindow
     {
         string Now(string path) => moved.FirstOrDefault(m => PathNames.Within(path, m.From)) is { From: not null } move ? PathNames.Moved(path, move.From, move.To) : path;
         // A file naming one moved names it, or the folder it was in, by name: those that cannot are never read further.
-        bool Names(string path) => (Editors.Documents.FirstOrDefault(d => d.Path == path)?.Text.Snapshot.ToString() ?? FileText.Load(path)?.Text) is { } text
+        bool Names(string path) => Editors.TextOf(path)?.ToString() is { } text
             && moved.Any(m => text.Contains(Path.GetFileName(m.From), StringComparison.OrdinalIgnoreCase));
         // The solution, then every project at its path now, those moved themselves among them (read again once followed).
         List<(string Path, bool Moved, Func<string, bool> Follow)> naming = [];
