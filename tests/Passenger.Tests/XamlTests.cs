@@ -1078,6 +1078,108 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
         window.Close();
     }
 
+    /// <summary>An app still on Avalonia 11, whose package carries its previewer under tools/netstandard2.0 where Avalonia
+    /// 12's are under tools/net8.0 and later, previews as one on Avalonia 12 does, turned on from its file's tab strip.</summary>
+    [AvaloniaFact]
+    public void An_app_on_Avalonia_11_previews_from_its_packages_previewer()
+    {
+        string folder = TestFolders.Create("avalonia11-");
+        string version = AvaloniaApp.Metadata("AvaloniaOlderVersion");
+        TestFolders.Write(folder, "Eleven.csproj", $$"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <OutputType>WinExe</OutputType>
+                <TargetFramework>{{TestProjects.Framework}}</TargetFramework>
+                <Nullable>enable</Nullable>
+              </PropertyGroup>
+              <ItemGroup>
+                <PackageReference Include="Avalonia" Version="{{version}}" />
+                <PackageReference Include="Avalonia.Desktop" Version="{{version}}" />
+                <PackageReference Include="Avalonia.Themes.Fluent" Version="{{version}}" />
+              </ItemGroup>
+            </Project>
+            """);
+        TestFolders.Write(folder, "Program.cs", """
+            using Avalonia;
+
+            namespace Eleven;
+
+            internal static class Program
+            {
+                [System.STAThread]
+                public static void Main(string[] args) => BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+
+                public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<App>().UsePlatformDetect();
+            }
+            """);
+        TestFolders.Write(folder, "App.axaml", """
+            <Application xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="Eleven.App">
+                <Application.Styles>
+                    <FluentTheme />
+                </Application.Styles>
+            </Application>
+            """);
+        TestFolders.Write(folder, "App.axaml.cs", """
+            using Avalonia;
+            using Avalonia.Controls.ApplicationLifetimes;
+            using Avalonia.Markup.Xaml;
+
+            namespace Eleven;
+
+            public partial class App : Application
+            {
+                public override void Initialize() => AvaloniaXamlLoader.Load(this);
+
+                public override void OnFrameworkInitializationCompleted()
+                {
+                    if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+                    {
+                        desktop.MainWindow = new MainWindow();
+                    }
+                    base.OnFrameworkInitializationCompleted();
+                }
+            }
+            """);
+        TestFolders.Write(folder, "MainWindow.axaml", """
+            <Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                    mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="300" x:Class="Eleven.MainWindow" Title="Eleven">
+                <StackPanel Background="#E2A33F">
+                    <TextBlock Text="On Avalonia 11" />
+                </StackPanel>
+            </Window>
+            """);
+        TestFolders.Write(folder, "MainWindow.axaml.cs", """
+            using Avalonia.Controls;
+
+            namespace Eleven;
+
+            public partial class MainWindow : Window
+            {
+                public MainWindow() => InitializeComponent();
+            }
+            """);
+        AvaloniaApp.UseFeed(folder);
+        MainWindow window = Ui.OpenFolder(folder, languageServer: false);
+        Ui.Run(window, AppActions.Build);
+        Ui.Settle();
+        Assert.Null(window.OpenFile(Path.Combine(folder, "MainWindow.axaml")));
+        Ui.Settle();
+        OpenDocument document = window.EditorArea.Active!;
+        Passenger.App.Editors.EditorGroup group = window.EditorArea.ActiveGroup;
+        Ui.Click(group.PreviewToggle);
+        Ui.Settle();
+        Passenger.App.Xaml.XamlPreview preview = window.PreviewOf(document) ?? throw new InvalidOperationException("The tab strip's toggle showed no preview beside the file");
+        Ui.WaitFor(() => preview.Frame is not null, () => $"the Avalonia 11 previewer's first frame (the pane says: {preview.Status})", TimeSpan.FromSeconds(60));
+        Ui.Settle();
+        Assert.Null(preview.Error);
+        Assert.Equal(new PixelSize(400, 300), preview.Frame!.PixelSize);
+        Avalonia.Controls.Image frame = window.PreviewPaneOf(document)!.Frame;
+        Point inside = frame.TranslatePoint(new Point(frame.Bounds.Width / 2, frame.Bounds.Height * 0.75), window) ?? throw new InvalidOperationException("The preview's frame is not on the window");
+        Assert.Equal(Color.Parse("#E2A33F"), Ui.Pixel(window, inside));
+        window.Close();
+    }
+
     internal static Marker MarkerOn(CodeEditor editor, OpenDocument document, string stretch)
     {
         string text = editor.Document.Snapshot.ToString();

@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Avalonia" VersionOverride="$(AvaloniaOlderVersion)" />
+    <PackageReference Include="Avalonia.Desktop" VersionOverride="$(AvaloniaOlderVersion)" />
+    <PackageReference Include="Avalonia.Themes.Fluent" VersionOverride="$(AvaloniaOlderVersion)" />
+  </ItemGroup>
+</Project>

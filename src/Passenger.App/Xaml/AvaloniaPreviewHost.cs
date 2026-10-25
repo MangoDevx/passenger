@@ -259,12 +259,18 @@ internal sealed class AvaloniaPreviewHost : IPreviewHost
         }
         Version target = XamlPreview.Framework(inputs.TargetFramework) ?? new Version(99, 0);
         return Directory.EnumerateDirectories(Path.Combine(package, "tools"))
-            .Select(d => (Folder: d, Version: XamlPreview.Framework(Path.GetFileName(d))))
+            .Select(d => (Folder: d, Version: ToolsFramework(Path.GetFileName(d))))
             .Where(d => d.Version is not null && d.Version <= target)
             .OrderByDescending(d => d.Version)
             .Select(d => Path.Combine(d.Folder, "designer", "Avalonia.Designer.HostApp.dll"))
             .FirstOrDefault(File.Exists);
     }
+
+    /// <summary>A tools/ folder's framework: net5.0 and later as themselves, and netstandard or netcoreapp (Avalonia 11's
+    /// host, which the project's runtime runs) below them all; null for .NET Framework's.</summary>
+    private static Version? ToolsFramework(string folder) =>
+        XamlPreview.Framework(folder)
+        ?? (folder.StartsWith("netstandard", StringComparison.Ordinal) || folder.StartsWith("netcoreapp", StringComparison.Ordinal) ? new Version(1, 0) : null);
 
     private static int FreePort()
     {

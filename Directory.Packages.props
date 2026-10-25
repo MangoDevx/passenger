@@ -10,6 +10,8 @@
     <!-- Avalonia's dotnet new templates at the Avalonia version below, downloaded for the tests' local feed so no test
          reaches nuget.org for them. -->
     <AvaloniaTemplatesVersion>12.1.4</AvaloniaTemplatesVersion>
+    <!-- Avalonia 11's last release, for the previewer's test of an app still on it (tests/AvaloniaGraphs). -->
+    <AvaloniaOlderVersion>11.3.22</AvaloniaOlderVersion>
     <!-- Aspire's templates, AppHost SDK and package, dashboard, orchestrator and CLI at one version, downloaded for the
          tests' local feed. -->
     <AspireTemplatesVersion>13.6.3</AspireTemplatesVersion>
