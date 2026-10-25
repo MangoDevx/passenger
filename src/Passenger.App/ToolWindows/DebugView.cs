@@ -7,6 +7,7 @@ using Avalonia.Layout;
 using Avalonia.VisualTree;
 using Passenger.App.Debugging;
 using Passenger.Dap;
+using Passenger.Editor;
 
 namespace Passenger.App.ToolWindows;
 
@@ -16,7 +17,7 @@ namespace Passenger.App.ToolWindows;
 /// thread on the left with the variables of the chosen frame on the right, an expression to evaluate or watch above
 /// them. Each program debugged has a tab in the window's header (<see cref="DebugModel.Sessions"/>), whose frames,
 /// values, console and toolbar the window shows while it is chosen.</summary>
-public sealed class DebugView : DockPanel
+public sealed class DebugView : DockPanel, IOwnKeys
 {
     private readonly DebugModel model;
     private readonly ComboBox threads;
@@ -82,8 +83,9 @@ public sealed class DebugView : DockPanel
             [DockProperty] = Dock.Top,
             Classes = { "search" },
             Margin = new Thickness(6, 6, 6, 4),
-            PlaceholderText = $"Evaluate expression (Enter) or add a watch ({(OperatingSystem.IsMacOS() ? "⇧⌘Enter" : "Ctrl+Shift+Enter")})",
         };
+        string enter = new Keystroke(Key.Enter, KeyModifiers.None).Display();
+        ActionTips.SetWords(evaluate, AppActions.AddToWatches, keys => keys is null ? $"Evaluate expression ({enter})" : $"Evaluate expression ({enter}) or add a watch ({keys})");
         evaluate.AddHandler(KeyDownEvent, OnEvaluateKey, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         // The debugger the model has now asked, whichever folder's it is: each folder's sets it as it is made.
         variables = new VariablesList(model.Tree) { DataWatch = node => model.DataWatch!(node) };
@@ -260,27 +262,17 @@ public sealed class DebugView : DockPanel
         evaluate.Focus();
     }
 
-    /// <summary>Add to Watches from the Evaluate field, Ctrl+Shift+Enter (⇧⌘Enter), the keys Complete Current
-    /// Statement has elsewhere: true when the field has the keyboard and an expression, and took them.</summary>
-    public bool TakesAction(string action)
-    {
-        if (action != AppActions.CompleteStatement || !evaluate.IsKeyboardFocusWithin || string.IsNullOrWhiteSpace(evaluate.Text))
-        {
-            return false;
-        }
-        model.Evaluate(evaluate.Text.Trim(), true);
-        evaluate.Text = string.Empty;
-        return true;
-    }
+    /// <summary>Add to Watches from the Evaluate field, by the keys the keymap in force gives it there
+    /// (<see cref="AppActions.KeysIn"/>), ahead of what they run elsewhere.</summary>
+    public bool TakesKey(KeyEventArgs e) => evaluate.IsKeyboardFocusWithin && AppActions.Presses(AppActions.AddToWatches, e);
 
     private void OnEvaluateKey(object? sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Enter || string.IsNullOrWhiteSpace(evaluate.Text))
+        bool watch = AppActions.Presses(AppActions.AddToWatches, e);
+        if ((!watch && e.Key != Key.Enter) || string.IsNullOrWhiteSpace(evaluate.Text))
         {
             return;
         }
-        KeyModifiers command = OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control;
-        bool watch = e.KeyModifiers.HasFlag(command) && e.KeyModifiers.HasFlag(KeyModifiers.Shift);
         model.Evaluate(evaluate.Text.Trim(), watch);
         if (watch)
         {

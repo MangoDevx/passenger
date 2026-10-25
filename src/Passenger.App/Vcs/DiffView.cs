@@ -12,7 +12,7 @@ namespace Passenger.App.Vcs;
 /// open file's own text, so an edit there is an edit to it), each change tinted on both sides and joined by a band
 /// between them, the words that changed inside its lines marked stronger, the two kept level as either scrolls. A band's
 /// arrow puts that change back; F7 and Shift+F7 (F8 and Shift+F8 too off the Mac) go to the next and previous one; Settings
-/// (Ctrl+Shift+D, Cmd+Shift+D on the Mac) chooses how differences are highlighted, by words at first. Made by
+/// (its keys <see cref="AppActions.DiffSettings"/>'s) chooses how differences are highlighted, by words at first. Made by
 /// <see cref="DiffPanes"/>.</summary>
 public sealed class DiffView : DockPanel, IOwnKeys
 {
@@ -59,7 +59,8 @@ public sealed class DiffView : DockPanel, IOwnKeys
         sides.Children.Add(Right);
 
         count = new TextBlock();
-        settings = ToolButtons.Of("Icon.Settings", $"Settings ({(OperatingSystem.IsMacOS() ? "⌘⇧D" : "Ctrl+Shift+D")})", ShowSettings);
+        settings = ToolButtons.Of("Icon.Settings", "Settings", ShowSettings);
+        ActionTips.Set(settings, AppActions.DiffSettings, "Settings");
         settings.ContextMenu = SettingsMenu();
         Children.Add(DiffLines.Bar(name, Step, count, [], settings));
         Children.Add(sides);
@@ -85,11 +86,6 @@ public sealed class DiffView : DockPanel, IOwnKeys
                 Step(step);
                 e.Handled = true;
             }
-            else if (IsSettings(e))
-            {
-                ShowSettings();
-                e.Handled = true;
-            }
         }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         Show(diff);
         _ = CompareAsync();
@@ -102,11 +98,8 @@ public sealed class DiffView : DockPanel, IOwnKeys
     public CodeEditor Right { get; }
 
     /// <summary>Next and Previous Difference's keys, ahead of what the IDE binds them to elsewhere (Smart Step Into's
-    /// Shift+F7), and Rider's Diff.ShowSettingsPopup.</summary>
-    public bool TakesKey(KeyEventArgs e) => DiffLines.Step(e) != 0 || IsSettings(e);
-
-    private static bool IsSettings(KeyEventArgs e) =>
-        e.Key == Key.D && e.KeyModifiers == ((OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control) | KeyModifiers.Shift);
+    /// Shift+F7).</summary>
+    public bool TakesKey(KeyEventArgs e) => DiffLines.Step(e) != 0;
 
     public bool IsEditable { get; }
 
@@ -243,7 +236,8 @@ public sealed class DiffView : DockPanel, IOwnKeys
         return new ContextMenu { ItemsSource = items, Placement = PlacementMode.BottomEdgeAlignedRight };
     }
 
-    private void ShowSettings() => settings.ContextMenu?.Open(settings);
+    /// <summary>Opens Settings' menu, how differences are highlighted.</summary>
+    public void ShowSettings() => settings.ContextMenu?.Open(settings);
 
     /// <summary>Scrolls one side to stand level with the other: the line at the top of one maps through the
     /// differences above it to the other's.</summary>

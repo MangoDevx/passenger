@@ -575,6 +575,7 @@
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
+          "Passenger.Editor": "[0.2.0, )",
           "Porta.Pty": "[2.2.3, )"
         }
       },

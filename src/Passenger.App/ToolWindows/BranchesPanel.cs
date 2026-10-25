@@ -7,6 +7,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Passenger.App.State;
 using Passenger.App.Vcs;
+using Passenger.Editor;
 
 namespace Passenger.App.ToolWindows;
 
@@ -497,7 +498,7 @@ public sealed class BranchesPanel : DockPanel
         {
             return;
         }
-        KeyModifiers command = mac ? KeyModifiers.Meta : KeyModifiers.Control;
+        KeyModifiers command = Keystroke.Command;
         if (node.Branch is { } branch && (e.Key == Key.Delete && e.KeyModifiers == KeyModifiers.None
             || mac && e.Key == Key.Back && e.KeyModifiers is KeyModifiers.None or KeyModifiers.Meta) && !branch.IsCurrent)
         {

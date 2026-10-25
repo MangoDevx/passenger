@@ -18,7 +18,7 @@ namespace Passenger.App.ToolWindows;
 /// the branches panel at its left, a branch chosen there filtering it to that branch's commits (its Branch filter,
 /// cleared by its x); given a <see cref="LogRange"/> it lists the commits of one branch another lacks (Compare with
 /// Current).</summary>
-public sealed class GitLogView : DockPanel
+public sealed class GitLogView : DockPanel, IOwnKeys
 {
     private const double LaneWidth = 12;
     private const double RowHeight = ListRow.Height;
@@ -96,7 +96,7 @@ public sealed class GitLogView : DockPanel
         fileList.DoubleTapped += (_, _) => RequestDiff();
         fileList.KeyDown += (_, e) =>
         {
-            if (e.Key == Key.Enter || (e.Key == Key.D && e.KeyModifiers == (OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control)))
+            if (e.Key == Key.Enter || AppActions.Presses(AppActions.ShowDiff, e))
             {
                 RequestDiff();
                 e.Handled = true;
@@ -403,6 +403,10 @@ public sealed class GitLogView : DockPanel
         string refs = commit.Refs.Count > 0 ? $"\n{string.Join(", ", commit.Refs)}" : string.Empty;
         details.Text = $"{message}\n\n{commit.Hash}{refs}\n{commit.Author} <{commit.Email}>\n{commit.Time.ToLocalTime():f}";
     }
+
+    /// <summary>Show Diff's keys, as the log's list of a commit's files takes them (<see cref="AppActions.KeysIn"/>), ahead
+    /// of what they run elsewhere while one is chosen.</summary>
+    public bool TakesKey(KeyEventArgs e) => fileList.IsKeyboardFocusWithin && fileList.SelectedItem is FileChange && AppActions.Presses(AppActions.ShowDiff, e);
 
     private void RequestDiff()
     {

@@ -7,6 +7,7 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Passenger.App.Vcs;
+using Passenger.Editor;
 
 namespace Passenger.App.ToolWindows;
 
@@ -54,7 +55,7 @@ public sealed class CommitGroup(string name, IReadOnlyList<CommitRow> rows) : Ob
 /// Conflicts, with its Resolve link and no box; Amend and the message below (a merge's own message while one is under
 /// way); Commit and Commit and Push. Double-click opens a file's diff, or a conflicted file's merge; Rollback puts the
 /// chosen ones back.</summary>
-public sealed class CommitView : DockPanel
+public sealed class CommitView : DockPanel, IOwnKeys
 {
     private VcsController vcs;
     private readonly ObservableCollection<object> rows = [];
@@ -121,7 +122,7 @@ public sealed class CommitView : DockPanel
                     e.Handled = true;
                     return;
                 }
-                if ((e.Key == Key.D && e.KeyModifiers == (OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control)) || e.Key == Key.Enter)
+                if (e.Key == Key.Enter || AppActions.Presses(AppActions.ShowDiff, e))
                 {
                     Open(shown.Change);
                     e.Handled = true;
@@ -176,7 +177,7 @@ public sealed class CommitView : DockPanel
         // Ctrl+Enter (Cmd+Enter on the Mac) commits, seen as it tunnels: the box takes any Enter as a new line first.
         message.AddHandler(KeyDownEvent, (_, e) =>
         {
-            if (e.Key == Key.Enter && e.KeyModifiers == (OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control))
+            if (e.Key == Key.Enter && e.KeyModifiers == Keystroke.Command)
             {
                 _ = CommitAsync(push: false);
                 e.Handled = true;
@@ -211,13 +212,7 @@ public sealed class CommitView : DockPanel
             {
                 ToolButtons.Of("Icon.Rerun", "Refresh", () => _ = vcs.RefreshAsync()),
                 ToolButtons.Of("Icon.Rollback", "Rollback", () => RollbackRequested?.Invoke(this, ChosenOrSelected())),
-                ToolButtons.Of("Icon.Diff", $"Show Diff ({(OperatingSystem.IsMacOS() ? "⌘D" : "Ctrl+D")})", () =>
-                {
-                    if (list.SelectedItem is CommitRow row)
-                    {
-                        DiffRequested?.Invoke(this, row.Change.Path);
-                    }
-                }),
+                ShowDiffButton(),
             },
         };
         Border top = ToolBars.Top(tools);
@@ -255,6 +250,23 @@ public sealed class CommitView : DockPanel
     public event EventHandler<string>? MergeRequested;
 
     /// <summary>What a double-click or Enter opens: a conflicted file's merge, any other file's diff.</summary>
+    /// <summary>Show Diff's keys, as the Commit window takes them (<see cref="AppActions.KeysIn"/>), ahead of what they run
+    /// elsewhere while a file is chosen.</summary>
+    public bool TakesKey(KeyEventArgs e) => list.IsKeyboardFocusWithin && list.SelectedItem is CommitRow && AppActions.Presses(AppActions.ShowDiff, e);
+
+    private Button ShowDiffButton()
+    {
+        Button button = ToolButtons.Of("Icon.Diff", "Show Diff", () =>
+        {
+            if (list.SelectedItem is CommitRow row)
+            {
+                DiffRequested?.Invoke(this, row.Change.Path);
+            }
+        });
+        ActionTips.Set(button, AppActions.ShowDiff, "Show Diff");
+        return button;
+    }
+
     private void Open(FileChange change)
     {
         if (change.Kind is ChangeKind.Conflicted)

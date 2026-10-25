@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Media;
 using Avalonia.Media.Fonts.Tables.Cmap;
+using Passenger.Editor;
 
 namespace Passenger.Terminal;
 
@@ -97,7 +98,7 @@ public sealed class TerminalView : Control
     public event EventHandler<object>? LinkClicked;
 
     /// <summary>The key that opens a link with a click: Cmd on the Mac, Ctrl elsewhere.</summary>
-    private static KeyModifiers LinkKey => OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control;
+    private static KeyModifiers LinkKey => Keystroke.Command;
 
     /// <summary>Clear Buffer: the scrollback and the screen cleared but for the prompt.</summary>
     public void ClearBuffer()

@@ -115,6 +115,67 @@ public sealed class VcsTests : IDisposable
         window.Close();
     }
 
+    /// <summary>The Commit window's Show Diff names the keys it takes there, Compare Files' in Visual Studio's keymap
+    /// (Duplicate's off macOS), and a diff's Settings Rider's Ctrl+Shift+D (Cmd+Shift+D); each key opens what it names, and
+    /// a key the person sets for either is named and opens it in place of the keymap's.</summary>
+    [AvaloniaFact]
+    public void The_commit_windows_Show_Diff_and_a_diffs_Settings_name_and_take_the_keys_of_the_keymap_in_force()
+    {
+        File.WriteAllText(Path.Combine(folder, "Shop.cs"), Original.Replace("int count", "long count", StringComparison.Ordinal));
+        string cmd = OperatingSystem.IsMacOS() ? "meta" : "control";
+        MainWindow window = Open();
+        try
+        {
+            window.Perform(AppActions.ShowCommit);
+            CommitView commit = window.CommitView;
+            Ui.Landed(() => commit.Rows.OfType<CommitRow>().Any(r => r.Change.Name == "Shop.cs"), "Shop.cs listed as changed");
+            Button showDiff = commit.GetVisualDescendants().OfType<Button>().Single(b => (ToolTip.GetTip(b) as string)?.StartsWith("Show Diff", StringComparison.Ordinal) == true);
+            Assert.Equal($"Show Diff ({Shortcut.Parse($"{cmd} D").Display()})", ToolTip.GetTip(showDiff));
+
+            DiffWindow diff = DiffFromCommit(window, $"{cmd} D");
+            Assert.Equal($"Settings ({Shortcut.Parse($"{cmd} shift D").Display()})", ToolTip.GetTip(diff.View.SettingsButton));
+            SettingsOpen(diff, $"{cmd} shift D");
+            diff.Close();
+            Ui.Settle();
+
+            window.ApplySettings(window.Settings with
+            {
+                Shortcuts = new() { [AppActions.ShowDiff] = [$"{cmd} alt D"], [AppActions.DiffSettings] = [$"{cmd} alt shift D"] },
+            });
+            Ui.Settle();
+            Assert.Equal($"Show Diff ({Shortcut.Parse($"{cmd} alt D").Display()})", ToolTip.GetTip(showDiff));
+            diff = DiffFromCommit(window, $"{cmd} alt D");
+            Assert.Equal($"Settings ({Shortcut.Parse($"{cmd} alt shift D").Display()})", ToolTip.GetTip(diff.View.SettingsButton));
+            diff.View.Right.Focus();
+            Ui.Press(diff, $"{cmd} shift D");
+            Assert.False(diff.View.SettingsButton.ContextMenu?.IsOpen, $"{cmd} shift D still opened the diff's settings, the person having set {cmd} alt shift D");
+            SettingsOpen(diff, $"{cmd} alt shift D");
+            diff.Close();
+        }
+        finally
+        {
+            window.ApplySettings(new Passenger.App.Settings.AppSettings());
+            window.Close();
+        }
+
+        static DiffWindow DiffFromCommit(MainWindow window, string keys)
+        {
+            ListBox changes = Find(window.CommitView, window.CommitView.Rows);
+            Ui.Click(Ui.Row(changes, window.CommitView.Rows.OfType<CommitRow>().First(r => r.Change.Name == "Shop.cs")));
+            Ui.Press(window, keys);
+            Ui.Landed(() => window.Frontmost is DiffWindow, $"the diff {keys} in the Commit window opens, as its Show Diff names");
+            return (DiffWindow)window.Frontmost;
+        }
+
+        static void SettingsOpen(DiffWindow diff, string keys)
+        {
+            diff.View.Right.Focus();
+            Ui.Press(diff, keys);
+            Assert.True(diff.View.SettingsButton.ContextMenu?.IsOpen, $"{keys}, which the diff's Settings names, did not open them");
+            diff.View.SettingsButton.ContextMenu!.Close();
+        }
+    }
+
     [AvaloniaFact]
     public void A_renamed_file_keeps_its_change_bars_against_what_the_last_commit_has_where_it_was()
     {

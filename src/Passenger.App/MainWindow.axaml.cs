@@ -375,7 +375,7 @@ public partial class MainWindow : Window
         {
             if (!shifted)
             {
-                if (!BranchesTake(action) && debugView?.TakesAction(action) != true)
+                if (!BranchesTake(action))
                 {
                     Request(action);
                 }

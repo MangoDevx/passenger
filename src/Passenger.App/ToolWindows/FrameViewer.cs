@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Passenger.Editor;
 
 namespace Passenger.App.ToolWindows;
 
@@ -168,8 +169,7 @@ public sealed class FrameViewer : Window, IOwnKeys
 
     private Action? Command(KeyEventArgs e)
     {
-        KeyModifiers command = OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control;
-        bool held = (e.KeyModifiers & ~KeyModifiers.Shift) == command;
+        bool held = (e.KeyModifiers & ~KeyModifiers.Shift) == Keystroke.Command;
         return e.Key switch
         {
             Key.OemPlus or Key.Add when held => ZoomIn,
@@ -185,8 +185,7 @@ public sealed class FrameViewer : Window, IOwnKeys
     /// <summary>The command modifier with the wheel zooms; the wheel alone scrolls.</summary>
     private void OnWheel(object? sender, PointerWheelEventArgs e)
     {
-        KeyModifiers command = OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control;
-        if ((e.KeyModifiers & command) == 0 || e.Delta.Y == 0)
+        if ((e.KeyModifiers & Keystroke.Command) == 0 || e.Delta.Y == 0)
         {
             return;
         }

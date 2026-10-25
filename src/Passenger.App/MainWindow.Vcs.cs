@@ -491,6 +491,11 @@ public partial class MainWindow
         Add(AppActions.RollbackLines, "Rollback Lines", context => _ = RollbackLinesAsync(), new("Git", 2, 2), onFile: true);
         Add(AppActions.NextChange, "Next Change", _ => GoToChange(1), new("Navigate", 3, 2), onFile: true);
         Add(AppActions.PreviousChange, "Previous Change", _ => GoToChange(-1), new("Navigate", 3, 3), onFile: true);
+        // A diff's own, whatever it compares: how its differences are highlighted.
+        actions!.Add(new IdeAction(AppActions.DiffSettings, "Diff Settings", "Git", context => DiffWithKeys(context)!.ShowSettings())
+        {
+            WhyNot = context => DiffWithKeys(context) is null ? "No diff has the keys" : null,
+        });
 
         void Add(string id, string title, Action<ActionContext> run, MenuPlace menu, bool onFile = false) =>
             actions!.Add(new IdeAction(id, title, "Git", run)
@@ -500,6 +505,7 @@ public partial class MainWindow
             });
     }
 
+    private static DiffView? DiffWithKeys(ActionContext context) => (context.Focused as Visual)?.FindAncestorOfType<DiffView>(includeSelf: true);
 
     private async Task RollbackAsync(IReadOnlyList<FileChange> changes)
     {

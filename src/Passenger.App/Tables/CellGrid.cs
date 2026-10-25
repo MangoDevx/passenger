@@ -416,7 +416,7 @@ public sealed class CellGrid : Control
         {
             return;
         }
-        KeyModifiers command = OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control;
+        KeyModifiers command = Keystroke.Command;
         bool far = e.KeyModifiers.HasFlag(command);
         bool extend = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
         int page = Math.Max(1, (int)(Body.Height / RowHeight) - 1);
