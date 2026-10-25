@@ -905,10 +905,17 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         window.Close();
     }
 
-    /// <summary>How many requests' and popups' trackers follow a document's edits.</summary>
-    private static int Trackers(TextDocument document) =>
-        (typeof(TextDocument).GetField(nameof(TextDocument.Changed), System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.GetValue(document) as Delegate)?
-            .GetInvocationList().Count(d => d.Target is ChangeTracker) ?? 0;
+    /// <summary>How many requests' and popups' trackers follow a document's edits: those among the handlers of its
+    /// <see cref="TextDocument.Changed"/>.</summary>
+    private static int Trackers(TextDocument document)
+    {
+        const System.Reflection.BindingFlags Own = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        object handlers = typeof(TextDocument).GetField("changed", Own)?.GetValue(document)
+            ?? throw new MissingFieldException("TextDocument no longer keeps the handlers of Changed in a field named changed");
+        Delegate[] heard = handlers.GetType().GetField("handlers", Own)?.GetValue(handlers) as Delegate[]
+            ?? throw new MissingFieldException("A document's change handlers are no longer an array named handlers");
+        return heard.Count(d => d.Target is ChangeTracker);
+    }
 
     /// <summary>Go to Declaration opens the other file at the method, and Forward after Back goes there again when the caret
     /// moved in between; Back lands on the call it left after a line is added above it; and Go to Declaration on a library

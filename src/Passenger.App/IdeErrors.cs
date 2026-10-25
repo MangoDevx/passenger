@@ -99,7 +99,7 @@ public static class IdeErrors
             Flush();
         };
         Logger.Sink = new Sink();
-        Core.PassengerLog.Install(Write);
+        Core.PassengerLog.Install(Write, Report);
         // No program's secret reaches the log or a console's echo of its command line, whoever started it.
         Core.ChildProcesses.Shown = Containers.ContainerSecrets.CommandLine;
         // Every program at debug level; otherwise those worth a person's look.

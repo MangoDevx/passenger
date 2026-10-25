@@ -75,6 +75,44 @@ public sealed class IdeErrorsTests : IDisposable
         window.Close();
     }
 
+    /// <summary>A handler of a file's changes that throws is an error the IDE shows, and every handler after it still hears
+    /// of the change: the file's parse keeps up with the keys, the first of which the handler threw on.</summary>
+    [AvaloniaFact]
+    public void A_handler_of_a_files_changes_that_throws_leaves_those_after_it_in_step_with_the_text()
+    {
+        File.WriteAllText(Path.Combine(folder, "One.cs"), "class One { }\n");
+        MainWindow window = Ui.OpenFolder(folder, languageServer: false);
+        window.OpenFile("One.cs");
+        Ui.Settle();
+        IdeErrors.Clear();
+        Passenger.App.Workspace.OpenDocument document = window.EditorArea.Active!;
+        Passenger.Editor.CodeEditor editor = window.EditorArea.CodeEditor;
+        bool thrown = false;
+        // Heard ahead of every handler of Changed: the editor's, the parse's and the file's own.
+        document.Text.ChangedFirst += (_, _) =>
+        {
+            if (!thrown)
+            {
+                thrown = true;
+                throw new InvalidOperationException("A change's handler went wrong");
+            }
+        };
+        editor.Selections = Passenger.Text.SelectionSet.Single("class One { ".Length);
+        editor.Focus();
+
+        window.KeyTextInput("x");
+        window.KeyTextInput("y");
+        Ui.Settle();
+
+        Assert.Equal("class One { xy}\n", document.Text.Snapshot.ToString());
+        Assert.True(document.Syntax!.Current.Text.ToString() == document.Text.Snapshot.ToString(),
+            $"The file's parse read \"{document.Syntax.Current.Text}\" after the keys, having missed the change a handler before it threw on");
+        Assert.Contains(IdeErrors.Errors, e => e.Kind == "InvalidOperationException" && e.Message == "A change's handler went wrong");
+        // Thrown on purpose: the check that fails a test over a caught error is not to see it.
+        IdeErrors.Clear();
+        window.Close();
+    }
+
     [AvaloniaFact]
     public void The_same_error_again_and_again_is_one_row_with_its_count_and_a_log_rotated_under_its_size_cap()
     {
