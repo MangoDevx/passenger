@@ -319,7 +319,8 @@ public static partial class McpHost
     /// <summary>The file beside a window's socket that names the folder open in it.</summary>
     internal static string FolderFile(string socket) => Path.ChangeExtension(socket, ".folder");
 
-    /// <summary>Takes away the sockets (and their folder files) of IDEs that are no longer running.</summary>
+    /// <summary>Takes away the sockets (and their folder files) of IDEs that are no longer running, passing over a folder
+    /// file a window is writing (<see cref="AtomicFile"/>'s temporary file, named for no process).</summary>
     internal static void RemoveStale()
     {
         if (FoundSocketFolder() is not { } sockets)
@@ -328,7 +329,7 @@ public static partial class McpHost
         }
         foreach (string path in Directory.EnumerateFiles(sockets))
         {
-            if (ProcessOf(path) is int pid && !Running(pid))
+            if (!path.EndsWith(AtomicFile.Temporary, StringComparison.Ordinal) && ProcessOf(path) is int pid && !Running(pid))
             {
                 try
                 {

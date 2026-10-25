@@ -18,7 +18,18 @@ public static class AtomicFile
     /// <summary>Writes a file whole, its temporary file's name ending with <paramref name="suffix"/> and put in the file's
     /// place by <paramref name="put"/> (given the temporary file and the file); a temporary file left by a failure is
     /// deleted, and the failure thrown.</summary>
-    public static void Write(string path, ReadOnlySpan<byte> bytes, UnixFileMode? mode, string suffix, Action<string, string> put)
+    public static void Write(string path, ReadOnlySpan<byte> bytes, UnixFileMode? mode, string suffix, Action<string, string> put) =>
+        Write(path, bytes, static (stream, bytes) => stream.Write(bytes), mode, suffix, put);
+
+    /// <summary>Writes a file whole as its bytes are made, <paramref name="fill"/> writing them into the temporary file's
+    /// stream, so a large one is never held whole; a failure of the fill's is thrown, its temporary file deleted.</summary>
+    public static void Write(string path, Action<Stream> fill, UnixFileMode? mode, string suffix, Action<string, string> put) =>
+        Write(path, fill, static (stream, fill) => fill(stream), mode, suffix, put);
+
+    private delegate void Filling<TState>(FileStream stream, TState state) where TState : allows ref struct;
+
+    private static void Write<TState>(string path, TState state, Filling<TState> fill, UnixFileMode? mode, string suffix, Action<string, string> put)
+        where TState : allows ref struct
     {
         // A name of its own, made new: one already there by a known name (a link a cloned repository holds) took the write wherever it led.
         string temporary = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(path))!, Guid.NewGuid().ToString("N") + suffix);
@@ -38,7 +49,7 @@ public static class AtomicFile
                     // The umask may have taken bits the file is to have (a script's group write): its mode exactly, before any byte is in.
                     File.SetUnixFileMode(stream.SafeFileHandle, exact);
                 }
-                stream.Write(bytes);
+                fill(stream, state);
                 stream.Flush(flushToDisk: true);
             }
             put(temporary, path);

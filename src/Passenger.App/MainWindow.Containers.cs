@@ -274,7 +274,7 @@ public partial class MainWindow
                 System.Text.Json.Nodes.JsonNode? said = System.Text.Json.Nodes.JsonNode.Parse((await engine.JsonAsync(words)).GetRawText());
                 ContainerSecrets.Mask(said);
                 Directory.CreateDirectory(Path.GetDirectoryName(copy)!);
-                await File.WriteAllTextAsync(copy, said?.ToJsonString(Inspected) + "\n");
+                AtomicFile.Write(copy, System.Text.Encoding.UTF8.GetBytes(said?.ToJsonString(Inspected) + "\n"));
                 return null;
             }
             catch (Exception failed) when (failed is ContainerCommandException or TimeoutException or JsonException or IOException)

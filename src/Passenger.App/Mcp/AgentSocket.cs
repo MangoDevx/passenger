@@ -1,6 +1,7 @@
 using System.Net.Sockets;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
+using Passenger.Core;
 
 namespace Passenger.App.Mcp;
 
@@ -61,12 +62,13 @@ public sealed class AgentSocket : IDisposable
         return new AgentSocket(window, path, listener);
     }
 
-    /// <summary>Writes the window's open folder beside the socket, as it opens and changes.</summary>
+    /// <summary>Writes the window's open folder beside the socket, as it opens and changes: whole, so an agent choosing a
+    /// window by its folder never reads half of one (<see cref="McpHost.WindowFolder"/>).</summary>
     public void Describe(string? folder)
     {
         try
         {
-            File.WriteAllText(McpHost.FolderFile(Path), folder ?? string.Empty);
+            AtomicFile.Write(McpHost.FolderFile(Path), System.Text.Encoding.UTF8.GetBytes(folder ?? string.Empty));
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {

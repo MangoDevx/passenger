@@ -670,7 +670,7 @@ public static class ContainerPlans
                 }
             }
             string written = Path.Combine(state, $"{name}.staticwebassets.runtime.json");
-            File.WriteAllText(written, read.ToJsonString());
+            OwnFiles.Write(written, read.ToJsonString());
             mounts.Add((written, "/passenger/assets/manifest.json"));
             return (mounts, "/passenger/assets/manifest.json");
         }

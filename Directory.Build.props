@@ -27,4 +27,11 @@
     <EnableAppHostPackDownload Condition="'$(RuntimeIdentifier)' == ''">false</EnableAppHostPackDownload>
     <DisableTransitiveFrameworkReferenceDownloads>true</DisableTransitiveFrameworkReferenceDownloads>
   </PropertyGroup>
+
+  <!-- Passenger's own code writes a whole file only through AtomicFile, FileText.Save or OwnFiles: File.WriteAll* is
+       banned under src/ (src/BannedSymbols.txt), which warnings as errors make a failed build. -->
+  <ItemGroup Condition="$(MSBuildProjectDirectory.StartsWith('$(MSBuildThisFileDirectory)src'))">
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)src/BannedSymbols.txt" />
+  </ItemGroup>
 </Project>

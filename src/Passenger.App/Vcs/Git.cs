@@ -930,7 +930,7 @@ public sealed class Git
             }
         }
         string file = System.IO.Path.GetTempFileName();
-        await File.WriteAllTextAsync(file, message);
+        AtomicFile.Write(file, Encoding.UTF8.GetBytes(message), UnixFileMode.UserRead | UnixFileMode.UserWrite);
         try
         {
             string[] only = relative.Length > 0 && !merging ? ["--only", "--", .. relative.Select(Literal)] : [];

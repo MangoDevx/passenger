@@ -35,6 +35,10 @@ internal sealed class AspireContainerOwnership
     private const int MaximumRecords = 1024;
     private const long MaximumBytes = 1024 * 1024;
     private readonly ContainerEngine engine;
+
+    /// <summary>The record, a document of its own beside the state's store rather than one of it: it is the process's, not a
+    /// window's, read at start for a gone process's leftovers before any window's store is open, kept by a headless IDE
+    /// that keeps no store, and changed by another Passenger over the same state, which the document merges over.</summary>
     private readonly StateDocument<Manifest> document;
     private readonly string state;
     private readonly CancellationToken closing;
@@ -455,6 +459,7 @@ internal sealed class AspireContainerOwnership
             IdeErrors.Write("Aspire containers: the ownership manifest exceeds its size limit; its leftovers are not removed");
             return [];
         }
+        // A document of its own over the file, changed at once (ChangeNow), so no window's change waiting in one is dropped.
         StateDocument<Manifest> record = new(path);
         string stateValue = ContainerLabels.StateValueOf(stateFolder);
         Entry[] candidates = [.. record.Peek().Entries.Where(entry => ContainerLabels.IsLeftover(entry.State, entry.Machine, entry.Owner, stateValue))];
@@ -615,17 +620,7 @@ internal sealed class AspireContainerOwnership
     {
         await document.ValueAsync();
         string folder = Path.GetDirectoryName(document.Path)!;
-        await BackgroundWork.Run(() =>
-        {
-            if (OperatingSystem.IsWindows())
-            {
-                Directory.CreateDirectory(folder);
-            }
-            else
-            {
-                Directory.CreateDirectory(folder, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-            }
-        });
+        await BackgroundWork.Run(() => OwnFiles.Folder(folder));
         document.Set(new Manifest { Entries = entries });
         await BackgroundWork.Run(document.Flush);
     }

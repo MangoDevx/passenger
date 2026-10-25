@@ -1,5 +1,5 @@
-using System.Text;
 using System.Text.RegularExpressions;
+using Passenger.App.Workspace;
 
 namespace Passenger.App.Templates;
 
@@ -9,8 +9,6 @@ namespace Passenger.App.Templates;
 /// else; the rest of each file stays byte for byte.</summary>
 public static partial class DeveloperTools
 {
-    private static readonly UTF8Encoding Utf8 = new(encoderShouldEmitUTF8Identifier: false);
-
     [GeneratedRegex("""^[ \t]*<Package(?:Reference|Version)\b[^>]*\bInclude="AvaloniaUI\.DiagnosticsSupport"[^>]*?(?:/>|>.*?</Package(?:Reference|Version)>)[ \t]*(?:\r?\n)?""",
         RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.IgnoreCase)]
     private static partial Regex Package();
@@ -43,13 +41,14 @@ public static partial class DeveloperTools
             {
                 continue;
             }
-            byte[] bytes = File.ReadAllBytes(file);
-            bool marked = bytes.AsSpan().StartsWith(Encoding.UTF8.Preamble);
-            string text = Utf8.GetString(bytes, marked ? 3 : 0, bytes.Length - (marked ? 3 : 0));
-            string edited = edits.Aggregate(text, (now, edit) => edit.Replace(now, string.Empty));
-            if (edited != text)
+            if (FileText.Load(file) is not { } read)
             {
-                File.WriteAllBytes(file, [.. marked ? Encoding.UTF8.Preamble : [], .. Utf8.GetBytes(edited)]);
+                continue;
+            }
+            string edited = edits.Aggregate(read.Text, (now, edit) => edit.Replace(now, string.Empty));
+            if (edited != read.Text)
+            {
+                FileText.Save(file, edited, read.Encoding, read.HasBom, read.CrBreaks);
                 changed.Add(file);
             }
         }

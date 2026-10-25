@@ -2,14 +2,14 @@ using System.Reflection.PortableExecutable;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.Metadata;
 using ICSharpCode.Decompiler.TypeSystem;
+using Passenger.Core;
 
 namespace Passenger.Debugger.Decompilation;
 
 /// <summary>Symbols decompiled for assemblies that ship none, kept in the folder the client names: a portable PDB per
 /// assembly version at <c>NAME/MVID/NAME.STAMP.pdb</c>, STAMP the decompiler's version and
-/// <see cref="PortablePdbWriter2"/>'s, either of which moves the lines. Written through a temporary file beside it,
-/// then renamed into place, so an adapter killed mid-write leaves no entry; one that does not load is deleted. Pruned
-/// as the adapter starts.</summary>
+/// <see cref="PortablePdbWriter2"/>'s, either of which moves the lines. Written whole (<see cref="AtomicFile"/>), so an
+/// adapter killed mid-write leaves no entry; one that does not load is deleted. Pruned as the adapter starts.</summary>
 public sealed class SymbolCache
 {
     /// <summary>An entry unused this long is deleted: .NET's patches come monthly, each runtime's a new CoreLib, so the
@@ -26,7 +26,7 @@ public sealed class SymbolCache
     /// <summary>A temporary file this old is a write that never finished, its adapter killed; a younger one may still be written.</summary>
     private static readonly TimeSpan Abandoned = TimeSpan.FromHours(1);
 
-    private const string Temporary = ".tmp";
+    private const string Temporary = AtomicFile.Temporary;
 
     /// <summary>The version of what Passenger's PDB writer makes, raised whenever a change to it moves what it maps.</summary>
     private const int Format = 1;
@@ -80,25 +80,18 @@ public sealed class SymbolCache
         }
     }
 
-    /// <summary>Decompiles an assembly into its entry: a temporary file in the entry's folder, flushed, then renamed over the
-    /// entry. False when it could not be decompiled or the session ended first (<paramref name="cancel"/>), the temporary
-    /// file then deleted.</summary>
+    /// <summary>Decompiles an assembly into its entry, written whole as it is made (<see cref="AtomicFile"/>). False when it
+    /// could not be decompiled or the session ended first (<paramref name="cancel"/>), its temporary file then deleted.</summary>
     public bool Write(string assemblyPath, string name, Guid mvid, IReadOnlyList<string> references, CancellationToken cancel)
     {
         pruned.Wait();
         string pdb = PathOf(name, mvid);
-        string temporary = $"{pdb}.{Guid.NewGuid():N}{Temporary}";
         try
         {
-            using (PEFile file = new(assemblyPath, PEStreamOptions.PrefetchEntireImage))
-            using (FileStream stream = Create(temporary))
-            {
-                DecompilerSettings settings = new();
-                DecompilerTypeSystem types = new(file, new DebuggingAssemblyResolver([.. references]), settings);
-                new PortablePdbWriter2 { NoLogo = true }.WritePdb(file, types, settings, stream, cancellationToken: cancel);
-                stream.Flush(flushToDisk: true);
-            }
-            Replace(temporary, pdb);
+            using PEFile file = new(assemblyPath, PEStreamOptions.PrefetchEntireImage);
+            DecompilerSettings settings = new();
+            DecompilerTypeSystem types = new(file, new DebuggingAssemblyResolver([.. references]), settings);
+            WriteWhole(pdb, stream => new PortablePdbWriter2 { NoLogo = true }.WritePdb(file, types, settings, stream, cancellationToken: cancel));
             return true;
         }
         catch (OperationCanceledException) when (cancel.IsCancellationRequested)
@@ -109,20 +102,20 @@ public sealed class SymbolCache
         {
             log?.Invoke($"Symbol cache: {name} ({assemblyPath}) could not be decompiled: {error}");
         }
-        Delete(temporary);
         return false;
     }
 
-    /// <summary>A new temporary file in its entry's folder; made again once if another adapter's prune took the folder away
-    /// between the two.</summary>
-    private static FileStream Create(string temporary)
+    /// <summary>An entry written whole in its folder, made again once if another adapter's prune took the folder away between
+    /// the two.</summary>
+    private static void WriteWhole(string pdb, Action<Stream> fill)
     {
         for (int attempt = 0; ; attempt++)
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(temporary)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(pdb)!);
             try
             {
-                return new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+                AtomicFile.Write(pdb, fill, null, Temporary, Replace);
+                return;
             }
             catch (DirectoryNotFoundException) when (attempt == 0)
             {
