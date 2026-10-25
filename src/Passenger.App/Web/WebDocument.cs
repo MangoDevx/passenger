@@ -180,7 +180,7 @@ public sealed class WebDocument : IServerDocument, IDisposable
 
     private void OnChanged(object? sender, DocumentChangedEventArgs e)
     {
-        diagnostics.Move(e);
+        diagnostics.Moved();
         if (own.Count + lint.Count + engine.Count > 0)
         {
             own = [.. own.Select(m => m with { Range = TextEditing.MapRange(m.Range, e.Edits) })];

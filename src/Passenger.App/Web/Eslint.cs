@@ -493,7 +493,7 @@ public sealed class EslintDocument : IDisposable
 
     private void OnChanged(object? sender, DocumentChangedEventArgs e)
     {
-        diagnostics.Move(e);
+        diagnostics.Moved();
         Pull(Settle);
     }
 
