@@ -214,7 +214,10 @@ public sealed class IdeErrorsTests : IDisposable
         Assert.Equal("class One { int disk; }\n", File.ReadAllText(path));
         // Thrown on purpose: the check that fails a test over a caught error is not to see it.
         IdeErrors.Clear();
+        // The edits the question never settled would keep the window open over them, into the next test.
+        window.EditorArea.Active!.Reload(overUnsaved: true);
         window.Close();
+        Assert.DoesNotContain(window, PassengerApp.Windows);
     }
 
     /// <summary>Every place src's code lets go of a task it started (DroppedTasks): a discard, a call as a statement, a
