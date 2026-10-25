@@ -184,26 +184,20 @@ public sealed partial class CodeEditor : Control
         InvalidateVisual();
     }
 
+    private readonly AnchoredList<InlineChange> inlineChanges = new(c => c.Range, (c, range) => c with { Range = range });
+
     /// <summary>The words that changed inside changed lines (sorted), drawn over the lines' tint in a stronger colour; they
     /// move with edits until the host sets them again.</summary>
-    public IReadOnlyList<InlineChange> InlineChanges { get; private set; } = [];
+    public IReadOnlyList<InlineChange> InlineChanges => inlineChanges.Items;
 
     public void SetInlineChanges(IReadOnlyList<InlineChange> changes)
     {
-        if (changes.Count == 0 && InlineChanges.Count == 0)
+        if (changes.Count == 0 && inlineChanges.Count == 0)
         {
             return;
         }
-        InlineChanges = [.. changes.OrderBy(c => c.Range.Start)];
+        inlineChanges.Set(document, [.. changes.OrderBy(c => c.Range.Start)]);
         InvalidateVisual();
-    }
-
-    private void FollowInlineChanges(IReadOnlyList<TextEdit> edits)
-    {
-        if (InlineChanges.Count > 0)
-        {
-            InlineChanges = [.. InlineChanges.Select(c => c with { Range = TextEditing.MapRange(c.Range, edits) })];
-        }
     }
 
     /// <summary>The bookmarked lines, drawn as ribbons at the line numbers' left.</summary>
@@ -434,7 +428,7 @@ public sealed partial class CodeEditor : Control
             pendingGoTo = null;
             usages.Clear();
             UsagesKept = false;
-            InlineChanges = [];
+            inlineChanges.Clear();
             hovered.Release();
             pressed.Release();
             HideFoldPreview();
@@ -784,7 +778,6 @@ public sealed partial class CodeEditor : Control
         // What was offered to choose among is the text left behind.
         CancelChoices();
         FollowUsages();
-        FollowInlineChanges(e.Edits);
         FollowLinkEdits();
         HideFoldPreview();
         if (!editing)
