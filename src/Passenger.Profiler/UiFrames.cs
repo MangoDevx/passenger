@@ -1,4 +1,5 @@
 using Microsoft.Diagnostics.Tracing;
+using Passenger.Inspector;
 
 namespace Passenger.Profiler;
 
@@ -48,7 +49,7 @@ public sealed record LayoutCost(string Name, UiControl? Control, LayoutWork Work
 public static class UiFrames
 {
     /// <summary>The inspector's EventSource, which a session enables to have the app's frames recorded.</summary>
-    public const string Provider = "Passenger-Avalonia";
+    public const string Provider = FrameWire.Provider;
 
     /// <summary>How soon after one window's drawing ends another's begins in the same tick of the render loop.</summary>
     private const double SameTick = 2;
@@ -111,32 +112,32 @@ public static class UiFrames
             }
             switch ((int)data.ID)
             {
-                case 1:
-                    long id = Long(data, "id");
-                    controls[id] = new UiControl(id, Text(data, "type") ?? "?", Text(data, "fullType") ?? "?", Text(data, "name"), Text(data, "templatedBy"), Text(data, "file"), Int(data, "line"));
+                case FrameWire.ControlEvent:
+                    long id = Long(data, FrameWire.Id);
+                    controls[id] = new UiControl(id, Text(data, FrameWire.Type) ?? "?", Text(data, FrameWire.FullType) ?? "?", Text(data, FrameWire.Name), Text(data, FrameWire.TemplatedBy), Text(data, FrameWire.File), Int(data, FrameWire.Line));
                     break;
-                case 2:
-                    int number = Int(data, "frame");
-                    long control = Long(data, "control");
+                case FrameWire.LayoutEvent:
+                    int number = Int(data, FrameWire.FrameNumber);
+                    long control = Long(data, FrameWire.ControlId);
                     if (!laidOut.TryGetValue(number, out List<ControlWork>? works))
                     {
                         laidOut[number] = works = [];
                     }
                     UiControl named = controls.TryGetValue(control, out UiControl? known) ? known : new UiControl(control, "?", "?", null, null, null, 0);
-                    works.Add(new ControlWork(named, new LayoutWork(Int(data, "measures"), Double(data, "measureMs"), Double(data, "measureSelfMs"),
-                        Int(data, "arranges"), Double(data, "arrangeMs"), Double(data, "arrangeSelfMs"))));
+                    works.Add(new ControlWork(named, new LayoutWork(Int(data, FrameWire.Measures), Double(data, FrameWire.MeasureMs), Double(data, FrameWire.MeasureSelfMs),
+                        Int(data, FrameWire.Arranges), Double(data, FrameWire.ArrangeMs), Double(data, FrameWire.ArrangeSelfMs))));
                     break;
-                case 3:
-                    int frame = Int(data, "frame");
-                    double duration = Double(data, "durationMs");
-                    double start = data.TimeStampRelativeMSec - Double(data, "endedMsAgo") - duration;
+                case FrameWire.FrameEvent:
+                    int frame = Int(data, FrameWire.FrameNumber);
+                    double duration = Double(data, FrameWire.DurationMs);
+                    double start = data.TimeStampRelativeMSec - Double(data, FrameWire.EndedMsAgo) - duration;
                     laidOut.Remove(frame, out List<ControlWork>? laid);
-                    frames.Add(new UiFrame(frame, start, duration, Int(data, "measurePasses"), Int(data, "arrangePasses"), Double(data, "measureMs"),
-                        Double(data, "arrangeMs"), Double(data, "renderMs"), Int(data, "measures"), Int(data, "arranges"),
+                    frames.Add(new UiFrame(frame, start, duration, Int(data, FrameWire.MeasurePasses), Int(data, FrameWire.ArrangePasses), Double(data, FrameWire.MeasureMs),
+                        Double(data, FrameWire.ArrangeMs), Double(data, FrameWire.RenderMs), Int(data, FrameWire.Measures), Int(data, FrameWire.Arranges),
                         [.. (laid ?? []).OrderByDescending(c => c.Work.SelfMs)]));
                     break;
-                case 4:
-                    double ms = Double(data, "updateMs") + Double(data, "renderMs");
+                case FrameWire.CompositedEvent:
+                    double ms = Double(data, FrameWire.UpdateMs) + Double(data, FrameWire.RenderMs);
                     composited.Add((data.TimeStampRelativeMSec - ms, ms));
                     break;
             }

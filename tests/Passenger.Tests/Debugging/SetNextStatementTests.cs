@@ -33,20 +33,20 @@ public class SetNextStatementTests(ITestOutputHelper testOutputHelper)
         await host.WaitForStoppedEvent();
         Assert.Equal("210", Evaluate(host, thread, "jumps"));
 
-        GotoTargetsResponse elsewhere = host.Request<GotoTargetsResponse>("gotoTargets",
+        GotoTargetsResponse elsewhere = host.Request<GotoTargetsResponse>(DapCommands.GotoTargets,
             new GotoTargetsArguments(new DapSource { Path = Debuggees.Source("PassengerCases", "Program.cs") }, Debuggees.Line("PassengerCases", "Console.WriteLine(\"interpreter\");"), null));
         Assert.Empty(elsewhere.Targets);
     }
 
     private static async Task GoTo(DebugSession host, int thread, int line)
     {
-        GotoTargetsResponse targets = host.Request<GotoTargetsResponse>("gotoTargets",
+        GotoTargetsResponse targets = host.Request<GotoTargetsResponse>(DapCommands.GotoTargets,
             new GotoTargetsArguments(new DapSource { Path = Debuggees.Source("PassengerCases", "Program.cs") }, line, null));
         GotoTarget target = Assert.Single(targets.Targets);
         Assert.Equal(line, target.Line);
-        host.Request("goto", new GotoArguments(thread, target.Id));
+        host.Request(DapCommands.Goto, new GotoArguments(thread, target.Id));
         StoppedEvent moved = await host.WaitForStoppedEvent();
-        Assert.Equal("goto", moved.Reason);
+        Assert.Equal(StopReasons.Goto, moved.Reason);
         Assert.Equal(line, moved.ReadStopInfo().line);
     }
 

@@ -322,7 +322,7 @@ public sealed class ContainerDebuggingTests(ContainerDebuggingTests.Turns turns)
     /// <summary>Waits for the program to stop at its breakpoint, failing with what the status bar said when the attach failed.</summary>
     private static void StoppedAtBreakpoint(MainWindow window, string what)
     {
-        Ui.WaitFor(() => window.Debugger.Session is { State: DebugState.Paused, StopReason: "breakpoint" }
+        Ui.WaitFor(() => window.Debugger.Session is { State: DebugState.Paused, StopReason: Passenger.Dap.StopReasons.Breakpoint }
             || window.Status is { } said && (said.StartsWith("Could not", StringComparison.Ordinal) || said.StartsWith("Cannot", StringComparison.Ordinal)),
             $"{what} to stop at its breakpoint");
         Assert.True(window.Debugger.Session is { State: DebugState.Paused }, $"{what} did not stop at its breakpoint: {window.Status}");

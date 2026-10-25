@@ -11,7 +11,7 @@ namespace Passenger.App.Navigation;
 
 /// <summary>A place a symbol popup offers: a type, a member, a file. <see cref="Depth"/> indents it under its
 /// container (File Structure's members under their type).</summary>
-public sealed record SymbolRow(string Name, string? Detail, string? Where, int Kind, string Path, TextPosition Position, int Depth = 0, int? EndLine = null)
+public sealed record SymbolRow(string Name, string? Detail, string? Where, SymbolKind Kind, string Path, TextPosition Position, int Depth = 0, int? EndLine = null)
 {
     /// <summary>Whether a line (from zero) is inside the declaration: the caret's member is chosen when File
     /// Structure opens.</summary>
@@ -22,7 +22,7 @@ public sealed record SymbolRow(string Name, string? Detail, string? Where, int K
     public Passenger.Lsp.LspPosition? ServerPosition { get; init; }
 
     /// <summary>A file, not a symbol: shown with its file icon (Go to Everything's files).</summary>
-    public const int FileKind = -1;
+    public const SymbolKind FileKind = default;
 }
 
 /// <summary>A query over symbols, answered as it is typed (a moment after the last key, the previous answer given
@@ -167,23 +167,23 @@ public sealed class SymbolPopup : SearchPopup<SymbolRow>
     };
 
     /// <summary>The letter and colour of a symbol of each kind (the protocol's SymbolKind).</summary>
-    public static (string Letter, string Brush) Badge(int kind) => kind switch
+    public static (string Letter, string Brush) Badge(SymbolKind kind) => kind switch
     {
-        3 => ("N", "Passenger.Syntax.Keyword"),
-        5 => ("C", "Passenger.Syntax.Class"),
-        6 or 12 => ("m", "Passenger.Syntax.Method"),
-        7 => ("p", "Passenger.Syntax.Property"),
-        8 => ("f", "Passenger.Syntax.Field"),
-        9 => ("m", "Passenger.Syntax.Method"),
-        10 => ("E", "Passenger.Syntax.Enum"),
-        11 => ("I", "Passenger.Syntax.Interface"),
-        13 => ("v", "Passenger.TextMuted"),
-        14 => ("c", "Passenger.Syntax.Constant"),
-        22 => ("e", "Passenger.Syntax.EnumMember"),
-        23 => ("S", "Passenger.Syntax.Struct"),
-        24 => ("e", "Passenger.Syntax.Event"),
-        25 => ("o", "Passenger.TextMuted"),
-        26 => ("T", "Passenger.Syntax.TypeParameter"),
+        SymbolKind.Namespace => ("N", "Passenger.Syntax.Keyword"),
+        SymbolKind.Class => ("C", "Passenger.Syntax.Class"),
+        SymbolKind.Method or SymbolKind.Function => ("m", "Passenger.Syntax.Method"),
+        SymbolKind.Property => ("p", "Passenger.Syntax.Property"),
+        SymbolKind.Field => ("f", "Passenger.Syntax.Field"),
+        SymbolKind.Constructor => ("m", "Passenger.Syntax.Method"),
+        SymbolKind.Enum => ("E", "Passenger.Syntax.Enum"),
+        SymbolKind.Interface => ("I", "Passenger.Syntax.Interface"),
+        SymbolKind.Variable => ("v", "Passenger.TextMuted"),
+        SymbolKind.Constant => ("c", "Passenger.Syntax.Constant"),
+        SymbolKind.EnumMember => ("e", "Passenger.Syntax.EnumMember"),
+        SymbolKind.Struct => ("S", "Passenger.Syntax.Struct"),
+        SymbolKind.Event => ("e", "Passenger.Syntax.Event"),
+        SymbolKind.Operator => ("o", "Passenger.TextMuted"),
+        SymbolKind.TypeParameter => ("T", "Passenger.Syntax.TypeParameter"),
         _ => ("·", "Passenger.TextMuted"),
     };
 }

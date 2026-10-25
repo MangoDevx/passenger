@@ -21,7 +21,7 @@ public class LaunchTests(ITestOutputHelper testOutputHelper)
         host.WithConfigurationDoneRequest();
 
         StoppedEvent stoppedEvent = await host.WaitForStoppedEvent();
-        Assert.Equal("entry", stoppedEvent.Reason);
+        Assert.Equal(StopReasons.Entry, stoppedEvent.Reason);
         Assert.NotNull(stoppedEvent.ThreadId);
         DapStackFrame topFrame = host.GetTopStackFrame(stoppedEvent.ThreadId!.Value);
         Assert.Contains("Main", topFrame.Name);
@@ -41,7 +41,7 @@ public class LaunchTests(ITestOutputHelper testOutputHelper)
         host.WithConfigurationDoneRequest();
 
         StoppedEvent stoppedEvent = await host.WaitForStoppedEvent();
-        Assert.Equal("entry", stoppedEvent.Reason);
+        Assert.Equal(StopReasons.Entry, stoppedEvent.Reason);
         Assert.NotNull(stoppedEvent.ThreadId);
         DapStackFrame topFrame = host.GetTopStackFrame(stoppedEvent.ThreadId!.Value);
         Assert.Contains("Main", topFrame.Name);
@@ -66,7 +66,7 @@ public class LaunchTests(ITestOutputHelper testOutputHelper)
         host.WithConfigurationDoneRequest();
 
         StoppedEvent stoppedEvent = await host.WaitForStoppedEvent();
-        Assert.Equal("entry", stoppedEvent.Reason);
+        Assert.Equal(StopReasons.Entry, stoppedEvent.Reason);
         Assert.NotNull(stoppedEvent.ThreadId);
         DapStackFrame topFrame = host.GetTopStackFrame(stoppedEvent.ThreadId!.Value);
         Assert.Contains("Main", topFrame.Name);
@@ -91,7 +91,7 @@ public class LaunchTests(ITestOutputHelper testOutputHelper)
         host.WithConfigurationDoneRequest();
 
         StoppedEvent stoppedEvent = await host.WaitForStoppedEvent();
-        Assert.Equal("entry", stoppedEvent.Reason);
+        Assert.Equal(StopReasons.Entry, stoppedEvent.Reason);
         Assert.NotNull(stoppedEvent.ThreadId);
         DapStackFrame topFrame = host.GetTopStackFrame(stoppedEvent.ThreadId!.Value);
         Assert.Contains("Main", topFrame.Name);
@@ -117,8 +117,8 @@ public class LaunchTests(ITestOutputHelper testOutputHelper)
             .WithBreakpointsRequest(3, source)
             .WithConfigurationDoneRequest();
         // While it waits on its console, every request still reaches the debugger.
-        host.Request("setExceptionBreakpoints", new SetExceptionBreakpointsArguments([]));
-        host.Request("input", new InputArguments("hello\n"));
+        host.Request(DapCommands.SetExceptionBreakpoints, new SetExceptionBreakpointsArguments([]));
+        host.Request(DapCommands.Input, new InputArguments("hello\n"));
 
         StoppedEvent stopped = await host.WaitForStoppedEvent();
         Assert.Equal(3, stopped.ReadStopInfo().line);
@@ -169,7 +169,7 @@ public class LaunchTests(ITestOutputHelper testOutputHelper)
         host.WithConfigurationDoneRequest();
 
         StoppedEvent stopped = await host.WaitForStoppedEvent();
-        IReadOnlyList<DapThread> threads = host.Request<ThreadsResponse>("threads").Threads;
+        IReadOnlyList<DapThread> threads = host.Request<ThreadsResponse>(DapCommands.Threads).Threads;
         Assert.Equal("Main Thread", Assert.Single(threads, t => t.Id == stopped.ThreadId).Name);
         Assert.Single(threads, t => t.Name == "Main Thread");
         Assert.Equal(stopped.ThreadId, Assert.Single(threads, t => t.IsMain == true).Id);
@@ -193,7 +193,7 @@ public class LaunchTests(ITestOutputHelper testOutputHelper)
             host.WithBreakpointsRequest(first, source).WithConfigurationDoneRequest();
 
             StoppedEvent stopped = await host.WaitForStoppedEvent();
-            Assert.True((stopped.Reason, stopped.Line) == ("breakpoint", first),
+            Assert.True((stopped.Reason, stopped.Line) == (StopReasons.Breakpoint, first),
                 $"Launch {launch} in the terminal stopped for {stopped.Reason} at line {stopped.Line}, not at the breakpoint on Main's first line ({first})");
             Assert.True(terminal.Program is { HasExited: false } program && host.GetTopStackFrame(stopped.ThreadId!.Value).Name.Contains("Main", StringComparison.Ordinal),
                 $"Launch {launch} stopped somewhere other than in the program the terminal started");
@@ -206,16 +206,16 @@ public class LaunchTests(ITestOutputHelper testOutputHelper)
     public async Task A_client_that_cannot_start_the_program_in_its_terminal_fails_the_launch_saying_why()
     {
         using DebugSession host = DebugSession.ForLaunch(testOutputHelper);
-        host.Connection.Handle<RunInTerminalArguments, RunInTerminalResponse>("runInTerminal",
+        host.Connection.Handle<RunInTerminalArguments, RunInTerminalResponse>(DapCommands.RunInTerminal,
             _ => Task.FromException<RunInTerminalResponse>(new InvalidOperationException("no terminal here")));
         await host
             .WithInitializeRequest()
             .WithLaunchRequest(Debuggees.Program("TerminalConsoleApp"), stopAtEntry: false, justMyCode: true, console: "integratedTerminal")
             .WaitForInitializedEvent();
 
-        DapException refused = Assert.Throws<DapException>(() => host.Request("configurationDone"));
+        DapException refused = Assert.Throws<DapException>(() => host.Request(DapCommands.ConfigurationDone));
         Assert.Contains("could not start TerminalConsoleApp.dll in its terminal: no terminal here", refused.Reason, StringComparison.Ordinal);
-        Assert.Empty(host.Request<ThreadsResponse>("threads", limit: TimeSpan.FromSeconds(10)).Threads);
+        Assert.Empty(host.Request<ThreadsResponse>(DapCommands.Threads, limit: TimeSpan.FromSeconds(10)).Threads);
     }
 
     /// <summary>A program whose runtime is slow to start (its first start on a machine reads it from a cold disk) is
@@ -230,7 +230,7 @@ public class LaunchTests(ITestOutputHelper testOutputHelper)
             .WithLaunchRequest(Debuggees.Program("DebuggableConsoleApp"), stopAtEntry: false, justMyCode: true, environment: hold.Environment)
             .WaitForInitializedEvent();
         host.WithBreakpointsRequest(22);
-        Task configured = host.Send("configurationDone");
+        Task configured = host.Send(DapCommands.ConfigurationDone);
         await hold.Held();
 
         // Six seconds in which the runtime is held, and the debugger must not give up on it.
@@ -238,7 +238,7 @@ public class LaunchTests(ITestOutputHelper testOutputHelper)
         await hold.LetGo();
         await configured.WaitAsync(DebugSession.RequestLimit, TestContext.Current.CancellationToken);
         StoppedEvent stopped = await host.WaitForStoppedEvent();
-        Assert.True((stopped.Reason, stopped.Line) == ("breakpoint", 22), $"The program that started late stopped for {stopped.Reason} at line {stopped.Line}, not at its breakpoint");
+        Assert.True((stopped.Reason, stopped.Line) == (StopReasons.Breakpoint, 22), $"The program that started late stopped for {stopped.Reason} at line {stopped.Line}, not at its breakpoint");
     }
 
     /// <summary>A launch stopped while its program's runtime is still starting ends at once, the program with it, and says why:
@@ -252,7 +252,7 @@ public class LaunchTests(ITestOutputHelper testOutputHelper)
             .WithInitializeRequest()
             .WithLaunchRequest(Debuggees.Program("DebuggableConsoleApp"), stopAtEntry: false, justMyCode: true, environment: hold.Environment)
             .WaitForInitializedEvent();
-        Task configured = host.Send("configurationDone");
+        Task configured = host.Send(DapCommands.ConfigurationDone);
         int program = await hold.Held();
 
         Assert.True(host.Disconnect(TimeSpan.FromSeconds(10)), "The disconnect went unanswered 10 s while the program's runtime was starting");
@@ -282,7 +282,7 @@ public class LaunchTests(ITestOutputHelper testOutputHelper)
     /// variables asked for, its output read and dropped, and ends it with the test.</summary>
     private sealed class Terminal : IDisposable
     {
-        public Terminal(DebugSession host) => host.Connection.Handle<RunInTerminalArguments, RunInTerminalResponse>("runInTerminal", arguments =>
+        public Terminal(DebugSession host) => host.Connection.Handle<RunInTerminalArguments, RunInTerminalResponse>(DapCommands.RunInTerminal, arguments =>
         {
             string program = arguments.Args[0] is "dotnet" ? Dotnet.Host() : arguments.Args[0];
             ProcessStartInfo start = ChildProcesses.Command(program, arguments.Args.Skip(1), arguments.Cwd);

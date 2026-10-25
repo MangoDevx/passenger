@@ -18,7 +18,7 @@ public static class ExceptionTypes
 
     /// <summary>The full names of the solution's classes a workspace symbol search for "Exception" finds whose names end so.</summary>
     public static IReadOnlyList<string> FromSymbols(IEnumerable<Lsp.SymbolInformation> symbols) =>
-        [.. symbols.Where(s => s.Kind == Lsp.SymbolKinds.Class && s.Name.EndsWith("Exception", StringComparison.Ordinal))
+        [.. symbols.Where(s => s.Kind == Lsp.SymbolKind.Class && s.Name.EndsWith("Exception", StringComparison.Ordinal))
             .Select(s => s.ContainerName is { Length: > 0 } container ? $"{container}.{s.Name}" : s.Name)
             .Distinct(StringComparer.Ordinal)];
 

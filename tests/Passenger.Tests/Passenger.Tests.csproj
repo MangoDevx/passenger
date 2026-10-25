@@ -30,6 +30,8 @@
   <ItemGroup>
     <!-- Avalonia's media context, whose fields a settle reads, as Passenger's hooks into an Avalonia program read it. -->
     <Compile Include="../../src/Passenger.Inspector/AvaloniaHooks.cs" Link="AvaloniaHooks.cs" />
+    <!-- The inspector's frame events, which a test tells as an app's inspector does. -->
+    <Compile Include="../../src/Passenger.Inspector/FrameWire.cs" Link="FrameWire.cs" />
   </ItemGroup>
 
   <!-- Avalonia's templates, restored from nuget.org as every package is and served to the tests from the package cache

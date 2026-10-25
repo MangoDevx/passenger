@@ -240,7 +240,7 @@ public sealed partial class CodeAssist
     }
 
     /// <summary>The kind a compose file's own names are listed as: a variable's, the file's own declarations.</summary>
-    private const int ComposeItemKind = 6;
+    private const CompletionItemKind ComposeItemKind = CompletionItemKind.Variable;
 
     /// <summary>Whether a file is a compose file the YAML server reads, whose declarations Passenger finds first.</summary>
     private static bool IsComposeFile(WebDocument web, OpenDocument document) =>

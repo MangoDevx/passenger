@@ -219,7 +219,7 @@ public sealed class LanguageServer : IAsyncDisposable
                 options[name] = value;
             }
         }
-        Notify("workspace/didChangeConfiguration", new { settings = new { } });
+        Notify(LspMethods.DidChangeConfiguration, new { settings = new { } });
     }
 
     /// <summary>Every document's diagnostics from one source, as the solution-wide analysis has them, each report given to
@@ -239,7 +239,7 @@ public sealed class LanguageServer : IAsyncDisposable
         try
         {
             // How long it is held says nothing of the server, nor is it work in flight.
-            return (await InvokeAsync<WorkspaceDiagnosticReport>("workspace/diagnostic", new WorkspaceDiagnosticParams(source, previous, token), cancel, inFlight: false))?.Items ?? [];
+            return (await InvokeAsync<WorkspaceDiagnosticReport>(LspMethods.WorkspaceDiagnostic, new WorkspaceDiagnosticParams(source, previous, token), cancel, inFlight: false))?.Items ?? [];
         }
         finally
         {
@@ -396,7 +396,7 @@ public sealed class LanguageServer : IAsyncDisposable
             InitializeParams initialize = new(Environment.ProcessId, root, [new WorkspaceFolder(root, Path.GetFileName(folder))], capabilities,
                 InitializationOptions: initializationOptions);
             // Given up at once, not cancelled (whose $/cancelRequest can fail unobserved as the connection goes): it fails with the connection, unseen.
-            Task<JsonElement> answer = rpc.InvokeWithParameterObjectAsync<JsonElement>("initialize", initialize, CancellationToken.None);
+            Task<JsonElement> answer = rpc.InvokeWithParameterObjectAsync<JsonElement>(LspMethods.Initialize, initialize, CancellationToken.None);
             _ = answer.ContinueWith(t => _ = t.Exception, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
             JsonElement result = await answer.WaitAsync(cancel).ConfigureAwait(false);
             server2.Capabilities = result.GetProperty("capabilities");
@@ -405,13 +405,13 @@ public sealed class LanguageServer : IAsyncDisposable
                 server2.Legend = legend.Deserialize<SemanticTokensLegend>(Json.Options);
             }
             cancel.ThrowIfCancellationRequested();
-            await rpc.NotifyWithParameterObjectAsync("initialized", new { }).ConfigureAwait(false);
+            await rpc.NotifyWithParameterObjectAsync(LspMethods.Initialized, new { }).ConfigureAwait(false);
         }
         catch (Exception error)
         {
             // A start given up (another folder opened) or failed leaves no server behind, nor its log held open.
             server2.Abandon();
-            if (server2.Failure("initialize", error, cancel) is { } failed)
+            if (server2.Failure(LspMethods.Initialize, error, cancel) is { } failed)
             {
                 throw failed;
             }
@@ -656,7 +656,7 @@ public sealed class LanguageServer : IAsyncDisposable
     {
         try
         {
-            await rpc.InvokeWithParameterObjectAsync<JsonElement>("textDocument/foldingRange", Check);
+            await rpc.InvokeWithParameterObjectAsync<JsonElement>(LspMethods.FoldingRange, Check);
         }
         catch (Exception error) when (error is RemoteRpcException or ObjectDisposedException or IOException or OperationCanceledException)
         {
@@ -667,20 +667,20 @@ public sealed class LanguageServer : IAsyncDisposable
     /// <summary>Runs one of the server's own commands (<c>workspace/executeCommand</c>, as ESLint's fixes are), which may ask
     /// the client to make an edit on the way (<see cref="ServerStart.ApplyEdit"/>).</summary>
     public Task<JsonElement> ExecuteCommandAsync(LspCommand command, CancellationToken cancel = default) =>
-        RequestAsync<JsonElement>("workspace/executeCommand", new ExecuteCommandParams(command.Command, command.Arguments ?? []), cancel);
+        RequestAsync<JsonElement>(LspMethods.ExecuteCommand, new ExecuteCommandParams(command.Command, command.Arguments ?? []), cancel);
 
     /// <summary>A call hierarchy item's callers, each with where the calls are.</summary>
     public async Task<IReadOnlyList<IncomingCall>> IncomingCallsAsync(HierarchyItem item, CancellationToken cancel = default) =>
-        await RequestAsync<List<IncomingCall>>("callHierarchy/incomingCalls", new HierarchyItemParams(item), cancel) ?? [];
+        await RequestAsync<List<IncomingCall>>(LspMethods.IncomingCalls, new HierarchyItemParams(item), cancel) ?? [];
 
     public async Task<IReadOnlyList<OutgoingCall>> OutgoingCallsAsync(HierarchyItem item, CancellationToken cancel = default) =>
-        await RequestAsync<List<OutgoingCall>>("callHierarchy/outgoingCalls", new HierarchyItemParams(item), cancel) ?? [];
+        await RequestAsync<List<OutgoingCall>>(LspMethods.OutgoingCalls, new HierarchyItemParams(item), cancel) ?? [];
 
     public async Task<IReadOnlyList<HierarchyItem>> SupertypesAsync(HierarchyItem item, CancellationToken cancel = default) =>
-        await RequestAsync<List<HierarchyItem>>("typeHierarchy/supertypes", new HierarchyItemParams(item), cancel) ?? [];
+        await RequestAsync<List<HierarchyItem>>(LspMethods.Supertypes, new HierarchyItemParams(item), cancel) ?? [];
 
     public async Task<IReadOnlyList<HierarchyItem>> SubtypesAsync(HierarchyItem item, CancellationToken cancel = default) =>
-        await RequestAsync<List<HierarchyItem>>("typeHierarchy/subtypes", new HierarchyItemParams(item), cancel) ?? [];
+        await RequestAsync<List<HierarchyItem>>(LspMethods.Subtypes, new HierarchyItemParams(item), cancel) ?? [];
 
     /// <summary>Asks the server to shut down and exit, waits a little for it to go, then ends it and its log. Nothing in it
     /// blocks the caller's thread, the window's included: each wait is awaited, and what follows one runs off it.</summary>
@@ -695,8 +695,8 @@ public sealed class LanguageServer : IAsyncDisposable
             if (!HasExited)
             {
                 using CancellationTokenSource limit = new(TimeSpan.FromSeconds(3));
-                await rpc.InvokeWithCancellationAsync<object?>("shutdown", [], limit.Token).ConfigureAwait(false);
-                await rpc.NotifyAsync("exit").ConfigureAwait(false);
+                await rpc.InvokeWithCancellationAsync<object?>(LspMethods.Shutdown, [], limit.Token).ConfigureAwait(false);
+                await rpc.NotifyAsync(LspMethods.Exit).ConfigureAwait(false);
             }
         }
         catch (Exception error) when (error is OperationCanceledException or ConnectionLostException or RemoteRpcException or ObjectDisposedException)
@@ -874,14 +874,14 @@ public sealed class LanguageServer : IAsyncDisposable
             }
         }
 
-        [JsonRpcMethod("window/logMessage")]
+        [JsonRpcMethod(LspMethods.LogMessage)]
         public void LogMessage(LogMessageParams message)
         {
             Owner?.log.Write($"{DateTime.Now:HH:mm:ss.fff} {message.Message}");
             Owner?.Logged?.Invoke(Owner, message);
         }
 
-        [JsonRpcMethod("window/showMessage")]
+        [JsonRpcMethod(LspMethods.ShowMessage)]
         public void ShowMessage(LogMessageParams message)
         {
             Owner?.log.Write($"{DateTime.Now:HH:mm:ss.fff} Shown: {message.Message}");
@@ -889,19 +889,19 @@ public sealed class LanguageServer : IAsyncDisposable
         }
 
         /// <summary>Roslyn's own showMessage, with commands for VS Code's C# extension (Show C# logs) that have no meaning here.</summary>
-        [JsonRpcMethod("window/_roslyn_showToast")]
+        [JsonRpcMethod(LspMethods.ShowToast)]
         public void ShowToast(ShowToastParams toast) => ShowMessage(new LogMessageParams(toast.MessageType, toast.Message));
 
         /// <summary>Roslyn asks for each option as <c>csharp|group.name</c> or <c>group.name</c>; the ones named in
         /// <see cref="Settings"/> are answered, the rest left to the server's defaults. Another server's sections
         /// (<c>css</c>, <c>html</c>, <c>typescript</c>) are answered as it was started to answer them.</summary>
-        [JsonRpcMethod("workspace/configuration")]
+        [JsonRpcMethod(LspMethods.Configuration)]
         public object?[] Configuration(ConfigurationParams request) => Owner?.configure is { } configure
             ? [.. request.Items.Select(item => configure(item.Section))]
             : [.. request.Items.Select(item => item.Section is { } section ? Owner?.Option(section[(section.LastIndexOfAny(['.', '|']) + 1)..]) : null)];
 
         /// <summary>A document's diagnostics from a server that pushes them.</summary>
-        [JsonRpcMethod("textDocument/publishDiagnostics")]
+        [JsonRpcMethod(LspMethods.PublishDiagnostics)]
         public void PublishDiagnostics(PublishDiagnosticsParams published)
         {
             if (Owner is { } owner)
@@ -939,19 +939,19 @@ public sealed class LanguageServer : IAsyncDisposable
 
         /// <summary>A question for the person with choices (the TypeScript server's, of a version it cannot use): none chosen,
         /// what it said is logged.</summary>
-        [JsonRpcMethod("window/showMessageRequest")]
+        [JsonRpcMethod(LspMethods.ShowMessageRequest)]
         public object? ShowMessageRequest(LogMessageParams message)
         {
             LogMessage(message);
             return null;
         }
 
-        [JsonRpcMethod("window/showDocument")]
+        [JsonRpcMethod(LspMethods.ShowDocument)]
         public object ShowDocument(JsonElement? request = null) => new { success = false };
 
         /// <summary>An edit a server's own command makes (ESLint's fixes): made by what its start names, else refused.
         /// Awaited apart from the messages that follow.</summary>
-        [JsonRpcMethod("workspace/applyEdit")]
+        [JsonRpcMethod(LspMethods.ApplyEdit)]
         public async Task<object> ApplyEdit(JsonElement request)
         {
             if (Owner?.applyEdit is not { } apply || request.ValueKind != JsonValueKind.Object || !request.TryGetProperty("edit", out JsonElement edit))
@@ -999,7 +999,7 @@ public sealed class LanguageServer : IAsyncDisposable
         }
 
         /// <summary>The TypeScript server's word on which TypeScript it runs, the project's own or the one Passenger carries.</summary>
-        [JsonRpcMethod("$/typescriptVersion")]
+        [JsonRpcMethod(LspMethods.TypeScriptVersion)]
         public void TypeScriptVersion(JsonElement version)
         {
             Owner?.log.Write($"{DateTime.Now:HH:mm:ss.fff} TypeScript {version}");
@@ -1012,19 +1012,19 @@ public sealed class LanguageServer : IAsyncDisposable
             }
         }
 
-        [JsonRpcMethod("client/registerCapability")]
+        [JsonRpcMethod(LspMethods.RegisterCapability)]
         public object? RegisterCapability(RegistrationParams request)
         {
             foreach (Registration registration in request.Registrations.Where(ForRazor))
             {
-                if (registration.Method == "textDocument/semanticTokens" && registration.RegisterOptions is { } options
+                if (registration.Method == LspMethods.SemanticTokens && registration.RegisterOptions is { } options
                     && options.TryGetProperty("legend", out JsonElement legend))
                 {
                     RazorLegend = legend.Deserialize<SemanticTokensLegend>(Json.Options);
                 }
             }
             // Razor's are left out: a Razor file's diagnostics are its one source, pulled as the file's own.
-            foreach (Registration registration in request.Registrations.Where(r => r.Method == "textDocument/diagnostic" && !ForRazor(r)))
+            foreach (Registration registration in request.Registrations.Where(r => r.Method == LspMethods.DocumentDiagnostic && !ForRazor(r)))
             {
                 string? identifier = registration.RegisterOptions is { ValueKind: JsonValueKind.Object } options
                     && options.TryGetProperty("identifier", out JsonElement id) ? id.GetString() : null;
@@ -1045,13 +1045,13 @@ public sealed class LanguageServer : IAsyncDisposable
             return null;
         }
 
-        [JsonRpcMethod("client/unregisterCapability")]
+        [JsonRpcMethod(LspMethods.UnregisterCapability)]
         public object? UnregisterCapability(JsonElement? request = null) => null;
 
-        [JsonRpcMethod("window/workDoneProgress/create")]
+        [JsonRpcMethod(LspMethods.WorkDoneProgressCreate)]
         public object? CreateProgress(JsonElement? request = null) => null;
 
-        [JsonRpcMethod("$/progress")]
+        [JsonRpcMethod(LspMethods.Progress)]
         public void Progress(ProgressParams progress)
         {
             if (WorkProgress.From(progress) is { } work)
@@ -1062,7 +1062,7 @@ public sealed class LanguageServer : IAsyncDisposable
 
         /// <summary>A request's partial result, which the server's own progress sends with its token and value in order
         /// rather than named as work done progress names them; one no request under way asked for is dropped.</summary>
-        [JsonRpcMethod("$/progress")]
+        [JsonRpcMethod(LspMethods.Progress)]
         public void Progress(JsonElement partialToken, JsonElement partialValue)
         {
             if (partialToken.ValueKind == JsonValueKind.String && partialToken.GetString() is { } token && Partials.TryGetValue(token, out Action<JsonElement>? take))
@@ -1071,7 +1071,7 @@ public sealed class LanguageServer : IAsyncDisposable
             }
         }
 
-        [JsonRpcMethod("workspace/projectInitializationComplete")]
+        [JsonRpcMethod(LspMethods.ProjectInitializationComplete)]
         public void ProjectsLoaded(JsonElement? message = null) => Owner?.ProjectsLoaded?.Invoke(Owner, EventArgs.Empty);
 
         /// <summary>Passenger's project loader in the server asking for a project's design-time builds, from the client's
@@ -1082,7 +1082,7 @@ public sealed class LanguageServer : IAsyncDisposable
                 ? await feed.InfoAsync(asked.Path, CancellationToken.None).ConfigureAwait(false)
                 : new Roslyn.Extension.ProjectInfoResult(null, "Passenger has no design-time builds to give");
 
-        [JsonRpcMethod("workspace/semanticTokens/refresh")]
+        [JsonRpcMethod(LspMethods.SemanticTokensRefresh)]
         public object? RefreshTokens(JsonElement? request = null)
         {
             // Noted as it was read (CountedMessages), perhaps well before now: what came before it was handled first.
@@ -1090,20 +1090,20 @@ public sealed class LanguageServer : IAsyncDisposable
             return null;
         }
 
-        [JsonRpcMethod("workspace/diagnostic/refresh")]
+        [JsonRpcMethod(LspMethods.DiagnosticRefresh)]
         public object? RefreshDiagnostics(JsonElement? request = null)
         {
             Owner?.DiagnosticsRefreshRequested?.Invoke(Owner, EventArgs.Empty);
             return null;
         }
 
-        [JsonRpcMethod("workspace/inlayHint/refresh")]
+        [JsonRpcMethod(LspMethods.InlayHintRefresh)]
         public object? RefreshHints(JsonElement? request = null) => null;
 
-        [JsonRpcMethod("workspace/codeLens/refresh")]
+        [JsonRpcMethod(LspMethods.CodeLensRefresh)]
         public object? RefreshLenses(JsonElement? request = null) => null;
 
-        [JsonRpcMethod("telemetry/event")]
+        [JsonRpcMethod(LspMethods.TelemetryEvent)]
         public void Telemetry(JsonElement? message = null)
         {
         }
@@ -1112,74 +1112,74 @@ public sealed class LanguageServer : IAsyncDisposable
         /// each as Razor received it wrapped with the file and its HTML's checksum (<see cref="RazorHtml"/>). Each goes to
         /// the HTML server when there is one; without it, a list answers empty, so Razor goes on with its own part (the C#'s
         /// formatting, its components' completion), and one answers null. Awaited apart from the messages that follow.</summary>
-        [JsonRpcMethod("razor/updateHtml")]
+        [JsonRpcMethod(LspMethods.RazorUpdateHtml)]
         public async Task<object?> UpdateHtml(JsonElement update)
         {
             await Html.UpdateAsync(update).ConfigureAwait(false);
             return null;
         }
 
-        [JsonRpcMethod("textDocument/completion")]
+        [JsonRpcMethod(LspMethods.Completion)]
         public async Task<object> HtmlCompletion(JsonElement forwarded) =>
-            await Html.ForwardAsync("textDocument/completion", forwarded).ConfigureAwait(false) is { ValueKind: JsonValueKind.Object or JsonValueKind.Array } answer
+            await Html.ForwardAsync(LspMethods.Completion, forwarded).ConfigureAwait(false) is { ValueKind: JsonValueKind.Object or JsonValueKind.Array } answer
                 ? answer : Html.Completion(forwarded);
 
-        [JsonRpcMethod("completionItem/resolve")]
+        [JsonRpcMethod(LspMethods.CompletionResolve)]
         public async Task<JsonElement?> HtmlCompletionResolve(JsonElement forwarded) =>
-            await Html.ForwardAsync("completionItem/resolve", forwarded).ConfigureAwait(false) ?? Asked(forwarded);
+            await Html.ForwardAsync(LspMethods.CompletionResolve, forwarded).ConfigureAwait(false) ?? Asked(forwarded);
 
-        [JsonRpcMethod("codeAction/resolve")]
+        [JsonRpcMethod(LspMethods.CodeActionResolve)]
         public JsonElement? HtmlCodeActionResolve(JsonElement forwarded) => Asked(forwarded);
 
-        [JsonRpcMethod("textDocument/formatting")]
-        public Task<object> HtmlFormatting(JsonElement forwarded) => List("textDocument/formatting", forwarded);
+        [JsonRpcMethod(LspMethods.Formatting)]
+        public Task<object> HtmlFormatting(JsonElement forwarded) => List(LspMethods.Formatting, forwarded);
 
-        [JsonRpcMethod("textDocument/rangeFormatting")]
-        public Task<object> HtmlRangeFormatting(JsonElement forwarded) => List("textDocument/rangeFormatting", forwarded);
+        [JsonRpcMethod(LspMethods.RangeFormatting)]
+        public Task<object> HtmlRangeFormatting(JsonElement forwarded) => List(LspMethods.RangeFormatting, forwarded);
 
-        [JsonRpcMethod("textDocument/onTypeFormatting")]
+        [JsonRpcMethod(LspMethods.OnTypeFormatting)]
         public object[] HtmlOnTypeFormatting(JsonElement? forwarded = null) => [];
 
-        [JsonRpcMethod("textDocument/codeAction")]
+        [JsonRpcMethod(LspMethods.CodeAction)]
         public object[] HtmlCodeActions(JsonElement? forwarded = null) => [];
 
-        [JsonRpcMethod("textDocument/documentHighlight")]
-        public Task<object> HtmlHighlights(JsonElement forwarded) => List("textDocument/documentHighlight", forwarded);
+        [JsonRpcMethod(LspMethods.DocumentHighlight)]
+        public Task<object> HtmlHighlights(JsonElement forwarded) => List(LspMethods.DocumentHighlight, forwarded);
 
-        [JsonRpcMethod("textDocument/references")]
-        public Task<object> HtmlReferences(JsonElement forwarded) => List("textDocument/references", forwarded);
+        [JsonRpcMethod(LspMethods.References)]
+        public Task<object> HtmlReferences(JsonElement forwarded) => List(LspMethods.References, forwarded);
 
-        [JsonRpcMethod("textDocument/foldingRange")]
-        public Task<object> HtmlFolds(JsonElement forwarded) => List("textDocument/foldingRange", forwarded);
+        [JsonRpcMethod(LspMethods.FoldingRange)]
+        public Task<object> HtmlFolds(JsonElement forwarded) => List(LspMethods.FoldingRange, forwarded);
 
-        [JsonRpcMethod("textDocument/documentColor")]
-        public Task<object> HtmlColours(JsonElement forwarded) => List("textDocument/documentColor", forwarded);
+        [JsonRpcMethod(LspMethods.DocumentColor)]
+        public Task<object> HtmlColours(JsonElement forwarded) => List(LspMethods.DocumentColor, forwarded);
 
-        [JsonRpcMethod("textDocument/colorPresentation")]
-        public Task<object> HtmlColourPresentations(JsonElement forwarded) => List("textDocument/colorPresentation", forwarded);
+        [JsonRpcMethod(LspMethods.ColorPresentation)]
+        public Task<object> HtmlColourPresentations(JsonElement forwarded) => List(LspMethods.ColorPresentation, forwarded);
 
-        [JsonRpcMethod("textDocument/hover")]
-        public Task<JsonElement?> HtmlHover(JsonElement forwarded) => Html.ForwardAsync("textDocument/hover", forwarded);
+        [JsonRpcMethod(LspMethods.Hover)]
+        public Task<JsonElement?> HtmlHover(JsonElement forwarded) => Html.ForwardAsync(LspMethods.Hover, forwarded);
 
-        [JsonRpcMethod("textDocument/signatureHelp")]
-        public Task<JsonElement?> HtmlSignatureHelp(JsonElement forwarded) => Html.ForwardAsync("textDocument/signatureHelp", forwarded);
+        [JsonRpcMethod(LspMethods.SignatureHelp)]
+        public Task<JsonElement?> HtmlSignatureHelp(JsonElement forwarded) => Html.ForwardAsync(LspMethods.SignatureHelp, forwarded);
 
-        [JsonRpcMethod("textDocument/definition")]
-        public Task<JsonElement?> HtmlDefinition(JsonElement forwarded) => Html.ForwardAsync("textDocument/definition", forwarded);
+        [JsonRpcMethod(LspMethods.Definition)]
+        public Task<JsonElement?> HtmlDefinition(JsonElement forwarded) => Html.ForwardAsync(LspMethods.Definition, forwarded);
 
-        [JsonRpcMethod("textDocument/implementation")]
+        [JsonRpcMethod(LspMethods.Implementation)]
         public object? HtmlImplementation(JsonElement? forwarded = null) => null;
 
-        [JsonRpcMethod("textDocument/prepareRename")]
+        [JsonRpcMethod(LspMethods.PrepareRename)]
         public object? HtmlPrepareRename(JsonElement? forwarded = null) => null;
 
-        [JsonRpcMethod("textDocument/rename")]
-        public Task<JsonElement?> HtmlRename(JsonElement forwarded) => Html.ForwardAsync("textDocument/rename", forwarded);
+        [JsonRpcMethod(LspMethods.Rename)]
+        public Task<JsonElement?> HtmlRename(JsonElement forwarded) => Html.ForwardAsync(LspMethods.Rename, forwarded);
 
-        [JsonRpcMethod("textDocument/linkedEditingRange")]
+        [JsonRpcMethod(LspMethods.LinkedEditingRange)]
         public object? HtmlLinkedEditing(JsonElement? forwarded = null) => null;
 
-        [JsonRpcMethod("textDocument/_vs_onAutoInsert")]
+        [JsonRpcMethod(LspMethods.OnAutoInsert)]
         public object? HtmlAutoInsert(JsonElement? forwarded = null) => null;
 
         /// <summary>A forwarded request whose answer is a list: the HTML server's, or none.</summary>

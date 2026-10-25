@@ -114,7 +114,7 @@ public sealed partial class CSharpDocument
             return [.. unset.Select(p => new Diagnostic
             {
                 Range = new LspRange(new LspPosition(p.Start.Line, p.Start.Character), new LspPosition(p.End.Line, p.End.Character)),
-                Severity = 2,
+                Severity = DiagnosticSeverity.Warning,
                 Source = AspireDiagnosticSource,
                 Message = $"Parameter '{p.Name}' has no value in the AppHost's configuration, so it asks for one as it runs. "
                     + (p.Secret ? $"Set Parameters:{p.Name} in its user secrets." : $"Set Parameters:{p.Name} in its appsettings.json."),
@@ -148,7 +148,7 @@ public sealed partial class CSharpDocument
             return [.. unknown.Select(Unknown), .. help.Missing.Select(m => new Diagnostic
             {
                 Range = new LspRange(new LspPosition(m.Start.Line, m.Start.Character), new LspPosition(m.End.Line, m.End.Character)),
-                Severity = 2,
+                Severity = DiagnosticSeverity.Warning,
                 Source = AspireDiagnosticSource,
                 Message = $"AppHost resource '{m.Service}' does not reference '{m.Resource}'. Add WithReference({m.Resource}) to '{m.Service}'.",
                 Data = JsonSerializer.SerializeToElement(new Dictionary<string, string> { ["service"] = m.Service, ["resource"] = m.Resource }),
@@ -169,7 +169,7 @@ public sealed partial class CSharpDocument
         return new Diagnostic
         {
             Range = new LspRange(new LspPosition(read.Start.Line, read.Start.Character), new LspPosition(read.End.Line, read.End.Character)),
-            Severity = 2,
+            Severity = DiagnosticSeverity.Warning,
             Source = AspireDiagnosticSource,
             Message = $"No resource of the AppHost is named '{read.Name}', and the service's appsettings give no connection string of that name."
                 + (near.Count > 0 ? $" Did you mean '{near[0]}'?" : string.Empty),

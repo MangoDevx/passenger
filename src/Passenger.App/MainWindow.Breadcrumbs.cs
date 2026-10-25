@@ -115,7 +115,7 @@ public partial class MainWindow
                 while (level.FirstOrDefault(s => s.Range.Start.Line <= line && line <= s.Range.End.Line) is { } symbol)
                 {
                     // The namespace is the file's own context; the path names what is in it.
-                    if (symbol.Kind != SymbolKinds.Namespace)
+                    if (symbol.Kind != SymbolKind.Namespace)
                     {
                         wanted.Add(new Crumb(symbol.Name.Split(" : ")[0], document.Path, lines.Text.GetPosition(lines.OffsetOf(symbol.SelectionRange.Start)), Muted: false));
                     }

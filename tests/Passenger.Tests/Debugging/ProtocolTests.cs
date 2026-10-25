@@ -23,13 +23,13 @@ public class ProtocolTests(ITestOutputHelper testOutputHelper)
         await client.ConnectAsync(IPAddress.Loopback, ((IPEndPoint)listener.LocalEndpoint).Port, TestContext.Current.CancellationToken);
         using TcpClient peer = await listener.AcceptTcpClientAsync(TestContext.Current.CancellationToken);
         await using DapConnection connection = new(client.GetStream(), client.GetStream());
-        Task<JsonElement> pending = connection.RequestAsync("initialize", null, TestContext.Current.CancellationToken);
+        Task<JsonElement> pending = connection.RequestAsync(DapCommands.Initialize, null, TestContext.Current.CancellationToken);
         connection.Start();
         byte[] body = Encoding.UTF8.GetBytes(response);
         await peer.GetStream().WriteAsync(Encoding.ASCII.GetBytes($"Content-Length: {body.Length}\r\n\r\n"), TestContext.Current.CancellationToken);
         await peer.GetStream().WriteAsync(body, TestContext.Current.CancellationToken);
         DapException failed = await Assert.ThrowsAsync<DapException>(() => pending.WaitAsync(TimeSpan.FromSeconds(5).Scaled(), TestContext.Current.CancellationToken));
-        Assert.Equal("initialize", failed.Command);
+        Assert.Equal(DapCommands.Initialize, failed.Command);
         await connection.Completion.WaitAsync(TimeSpan.FromSeconds(5).Scaled(), TestContext.Current.CancellationToken);
     }
 
@@ -44,7 +44,7 @@ public class ProtocolTests(ITestOutputHelper testOutputHelper)
         DapException unknownError = Assert.Throws<DapException>(() => host.Request("unknownRequest"));
         Assert.Equal("Request 'unknownRequest' is not supported.", unknownError.Reason);
 
-        DapCapabilities capabilities = host.Request<DapCapabilities>("initialize", DebugSession.InitializeArguments);
+        DapCapabilities capabilities = host.Request<DapCapabilities>(DapCommands.Initialize, DebugSession.InitializeArguments);
         Assert.True(capabilities.SupportsConfigurationDoneRequest);
     }
 

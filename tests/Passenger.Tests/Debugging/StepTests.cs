@@ -35,7 +35,7 @@ public class StepTests(ITestOutputHelper testOutputHelper)
         DapException refusedOut = Assert.Throws<DapException>(() => debugProtocolHost.WithStepOutRequest(999_999));
         Assert.Contains("no thread 999999", refusedOut.Reason, StringComparison.Ordinal);
         StoppedEvent steppedOn = await debugProtocolHost.WithStepOverRequest(first.ThreadId!.Value).WaitForStoppedEvent();
-        Assert.Equal(("step", 21), (steppedOn.Reason, steppedOn.Line));
+        Assert.Equal((StopReasons.Step, 21), (steppedOn.Reason, steppedOn.Line));
 
         StoppedEvent stoppedEvent = await debugProtocolHost.WithContinueRequest().WaitForStoppedEvent();
         (string filePath, int line, int column) stopInfo = stoppedEvent.ReadStopInfo();
@@ -257,19 +257,19 @@ public class StepTests(ITestOutputHelper testOutputHelper)
         int both = 0;
         for (int turn = 1; turn <= RaceTurns; turn++)
         {
-            Assert.Equal(("breakpoint", letGo, stepping), (stop.Reason, stop.Line, stop.ThreadId));
+            Assert.Equal((StopReasons.Breakpoint, letGo, stepping), (stop.Reason, stop.Line, stop.ThreadId));
             List<StoppedEvent> stops = [await host.WithStepOverRequest(stepping).WaitForStoppedEvent()];
             while ((stop = await host.WithContinueRequest().WaitForStoppedEvent()).Line != letGo)
             {
                 stops.Add(stop);
             }
             string seen = string.Join(", ", stops.Select(s => $"{s.Reason} at line {s.Line} on thread {s.ThreadId}"));
-            Assert.True(stops.Count(s => (s.Reason, s.Line) == ("breakpoint", passed)) == 1,
+            Assert.True(stops.Count(s => (s.Reason, s.Line) == (StopReasons.Breakpoint, passed)) == 1,
                 $"Turn {turn}: the racing thread's breakpoint was passed over as the step ended on the other thread; the stops were {seen}");
-            bool stepStopped = stops.Any(s => (s.Reason, s.Line, s.ThreadId) == ("step", stepped, stepping));
+            bool stepStopped = stops.Any(s => (s.Reason, s.Line, s.ThreadId) == (StopReasons.Step, stepped, stepping));
             Assert.True(stops[0].Line == passed || stepStopped,
                 $"Turn {turn}: the step was lost to the racing thread's breakpoint that stopped after it ended; the stops were {seen}");
-            Assert.True(!stepStopped || stops[0].Reason == "step",
+            Assert.True(!stepStopped || stops[0].Reason == StopReasons.Step,
                 $"Turn {turn}: the racing thread's breakpoint stopped before the step that had already ended; the stops were {seen}");
             both += stepStopped ? 1 : 0;
         }
@@ -290,9 +290,9 @@ public class StepTests(ITestOutputHelper testOutputHelper)
         int stepping = stop.ThreadId!.Value;
         for (int turn = 1; turn <= ThrowingTurns; turn++)
         {
-            Assert.Equal(("breakpoint", letGo, stepping), (stop.Reason, stop.Line, stop.ThreadId));
+            Assert.Equal((StopReasons.Breakpoint, letGo, stepping), (stop.Reason, stop.Line, stop.ThreadId));
             StoppedEvent step = await host.WithStepOverRequest(stepping).WaitForStoppedEvent();
-            Assert.True((step.Reason, step.Line, step.ThreadId) == ("step", stepped, stepping),
+            Assert.True((step.Reason, step.Line, step.ThreadId) == (StopReasons.Step, stepped, stepping),
                 $"Turn {turn}: the step over the call stopped for {step.Reason} at line {step.Line} on thread {step.ThreadId}, not at line {stepped}");
             stop = await host.WithContinueRequest().WaitForStoppedEvent();
             Assert.True(stop.Line == letGo,
@@ -318,7 +318,7 @@ public class StepTests(ITestOutputHelper testOutputHelper)
     private static async Task<StoppedEvent> LaunchRace(DebugSession host, List<DapSourceBreakpoint> breakpoints, DapExceptionOptions? exceptions = null)
     {
         string program = Debuggees.Program(Looping);
-        host.WithInitializeRequest().Request("launch", new LaunchArguments
+        host.WithInitializeRequest().Request(DapCommands.Launch, new LaunchArguments
         {
             Program = program,
             Args = exceptions is null ? ["race"] : ["race", "throws"],
@@ -330,7 +330,7 @@ public class StepTests(ITestOutputHelper testOutputHelper)
         await host.WaitForInitializedEvent();
         if (exceptions is not null)
         {
-            host.Request("setExceptionBreakpoints", new SetExceptionBreakpointsArguments([], ExceptionOptions: [exceptions]));
+            host.Request(DapCommands.SetExceptionBreakpoints, new SetExceptionBreakpointsArguments([], ExceptionOptions: [exceptions]));
         }
         host.WithBreakpointsRequest(Debuggees.Source(Looping, "Program.cs"), breakpoints).WithConfigurationDoneRequest();
         return await host.WaitForStoppedEvent();
@@ -342,7 +342,7 @@ public class StepTests(ITestOutputHelper testOutputHelper)
     private static async Task StepOverWhileAnotherThreadPasses(DebugSession host, string mode, string from, string runsOnTo, DapSourceBreakpoint other)
     {
         string program = Debuggees.Program(Looping);
-        host.WithInitializeRequest().Request("launch", new LaunchArguments
+        host.WithInitializeRequest().Request(DapCommands.Launch, new LaunchArguments
         {
             Program = program,
             Args = [.. mode.Split(' ')],
@@ -363,7 +363,7 @@ public class StepTests(ITestOutputHelper testOutputHelper)
     private static void AssertStepEnded(StoppedEvent stepped, string at)
     {
         int line = Debuggees.Line(Looping, at);
-        Assert.True(stepped.Reason == "step" && stepped.Line == line,
+        Assert.True(stepped.Reason == StopReasons.Step && stepped.Line == line,
             $"The step was lost to a breakpoint that did not stop, and the program ran on: it stopped for {stepped.Reason} at line {stepped.Line}, where the step would have stopped at line {line}");
     }
 }

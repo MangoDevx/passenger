@@ -38,7 +38,7 @@ internal sealed class CountedMessages : HeaderDelimitedMessageHandler
         if (message is not null)
         {
             long crossed = output.CrossedAcrossBeforeNext();
-            if (message is JsonRpcRequest { Method: "workspace/semanticTokens/refresh" })
+            if (message is JsonRpcRequest { Method: LspMethods.SemanticTokensRefresh })
             {
                 Interlocked.Exchange(ref lastWordAfter, crossed);
             }

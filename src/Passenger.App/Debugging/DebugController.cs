@@ -651,9 +651,9 @@ public sealed class DebugController : IDisposable
             {
                 ConsoleStream? stream = output.Category switch
                 {
-                    "stdout" => ConsoleStream.Output,
-                    "stderr" => ConsoleStream.Error,
-                    "telemetry" => null,
+                    DapOutputCategories.Stdout => ConsoleStream.Output,
+                    DapOutputCategories.Stderr => ConsoleStream.Error,
+                    DapOutputCategories.Telemetry => null,
                     _ => ConsoleStream.System,
                 };
                 if (stream is { } into)

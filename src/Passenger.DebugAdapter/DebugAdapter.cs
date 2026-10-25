@@ -310,8 +310,8 @@ public sealed partial class DebugAdapter
         debugger.OnModuleUnloaded += (id, name, path) => connection.SendEvent(DapEvents.Module, new ModuleEvent("removed", new DapModule(id, name, path)));
         debugger.OnProcessStarted += (processId, name) => connection.SendEvent(DapEvents.Process, new ProcessEvent(name, processId, IsLocalProcess: !Remote, StartMethod: DapCommands.Launch));
         debugger.OnAttached += processId => connection.SendEvent(DapEvents.Process, new ProcessEvent($"process {processId}", processId, IsLocalProcess: !Remote, StartMethod: DapCommands.Attach));
-        debugger.OnOutput += (output, isStdError) => connection.SendEvent(DapEvents.Output, new OutputEvent(output, isStdError ? "stderr" : "stdout"));
-        debugger.OnConsole += message => connection.SendEvent(DapEvents.Output, new OutputEvent(message, "console"));
+        debugger.OnOutput += (output, isStdError) => connection.SendEvent(DapEvents.Output, new OutputEvent(output, isStdError ? DapOutputCategories.Stderr : DapOutputCategories.Stdout));
+        debugger.OnConsole += message => connection.SendEvent(DapEvents.Output, new OutputEvent(message, DapOutputCategories.Console));
         debugger.SendRunInTerminalRequest += RunInTerminal;
     }
 
@@ -342,8 +342,8 @@ public sealed partial class DebugAdapter
             DataBreakpointsUnavailable = ManagedDebugger.DataBreakpointsUnavailable,
             ExceptionBreakpointFilters =
             [
-                new DapExceptionFilter("all", "All Exceptions", Default: false),
-                new DapExceptionFilter("user-unhandled", "User-Unhandled Exceptions", Default: true),
+                new DapExceptionFilter(DapExceptionFilters.All, "All Exceptions", Default: false),
+                new DapExceptionFilter(DapExceptionFilters.UserUnhandled, "User-Unhandled Exceptions", Default: true),
             ],
         });
     }
@@ -478,8 +478,8 @@ public sealed partial class DebugAdapter
 
         static ExceptionBreakpointFilter ExceptionFilter(string filter) => filter switch
         {
-            "all" => ExceptionBreakpointFilter.All,
-            "user-unhandled" => ExceptionBreakpointFilter.UserUnhandled,
+            DapExceptionFilters.All => ExceptionBreakpointFilter.All,
+            DapExceptionFilters.UserUnhandled => ExceptionBreakpointFilter.UserUnhandled,
             _ => throw new InvalidOperationException($"Unknown exception breakpoint filter: '{filter}'"),
         };
 

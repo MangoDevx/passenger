@@ -91,3 +91,51 @@ public static class DapRows
     /// <summary>What <see cref="QuerySql"/> says before it is opened.</summary>
     public const string QuerySqlUnread = "Opening it runs ToQueryString() in the program";
 }
+
+/// <summary>The exception filters Passenger's debug adapter offers, by their ids: what initialize's answer lists, what
+/// setExceptionBreakpoints names and what the adapter reads back, each written once.</summary>
+public static class DapExceptionFilters
+{
+    /// <summary>Every exception, handled or not, as it is thrown.</summary>
+    public const string All = "all";
+
+    /// <summary>An exception user code leaves unhandled.</summary>
+    public const string UserUnhandled = "user-unhandled";
+}
+
+/// <summary>An output event's categories, by the protocol's names: what the adapter tells and the IDE sorts into its
+/// console's streams, each written once.</summary>
+public static class DapOutputCategories
+{
+    /// <summary>What the program writes to its standard output.</summary>
+    public const string Stdout = "stdout";
+
+    /// <summary>What the program writes to its standard error.</summary>
+    public const string Stderr = "stderr";
+
+    /// <summary>The debugger's own words: a logpoint's message, a breakpoint reached, why it could not do as asked.</summary>
+    public const string Console = "console";
+
+    /// <summary>Data for the client to keep, never shown.</summary>
+    public const string Telemetry = "telemetry";
+}
+
+/// <summary>The debug adapter's command line, as it reads it and as the IDE and the tests start it, each flag written once:
+/// netcoredbg's, so a client written for that runs this.</summary>
+public static class AdapterFlags
+{
+    /// <summary>The protocol spoken on standard input and output, the only one the adapter speaks.</summary>
+    public const string Interpreter = "--interpreter=vscode";
+
+    /// <summary>What every other interpreter flag begins with, refused.</summary>
+    public const string AnyInterpreter = "--interpreter=";
+
+    /// <summary>Followed by a file, which the engine's log is written to.</summary>
+    public const string EngineLogging = "--engineLogging=";
+
+    /// <summary>Followed by a folder, which keeps the symbols decompiled for assemblies that ship none.</summary>
+    public const string SymbolCache = "--symbolCache=";
+
+    /// <summary>The client is on another machine (the adapter in a container): the processes it tells of are not local.</summary>
+    public const string Remote = "--remote";
+}

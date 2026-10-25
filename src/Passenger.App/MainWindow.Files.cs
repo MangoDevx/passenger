@@ -78,7 +78,7 @@ public partial class MainWindow
     /// <summary>The letter and colour a kind of type is marked with, as Go to Symbol shows it.</summary>
     private static Avalonia.Controls.Control TypeBadge(string kind)
     {
-        (string letter, string brush) = Navigation.SymbolPopup.Badge(kind switch { "Interface" => 11, "Struct" => 23, "Enum" => 10, _ => 5 });
+        (string letter, string brush) = Navigation.SymbolPopup.Badge(kind switch { "Interface" => Lsp.SymbolKind.Interface, "Struct" => Lsp.SymbolKind.Struct, "Enum" => Lsp.SymbolKind.Enum, _ => Lsp.SymbolKind.Class });
         return Navigation.SymbolPopup.KindBadge(kind == "Record" ? "R" : letter, brush);
     }
 

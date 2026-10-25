@@ -18,7 +18,7 @@ public class StackTraceTests(ITestOutputHelper testOutputHelper)
             .WithInitializeRequest()
             .WithAttachRequest(p2.Id, justMyCode: true)
             .WaitForInitializedEvent();
-        debugProtocolHost.Request("setExceptionBreakpoints", new SetExceptionBreakpointsArguments([], [new("all"), new("user-unhandled")]));
+        debugProtocolHost.Request(DapCommands.SetExceptionBreakpoints, new SetExceptionBreakpointsArguments([], [new(DapExceptionFilters.All), new(DapExceptionFilters.UserUnhandled)]));
         string breakpointedFilePath = Debuggees.Source("DebuggableConsoleApp", "ClassWithBclCall.cs");
         debugProtocolHost
             .WithBreakpointsRequest([12], breakpointedFilePath)
@@ -145,7 +145,7 @@ public class StackTraceTests(ITestOutputHelper testOutputHelper)
         Assert.False(unresolvedFrame.IsResolved);
         Assert.Null(unresolvedFrame.DecompiledSourceInfo);
 
-        ResolveStackFrameResponse response = debugProtocolHost.Request<ResolveStackFrameResponse>("resolveStackFrame", new ResolveStackFrameArguments(unresolvedFrame.Id));
+        ResolveStackFrameResponse response = debugProtocolHost.Request<ResolveStackFrameResponse>(DapCommands.ResolveStackFrame, new ResolveStackFrameArguments(unresolvedFrame.Id));
 
         Assert.Equal(unresolvedFrame.Id, response.StackFrame.Id);
         Assert.True(response.StackFrame.IsResolved);
@@ -185,6 +185,6 @@ public class StackTraceTests(ITestOutputHelper testOutputHelper)
         host.WithVariablesRequest(Assert.Single(scopes.Scopes).VariablesReference, out List<DapVariable> arguments);
         Assert.Equal(("arg_0", "7"), (Assert.Single(arguments).Name, arguments[0].Value));
         StoppedEvent stepped = await host.WithStepOutRequest(thread).WaitForStoppedEvent();
-        Assert.Equal(("step", Debuggees.Line("PassengerCases", "callBack(7);")), (stepped.Reason, stepped.ReadStopInfo().line));
+        Assert.Equal((StopReasons.Step, Debuggees.Line("PassengerCases", "callBack(7);")), (stepped.Reason, stepped.ReadStopInfo().line));
     }
 }

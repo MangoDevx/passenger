@@ -18,16 +18,16 @@ public class PauseTests(ITestOutputHelper testOutputHelper)
         await Launch(host, sleeps: false);
 
         StoppedEvent stopped = await Pause(host);
-        Assert.Equal("pause", stopped.Reason);
+        Assert.Equal(StopReasons.Pause, stopped.Reason);
         AssertInLoop(host.GetTopStackFrame(stopped.ThreadId!.Value));
 
         host.WithStepOverRequest(stopped.ThreadId.Value);
         StoppedEvent stepped = await host.WaitForStoppedEvent();
-        Assert.Equal("step", stepped.Reason);
+        Assert.Equal(StopReasons.Step, stepped.Reason);
         AssertInLoop(host.GetTopStackFrame(stepped.ThreadId!.Value));
 
         host.WithContinueRequest();
-        Assert.Equal("pause", (await Pause(host)).Reason);
+        Assert.Equal(StopReasons.Pause, (await Pause(host)).Reason);
     }
 
     /// <summary>A pause that caught the thread in the runtime's own code (its sleep), where none of the program's can run: a
@@ -40,7 +40,7 @@ public class PauseTests(ITestOutputHelper testOutputHelper)
         await Launch(host, sleeps: true);
 
         StoppedEvent stopped = await Pause(host);
-        Assert.Equal("pause", stopped.Reason);
+        Assert.Equal(StopReasons.Pause, stopped.Reason);
         host.WithStackTraceRequest(stopped.ThreadId!.Value, out StackTraceResponse stack, levels: null);
         DapStackFrame main = stack.StackFrames.First(f => f.Source?.Path?.EndsWith("Program.cs", StringComparison.Ordinal) == true);
         host.WithScopesRequest(main.Id, out ScopesResponse scopes);
@@ -53,7 +53,7 @@ public class PauseTests(ITestOutputHelper testOutputHelper)
 
         host.WithStepOverRequest(stopped.ThreadId!.Value);
         StoppedEvent stepped = await host.WaitForStoppedEvent();
-        Assert.Equal("step", stepped.Reason);
+        Assert.Equal(StopReasons.Step, stepped.Reason);
         AssertInLoop(host.GetTopStackFrame(stepped.ThreadId!.Value));
     }
 
@@ -94,7 +94,7 @@ public class PauseTests(ITestOutputHelper testOutputHelper)
         await Start(host, ["parallel"], host => host.WithBreakpointsRequest(Debuggees.Source(Looping, "Program.cs"),
             [new DapSourceBreakpoint(Debuggees.Line(Looping, "each iteration"), Condition: "i.ToString() == \"377\"")]));
         StoppedEvent stopped = await host.WaitForStoppedEvent();
-        Assert.Equal("breakpoint", stopped.Reason);
+        Assert.Equal(StopReasons.Breakpoint, stopped.Reason);
         Assert.Equal("377", Assert.Single(host.Locals(stopped), v => v.Name == "i").Value);
     }
 
@@ -104,15 +104,15 @@ public class PauseTests(ITestOutputHelper testOutputHelper)
         using DebugSession host = DebugSession.ForLaunch(testOutputHelper);
         await Start(host, ["parallel", "throws"], host =>
         {
-            host.Request("setExceptionBreakpoints", new SetExceptionBreakpointsArguments(["all"]));
+            host.Request(DapCommands.SetExceptionBreakpoints, new SetExceptionBreakpointsArguments([DapExceptionFilters.All]));
             // Never true, but each iteration's test runs code in the program while the other threads' iterations wait.
             host.WithBreakpointsRequest(Debuggees.Source(Looping, "Program.cs"),
                 [new DapSourceBreakpoint(Debuggees.Line(Looping, "each iteration"), Condition: "i.ToString() == \"none\"")]);
         });
         StoppedEvent stopped = await host.WaitForStoppedEvent();
-        Assert.Equal("exception", stopped.Reason);
+        Assert.Equal(StopReasons.Exception, stopped.Reason);
         Assert.Equal("200", Assert.Single(host.Locals(stopped), v => v.Name == "i").Value);
-        ExceptionInfoResponse thrown = host.Request<ExceptionInfoResponse>("exceptionInfo", new ThreadArguments(stopped.ThreadId!.Value));
+        ExceptionInfoResponse thrown = host.Request<ExceptionInfoResponse>(DapCommands.ExceptionInfo, new ThreadArguments(stopped.ThreadId!.Value));
         Assert.Equal("iteration 200", thrown.Details?.Message);
     }
 
@@ -126,7 +126,7 @@ public class PauseTests(ITestOutputHelper testOutputHelper)
     private static async Task Start(DebugSession host, List<string> arguments, Action<DebugSession>? configure = null)
     {
         string program = Debuggees.Program(Looping);
-        host.WithInitializeRequest().Request("launch", new LaunchArguments
+        host.WithInitializeRequest().Request(DapCommands.Launch, new LaunchArguments
         {
             Program = program,
             Args = arguments,
@@ -142,7 +142,7 @@ public class PauseTests(ITestOutputHelper testOutputHelper)
 
     private static async Task<StoppedEvent> Pause(DebugSession host)
     {
-        host.Request("pause", new ThreadArguments(0));
+        host.Request(DapCommands.Pause, new ThreadArguments(0));
         return await host.WaitForStoppedEvent();
     }
 

@@ -677,7 +677,7 @@ public sealed class McpAttachTimingTests : McpRig, IClassFixture<RestoredFolders
             client = Await(Task.Run(() => Start(["--mcp-attach", Folder])), "the agent attaching");
             Await(Task.Run(() => Call(client, "diagnostics", new() { ["path"] = "Helper.cs" })), "the language server loading the sample");
             Ui.Settle();
-            Assert.DoesNotContain(InFlight.Now(), piece => piece.What.Contains("textDocument/diagnostic", StringComparison.Ordinal));
+            Assert.DoesNotContain(InFlight.Now(), piece => piece.What.Contains(Passenger.Lsp.LspMethods.DocumentDiagnostic, StringComparison.Ordinal));
             Passenger.Lsp.LanguageServer server = window.CSharpService!.Session!.Server;
             (server.SlowRequest, server.ResponseLimit) = (TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(10));
             suspended = server.ProcessId;
@@ -686,7 +686,7 @@ public sealed class McpAttachTimingTests : McpRig, IClassFixture<RestoredFolders
             Task<CallToolResult> diagnostic = Task.Run(() => revokeConnection
                 ? Result(client, "diagnostics", new() { ["path"] = "Helper.cs" })
                 : CallGivingUp(client, "diagnostics", new() { ["path"] = "Helper.cs" }, giveUp.Token));
-            Ui.PumpUntil(() => InFlight.Now().Any(piece => piece.What.Contains("textDocument/diagnostic", StringComparison.Ordinal)),
+            Ui.PumpUntil(() => InFlight.Now().Any(piece => piece.What.Contains(Passenger.Lsp.LspMethods.DocumentDiagnostic, StringComparison.Ordinal)),
                 "the attached agent's diagnostic to wait on the suspended server", TimeSpan.FromSeconds(10));
             if (revokeConnection)
             {
@@ -704,7 +704,7 @@ public sealed class McpAttachTimingTests : McpRig, IClassFixture<RestoredFolders
                 Ui.PumpUntil(() => diagnostic.IsCompleted, "the agent's diagnostic giving up", TimeSpan.FromSeconds(10));
                 Assert.ThrowsAny<OperationCanceledException>(() => diagnostic.GetAwaiter().GetResult());
             }
-            Ui.PumpUntil(() => !InFlight.Now().Any(piece => piece.What.Contains("textDocument/diagnostic", StringComparison.Ordinal)),
+            Ui.PumpUntil(() => !InFlight.Now().Any(piece => piece.What.Contains(Passenger.Lsp.LspMethods.DocumentDiagnostic, StringComparison.Ordinal)),
                 "the diagnostic request to clear while its server is still suspended", TimeSpan.FromSeconds(10));
             Assert.True(Processes.IsRunning(suspended), "The request cleared only because its language server ended");
         }

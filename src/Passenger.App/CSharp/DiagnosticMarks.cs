@@ -23,7 +23,7 @@ internal static class DiagnosticMarks
     /// compiler calls unnecessary faded; the server's quieter hints left off the page.</summary>
     public static Marker? Marker(Diagnostic diagnostic, TextRange range)
     {
-        bool unnecessary = diagnostic.Tags?.Contains(1) == true;
+        bool unnecessary = diagnostic.Tags?.Contains(DiagnosticTag.Unnecessary) == true;
         MarkerKind? kind = Kind(diagnostic.Severity) is MarkerKind.Error || !unnecessary ? Kind(diagnostic.Severity) : MarkerKind.Unnecessary;
         if (kind is not { } k)
         {
@@ -35,11 +35,11 @@ internal static class DiagnosticMarks
 
     /// <summary>What a severity draws as: errors, warnings and information squiggled, the server's quieter hints left off
     /// the page.</summary>
-    public static MarkerKind? Kind(int? severity) => severity switch
+    public static MarkerKind? Kind(DiagnosticSeverity? severity) => severity switch
     {
-        1 => MarkerKind.Error,
-        2 => MarkerKind.Warning,
-        3 => MarkerKind.Info,
+        DiagnosticSeverity.Error => MarkerKind.Error,
+        DiagnosticSeverity.Warning => MarkerKind.Warning,
+        DiagnosticSeverity.Information => MarkerKind.Info,
         _ => null,
     };
 

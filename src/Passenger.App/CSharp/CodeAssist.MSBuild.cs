@@ -279,16 +279,16 @@ public sealed partial class CodeAssist
     }
 
     /// <summary>The badge an MSBuild item shows, by the protocol's kinds.</summary>
-    private static int KindOf(MSBuildItemKind kind) => kind switch
+    private static CompletionItemKind KindOf(MSBuildItemKind kind) => kind switch
     {
-        MSBuildItemKind.Element or MSBuildItemKind.ClosingTag => 7,
-        MSBuildItemKind.Property or MSBuildItemKind.PropertyReference => 10,
-        MSBuildItemKind.Item or MSBuildItemKind.ItemReference => 22,
-        MSBuildItemKind.Metadata or MSBuildItemKind.Attribute => 5,
-        MSBuildItemKind.Task or MSBuildItemKind.Target => 2,
-        MSBuildItemKind.Value or MSBuildItemKind.Version => 20,
-        MSBuildItemKind.Package or MSBuildItemKind.Sdk => 9,
-        MSBuildItemKind.File or MSBuildItemKind.Folder => 24,
-        _ => 1,
+        MSBuildItemKind.Element or MSBuildItemKind.ClosingTag => CompletionItemKind.Class,
+        MSBuildItemKind.Property or MSBuildItemKind.PropertyReference => CompletionItemKind.Property,
+        MSBuildItemKind.Item or MSBuildItemKind.ItemReference => CompletionItemKind.Struct,
+        MSBuildItemKind.Metadata or MSBuildItemKind.Attribute => CompletionItemKind.Field,
+        MSBuildItemKind.Task or MSBuildItemKind.Target => CompletionItemKind.Method,
+        MSBuildItemKind.Value or MSBuildItemKind.Version => CompletionItemKind.EnumMember,
+        MSBuildItemKind.Package or MSBuildItemKind.Sdk => CompletionItemKind.Module,
+        MSBuildItemKind.File or MSBuildItemKind.Folder => CompletionItemKind.Operator,
+        _ => CompletionItemKind.Text,
     };
 }

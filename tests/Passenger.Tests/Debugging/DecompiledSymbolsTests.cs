@@ -17,7 +17,7 @@ public sealed class DecompiledSymbolsTests(ITestOutputHelper testOutputHelper) :
         string cache = TestFolders.Create("symbols");
         using (DebugSession killed = await StoppedInLinqCallback(cache))
         {
-            Task<ResolveStackFrameResponse> resolving = killed.Send<ResolveStackFrameResponse>("resolveStackFrame", new ResolveStackFrameArguments(LinqFrame(killed).Id));
+            Task<ResolveStackFrameResponse> resolving = killed.Send<ResolveStackFrameResponse>(DapCommands.ResolveStackFrame, new ResolveStackFrameArguments(LinqFrame(killed).Id));
             await DecompileStarted(cache, resolving);
             killed.Kill();
         }
@@ -26,7 +26,7 @@ public sealed class DecompiledSymbolsTests(ITestOutputHelper testOutputHelper) :
         using DebugSession next = await StoppedInLinqCallback(cache);
         DapStackFrame frame = LinqFrame(next);
         Assert.False(frame.IsResolved, "System.Linq's frame had source before it was resolved: the cut-short decompile left symbols behind");
-        ResolveStackFrameResponse resolved = next.Request<ResolveStackFrameResponse>("resolveStackFrame", new ResolveStackFrameArguments(frame.Id), Decompile);
+        ResolveStackFrameResponse resolved = next.Request<ResolveStackFrameResponse>(DapCommands.ResolveStackFrame, new ResolveStackFrameArguments(frame.Id), Decompile);
         Assert.True(resolved.StackFrame.IsResolved == true && resolved.StackFrame.Line > 0 && resolved.StackFrame.Source?.Path?.EndsWith(".cs", StringComparison.Ordinal) == true,
             $"The next session's System.Linq frame was not resolved ({resolved.StackFrame.Source?.Path}:{resolved.StackFrame.Line})");
         Assert.Equal("System.Linq.Enumerable+RangeSelectIterator`2", resolved.StackFrame.DecompiledSourceInfo?.TypeFullName);
@@ -86,11 +86,11 @@ public sealed class DecompiledSymbolsTimingTests(ITestOutputHelper testOutputHel
         string cache = TestFolders.Create("symbols");
         using DebugSession host = await StoppedInCoreLibCallback(cache);
         DapStackFrame coreLib = Frame(host, "System.Private.CoreLib.dll!System.Collections.Generic.List<int>.ForEach");
-        Task<ResolveStackFrameResponse> resolving = host.Send<ResolveStackFrameResponse>("resolveStackFrame", new ResolveStackFrameArguments(coreLib.Id));
+        Task<ResolveStackFrameResponse> resolving = host.Send<ResolveStackFrameResponse>(DapCommands.ResolveStackFrame, new ResolveStackFrameArguments(coreLib.Id));
         await DecompileStarted(cache, resolving);
 
         Stopwatch asked = Stopwatch.StartNew();
-        Assert.NotEmpty(host.Request<ThreadsResponse>("threads", limit: Decompile).Threads);
+        Assert.NotEmpty(host.Request<ThreadsResponse>(DapCommands.Threads, limit: Decompile).Threads);
         Assert.True(asked.Elapsed < Promptly, $"A request made while CoreLib was decompiled took {asked.Elapsed.TotalSeconds:0.0} s: it waited for the decompile");
         Assert.True(host.Disconnect(Promptly), $"The disconnect went unanswered for {Promptly.TotalSeconds:0} s while CoreLib was decompiled, so an IDE would kill the adapter");
         Assert.False(resolving.IsCompletedSuccessfully, "CoreLib's frame was resolved before the disconnect, so the disconnect never waited on a decompile");

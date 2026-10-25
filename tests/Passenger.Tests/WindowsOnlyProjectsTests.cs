@@ -117,7 +117,7 @@ public sealed class WindowsOnlyProjectsTests : IClassFixture<WindowsOnlyProjects
 
     /// <summary>The codes of a document's errors, or its warnings, as the language server last said them.</summary>
     private static string[] Codes(MainWindow window, OpenDocument document, bool warnings) =>
-        [.. (window.CSharpService?.For(document)?.Diagnostics ?? []).Where(d => d.Severity == (warnings ? 2 : 1)).Select(d => d.Code?.ToString() ?? string.Empty).Order(StringComparer.Ordinal)];
+        [.. (window.CSharpService?.For(document)?.Diagnostics ?? []).Where(d => d.Severity == (warnings ? Passenger.Lsp.DiagnosticSeverity.Warning : Passenger.Lsp.DiagnosticSeverity.Error)).Select(d => d.Code?.ToString() ?? string.Empty).Order(StringComparer.Ordinal)];
 
     /// <summary>Waits as <see cref="Ui.WaitFor"/> does, failing with what is so by then.</summary>
     private static void Until(Func<bool> condition, TimeSpan limit, Func<string> failure)

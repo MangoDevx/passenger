@@ -52,7 +52,7 @@ public sealed partial class CodeAssist
         open = new Completion([.. help.Names.Select(name => new CompletionItem
         {
             Label = name,
-            Kind = 12,
+            Kind = CompletionItemKind.Value,
             Detail = "Aspire resource",
             TextEdit = new LspTextEdit(range, System.Text.Json.JsonSerializer.Serialize(name)[1..^1]),
         })], lsp.OffsetOf(range.Start), [], false)

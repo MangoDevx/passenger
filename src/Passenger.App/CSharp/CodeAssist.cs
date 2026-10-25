@@ -679,12 +679,12 @@ public sealed partial class CodeAssist
             templatesOffered.Clear();
             foreach (LiveTemplate template in web is null ? Templates.In(scope) : [])
             {
-                templatesOffered[new CompletionItem { Label = template.Abbreviation, Kind = 15, Detail = template.Description, SortText = "!" + template.Abbreviation }] = template;
+                templatesOffered[new CompletionItem { Label = template.Abbreviation, Kind = CompletionItemKind.Snippet, Detail = template.Description, SortText = "!" + template.Abbreviation }] = template;
             }
             postfixOffered.Clear();
             foreach ((PostfixTemplate postfix, PostfixTarget target) in Templates.PostfixInCompletion ? Postfixes(Math.Min(start, caret), caret) : [])
             {
-                postfixOffered[new CompletionItem { Label = postfix.Name, Kind = 15, Detail = postfix.Example, SortText = "~" + postfix.Name }] = (postfix, target);
+                postfixOffered[new CompletionItem { Label = postfix.Name, Kind = CompletionItemKind.Snippet, Detail = postfix.Example, SortText = "~" + postfix.Name }] = (postfix, target);
             }
             open = new Completion([.. named?.Items ?? [], .. served, .. templatesOffered.Keys, .. postfixOffered.Keys], Math.Min(start, Editor.Selections.Primary.Caret),
                 list?.ItemDefaults?.CommitCharacters ?? [], list?.IsIncomplete ?? false)
@@ -958,7 +958,7 @@ public sealed partial class CodeAssist
         }
         string insert = item.TextEdit?.NewText ?? item.TextEditText ?? item.InsertText ?? item.Label;
         TextRange final = new(insert.Length, 0);
-        if (item.InsertTextFormat == 2)
+        if (item.InsertTextFormat == InsertTextFormat.Snippet)
         {
             // A snippet (Razor's attribute="$0", a component with its required parameters): its places are Tab's to visit.
             Snippet snippet = Snippet.FromProtocol(insert);
@@ -2615,23 +2615,23 @@ public sealed partial class CodeAssist
     {
         (string letter, string brush) = item.Kind switch
         {
-            2 or 3 => ("m", "Passenger.Syntax.Method"),
-            4 => ("c", "Passenger.Syntax.Class"),
-            5 => ("f", "Passenger.Syntax.Field"),
-            6 => ("v", "Passenger.TextMuted"),
-            7 => ("C", "Passenger.Syntax.Class"),
-            8 => ("I", "Passenger.Syntax.Interface"),
-            9 => ("N", "Passenger.Syntax.Keyword"),
-            10 => ("p", "Passenger.Syntax.Property"),
-            13 => ("E", "Passenger.Syntax.Enum"),
-            14 => ("k", "Passenger.Syntax.Keyword"),
-            15 => ("s", "Passenger.TextMuted"),
-            20 => ("e", "Passenger.Syntax.EnumMember"),
-            21 => ("c", "Passenger.Syntax.Constant"),
-            22 => ("S", "Passenger.Syntax.Struct"),
-            23 => ("e", "Passenger.Syntax.Event"),
-            24 => ("o", "Passenger.TextMuted"),
-            25 => ("T", "Passenger.Syntax.TypeParameter"),
+            CompletionItemKind.Method or CompletionItemKind.Function => ("m", "Passenger.Syntax.Method"),
+            CompletionItemKind.Constructor => ("c", "Passenger.Syntax.Class"),
+            CompletionItemKind.Field => ("f", "Passenger.Syntax.Field"),
+            CompletionItemKind.Variable => ("v", "Passenger.TextMuted"),
+            CompletionItemKind.Class => ("C", "Passenger.Syntax.Class"),
+            CompletionItemKind.Interface => ("I", "Passenger.Syntax.Interface"),
+            CompletionItemKind.Module => ("N", "Passenger.Syntax.Keyword"),
+            CompletionItemKind.Property => ("p", "Passenger.Syntax.Property"),
+            CompletionItemKind.Enum => ("E", "Passenger.Syntax.Enum"),
+            CompletionItemKind.Keyword => ("k", "Passenger.Syntax.Keyword"),
+            CompletionItemKind.Snippet => ("s", "Passenger.TextMuted"),
+            CompletionItemKind.EnumMember => ("e", "Passenger.Syntax.EnumMember"),
+            CompletionItemKind.Constant => ("c", "Passenger.Syntax.Constant"),
+            CompletionItemKind.Struct => ("S", "Passenger.Syntax.Struct"),
+            CompletionItemKind.Event => ("e", "Passenger.Syntax.Event"),
+            CompletionItemKind.Operator => ("o", "Passenger.TextMuted"),
+            CompletionItemKind.TypeParameter => ("T", "Passenger.Syntax.TypeParameter"),
             _ => ("·", "Passenger.TextMuted"),
         };
         string detail = item.LabelDetails?.Description ?? item.Detail ?? string.Empty;

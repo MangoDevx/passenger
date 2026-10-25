@@ -11,4 +11,9 @@
     <PackageReference Include="Microsoft.Diagnostics.Runtime" />
     <ProjectReference Include="../Passenger.Core/Passenger.Core.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- The inspector's frame events, by the provider, numbers and payload names its writer gives them. -->
+    <Compile Include="../Passenger.Inspector/FrameWire.cs" Link="FrameWire.cs" />
+  </ItemGroup>
 </Project>

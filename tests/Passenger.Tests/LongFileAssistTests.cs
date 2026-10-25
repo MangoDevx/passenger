@@ -79,7 +79,7 @@ public sealed class LongFileAssistTests : IClassFixture<LongFileAssistTests.Proj
             Marker[] errors = [.. document.Markers.Where(m => m.Kind == MarkerKind.Error).OrderBy(m => m.Range.Start)];
             Assert.True(errors.Select(m => text.GetText(m.Range)).SequenceEqual(literals),
                 $"{when} the squiggles are under {string.Join(", ", errors.Select(m => $"'{text.GetText(m.Range)}'"))}");
-            Passenger.Lsp.Diagnostic[] diagnosed = [.. csharp.Diagnostics.Where(d => d.Severity == 1).OrderBy(d => d.Range.Start.Line)];
+            Passenger.Lsp.Diagnostic[] diagnosed = [.. csharp.Diagnostics.Where(d => d.Severity == Passenger.Lsp.DiagnosticSeverity.Error).OrderBy(d => d.Range.Start.Line)];
             Assert.Equal(literals.Length, diagnosed.Length);
             for (int i = 0; i < literals.Length; i++)
             {
@@ -194,8 +194,8 @@ public sealed class LongFileAssistTests : IClassFixture<LongFileAssistTests.Proj
         Ui.Settle();
         Passenger.Languages.CSharp.SemanticHighlighter colours = Assert.IsType<Passenger.Languages.CSharp.SemanticHighlighter>(document.Highlighter);
         Passenger.Lsp.LanguageServer server = window.CSharpService!.Session!.Server;
-        _ = server.RefuseNext("textDocument/semanticTokens/range", 1000);
-        _ = server.RefuseNext("textDocument/semanticTokens/full", 1000);
+        _ = server.RefuseNext(Passenger.Lsp.LspMethods.SemanticTokensRange, 1000);
+        _ = server.RefuseNext(Passenger.Lsp.LspMethods.SemanticTokensFull, 1000);
         try
         {
             editor.Selections = SelectionSet.Single(source.IndexOf("seed + 0;", StringComparison.Ordinal) + "seed + 0".Length);
@@ -213,8 +213,8 @@ public sealed class LongFileAssistTests : IClassFixture<LongFileAssistTests.Proj
         }
         finally
         {
-            _ = server.RefuseNext("textDocument/semanticTokens/range", 0);
-            _ = server.RefuseNext("textDocument/semanticTokens/full", 0);
+            _ = server.RefuseNext(Passenger.Lsp.LspMethods.SemanticTokensRange, 0);
+            _ = server.RefuseNext(Passenger.Lsp.LspMethods.SemanticTokensFull, 0);
         }
         window.Close();
     }
@@ -292,15 +292,15 @@ public sealed class LongFileAssistTests : IClassFixture<LongFileAssistTests.Proj
                     string file = System.Text.RegularExpressions.Regex.Match(message, "\"uri\":\"[^\"]*/([^\"/]+)\"") is { Success: true } uri ? $" {uri.Groups[1].Value}" : "";
                     wire.Enqueue($"{clock.ElapsedMilliseconds} ms, server {server}: {message[..3]} {method.Groups[1].Value}{file}");
                 }
-                if (message.StartsWith("-->", StringComparison.Ordinal) && message.Contains("\"textDocument/semanticTokens/full\"", StringComparison.Ordinal))
+                if (message.StartsWith("-->", StringComparison.Ordinal) && message.Contains($"\"{Passenger.Lsp.LspMethods.SemanticTokensFull}\"", StringComparison.Ordinal))
                 {
                     Interlocked.Increment(ref whole);
                 }
-                else if (message.StartsWith("-->", StringComparison.Ordinal) && message.Contains("\"textDocument/semanticTokens/range\"", StringComparison.Ordinal))
+                else if (message.StartsWith("-->", StringComparison.Ordinal) && message.Contains($"\"{Passenger.Lsp.LspMethods.SemanticTokensRange}\"", StringComparison.Ordinal))
                 {
                     Interlocked.Increment(ref screens);
                 }
-                else if (message.StartsWith("<--", StringComparison.Ordinal) && message.Contains("\"workspace/semanticTokens/refresh\"", StringComparison.Ordinal)
+                else if (message.StartsWith("<--", StringComparison.Ordinal) && message.Contains($"\"{Passenger.Lsp.LspMethods.SemanticTokensRefresh}\"", StringComparison.Ordinal)
                     && Volatile.Read(ref whole) > 0)
                 {
                     // The server's word that its colours moved, after the file's were asked for: they are rightly asked again.

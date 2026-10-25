@@ -209,7 +209,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         return (IReadOnlyList<Finding>)[.. found.Select(d =>
         {
             TextPosition at = ServerPlaces.PositionOf(answered, d.Range.Start);
-            return new Finding(d.Severity switch { 1 => "error", 2 => "warning", 3 => "info", _ => "hint" }, d.Code?.ToString(), d.Message,
+            return new Finding(d.Severity switch { DiagnosticSeverity.Error => "error", DiagnosticSeverity.Warning => "warning", DiagnosticSeverity.Information => "info", _ => "hint" }, d.Code?.ToString(), d.Message,
                 Relative(document.Path), at.Line + 1, at.Column + 1);
         })];
     });

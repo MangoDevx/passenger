@@ -174,9 +174,9 @@ internal sealed class NodeServer
         {
             server.Logged += (_, message) =>
             {
-                if (message.Type is 1 or 2)
+                if (message.Type is MessageType.Error or MessageType.Warning)
                 {
-                    IdeErrors.Write($"{Name} language server (process {server.ProcessId}) {(message.Type == 1 ? "error" : "warning")}: {message.Message}");
+                    IdeErrors.Write($"{Name} language server (process {server.ProcessId}) {(message.Type == MessageType.Error ? "error" : "warning")}: {message.Message}");
                 }
             };
         }

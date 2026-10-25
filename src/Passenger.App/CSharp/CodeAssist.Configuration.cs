@@ -26,7 +26,7 @@ public sealed partial class CodeAssist
     public Func<string, ConfigurationProject?>? ConfigurationOf { get; set; }
 
     /// <summary>The kind a configuration key is listed as: a property's.</summary>
-    private const int KeyItemKind = 10;
+    private const CompletionItemKind KeyItemKind = CompletionItemKind.Property;
 
     /// <summary>Every configuration key the projects' code reads or binds, asked of Passenger's extension for the code as the server
     /// holds it; none without the server.</summary>
@@ -129,7 +129,7 @@ public sealed partial class CodeAssist
                 Kind = KeyItemKind,
                 Detail = o.Value is { } key ? key.Owner is { } owner ? $"{key.TypeName} — {owner}" : $"{key.TypeName} — read by the code" : "section",
                 InsertText = named ? Quoted(o.Key) : $"{Quoted(o.Key)}: {Placeholder(o.Value)}{(more ? "," : string.Empty)}",
-                InsertTextFormat = 2,
+                InsertTextFormat = InsertTextFormat.Snippet,
                 SortText = " " + o.Key,
             })];
 
@@ -153,11 +153,11 @@ public sealed partial class CodeAssist
             .OrderBy(k => k.Kind == ConfigurationKinds.Option ? 0 : 1).FirstOrDefault();
         return typed switch
         {
-            { Type: ConfigurationTypes.Boolean } => [.. new[] { "true", "false" }.Select(v => new CompletionItem { Label = v, Kind = 12, Detail = typed.TypeName, InsertText = v, SortText = " " + v })],
+            { Type: ConfigurationTypes.Boolean } => [.. new[] { "true", "false" }.Select(v => new CompletionItem { Label = v, Kind = CompletionItemKind.Value, Detail = typed.TypeName, InsertText = v, SortText = " " + v })],
             { Type: ConfigurationTypes.Enum, Values: { } names } => [.. names.Select(v => new CompletionItem
             {
                 Label = v,
-                Kind = 20,
+                Kind = CompletionItemKind.EnumMember,
                 Detail = typed.TypeName,
                 InsertText = System.Text.Json.JsonSerializer.Serialize(v, JsonText.Written),
                 SortText = " " + v,

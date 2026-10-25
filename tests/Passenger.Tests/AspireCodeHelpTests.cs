@@ -532,7 +532,7 @@ public sealed class AspireCodeHelpTests : IClassFixture<AspireCodeHelpTests.Proj
     }
 
     /// <summary>How Passenger's extension is asked about a document.</summary>
-    private const string ExtensionMessage = "textDocument/_vs_dipatchExtensionMessage";
+    private const string ExtensionMessage = Passenger.Lsp.LspMethods.DispatchDocumentExtensionMessage;
 
     /// <summary>What a key typed in the plain file's comment and its pause allocate on the UI thread, the least of a few.</summary>
     private static long UiBytesPerPause(MainWindow window)

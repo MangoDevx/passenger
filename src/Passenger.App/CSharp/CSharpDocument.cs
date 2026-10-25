@@ -226,7 +226,7 @@ public sealed partial class CSharpDocument : IServerDocument, IDisposable
         }
         // Placed on the thread pool, in the text and syntax they were asked for: a file of thousands of calls has as many.
         TextSnapshot text = document.Text.Snapshot;
-        ParsedText? syntax = hints.Any(h => h.Kind == 1) ? document.Syntax?.Current : null;
+        ParsedText? syntax = hints.Any(h => h.Kind == Passenger.Lsp.InlayHintKind.Type) ? document.Syntax?.Current : null;
         bool razor = lsp.IsRazor;
         HintList shown = await BackgroundWork.Run(() => Shown(text, syntax, razor, hints), cancel);
         if (!cancel.IsCancellationRequested && hinted == document.Text.Version)
@@ -298,7 +298,7 @@ public sealed partial class CSharpDocument : IServerDocument, IDisposable
         {
             string label = hint.Label.Trim();
             int offset = lines.OffsetOf(hint.Position);
-            if (hint.Kind == 1)
+            if (hint.Kind == Passenger.Lsp.InlayHintKind.Type)
             {
                 if (syntax is not null && TypeHints.Place(syntax, offset, label) is { } placed)
                 {
@@ -307,7 +307,7 @@ public sealed partial class CSharpDocument : IServerDocument, IDisposable
             }
             else if (!Generic.Contains(label) && !(razor && OnDirective(text, offset)))
             {
-                shown.Add(new InlayHint(offset, label, hint.PaddingLeft, hint.PaddingRight, InlayHintKind.Parameter, hint));
+                shown.Add(new InlayHint(offset, label, hint.PaddingLeft, hint.PaddingRight, Passenger.Editor.InlayHintKind.Parameter, hint));
             }
         }
         return HintList.Of(shown);

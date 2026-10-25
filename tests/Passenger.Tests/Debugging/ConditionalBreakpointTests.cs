@@ -48,7 +48,7 @@ public class ConditionalBreakpointTests(ITestOutputHelper testOutputHelper)
 
         OutputEvent logged = await host.WaitForEvent<OutputEvent>(o => o.Output.StartsWith("myInt is", StringComparison.Ordinal));
         Assert.Equal("myInt is 4, and the list has 4 {literally}\n", logged.Output);
-        Assert.Equal("console", logged.Category);
+        Assert.Equal(DapOutputCategories.Console, logged.Category);
         // The program went on past the tracepoint, to the breakpoint after it.
         Assert.Equal(22, (await host.WaitForStoppedEvent()).ReadStopInfo().line);
     }

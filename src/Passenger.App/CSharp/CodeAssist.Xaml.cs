@@ -660,19 +660,19 @@ public sealed partial class CodeAssist
     private static partial Regex GeneratedFile();
 
     /// <summary>The protocol's kind for a XAML item, which gives its badge its letter and colour.</summary>
-    private static int KindOf(XamlItemKind kind) => kind switch
+    private static CompletionItemKind KindOf(XamlItemKind kind) => kind switch
     {
-        XamlItemKind.Element or XamlItemKind.Type or XamlItemKind.ClosingTag => 7,
-        XamlItemKind.Property or XamlItemKind.AttachedProperty or XamlItemKind.Member => 10,
-        XamlItemKind.Event => 23,
-        XamlItemKind.Directive or XamlItemKind.Value => 14,
-        XamlItemKind.Namespace => 9,
-        XamlItemKind.EnumValue => 20,
-        XamlItemKind.Colour => 16,
-        XamlItemKind.Resource => 21,
-        XamlItemKind.Extension => 7,
-        XamlItemKind.Asset => 17,
-        XamlItemKind.StyleClass or XamlItemKind.PseudoClass or XamlItemKind.ElementName => 18,
-        _ => 1,
+        XamlItemKind.Element or XamlItemKind.Type or XamlItemKind.ClosingTag => CompletionItemKind.Class,
+        XamlItemKind.Property or XamlItemKind.AttachedProperty or XamlItemKind.Member => CompletionItemKind.Property,
+        XamlItemKind.Event => CompletionItemKind.Event,
+        XamlItemKind.Directive or XamlItemKind.Value => CompletionItemKind.Keyword,
+        XamlItemKind.Namespace => CompletionItemKind.Module,
+        XamlItemKind.EnumValue => CompletionItemKind.EnumMember,
+        XamlItemKind.Colour => CompletionItemKind.Color,
+        XamlItemKind.Resource => CompletionItemKind.Constant,
+        XamlItemKind.Extension => CompletionItemKind.Class,
+        XamlItemKind.Asset => CompletionItemKind.File,
+        XamlItemKind.StyleClass or XamlItemKind.PseudoClass or XamlItemKind.ElementName => CompletionItemKind.Reference,
+        _ => CompletionItemKind.Text,
     };
 }

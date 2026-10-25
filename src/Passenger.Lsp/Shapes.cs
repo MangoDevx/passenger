@@ -49,7 +49,7 @@ public static class Shapes
             hints.Add(new LspInlayHint(
                 position.Deserialize<LspPosition>(Json.Options)!,
                 text,
-                item.TryGetProperty("kind", out JsonElement kind) && kind.ValueKind == JsonValueKind.Number ? kind.GetInt32() : null,
+                item.TryGetProperty("kind", out JsonElement kind) && kind.ValueKind == JsonValueKind.Number ? (InlayHintKind)kind.GetInt32() : null,
                 item.TryGetProperty("paddingLeft", out JsonElement left) && left.ValueKind == JsonValueKind.True,
                 item.TryGetProperty("paddingRight", out JsonElement right) && right.ValueKind == JsonValueKind.True,
                 item.TryGetProperty("data", out JsonElement data) ? data.Clone() : null));

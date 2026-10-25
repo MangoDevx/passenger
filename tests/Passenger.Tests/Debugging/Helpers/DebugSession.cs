@@ -46,7 +46,7 @@ public sealed class DebugSession : IDisposable
         engineLog = kept ?? Path.Combine(TestRun.Root, $"engine-{Guid.NewGuid():N}.log");
         // The symbols it decompiles go where the run's IDE keeps them (its state folder's), unless a test names a folder.
         string symbols = symbolCache ?? Passenger.App.Debugging.DebugSession.SymbolCache;
-        List<string> arguments = [path, "--interpreter=vscode", $"--engineLogging={engineLog}", $"--symbolCache={symbols}"];
+        List<string> arguments = [path, AdapterFlags.Interpreter, AdapterFlags.EngineLogging + engineLog, AdapterFlags.SymbolCache + symbols];
         // Started as the IDE starts it, so a test run that is killed leaves no adapter or program behind.
         ProcessStartInfo start = ChildProcesses.DotnetCommand(arguments);
         start.RedirectStandardInput = true;
@@ -69,17 +69,17 @@ public sealed class DebugSession : IDisposable
         Connection = new DapConnection(adapter.StandardOutput.BaseStream, adapter.StandardInput.BaseStream, message => Log(output, message));
         Connection.EventReceived += (name, body) =>
         {
-            if (name is not ("module" or "thread"))
+            if (name is not (DapEvents.Module or DapEvents.Thread))
             {
                 Hear(body.ValueKind != JsonValueKind.Object ? name
-                    : name == "output" && body.TryGetProperty("output", out JsonElement text) ? $"output: {text.GetString()?.TrimEnd()}"
+                    : name == DapEvents.Output && body.TryGetProperty("output", out JsonElement text) ? $"output: {text.GetString()?.TrimEnd()}"
                     : $"{name}: {body.GetRawText()}");
             }
-            if (name == "initialized")
+            if (name == DapEvents.Initialized)
             {
                 initialized.TrySetResult();
             }
-            else if (name is "stopped" or "breakpoint" or "output" or "exited" or "terminated")
+            else if (name is DapEvents.Stopped or DapEvents.Breakpoint or DapEvents.Output or DapEvents.Exited or DapEvents.Terminated)
             {
                 events.Writer.TryWrite((name, body.Clone()));
             }
@@ -136,7 +136,7 @@ public sealed class DebugSession : IDisposable
             .WithInitializeRequest()
             .WithLaunchRequest(Debuggees.Program(debuggee), stopAtEntry: false, justMyCode: true)
             .WaitForInitializedEvent();
-        host.Request("setExceptionBreakpoints", new SetExceptionBreakpointsArguments(exceptionFilters));
+        host.Request(DapCommands.SetExceptionBreakpoints, new SetExceptionBreakpointsArguments(exceptionFilters));
         host.WithBreakpointsRequest(line, Debuggees.Source(debuggee, "Program.cs")).WithConfigurationDoneRequest();
         return host;
     }
@@ -222,7 +222,7 @@ public sealed class DebugSession : IDisposable
     /// <summary>A disconnect, answered or not within <paramref name="limit"/>: true when it was, the adapter then on its way out.</summary>
     public bool Disconnect(TimeSpan limit)
     {
-        Task disconnect = Connection.RequestAsync("disconnect", new DisconnectArguments(TerminateDebuggee: terminateDebuggee));
+        Task disconnect = Connection.RequestAsync(DapCommands.Disconnect, new DisconnectArguments(TerminateDebuggee: terminateDebuggee));
         Observe(disconnect);
         return disconnect.Wait(limit, TestContext.Current.CancellationToken);
     }
@@ -253,7 +253,7 @@ public sealed class DebugSession : IDisposable
 
     public DebugSession WithInitializeRequest()
     {
-        Request<DapCapabilities>("initialize", InitializeArguments);
+        Request<DapCapabilities>(DapCommands.Initialize, InitializeArguments);
         return this;
     }
 
@@ -273,14 +273,14 @@ public sealed class DebugSession : IDisposable
 
     public DebugSession WithAttachRequest(int processId, bool justMyCode = true)
     {
-        Request("attach", new AttachArguments { ProcessId = processId, JustMyCode = justMyCode });
+        Request(DapCommands.Attach, new AttachArguments { ProcessId = processId, JustMyCode = justMyCode });
         return this;
     }
 
     public DebugSession WithLaunchRequest(string program, bool stopAtEntry, bool justMyCode, IReadOnlyList<string>? arguments = null, string console = "internalConsole",
         IReadOnlyDictionary<string, string>? environment = null)
     {
-        Request("launch", new LaunchArguments
+        Request(DapCommands.Launch, new LaunchArguments
         {
             Program = program,
             Args = arguments,
@@ -315,7 +315,7 @@ public sealed class DebugSession : IDisposable
         {
             throw new FileNotFoundException("Source file for breakpoint not found", filePath);
         }
-        response = Request<SetBreakpointsResponse>("setBreakpoints", new SetBreakpointsArguments(new DapSource { Path = filePath }, breakpoints));
+        response = Request<SetBreakpointsResponse>(DapCommands.SetBreakpoints, new SetBreakpointsArguments(new DapSource { Path = filePath }, breakpoints));
         Assert.Equal(breakpoints.Count, response.Breakpoints.Count);
         return this;
     }
@@ -328,7 +328,7 @@ public sealed class DebugSession : IDisposable
     {
         try
         {
-            Request("configurationDone");
+            Request(DapCommands.ConfigurationDone);
         }
         catch (DapException failed)
         {
@@ -356,15 +356,15 @@ public sealed class DebugSession : IDisposable
             {
                 throw new TimeoutException($"The session had not ended after {EventLimit.TotalSeconds:0} s. {Heard()}");
             }
-            if (next.Name == "terminated")
+            if (next.Name == DapEvents.Terminated)
             {
                 return (output.ToString(), exitCode);
             }
-            if (next.Name == "exited")
+            if (next.Name == DapEvents.Exited)
             {
                 exitCode = next.Body.Deserialize<ExitedEvent>(DapConnection.Options)!.ExitCode;
             }
-            else if (next.Name == "output" && next.Body.Deserialize<OutputEvent>(DapConnection.Options) is { Category: "stdout" } written)
+            else if (next.Name == DapEvents.Output && next.Body.Deserialize<OutputEvent>(DapConnection.Options) is { Category: DapOutputCategories.Stdout } written)
             {
                 output.Append(written.Output);
             }
@@ -384,43 +384,43 @@ public sealed class DebugSession : IDisposable
     }
 
     public DapStackFrame GetTopStackFrame(int threadId) =>
-        Assert.Single(Request<StackTraceResponse>("stackTrace", new StackTraceArguments(threadId, 0, 1)).StackFrames);
+        Assert.Single(Request<StackTraceResponse>(DapCommands.StackTrace, new StackTraceArguments(threadId, 0, 1)).StackFrames);
 
     public DebugSession WithStackTraceRequest(int threadId, out StackTraceResponse response, int? levels = 1)
     {
-        response = Request<StackTraceResponse>("stackTrace", new StackTraceArguments(threadId, 0, levels));
+        response = Request<StackTraceResponse>(DapCommands.StackTrace, new StackTraceArguments(threadId, 0, levels));
         return this;
     }
 
     public DebugSession WithScopesRequest(int frameId, out ScopesResponse response)
     {
-        response = Request<ScopesResponse>("scopes", new ScopesArguments(frameId));
+        response = Request<ScopesResponse>(DapCommands.Scopes, new ScopesArguments(frameId));
         return this;
     }
 
     public DebugSession WithVariablesRequest(int variablesReference, out List<DapVariable> variables)
     {
-        variables = [.. Request<VariablesResponse>("variables", new VariablesArguments(variablesReference)).Variables];
+        variables = [.. Request<VariablesResponse>(DapCommands.Variables, new VariablesArguments(variablesReference)).Variables];
         return this;
     }
 
     public DebugSession WithEvaluateRequest(int frameId, string expression, out EvaluateResponse response)
     {
-        response = Request<EvaluateResponse>("evaluate", new EvaluateArguments(expression, frameId, "repl"));
+        response = Request<EvaluateResponse>(DapCommands.Evaluate, new EvaluateArguments(expression, frameId, "repl"));
         return this;
     }
 
     public DebugSession WithContinueRequest()
     {
-        Request<ContinueResponse>("continue", new ThreadArguments(0));
+        Request<ContinueResponse>(DapCommands.Continue, new ThreadArguments(0));
         return this;
     }
 
-    public DebugSession WithStepInRequest(int threadId) => Step("stepIn", threadId);
+    public DebugSession WithStepInRequest(int threadId) => Step(DapCommands.StepIn, threadId);
 
-    public DebugSession WithStepOutRequest(int threadId) => Step("stepOut", threadId);
+    public DebugSession WithStepOutRequest(int threadId) => Step(DapCommands.StepOut, threadId);
 
-    public DebugSession WithStepOverRequest(int threadId) => Step("next", threadId);
+    public DebugSession WithStepOverRequest(int threadId) => Step(DapCommands.Next, threadId);
 
     /// <summary>The next stop, with where it is: a stop at a breakpoint or a step says so itself, any
     /// other (an exception, a pause) is wherever its thread's top frame is, if that has source.</summary>
@@ -438,9 +438,9 @@ public sealed class DebugSession : IDisposable
     /// condition; the other events before it are passed over.</summary>
     public async Task<T> WaitForEvent<T>(Predicate<T>? condition = null)
     {
-        string name = typeof(T) == typeof(StoppedEvent) ? "stopped"
-            : typeof(T) == typeof(BreakpointEvent) ? "breakpoint"
-            : typeof(T) == typeof(OutputEvent) ? "output"
+        string name = typeof(T) == typeof(StoppedEvent) ? DapEvents.Stopped
+            : typeof(T) == typeof(BreakpointEvent) ? DapEvents.Breakpoint
+            : typeof(T) == typeof(OutputEvent) ? DapEvents.Output
             : throw new ArgumentException($"Only stops, breakpoint changes and output are queued, not {typeof(T).Name}");
         using CancellationTokenSource limit = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         limit.CancelAfter(EventLimit);
@@ -455,7 +455,7 @@ public sealed class DebugSession : IDisposable
             {
                 throw new TimeoutException($"No {name} event came in {EventLimit.TotalSeconds:0} s. {Heard()}");
             }
-            if (next.Name == "terminated")
+            if (next.Name == DapEvents.Terminated)
             {
                 throw new InvalidOperationException($"The session ended while a {name} event was awaited. {Heard()}");
             }
@@ -480,7 +480,7 @@ public sealed class DebugSession : IDisposable
     {
         try
         {
-            Task disconnect = Connection.RequestAsync("disconnect", new DisconnectArguments(TerminateDebuggee: terminateDebuggee));
+            Task disconnect = Connection.RequestAsync(DapCommands.Disconnect, new DisconnectArguments(TerminateDebuggee: terminateDebuggee));
             Observe(disconnect);
             disconnect.Wait(TimeSpan.FromSeconds(10));
         }

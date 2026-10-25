@@ -258,7 +258,7 @@ public sealed class CSharpService : IAsyncDisposable
         ServerLines? lines = null;
         foreach (Diagnostic diagnostic in features.Diagnostics)
         {
-            if (diagnostic.Severity is 1 or 2 && (seen ??= []).Add((diagnostic.Range, diagnostic.Message)))
+            if (diagnostic.Severity is DiagnosticSeverity.Error or DiagnosticSeverity.Warning && (seen ??= []).Add((diagnostic.Range, diagnostic.Message)))
             {
                 lines ??= ServerLines.Of(open.Text.Snapshot);
                 problems.Add(new SolutionProblem(open.Path, diagnostic, ServerPlaces.PositionOf(lines, diagnostic.Range.Start)));
@@ -297,7 +297,7 @@ public sealed class CSharpService : IAsyncDisposable
             List<SolutionProblem> problems = [];
             foreach (Diagnostic diagnostic in report.Items ?? [])
             {
-                if (diagnostic.Severity is not (1 or 2))
+                if (diagnostic.Severity is not (DiagnosticSeverity.Error or DiagnosticSeverity.Warning))
                 {
                     continue;
                 }
@@ -735,11 +735,11 @@ public sealed class CSharpService : IAsyncDisposable
         EventHandler<LogMessageParams> logged = (_, message) =>
         {
             // The server's own project for files no project holds yet is restored as it is made: not a problem of the person's.
-            if (message.Type == 1 || (message.Type == 2 && !CanonicalProject.IsAbout(message.Message)))
+            if (message.Type == MessageType.Error || (message.Type == MessageType.Warning && !CanonicalProject.IsAbout(message.Message)))
             {
-                IdeErrors.Write($"C# language server (process {server.ProcessId}) {(message.Type == 1 ? "error" : "warning")}: {message.Message}");
+                IdeErrors.Write($"C# language server (process {server.ProcessId}) {(message.Type == MessageType.Error ? "error" : "warning")}: {message.Message}");
             }
-            if (message.Type == 1)
+            if (message.Type == MessageType.Error)
             {
                 long at = Stopwatch.GetTimestamp();
                 UiThread.Post(() => unsaid ??= (message.Message, at));
@@ -781,13 +781,13 @@ public sealed class CSharpService : IAsyncDisposable
         }
         (string Text, long At)? reason = unsaid;
         unsaid = null;
-        if (message.Type is 1 or 2 && batch.Count > batchSaid)
+        if (message.Type is MessageType.Error or MessageType.Warning && batch.Count > batchSaid)
         {
             SayLoadProblems();
             return;
         }
-        ProblemSeverity? severity = message.Type switch { 1 => ProblemSeverity.Error, 2 => ProblemSeverity.Warning, _ => null };
-        Said?.Invoke(this, new ServerSaid(message.Type == 1 && reason is { } error && Stopwatch.GetElapsedTime(error.At) < ReasonWindow
+        ProblemSeverity? severity = message.Type switch { MessageType.Error => ProblemSeverity.Error, MessageType.Warning => ProblemSeverity.Warning, _ => null };
+        Said?.Invoke(this, new ServerSaid(message.Type == MessageType.Error && reason is { } error && Stopwatch.GetElapsedTime(error.At) < ReasonWindow
             ? Readable(error.Text, workspace?.Folder)
             : message.Message, severity));
     }

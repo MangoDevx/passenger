@@ -115,7 +115,7 @@ public sealed class ProblemsTests : IClassFixture<RestoredFolders>, IDisposable
 
         // The pulls held open answer the edit, and the next pull of every source is refused.
         Passenger.Lsp.LanguageServer server = window.CSharpService!.Session!.Server;
-        Task refused = server.RefuseNext("workspace/diagnostic", server.WorkspaceDiagnosticSources.Count);
+        Task refused = server.RefuseNext(Passenger.Lsp.LspMethods.WorkspaceDiagnostic, server.WorkspaceDiagnosticSources.Count);
         Rename(window, "Twice", "Thrice");
         bool CallerBroken() => problems.SolutionProblems?.Any(p => p.Path?.EndsWith("Caller.cs", StringComparison.Ordinal) == true) == true;
         Ui.WaitFor(CallerBroken, "the broken caller's error", TimeSpan.FromMinutes(1));

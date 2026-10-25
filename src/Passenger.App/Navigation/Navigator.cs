@@ -342,7 +342,7 @@ public sealed class Navigator
             // The files still match without the server.
         }
         IEnumerable<SymbolRow> files = session.Index.Search(named).Take(20).Select(relative => FileRow(relative, at));
-        static bool IsType(int kind) => kind is 5 or 10 or 11 or 23;
+        static bool IsType(Lsp.SymbolKind kind) => kind is Lsp.SymbolKind.Class or Lsp.SymbolKind.Enum or Lsp.SymbolKind.Interface or Lsp.SymbolKind.Struct;
         return [.. symbols.Where(r => IsType(r.Kind)), .. files, .. symbols.Where(r => !IsType(r.Kind))];
 
         SymbolRow FileRow(string relative, TextPosition? place = null) =>

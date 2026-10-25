@@ -41,7 +41,7 @@ public class Variables2Tests(ITestOutputHelper testOutputHelper)
         Assert.Equal("2.75", Set("localDecimal", "2.75"));
         Assert.Equal("-1E+20", Set("localDouble", "-1E+20"));
 
-        string Set(string name, string value) => host.Request<SetExpressionResponse>("setExpression", new SetExpressionArguments(name, value, frame)).Value;
+        string Set(string name, string value) => host.Request<SetExpressionResponse>(DapCommands.SetExpression, new SetExpressionArguments(name, value, frame)).Value;
 
         string? Shown(string name) => locals.FirstOrDefault(v => v.Name == name)?.Value;
     }

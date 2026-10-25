@@ -90,7 +90,7 @@ public sealed partial class CSharpDocument
         return [.. reads.Where(r => !ConfigurationFiles.Gives(given, r.Key, r.Kind == ConfigurationKinds.Section)).Select(r => new Diagnostic
         {
             Range = new LspRange(new LspPosition(r.At!.Line, r.At.Character), new LspPosition(r.End!.Line, r.End.Character)),
-            Severity = 2,
+            Severity = DiagnosticSeverity.Warning,
             Source = ConfigurationDiagnosticSource,
             Message = $"Nothing {project.Name} runs with gives the configuration key '{r.Key}': not {settings}, a launch profile, its user secrets, "
                 + "a compose file or an AppHost.",

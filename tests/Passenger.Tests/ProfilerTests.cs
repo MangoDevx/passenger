@@ -583,10 +583,10 @@ public sealed class ProfilerTests : IClassFixture<ProfilerTests.Waits>, IDisposa
     [System.Diagnostics.Tracing.EventSource(Name = UiFrames.Provider)]
     private sealed class InspectorFrames : System.Diagnostics.Tracing.EventSource
     {
-        [System.Diagnostics.Tracing.Event(3, Level = System.Diagnostics.Tracing.EventLevel.Informational)]
+        [System.Diagnostics.Tracing.Event(Passenger.Inspector.FrameWire.FrameEvent, Level = System.Diagnostics.Tracing.EventLevel.Informational)]
         public void Frame(int frame, double durationMs, double endedMsAgo, int measurePasses, int arrangePasses, double measureMs, double arrangeMs,
             double renderMs, int measures, int arranges) =>
-            WriteEvent(3, frame, durationMs, endedMsAgo, measurePasses, arrangePasses, measureMs, arrangeMs, renderMs, measures, arranges);
+            WriteEvent(Passenger.Inspector.FrameWire.FrameEvent, frame, durationMs, endedMsAgo, measurePasses, arrangePasses, measureMs, arrangeMs, renderMs, measures, arranges);
     }
 
     /// <summary>A window on <see cref="Waits"/> with the configuration of <see cref="Configure"/>, and no C# language server,
@@ -645,7 +645,7 @@ public sealed class ProfilerTests : IClassFixture<ProfilerTests.Waits>, IDisposa
         {
             File.WriteAllText(PathOf("Waits.csproj"),
                 TestProjects.Console("<ImplicitUsings>enable</ImplicitUsings>"));
-            File.WriteAllText(PathOf("Program.cs"), """
+            File.WriteAllText(PathOf("Program.cs"), $$"""
                 using System.Diagnostics.Tracing;
                 if (args.Length == 0)
                 {
@@ -661,7 +661,7 @@ public sealed class ProfilerTests : IClassFixture<ProfilerTests.Waits>, IDisposa
                 }
                 sealed class Frames : EventSource
                 {
-                    public Frames() : base("Passenger-Avalonia") { }
+                    public Frames() : base("{{Passenger.Inspector.FrameWire.Provider}}") { }
                     [Event(1)] public void Tick() => WriteEvent(1);
                     protected override void OnEventCommand(EventCommandEventArgs command) => Console.WriteLine($"frames {command.Command}");
                 }

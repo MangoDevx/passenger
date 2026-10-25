@@ -115,7 +115,7 @@ public sealed class McpDebuggingTests : McpRig, IClassFixture<RestoredFolders>
                 int line = Debugging.Helpers.Debuggees.Line("LoopingConsoleApp", "turns++;");
                 await Call(client, "breakpoint_set", new() { ["path"] = source, ["line"] = line });
                 JsonElement attached = await Call(client, "debug_attach", new() { ["processId"] = looping.Id });
-                Assert.Equal(("paused", "breakpoint"), (attached.GetProperty("state").GetString(), attached.GetProperty("reason").GetString()));
+                Assert.Equal(("paused", Passenger.Dap.StopReasons.Breakpoint), (attached.GetProperty("state").GetString(), attached.GetProperty("reason").GetString()));
                 Assert.EndsWith($"Program.cs:{line}:5", attached.GetProperty("location").GetString(), StringComparison.Ordinal);
                 Assert.True(long.TryParse(Local(attached, "turns"), out long turns) && turns >= 0, $"The stop's locals had no count of turns: {attached}");
                 Assert.Equal("Detached from LoopingConsoleApp, which runs on", (await Call(client, "stop", new() { ["detach"] = true })).GetString());

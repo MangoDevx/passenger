@@ -18,7 +18,7 @@ public class FunctionBreakpointTests(ITestOutputHelper testOutputHelper)
             .WithAttachRequest(p2.Id)
             .WaitForInitializedEvent();
 
-        SetBreakpointsResponse result = debugProtocolHost.Request<SetBreakpointsResponse>("setFunctionBreakpoints", new SetFunctionBreakpointsArguments([new DapFunctionBreakpoint("SameNamedClass.Test")]));
+        SetBreakpointsResponse result = debugProtocolHost.Request<SetBreakpointsResponse>(DapCommands.SetFunctionBreakpoints, new SetFunctionBreakpointsArguments([new DapFunctionBreakpoint("SameNamedClass.Test")]));
         int breakpointId = result.Breakpoints.Single().Id!.Value;
 
         debugProtocolHost
@@ -57,7 +57,7 @@ public class FunctionBreakpointTests(ITestOutputHelper testOutputHelper)
             .WithAttachRequest(p2.Id)
             .WaitForInitializedEvent();
 
-        SetBreakpointsResponse result = debugProtocolHost.Request<SetBreakpointsResponse>("setFunctionBreakpoints", new SetFunctionBreakpointsArguments([new DapFunctionBreakpoint("DebuggableConsoleApp.MyClass.MyMethod")]));
+        SetBreakpointsResponse result = debugProtocolHost.Request<SetBreakpointsResponse>(DapCommands.SetFunctionBreakpoints, new SetFunctionBreakpointsArguments([new DapFunctionBreakpoint("DebuggableConsoleApp.MyClass.MyMethod")]));
         int breakpointId = result.Breakpoints.Single().Id!.Value;
 
         debugProtocolHost
@@ -83,7 +83,7 @@ public class FunctionBreakpointTests(ITestOutputHelper testOutputHelper)
             .WithAttachRequest(p2.Id)
             .WaitForInitializedEvent();
 
-        SetBreakpointsResponse result = debugProtocolHost.Request<SetBreakpointsResponse>("setFunctionBreakpoints", new SetFunctionBreakpointsArguments([new DapFunctionBreakpoint("DebuggableConsoleApp.MyGenericClassContainingAnotherGenericClass<T, U>.MyNestedGenericClass<T, U>.Test")]));
+        SetBreakpointsResponse result = debugProtocolHost.Request<SetBreakpointsResponse>(DapCommands.SetFunctionBreakpoints, new SetFunctionBreakpointsArguments([new DapFunctionBreakpoint("DebuggableConsoleApp.MyGenericClassContainingAnotherGenericClass<T, U>.MyNestedGenericClass<T, U>.Test")]));
         int breakpointId = result.Breakpoints.Single().Id!.Value;
 
         debugProtocolHost
@@ -109,13 +109,13 @@ public class FunctionBreakpointTests(ITestOutputHelper testOutputHelper)
             .WaitForInitializedEvent();
         DapFunctionBreakpoint third = new("DebuggableConsoleApp.HitConditionClass.Test", HitCondition: "==3");
         DapFunctionBreakpoint everyPass = new("DebuggableConsoleApp.MyClassNoMembers.MyMethod");
-        SetBreakpointsResponse before = host.Request<SetBreakpointsResponse>("setFunctionBreakpoints", new SetFunctionBreakpointsArguments([third, everyPass]));
+        SetBreakpointsResponse before = host.Request<SetBreakpointsResponse>(DapCommands.SetFunctionBreakpoints, new SetFunctionBreakpointsArguments([third, everyPass]));
         host.WithConfigurationDoneRequest();
 
         // Each pass of the program's loop stops in MyMethod first, then calls Test, whose hit count counts on.
         Assert.EndsWith("MyClassNoMembers.cs", (await host.WaitForStoppedEvent()).Source?.Path);
         Assert.EndsWith("MyClassNoMembers.cs", (await host.WithContinueRequest().WaitForStoppedEvent()).Source?.Path);
-        SetBreakpointsResponse after = host.Request<SetBreakpointsResponse>("setFunctionBreakpoints",
+        SetBreakpointsResponse after = host.Request<SetBreakpointsResponse>(DapCommands.SetFunctionBreakpoints,
             new SetFunctionBreakpointsArguments([third, everyPass, new DapFunctionBreakpoint("DebuggableConsoleApp.Nowhere.Nothing")]));
         Assert.EndsWith("MyClassNoMembers.cs", (await host.WithContinueRequest().WaitForStoppedEvent()).Source?.Path);
 
@@ -139,7 +139,7 @@ public class FunctionBreakpointTests(ITestOutputHelper testOutputHelper)
             .WithAttachRequest(p2.Id)
             .WaitForInitializedEvent();
 
-        SetBreakpointsResponse result = debugProtocolHost.Request<SetBreakpointsResponse>("setFunctionBreakpoints", new SetFunctionBreakpointsArguments([new DapFunctionBreakpoint("DebuggableConsoleApp.OverloadedMethodsClass.OverloadedMethod")]));
+        SetBreakpointsResponse result = debugProtocolHost.Request<SetBreakpointsResponse>(DapCommands.SetFunctionBreakpoints, new SetFunctionBreakpointsArguments([new DapFunctionBreakpoint("DebuggableConsoleApp.OverloadedMethodsClass.OverloadedMethod")]));
         int breakpointId = result.Breakpoints.Single().Id!.Value;
 
         debugProtocolHost
@@ -151,7 +151,7 @@ public class FunctionBreakpointTests(ITestOutputHelper testOutputHelper)
         await AssertBreakpointsHit();
 
         // Also test that classless method resolution works
-        SetBreakpointsResponse result2 = debugProtocolHost.Request<SetBreakpointsResponse>("setFunctionBreakpoints", new SetFunctionBreakpointsArguments([new DapFunctionBreakpoint("OverloadedMethod")]));
+        SetBreakpointsResponse result2 = debugProtocolHost.Request<SetBreakpointsResponse>(DapCommands.SetFunctionBreakpoints, new SetFunctionBreakpointsArguments([new DapFunctionBreakpoint("OverloadedMethod")]));
         debugProtocolHost.WithContinueRequest();
 
         await AssertBreakpointsHit();
@@ -198,7 +198,7 @@ public class FunctionBreakpointTests(ITestOutputHelper testOutputHelper)
             .WithAttachRequest(p2.Id)
             .WaitForInitializedEvent();
 
-        SetBreakpointsResponse result = debugProtocolHost.Request<SetBreakpointsResponse>("setFunctionBreakpoints", new SetFunctionBreakpointsArguments([new DapFunctionBreakpoint("DebuggableConsoleApp.OverloadedMethodsClass.OverloadedMethod(int, MyClass)")]));
+        SetBreakpointsResponse result = debugProtocolHost.Request<SetBreakpointsResponse>(DapCommands.SetFunctionBreakpoints, new SetFunctionBreakpointsArguments([new DapFunctionBreakpoint("DebuggableConsoleApp.OverloadedMethodsClass.OverloadedMethod(int, MyClass)")]));
         int breakpointId = result.Breakpoints.Single().Id!.Value;
 
         debugProtocolHost

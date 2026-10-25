@@ -70,8 +70,8 @@ public class AttachTests(ITestOutputHelper testOutputHelper)
         host.WithConfigurationDoneRequest();
 
         // Before any event of the program's could say the attach was done.
-        host.Request("pause", new ThreadArguments(0));
-        Assert.Equal("pause", (await host.WaitForStoppedEvent()).Reason);
+        host.Request(DapCommands.Pause, new ThreadArguments(0));
+        Assert.Equal(StopReasons.Pause, (await host.WaitForStoppedEvent()).Reason);
     }
 
     [Fact]

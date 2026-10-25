@@ -23,7 +23,7 @@ public class VariablesCasesTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task An_exception_wrapping_another_reports_the_inner_one()
     {
-        using DebugSession host = await DebugSession.LaunchToBreakpoint(testOutputHelper, "PassengerCases", Debuggees.Line("PassengerCases", "Console.WriteLine(f());"), ["all"]);
+        using DebugSession host = await DebugSession.LaunchToBreakpoint(testOutputHelper, "PassengerCases", Debuggees.Line("PassengerCases", "Console.WriteLine(f());"), [DapExceptionFilters.All]);
 
         // Every exception stops, the earlier cases' too.
         int wrapping = Debuggees.Line("PassengerCases", "throw new InvalidOperationException(\"Message2\", e1)");
@@ -32,9 +32,9 @@ public class VariablesCasesTests(ITestOutputHelper testOutputHelper)
         {
             stop = await host.WithContinueRequest().WaitForStoppedEvent();
         }
-        Assert.Equal(("exception", wrapping), (stop.Reason, stop.ReadStopInfo().line));
+        Assert.Equal((StopReasons.Exception, wrapping), (stop.Reason, stop.ReadStopInfo().line));
 
-        ExceptionInfoResponse info = host.Request<ExceptionInfoResponse>("exceptionInfo", new ThreadArguments(stop.ThreadId!.Value));
+        ExceptionInfoResponse info = host.Request<ExceptionInfoResponse>(DapCommands.ExceptionInfo, new ThreadArguments(stop.ThreadId!.Value));
         Assert.Equal("System.InvalidOperationException", info.Details?.FullTypeName);
         DapExceptionDetails inner = Assert.Single(info.Details!.InnerException!);
         Assert.Equal(("System.Exception", "Message1", "$exception.InnerException"), (inner.FullTypeName, inner.Message, inner.EvaluateName));

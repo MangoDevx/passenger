@@ -43,17 +43,17 @@ public class InterpreterTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("10", Evaluate(host, frame, "price = 10m").Value);
         Assert.Equal("10", Evaluate(host, frame, "price").Value);
 
-        SetExpressionResponse set = host.Request<SetExpressionResponse>("setExpression", new SetExpressionArguments("pairOfInt.Value", "40 + 2", frame));
+        SetExpressionResponse set = host.Request<SetExpressionResponse>(DapCommands.SetExpression, new SetExpressionArguments("pairOfInt.Value", "40 + 2", frame));
         Assert.Equal("42", set.Value);
         Assert.Equal("42", Evaluate(host, frame, "pairOfInt.Value").Value);
-        DapException refused = Assert.Throws<DapException>(() => host.Request<SetExpressionResponse>("setExpression", new SetExpressionArguments("myInt", "\"text\"", frame)));
+        DapException refused = Assert.Throws<DapException>(() => host.Request<SetExpressionResponse>(DapCommands.SetExpression, new SetExpressionArguments("myInt", "\"text\"", frame)));
         Assert.NotEmpty(refused.Reason);
         Assert.Equal("5", Evaluate(host, frame, "myInt").Value);
 
         // A multi-dimensional array's Get, Set and Address are the runtime's, which no metadata defines.
         Assert.Equal(("4", "int"), Evaluate(host, frame, "grid[1, 1]"));
         Assert.Equal("11", Evaluate(host, frame, "grid[2, 0] + grid[2, 1]").Value);
-        SetExpressionResponse element = host.Request<SetExpressionResponse>("setExpression", new SetExpressionArguments("grid[0, 1]", "40 + 2", frame));
+        SetExpressionResponse element = host.Request<SetExpressionResponse>(DapCommands.SetExpression, new SetExpressionArguments("grid[0, 1]", "40 + 2", frame));
         Assert.Equal("42", element.Value);
         Assert.Equal("42", Evaluate(host, frame, "grid[0, 1]").Value);
         Assert.Equal("7", Evaluate(host, frame, "pairGrid[1, 0].Value = 7").Value);
@@ -103,7 +103,7 @@ public class InterpreterTests(ITestOutputHelper testOutputHelper)
             $"A lambda 64 KB larger took {large.TotalMilliseconds:0} ms to evaluate, where a small one took {small.TotalMilliseconds:0} ms: its code went into the program a byte at a time");
 
         CancellationToken cancelled = TestContext.Current.CancellationToken;
-        Task<EvaluateResponse> evaluating = host.Connection.RequestAsync<EvaluateResponse>("evaluate",
+        Task<EvaluateResponse> evaluating = host.Connection.RequestAsync<EvaluateResponse>(DapCommands.Evaluate,
             new EvaluateArguments("Array.IndexOf<long>([.. System.Linq.Enumerable.Repeat(myInt, int.MaxValue)], 6L)", frame, "repl"), cancelled);
         Assert.True(await Waiting.Within(evaluating, TimeSpan.FromSeconds(60), cancelled),
             "An expression that loops without end was still evaluating after 60 s, holding the debugger until it ends, which it never does");

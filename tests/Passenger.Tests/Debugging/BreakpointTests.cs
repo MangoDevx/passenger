@@ -209,7 +209,7 @@ public class BreakpointTests(ITestOutputHelper testOutputHelper)
             .WaitForInitializedEvent();
         // MyClass.cs is in the project's root; SomeFolder holds other files, none of them this one.
         string wrongFolder = Debuggees.Source("DebuggableConsoleApp", "SomeFolder", "MyClass.cs");
-        SetBreakpointsResponse wrong = debugProtocolHost.Request<SetBreakpointsResponse>("setBreakpoints",
+        SetBreakpointsResponse wrong = debugProtocolHost.Request<SetBreakpointsResponse>(DapCommands.SetBreakpoints,
             new SetBreakpointsArguments(new DapSource { Path = wrongFolder }, [new DapSourceBreakpoint(22)]));
         string dotted = Debuggees.Source("DebuggableConsoleApp", "Namespace1", "..", "MyClass.cs");
         debugProtocolHost
@@ -224,7 +224,7 @@ public class BreakpointTests(ITestOutputHelper testOutputHelper)
         Assert.False(wrong.Breakpoints.Single().Verified);
 
         // With the program's symbols loaded, the other folder's name still binds to nothing.
-        SetBreakpointsResponse again = debugProtocolHost.Request<SetBreakpointsResponse>("setBreakpoints",
+        SetBreakpointsResponse again = debugProtocolHost.Request<SetBreakpointsResponse>(DapCommands.SetBreakpoints,
             new SetBreakpointsArguments(new DapSource { Path = wrongFolder }, [new DapSourceBreakpoint(22)]));
         Assert.False(again.Breakpoints.Single().Verified);
     }

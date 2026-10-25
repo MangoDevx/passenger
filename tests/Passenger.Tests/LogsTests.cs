@@ -107,7 +107,7 @@ public sealed class LogsTests : IDisposable
             int server = window.CSharpService!.Session!.Server.ProcessId;
             Ui.WaitFor(() => Ui.IdeLog().Contains($"(process {server}) gave an open file its colours", StringComparison.Ordinal), "the loose file's colours from the server");
             int Asked() => Logged("lsp.log").Split('\n').Count(line => line.Contains($"[server {server}] --> ", StringComparison.Ordinal)
-                && line.Contains("\"method\":\"textDocument/_vs_getProjectContexts\"", StringComparison.Ordinal));
+                && line.Contains($"\"method\":\"{Passenger.Lsp.LspMethods.GetProjectContexts}\"", StringComparison.Ordinal));
             int before = Asked();
             Ui.Hold(TimeSpan.FromSeconds(2), "time in which a file asked after ten times a second is asked after twenty");
             int during = Asked() - before;
@@ -145,9 +145,9 @@ public sealed class LogsTests : IDisposable
             string trace = Logged("lsp.log");
             Assert.True(Traced(trace, $"[server {server}] --> ", "\"method\":\"initialize\""),
                 $"lsp.log in the logs folder does not have the initialize the server was sent:\n{Start(trace)}");
-            Assert.True(Traced(trace, $"[server {server}] <-- ", "\"method\":\"workspace/projectInitializationComplete\""),
+            Assert.True(Traced(trace, $"[server {server}] <-- ", $"\"method\":\"{Passenger.Lsp.LspMethods.ProjectInitializationComplete}\""),
                 $"lsp.log does not have the server's word that the project loaded:\n{Start(trace)}");
-            Assert.True(Traced(trace, $"[server {server}] --> ", "\"method\":\"textDocument/semanticTokens/full\""),
+            Assert.True(Traced(trace, $"[server {server}] --> ", $"\"method\":\"{Passenger.Lsp.LspMethods.SemanticTokensFull}\""),
                 $"lsp.log does not have the open file's colours asked for:\n{Start(trace)}");
 
             string log = Ui.IdeLog();

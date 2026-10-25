@@ -651,7 +651,7 @@ public sealed class WebLanguages : IAsyncDisposable
         switch (kind)
         {
             case WebServerKind.Json:
-                await server.NotifyAsync("workspace/didChangeConfiguration", new
+                await server.NotifyAsync(LspMethods.DidChangeConfiguration, new
                 {
                     settings = new { json = new { validate = new { enable = true }, format = new { enable = true }, schemas = Array.Empty<object>() }, http = new { } },
                 });
@@ -659,13 +659,13 @@ public sealed class WebLanguages : IAsyncDisposable
                 await server.NotifyAsync("json/schemaAssociations", new[] { JsonSchemas.Notification });
                 break;
             case WebServerKind.Html:
-                await server.NotifyAsync("workspace/didChangeConfiguration", new
+                await server.NotifyAsync(LspMethods.DidChangeConfiguration, new
                 {
                     settings = new { html = new { format = new { enable = true }, validate = new { scripts = true, styles = true } }, css = new { validate = true } },
                 });
                 break;
             case WebServerKind.Css:
-                await server.NotifyAsync("workspace/didChangeConfiguration", new
+                await server.NotifyAsync(LspMethods.DidChangeConfiguration, new
                 {
                     settings = new { css = new { validate = true }, scss = new { validate = true }, less = new { validate = true } },
                 });
@@ -675,10 +675,10 @@ public sealed class WebLanguages : IAsyncDisposable
                 await server.NotifyAsync("yaml/registerContentRequest", new { });
                 break;
             case WebServerKind.Dockerfile:
-                await server.NotifyAsync("workspace/didChangeConfiguration", new { settings = new { } });
+                await server.NotifyAsync(LspMethods.DidChangeConfiguration, new { settings = new { } });
                 break;
             default:
-                await server.NotifyAsync("workspace/didChangeConfiguration", new { settings = new { } });
+                await server.NotifyAsync(LspMethods.DidChangeConfiguration, new { settings = new { } });
                 break;
         }
     }

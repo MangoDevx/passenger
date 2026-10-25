@@ -77,11 +77,11 @@ internal sealed class RazorHtml
             int version = known && was.Server == html ? was.Version + 1 : 1;
             if (version == 1)
             {
-                await html.NotifyAsync("textDocument/didOpen", new DidOpenTextDocumentParams(new TextDocumentItem(virtualUri, "html", version, text))).ConfigureAwait(false);
+                await html.NotifyAsync(LspMethods.DidOpen, new DidOpenTextDocumentParams(new TextDocumentItem(virtualUri, "html", version, text))).ConfigureAwait(false);
             }
             else
             {
-                await html.NotifyAsync("textDocument/didChange", new DidChangeTextDocumentParams(new VersionedTextDocumentIdentifier(virtualUri, version),
+                await html.NotifyAsync(LspMethods.DidChange, new DidChangeTextDocumentParams(new VersionedTextDocumentIdentifier(virtualUri, version),
                     [new TextDocumentContentChangeEvent(null, text)])).ConfigureAwait(false);
             }
             lock (texts)
@@ -169,7 +169,7 @@ internal sealed class RazorHtml
         DocumentDiagnosticReport? report;
         try
         {
-            report = await html.RequestAsync<DocumentDiagnosticReport>("textDocument/diagnostic",
+            report = await html.RequestAsync<DocumentDiagnosticReport>(LspMethods.DocumentDiagnostic,
                 new DocumentDiagnosticParams(new TextDocumentIdentifier(uri + VirtualSuffix)), cancel).ConfigureAwait(false);
         }
         catch (LanguageServerFailed)
@@ -240,7 +240,7 @@ internal sealed class RazorHtml
         }
         foreach ((LanguageServer server, string uri) in closing.Where(c => !c.Server.HasExited))
         {
-            server.Notify("textDocument/didClose", new DidCloseTextDocumentParams(new TextDocumentIdentifier(uri)));
+            server.Notify(LspMethods.DidClose, new DidCloseTextDocumentParams(new TextDocumentIdentifier(uri)));
         }
     }
 

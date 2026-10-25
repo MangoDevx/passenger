@@ -20,7 +20,7 @@ public static class AdapterProgram
         {
             if (arg is "--help" or "-h")
             {
-                Console.WriteLine($"{usage} --interpreter=vscode [--engineLogging=FILE] [--symbolCache=FOLDER] [--remote]");
+                Console.WriteLine($"{usage} {AdapterFlags.Interpreter} [{AdapterFlags.EngineLogging}FILE] [{AdapterFlags.SymbolCache}FOLDER] [{AdapterFlags.Remote}]");
                 Console.WriteLine("  The Debug Adapter Protocol on standard input and output; --engineLogging writes the engine's log to FILE.");
                 Console.WriteLine("  --symbolCache keeps the symbols decompiled for assemblies that ship none in FOLDER, pruned as the adapter");
                 Console.WriteLine("  starts; without it their frames have no source.");
@@ -28,30 +28,30 @@ public static class AdapterProgram
                 Console.WriteLine("  are not local to the client (isLocalProcess false).");
                 return 0;
             }
-            else if (arg == "--remote")
+            else if (arg == AdapterFlags.Remote)
             {
                 remote = true;
             }
-            else if (arg.StartsWith("--symbolCache=", StringComparison.Ordinal))
+            else if (arg.StartsWith(AdapterFlags.SymbolCache, StringComparison.Ordinal))
             {
-                if (arg.Length == "--symbolCache=".Length)
+                if (arg.Length == AdapterFlags.SymbolCache.Length)
                 {
                     Console.Error.WriteLine("--symbolCache needs a folder");
                     return 2;
                 }
-                symbolCache = arg["--symbolCache=".Length..];
+                symbolCache = arg[AdapterFlags.SymbolCache.Length..];
             }
-            else if (arg.StartsWith("--interpreter=", StringComparison.Ordinal))
+            else if (arg.StartsWith(AdapterFlags.AnyInterpreter, StringComparison.Ordinal))
             {
-                if (arg != "--interpreter=vscode")
+                if (arg != AdapterFlags.Interpreter)
                 {
                     Console.Error.WriteLine($"Only --interpreter=vscode (the Debug Adapter Protocol) is supported, not '{arg}'");
                     return 2;
                 }
             }
-            else if (arg.StartsWith("--engineLogging=", StringComparison.Ordinal) && arg.Length > "--engineLogging=".Length)
+            else if (arg.StartsWith(AdapterFlags.EngineLogging, StringComparison.Ordinal) && arg.Length > AdapterFlags.EngineLogging.Length)
             {
-                logPath = arg["--engineLogging=".Length..];
+                logPath = arg[AdapterFlags.EngineLogging.Length..];
             }
             else
             {

@@ -24,7 +24,7 @@ public sealed record LspLocation(string Uri, LspRange Range);
 public sealed class HierarchyItem
 {
     public string Name { get; init; } = string.Empty;
-    public int Kind { get; init; }
+    public SymbolKind Kind { get; init; }
     public string? Detail { get; init; }
     public string Uri { get; init; } = string.Empty;
     public LspRange Range { get; init; } = new(new LspPosition(0, 0), new LspPosition(0, 0));
@@ -97,7 +97,7 @@ public sealed record OpenProjectParams(IReadOnlyList<string> Projects);
 
 // Completion
 
-public sealed record CompletionContext(int TriggerKind, string? TriggerCharacter = null);
+public sealed record CompletionContext(CompletionTriggerKind TriggerKind, string? TriggerCharacter = null);
 
 public sealed record CompletionParams(TextDocumentIdentifier TextDocument, LspPosition Position, CompletionContext Context);
 
@@ -118,13 +118,13 @@ public sealed class CompletionItem
 {
     public string Label { get; init; } = string.Empty;
     public CompletionItemLabelDetails? LabelDetails { get; init; }
-    public int? Kind { get; init; }
+    public CompletionItemKind? Kind { get; init; }
     public string? Detail { get; init; }
     public JsonElement? Documentation { get; init; }
     public string? SortText { get; init; }
     public string? FilterText { get; init; }
     public string? InsertText { get; init; }
-    public int? InsertTextFormat { get; init; }
+    public InsertTextFormat? InsertTextFormat { get; init; }
     public LspTextEdit? TextEdit { get; init; }
     public string? TextEditText { get; init; }
     public List<LspTextEdit>? AdditionalTextEdits { get; init; }
@@ -165,7 +165,7 @@ public sealed class ParameterInformation
     public JsonElement? Documentation { get; init; }
 }
 
-public sealed record DocumentHighlight(LspRange Range, int? Kind);
+public sealed record DocumentHighlight(LspRange Range, DocumentHighlightKind? Kind);
 
 // References, rename, code actions, formatting
 
@@ -175,7 +175,7 @@ public sealed record ReferenceParams(TextDocumentIdentifier TextDocument, LspPos
 
 public sealed record RenameParams(TextDocumentIdentifier TextDocument, LspPosition Position, string NewName);
 
-public sealed record CodeActionContext(IReadOnlyList<Diagnostic> Diagnostics, IReadOnlyList<string>? Only = null, int? TriggerKind = null);
+public sealed record CodeActionContext(IReadOnlyList<Diagnostic> Diagnostics, IReadOnlyList<string>? Only = null, CodeActionTriggerKind? TriggerKind = null);
 
 public sealed record CodeActionParams(TextDocumentIdentifier TextDocument, LspRange Range, CodeActionContext Context);
 
@@ -215,12 +215,12 @@ public sealed record DocumentSymbolParams(TextDocumentIdentifier TextDocument);
 
 public sealed record FoldingRangeParams(TextDocumentIdentifier TextDocument);
 
-/// <summary>A symbol found by name across the workspace. Kind is the protocol's SymbolKind number.</summary>
-public sealed record SymbolInformation(string Name, int Kind, LspLocation Location, string? ContainerName = null);
+/// <summary>A symbol found by name across the workspace.</summary>
+public sealed record SymbolInformation(string Name, SymbolKind Kind, LspLocation Location, string? ContainerName = null);
 
 /// <summary>A symbol in a document's outline, its members as children. Range is the whole
 /// declaration; SelectionRange is its name.</summary>
-public sealed record DocumentSymbol(string Name, string? Detail, int Kind, LspRange Range, LspRange SelectionRange, IReadOnlyList<DocumentSymbol>? Children = null)
+public sealed record DocumentSymbol(string Name, string? Detail, SymbolKind Kind, LspRange Range, LspRange SelectionRange, IReadOnlyList<DocumentSymbol>? Children = null)
 {
     /// <summary>An outline's symbols from the top to the deepest holding a place, outermost first: of siblings that both
     /// hold it (one ends where the next begins), the later.</summary>
@@ -237,13 +237,9 @@ public sealed record DocumentSymbol(string Name, string? Detail, int Kind, LspRa
     }
 }
 
-/// <summary>LSP's symbol kinds: the numbers code decides by, and each kind's name as an agent reads it.</summary>
+/// <summary>Each of LSP's symbol kinds by its name as an agent reads it.</summary>
 public static class SymbolKinds
 {
-    public const int Namespace = 3;
-
-    public const int Class = 5;
-
     private static readonly string[] Names =
     [
         "file", "module", "namespace", "package", "class", "method", "property", "field", "constructor", "enum", "interface",
@@ -251,7 +247,7 @@ public static class SymbolKinds
         "struct", "event", "operator", "type parameter",
     ];
 
-    public static string Name(int kind) => kind >= 1 && kind <= Names.Length ? Names[kind - 1] : "symbol";
+    public static string Name(SymbolKind kind) => kind >= SymbolKind.File && (int)kind <= Names.Length ? Names[(int)kind - 1] : "symbol";
 }
 
 // Semantic tokens
@@ -316,7 +312,7 @@ public sealed record SemanticTokensLegend(IReadOnlyList<string> TokenTypes, IRea
 public sealed class Diagnostic
 {
     public LspRange Range { get; init; } = new(new LspPosition(0, 0), new LspPosition(0, 0));
-    public int? Severity { get; init; }
+    public DiagnosticSeverity? Severity { get; init; }
     public JsonElement? Code { get; init; }
 
     /// <summary>Where the code is explained (<c>{ "href": … }</c>): an ESLint rule's page.</summary>
@@ -324,7 +320,7 @@ public sealed class Diagnostic
 
     public string? Source { get; init; }
     public string Message { get; init; } = string.Empty;
-    public List<int>? Tags { get; init; }
+    public List<DiagnosticTag>? Tags { get; init; }
     public JsonElement? Data { get; init; }
 
     /// <summary>The page <see cref="CodeDescription"/> names, when it is a web address.</summary>
@@ -375,12 +371,11 @@ public sealed record DocumentColorParams(TextDocumentIdentifier TextDocument);
 
 // Messages from the server
 
-/// <summary>A message the server logs or shows, its type the protocol's: 1 an error, 2 a warning, 3 information, 4 a log
-/// line, 5 debug.</summary>
-public sealed record LogMessageParams(int Type, string Message);
+/// <summary>A message the server logs or shows, and how grave it is.</summary>
+public sealed record LogMessageParams(MessageType Type, string Message);
 
 /// <summary>Roslyn's <c>window/_roslyn_showToast</c>: a message to show, as showMessage's.</summary>
-public sealed record ShowToastParams(int MessageType, string Message);
+public sealed record ShowToastParams(MessageType MessageType, string Message);
 
 /// <summary>A <c>$/progress</c> notification: the token the server created, and its value, which for work done is a
 /// begin, a report or an end.</summary>
@@ -417,9 +412,9 @@ public sealed record ConfigurationParams(IReadOnlyList<ConfigurationItem> Items)
 public sealed record InlayHintParams(TextDocumentIdentifier TextDocument, LspRange Range);
 
 /// <summary>A word the server would show inside a line, before the position it names: a parameter's name before its
-/// argument (kind 2), a type (kind 1); padding asks for a space on that side. <see cref="Data"/> is what the server
+/// argument, a type; padding asks for a space on that side. <see cref="Data"/> is what the server
 /// knows it by, for its tooltip (<c>inlayHint/resolve</c>).</summary>
-public sealed record LspInlayHint(LspPosition Position, string Label, int? Kind, bool PaddingLeft, bool PaddingRight, JsonElement? Data = null);
+public sealed record LspInlayHint(LspPosition Position, string Label, InlayHintKind? Kind, bool PaddingLeft, bool PaddingRight, JsonElement? Data = null);
 
 public sealed record Registration(string Id, string Method, JsonElement? RegisterOptions);
 
@@ -432,4 +427,130 @@ public static class Json
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
+}
+
+// The protocol's numbered kinds, each the protocol's number on the wire (the serializer writes an enum as its number).
+
+/// <summary>How grave a diagnostic is.</summary>
+public enum DiagnosticSeverity
+{
+    Error = 1,
+    Warning = 2,
+    Information = 3,
+    Hint = 4,
+}
+
+/// <summary>What a symbol is: a document's outline's, a workspace symbol's, a hierarchy's item's.</summary>
+public enum SymbolKind
+{
+    File = 1,
+    Module = 2,
+    Namespace = 3,
+    Package = 4,
+    Class = 5,
+    Method = 6,
+    Property = 7,
+    Field = 8,
+    Constructor = 9,
+    Enum = 10,
+    Interface = 11,
+    Function = 12,
+    Variable = 13,
+    Constant = 14,
+    String = 15,
+    Number = 16,
+    Boolean = 17,
+    Array = 18,
+    Object = 19,
+    Key = 20,
+    Null = 21,
+    EnumMember = 22,
+    Struct = 23,
+    Event = 24,
+    Operator = 25,
+    TypeParameter = 26,
+}
+
+/// <summary>What a completion item is, for its icon.</summary>
+public enum CompletionItemKind
+{
+    Text = 1,
+    Method = 2,
+    Function = 3,
+    Constructor = 4,
+    Field = 5,
+    Variable = 6,
+    Class = 7,
+    Interface = 8,
+    Module = 9,
+    Property = 10,
+    Unit = 11,
+    Value = 12,
+    Enum = 13,
+    Keyword = 14,
+    Snippet = 15,
+    Color = 16,
+    File = 17,
+    Reference = 18,
+    Folder = 19,
+    EnumMember = 20,
+    Constant = 21,
+    Struct = 22,
+    Event = 23,
+    Operator = 24,
+    TypeParameter = 25,
+}
+
+/// <summary>What asked for completion.</summary>
+public enum CompletionTriggerKind
+{
+    Invoked = 1,
+    TriggerCharacter = 2,
+    TriggerForIncompleteCompletions = 3,
+}
+
+/// <summary>How a completion item's text is inserted: as it is, or as a snippet with tab stops.</summary>
+public enum InsertTextFormat
+{
+    PlainText = 1,
+    Snippet = 2,
+}
+
+/// <summary>What an inlay hint names: a type, or the parameter an argument is for.</summary>
+public enum InlayHintKind
+{
+    Type = 1,
+    Parameter = 2,
+}
+
+/// <summary>How a highlighted usage of the symbol at the caret uses it.</summary>
+public enum DocumentHighlightKind
+{
+    Text = 1,
+    Read = 2,
+    Write = 3,
+}
+
+/// <summary>What else a diagnostic says of its code: that it is unused (drawn faded), or deprecated.</summary>
+public enum DiagnosticTag
+{
+    Unnecessary = 1,
+    Deprecated = 2,
+}
+
+/// <summary>How grave a message the server logs or shows is.</summary>
+public enum MessageType
+{
+    Error = 1,
+    Warning = 2,
+    Info = 3,
+    Log = 4,
+    Debug = 5,
+}
+
+/// <summary>Who asked for code actions: the person, or the client on its own (a light bulb's check).</summary>
+public enum CodeActionTriggerKind
+{
+    Invoked = 1,
+    Automatic = 2,
 }

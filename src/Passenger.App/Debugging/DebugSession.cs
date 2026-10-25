@@ -95,8 +95,8 @@ public sealed class DebugSession
         if (place is not null)
         {
             // The adapter where the program is: its flags the same, its symbols and the engine's log kept there.
-            start = place.Command(["--interpreter=vscode", $"--symbolCache={place.SymbolCache}", "--remote",
-                .. AdapterEnvironment.EngineLog is not null ? (string[])[$"--engineLogging={ContainerEngineLog}"] : []]);
+            start = place.Command([AdapterFlags.Interpreter, AdapterFlags.SymbolCache + place.SymbolCache, AdapterFlags.Remote,
+                .. AdapterEnvironment.EngineLog is not null ? (string[])[AdapterFlags.EngineLogging + ContainerEngineLog] : []]);
         }
         else
         {
@@ -105,14 +105,14 @@ public sealed class DebugSession
             {
                 throw new FileNotFoundException("The debug adapter is not beside the app", path);
             }
-            List<string> arguments = [path, "--interpreter=vscode", $"--symbolCache={SymbolCache}"];
+            List<string> arguments = [path, AdapterFlags.Interpreter, AdapterFlags.SymbolCache + SymbolCache];
             if (AdapterEnvironment.EngineLog is { } engineLog)
             {
-                arguments.Add($"--engineLogging={engineLog}");
+                arguments.Add(AdapterFlags.EngineLogging + engineLog);
             }
             if (elsewhere)
             {
-                arguments.Add("--remote");
+                arguments.Add(AdapterFlags.Remote);
             }
             start = ChildProcesses.DotnetCommand(arguments);
         }

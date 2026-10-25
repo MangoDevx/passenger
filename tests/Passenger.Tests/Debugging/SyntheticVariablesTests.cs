@@ -68,10 +68,10 @@ public class SyntheticVariablesTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task A_stop_at_an_exception_lists_it_as_exception_and_an_expression_reads_its_message()
     {
-        using DebugSession host = await DebugSession.LaunchToBreakpoint(testOutputHelper, Stepping, Line("Throws.Run();"), ["all"]);
+        using DebugSession host = await DebugSession.LaunchToBreakpoint(testOutputHelper, Stepping, Line("Throws.Run();"), [DapExceptionFilters.All]);
         StoppedEvent stop = await host.WaitForStoppedEvent();
         stop = await host.WithContinueRequest().WaitForStoppedEvent();
-        Assert.Equal(("exception", Line("static void Fail(string reason) => throw new InvalidOperationException(reason);")), (stop.Reason, stop.ReadStopInfo().line));
+        Assert.Equal((StopReasons.Exception, Line("static void Fail(string reason) => throw new InvalidOperationException(reason);")), (stop.Reason, stop.ReadStopInfo().line));
 
         DapVariable exception = Assert.Single(host.Locals(stop), v => v.Name == "$exception");
         Assert.Equal("System.InvalidOperationException", exception.Type);

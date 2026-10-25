@@ -45,7 +45,7 @@ public static class RoslynExtension
             throw new LanguageServerFailed(problem, handler);
         }
         string text = JsonSerializer.Serialize(message, message.GetType());
-        JsonElement answer = await server.RequestAsync<JsonElement>("workspace/_vs_dispatchExtensionMessage",
+        JsonElement answer = await server.RequestAsync<JsonElement>(LspMethods.DispatchExtensionMessage,
             new DispatchWorkspaceMessageParams(handler, text), cancel).ConfigureAwait(false);
         return Answer<T>(answer, handler);
     }
@@ -63,7 +63,7 @@ public static class RoslynExtension
         JsonElement answer;
         try
         {
-            answer = await server.RequestAsync<JsonElement>("textDocument/_vs_dipatchExtensionMessage",
+            answer = await server.RequestAsync<JsonElement>(LspMethods.DispatchDocumentExtensionMessage,
                 new DispatchExtensionMessageParams(handler, text, document), cancel).ConfigureAwait(false);
         }
         catch (LanguageServerFailed failed) when (failed.Reason.Contains("No handler found", StringComparison.Ordinal))
@@ -80,7 +80,7 @@ public static class RoslynExtension
     {
         if (server.ExtensionProblem is null)
         {
-            server.Tell("workspace/_vs_dispatchExtensionMessage", new DispatchWorkspaceMessageParams(handler, JsonSerializer.Serialize(message, message.GetType())));
+            server.Tell(LspMethods.DispatchExtensionMessage, new DispatchWorkspaceMessageParams(handler, JsonSerializer.Serialize(message, message.GetType())));
         }
     }
 

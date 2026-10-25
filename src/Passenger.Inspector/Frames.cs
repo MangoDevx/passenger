@@ -8,15 +8,12 @@ using Avalonia.Threading;
 namespace Passenger.Inspector;
 
 /// <summary>The app's frames, told by Passenger's own EventSource, whose events Passenger.Profiler's UiFrames reads by
-/// their numbers. A session enabling it turns the recording on and its end turns it off
+/// their numbers and their payloads' names (<see cref="FrameWire"/>, each parameter's name here). A session enabling it turns the recording on and its end turns it off
 /// (<see cref="FrameRecorder.Follow"/>), so an app nobody profiles pays nothing. A control is told once a recording,
 /// before its first layout.</summary>
-[EventSource(Name = Source)]
+[EventSource(Name = FrameWire.Provider)]
 internal sealed class FrameEvents : EventSource
 {
-    /// <summary>The provider a session enables, as Passenger.Profiler's UiFrames.Provider names it.</summary>
-    public const string Source = "Passenger-Avalonia";
-
     public static FrameEvents? Log { get; private set; }
 
     /// <summary>Made once, by the startup hook, before the app's Main.</summary>
@@ -26,7 +23,7 @@ internal sealed class FrameEvents : EventSource
 
     /// <summary>A control laid out: the inspector's id for it (the Live Visual Tree's), its type without and with its namespace,
     /// its name, the control whose template made it, and where its XAML is (an empty file and line 0 when unknown).</summary>
-    [Event(1, Level = EventLevel.Informational)]
+    [Event(FrameWire.ControlEvent, Level = EventLevel.Informational)]
     public unsafe void Control(long id, string type, string fullType, string name, string templatedBy, string file, int line)
     {
         fixed (char* typed = type, full = fullType, named = name, by = templatedBy, at = file)
@@ -39,13 +36,13 @@ internal sealed class FrameEvents : EventSource
             data[4] = Text(by, templatedBy);
             data[5] = Text(at, file);
             data[6] = Data(&line, sizeof(int));
-            WriteEventCore(1, 7, data);
+            WriteEventCore(FrameWire.ControlEvent, 7, data);
         }
     }
 
     /// <summary>A control's measures and arranges in a frame: how many, their time, and their own time (less the controls they
     /// measured or arranged in turn), in milliseconds.</summary>
-    [Event(2, Level = EventLevel.Informational)]
+    [Event(FrameWire.LayoutEvent, Level = EventLevel.Informational)]
     public unsafe void Layout(int frame, long control, int measures, double measureMs, double measureSelfMs, int arranges, double arrangeMs, double arrangeSelfMs)
     {
         EventData* data = stackalloc EventData[8];
@@ -57,13 +54,13 @@ internal sealed class FrameEvents : EventSource
         data[5] = Data(&arranges, sizeof(int));
         data[6] = Data(&arrangeMs, sizeof(double));
         data[7] = Data(&arrangeSelfMs, sizeof(double));
-        WriteEventCore(2, 8, data);
+        WriteEventCore(FrameWire.LayoutEvent, 8, data);
     }
 
     /// <summary>A frame's work on the UI thread, told as it ends: from its first layout or render to its last, how long before
     /// this event that last ended, Avalonia's measure and arrange passes, the time measuring and arranging (the outermost
     /// measures and arranges), the time recording what to render, and how many measures and arranges it did.</summary>
-    [Event(3, Level = EventLevel.Informational)]
+    [Event(FrameWire.FrameEvent, Level = EventLevel.Informational)]
     public unsafe void Frame(int frame, double durationMs, double endedMsAgo, int measurePasses, int arrangePasses, double measureMs, double arrangeMs,
         double renderMs, int measures, int arranges)
     {
@@ -78,17 +75,17 @@ internal sealed class FrameEvents : EventSource
         data[7] = Data(&renderMs, sizeof(double));
         data[8] = Data(&measures, sizeof(int));
         data[9] = Data(&arranges, sizeof(int));
-        WriteEventCore(3, 10, data);
+        WriteEventCore(FrameWire.FrameEvent, 10, data);
     }
 
     /// <summary>The compositor drew a window: its update pass and its render pass, in milliseconds, told as the render ends.</summary>
-    [Event(4, Level = EventLevel.Informational)]
+    [Event(FrameWire.CompositedEvent, Level = EventLevel.Informational)]
     public unsafe void Composited(double updateMs, double renderMs)
     {
         EventData* data = stackalloc EventData[2];
         data[0] = Data(&updateMs, sizeof(double));
         data[1] = Data(&renderMs, sizeof(double));
-        WriteEventCore(4, 2, data);
+        WriteEventCore(FrameWire.CompositedEvent, 2, data);
     }
 
     private static unsafe EventData Data(void* at, int size) => new() { DataPointer = (IntPtr)at, Size = size };

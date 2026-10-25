@@ -96,7 +96,7 @@ public sealed class UsageHighlighting
             List<UsageHighlight> uses = [.. found.Select(h =>
             {
                 int start = lsp.OffsetOf(h.Range.Start);
-                bool write = h.Kind == 3 || (syntax is not null && UsageKinds.DeclaresWithValue(syntax.Root, start));
+                bool write = h.Kind == DocumentHighlightKind.Write || (syntax is not null && UsageKinds.DeclaresWithValue(syntax.Root, start));
                 return new UsageHighlight(TextRange.FromBounds(start, Math.Max(start, lsp.OffsetOf(h.Range.End))), write);
             })];
             // Uses of something other than what the caret is on are none of its.

@@ -143,7 +143,7 @@ public sealed partial class CodeAssist
         IReadOnlyList<CompletionItem> items = [.. set.Keys.Select(key => new CompletionItem
         {
             Label = key,
-            Kind = 12,
+            Kind = CompletionItemKind.Value,
             Detail = (set.Neutral?.Entry(key) ?? set.Files.Select(f => f.Entry(key)).FirstOrDefault(e => e is { Translated: true }))?.Value ?? set.Name,
             InsertText = key.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal),
             SortText = " " + key,

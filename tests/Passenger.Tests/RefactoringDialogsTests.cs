@@ -134,7 +134,7 @@ public sealed class RefactoringDialogsTests
         Assert.Equal(Order.Replace("public class Order", "public class Order : IOrder", StringComparison.Ordinal), window.EditorArea.Active?.Text.Snapshot.ToString());
         Assert.Equal("Extracted the interface IOrder from Order to IOrder.cs", window.Status);
         Assert.Contains(window.ExplorerView.Tree.Rows, r => r.Path == extracted);
-        Ui.WaitFor(() => window.CSharpService!.For(window.EditorArea.Active!)!.Diagnostics.All(d => d.Severity != 1), "the language server to take IOrder.cs in");
+        Ui.WaitFor(() => window.CSharpService!.For(window.EditorArea.Active!)!.Diagnostics.All(d => d.Severity != Passenger.Lsp.DiagnosticSeverity.Error), "the language server to take IOrder.cs in");
 
         window.EditorArea.CodeEditor.Focus();
         Ui.Run(window, EditorActions.Undo);

@@ -79,7 +79,7 @@ public sealed partial class CSharpDocument
                 found.Add(new Diagnostic
                 {
                     Range = new LspRange(new LspPosition(read.At.Line, read.At.Character), new LspPosition(read.End.Line, read.End.Character)),
-                    Severity = gap.Weak ? 3 : 2,
+                    Severity = gap.Weak ? DiagnosticSeverity.Information : DiagnosticSeverity.Warning,
                     Source = ComposeDiagnosticSource,
                     Message = $"{Path.GetFileName(gap.Compose)}: {gap.Said}",
                     Data = JsonSerializer.SerializeToElement(new Dictionary<string, string> { ["compose"] = gap.Compose, ["service"] = gap.Service, ["name"] = gap.Name }),

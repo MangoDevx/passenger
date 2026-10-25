@@ -105,7 +105,7 @@ public sealed partial class CSharpDocument
                 found.Add(new Diagnostic
                 {
                     Range = new LspRange(new LspPosition(read.At.Line, read.At.Character), new LspPosition(read.End.Line, read.End.Character)),
-                    Severity = 2,
+                    Severity = DiagnosticSeverity.Warning,
                     Source = LocalizationDiagnosticSource,
                     Message = $"No .resx gives {resource.Type}'s strings, so each shows as written: {Together([.. near.Files.Select(f => f.Name)])} "
                         + $"{(near.Files.Count == 1 ? "is" : "are")} named for {near.Name}, not {resource.Name.Split('.')[^1]}",
@@ -120,7 +120,7 @@ public sealed partial class CSharpDocument
                 found.Add(new Diagnostic
                 {
                     Range = new LspRange(new LspPosition(read.At.Line, read.At.Character), new LspPosition(read.End.Line, read.End.Character)),
-                    Severity = 2,
+                    Severity = DiagnosticSeverity.Warning,
                     Source = LocalizationDiagnosticSource,
                     Message = gap.Message,
                     Data = JsonSerializer.SerializeToElement(new Dictionary<string, string>

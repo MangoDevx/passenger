@@ -30,7 +30,7 @@ public class SmartStepIntoTests(ITestOutputHelper testOutputHelper)
 
         // Inner has run by then, so Outer is given what it returned.
         stop = await host.Step(thread, targets[1]);
-        Assert.Equal(("step", Line("static int Outer(int value)") + 1), (stop.Reason, stop.ReadStopInfo().line));
+        Assert.Equal((StopReasons.Step, Line("static int Outer(int value)") + 1), (stop.Reason, stop.ReadStopInfo().line));
         Assert.Contains("Outer", host.GetTopStackFrame(thread).Name, StringComparison.Ordinal);
         Assert.Equal("20", Assert.Single(host.Locals(stop), v => v.Name == "value").Value);
     }
@@ -69,7 +69,7 @@ public class SmartStepIntoTests(ITestOutputHelper testOutputHelper)
         IReadOnlyList<StepInTarget> targets = Targets(host, thread);
         Assert.Equal(["Numbers()", "n => Twice(n)"], targets.Select(t => t.Label));
         stop = await host.Step(thread, targets[1]);
-        Assert.Equal(("step", line), (stop.Reason, stop.ReadStopInfo().line));
+        Assert.Equal((StopReasons.Step, line), (stop.Reason, stop.ReadStopInfo().line));
         Assert.Contains(">b__", host.GetTopStackFrame(thread).Name, StringComparison.Ordinal);
         Assert.Equal("1", Assert.Single(host.Locals(stop), v => v.Name == "n").Value);
     }
@@ -85,12 +85,12 @@ public class SmartStepIntoTests(ITestOutputHelper testOutputHelper)
         IReadOnlyList<StepInTarget> targets = Targets(host, thread);
         Assert.Equal(["Seed()", "ComputeAsync(int)"], targets.Select(t => t.Label));
         stop = await host.Step(thread, targets[1]);
-        Assert.Equal(("step", Line("static async Task<int> ComputeAsync(int value)") + 1), (stop.Reason, stop.ReadStopInfo().line));
+        Assert.Equal((StopReasons.Step, Line("static async Task<int> ComputeAsync(int value)") + 1), (stop.Reason, stop.ReadStopInfo().line));
         Assert.Equal("4", Assert.Single(host.Locals(stop), v => v.Name == "value").Value);
     }
 
     private static IReadOnlyList<StepInTarget> Targets(DebugSession host, int thread) =>
-        host.Request<StepInTargetsResponse>("stepInTargets", new StepInTargetsArguments(host.GetTopStackFrame(thread).Id)).Targets;
+        host.Request<StepInTargetsResponse>(DapCommands.StepInTargets, new StepInTargetsArguments(host.GetTopStackFrame(thread).Id)).Targets;
 }
 
 internal static class SmartStepIntoRequests
@@ -98,7 +98,7 @@ internal static class SmartStepIntoRequests
     /// <summary>Smart Step Into's step: straight into a target, and the stop it comes to.</summary>
     public static Task<StoppedEvent> Step(this DebugSession host, int thread, StepInTarget target)
     {
-        host.Request("stepIn", new StepInArguments(thread, target.Id));
+        host.Request(DapCommands.StepIn, new StepInArguments(thread, target.Id));
         return host.WaitForStoppedEvent();
     }
 }

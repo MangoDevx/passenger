@@ -130,7 +130,7 @@ public sealed class EslintService : IAsyncDisposable
             .Select(p => new { uri = DocumentUris.FromPath(p), type = File.Exists(p) ? 2 : 3 })];
         if (changes.Count > 0 && server?.Session is { } running)
         {
-            running.Server.Notify("workspace/didChangeWatchedFiles", new { changes });
+            running.Server.Notify(LspMethods.DidChangeWatchedFiles, new { changes });
         }
     }
 
@@ -245,7 +245,7 @@ public sealed class EslintService : IAsyncDisposable
         bool configMissing = false;
         server.Logged += (_, message) =>
         {
-            if (message.Type is not (1 or 2))
+            if (message.Type is not (MessageType.Error or MessageType.Warning))
             {
                 return;
             }
@@ -261,7 +261,7 @@ public sealed class EslintService : IAsyncDisposable
                 configMissing = true;
                 return;
             }
-            IdeErrors.Write($"ESLint language server (process {server.ProcessId}) {(message.Type == 1 ? "error" : "warning")}: {said}");
+            IdeErrors.Write($"ESLint language server (process {server.ProcessId}) {(message.Type == MessageType.Error ? "error" : "warning")}: {said}");
         };
         server.Said += (_, message) =>
         {
