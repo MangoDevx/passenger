@@ -240,9 +240,9 @@ public sealed class DebugSessionsTests : IClassFixture<DebugSessionsTests.Pair>
             (int program, int adapter) = LeftRunning(window, "Elsewhere", elsewhere: true);
             started.AddRange([program, adapter]);
             Assert.True(Processes.Gone(adapter), "The adapter that let the program go did not end");
-            Ui.Hold(TimeSpan.FromSeconds(3), "the adapter's end to reach the session, which ends a program left running");
-            Assert.True(Processes.IsRunning(program), "A session whose program is elsewhere ended the process of this machine that has its program's id");
             DebugSession elsewhere = window.Debugger.SessionNamed("Elsewhere")!;
+            Ui.WaitFor(() => elsewhere.AdapterEnded.IsCompleted, "the adapter's end to reach the session, which ends a program left running");
+            Assert.True(Processes.IsRunning(program), "A session whose program is elsewhere ended the process of this machine that has its program's id");
             Assert.DoesNotContain(DebugSession.EndedLeftRunning(Path.GetFileName(elsewhere.Program), program), window.Debugger.Output(elsewhere).ToString(), StringComparison.Ordinal);
         }
         finally

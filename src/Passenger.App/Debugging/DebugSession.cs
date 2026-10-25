@@ -228,6 +228,12 @@ public sealed class DebugSession
 
     private readonly TaskCompletionSource<int> processStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+    /// <summary>Done once the session has heard its adapter's process end, a launched program the adapter left running
+    /// ended by then.</summary>
+    public Task AdapterEnded => adapterEnded.Task;
+
+    private readonly TaskCompletionSource adapterEnded = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     /// <summary>The program the adapter launched, once it has said which it is: the adapter's child, which ends with the IDE
     /// (its job or process group), but which only the IDE can end once the adapter itself has died.</summary>
     private Process? launched;
@@ -562,10 +568,11 @@ public sealed class DebugSession
         int code = adapter.ExitCode;
         if (code != 0 && !killed && place?.Running is { } running)
         {
-            _ = PlaceEndedAsync(running, code, log);
+            _ = PlaceEndedAsync(running, code, log).ContinueWith(_ => adapterEnded.TrySetResult(), TaskScheduler.Default);
             return;
         }
         AdapterExited(code, log);
+        adapterEnded.TrySetResult();
     }
 
     /// <summary>An adapter elsewhere that ended with a failure no one asked for: when its place has stopped (its container),
