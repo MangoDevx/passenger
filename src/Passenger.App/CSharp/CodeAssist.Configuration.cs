@@ -357,15 +357,21 @@ public sealed partial class CodeAssist
             return RefactorOutcome.Refused($"{key} was not set: {project.Name}'s configuration gives it already");
         }
         List<XamlFileChange> changes = [];
-        string? path = secret ? project.SecretsIn(text) : project.Settings;
-        string? madeId = null;
-        if (path is null)
+        string path = project.Settings;
+        bool given = false;
+        if (secret)
         {
-            // No UserSecretsId: given one in the same command.
-            madeId = Guid.NewGuid().ToString();
-            path = Passenger.Core.PathNames.Canonical(UserSecrets.FileOf(madeId)!);
-            changes.Add(new XamlFileChange(project.Project, now => ProjectEdits.WithProperty(now, project.Project, "UserSecretsId", madeId) is { Text: { } then } && then != now
-                ? [Difference(now, then)] : []));
+            (UserSecretsFile? secrets, string? unkept) = UserSecrets.Ensure(project.Project, project.UserSecretsId, text);
+            if (secrets is null)
+            {
+                return RefactorOutcome.Refused($"{key} was not set: {unkept}");
+            }
+            path = secrets.File;
+            if (secrets.Given is { } id)
+            {
+                changes.Add(id);
+                given = true;
+            }
         }
         JsonNode written = JsonValue.Create(value);
         // User secrets keep a key whole, as dotnet user-secrets writes it, unless the file already nests its first section.
@@ -393,7 +399,7 @@ public sealed partial class CodeAssist
             {
                 return RefactorOutcome.Refused($"{key} was not set: {Path.GetFileName(path)} was not changed, {problem}");
             }
-            changes.Add(new XamlFileChange(path, now => JsonText.SetKey(now, Where(now), written) is { Text: { } changed } && changed != now ? [Difference(now, changed)] : []));
+            changes.Add(new XamlFileChange(path, now => JsonText.SetKey(now, Where(now), written) is { Text: { } changed } && changed != now ? [TextEdit.Between(now, changed)] : []));
         }
         if (ApplyFileChanges($"Add {key}", changes) is { } refused)
         {
@@ -402,11 +408,11 @@ public sealed partial class CodeAssist
         service()?.For(file)?.RefreshDiagnostics();
         string where = secret ? $"{project.Name}'s user secrets" : $"{project.Name}'s appsettings.json";
         List<RefactoredFile> files = [new RefactoredFile(path, made ? "created" : "changed", [])];
-        if (madeId is not null)
+        if (given)
         {
             files.Add(new RefactoredFile(project.Project, "changed", []));
         }
-        return new RefactorOutcome($"Added {key} to {where}" + (madeId is null ? string.Empty : ", giving it a UserSecretsId"), null, files, []);
+        return new RefactorOutcome($"Added {key} to {where}" + (given ? ", giving it a UserSecretsId" : string.Empty), null, files, []);
     }
 
     /// <summary>Whether a configuration file's root holds a section as an object, letter case aside.</summary>
@@ -423,21 +429,5 @@ public sealed partial class CodeAssist
         {
             return false;
         }
-    }
-
-    /// <summary>The one edit that makes one text another: what lies between their common start and their common end.</summary>
-    private static TextEdit Difference(string was, string now)
-    {
-        int start = 0;
-        while (start < was.Length && start < now.Length && was[start] == now[start])
-        {
-            start++;
-        }
-        int end = 0;
-        while (end < was.Length - start && end < now.Length - start && was[^(end + 1)] == now[^(end + 1)])
-        {
-            end++;
-        }
-        return new TextEdit(start, was.Length - start - end, now[start..^end]);
     }
 }

@@ -255,7 +255,7 @@ public sealed partial class CodeAssist
         IReadOnlyList<TextEdit> Edits(string text)
         {
             string? made = text == was ? now : xliff ? ResourceFiles.WithTarget(text, key, value, key, null) : ResourceFiles.WithEntry(text, key, value);
-            return made is null || made == text ? [] : [Difference(text, made)];
+            return made is null || made == text ? [] : [TextEdit.Between(text, made)];
         }
         string title = xliff ? $"Translate '{key}'" : $"Add '{key}'";
         if (ApplyFileChanges(title, [new XamlFileChange(target, Edits)]) is { } refused)

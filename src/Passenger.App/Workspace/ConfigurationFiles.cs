@@ -13,10 +13,9 @@ public sealed record ConfigurationProject(string Project, string? UserSecretsId,
 
     public string Folder => Path.GetDirectoryName(Project)!;
 
-    /// <summary>Its user secrets' file, there or not, by the id evaluated, else the one its file's text sets; null without one.</summary>
+    /// <summary>Its user secrets' file, there or not, by its id (<see cref="UserSecrets.Of"/>); null without one.</summary>
     public string? SecretsIn(Func<string, string?> text) =>
-        UserSecrets.FileOf(UserSecretsId ?? (text(Project) is { } written ? ProjectEdits.PropertyIn(written, "UserSecretsId") : null)) is { } file
-            ? PathNames.Canonical(file) : null;
+        UserSecrets.FileOf(UserSecrets.Of(Project, UserSecretsId, text)) is { } file ? PathNames.Canonical(file) : null;
 
     /// <summary>Its appsettings.json, there or not.</summary>
     public string Settings => Path.Combine(Folder, "appsettings.json");

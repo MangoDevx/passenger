@@ -204,4 +204,20 @@ public readonly record struct TextRange(int Start, int Length)
 public readonly record struct TextEdit(int Start, int Length, string Text)
 {
     public int End => Start + Length;
+
+    /// <summary>The one edit that makes one text another: what lies between their common start and their common end.</summary>
+    public static TextEdit Between(string was, string now)
+    {
+        int start = 0;
+        while (start < was.Length && start < now.Length && was[start] == now[start])
+        {
+            start++;
+        }
+        int end = 0;
+        while (end < was.Length - start && end < now.Length - start && was[^(end + 1)] == now[^(end + 1)])
+        {
+            end++;
+        }
+        return new TextEdit(start, was.Length - start - end, now[start..^end]);
+    }
 }

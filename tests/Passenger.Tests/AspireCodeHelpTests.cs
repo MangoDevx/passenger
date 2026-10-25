@@ -160,18 +160,18 @@ public sealed class AspireCodeHelpTests : IClassFixture<AspireCodeHelpTests.Proj
         window.Confirm = (_, _, _) => Task.FromResult(true);
         try
         {
-            Ui.WaitFor(() => Unset(window).SetEquals(["password", "mode"]), "the parameters with no value, and only those, to be marked");
+            Ui.WaitFor(() => UnsetParameters(window).SetEquals(["password", "mode"]), "the parameters with no value, and only those, to be marked");
 
-            Set(window, "AddParameter(\"pass", "Set password in the AppHost's user secrets…", secret: true, "s3cret-value");
+            SetParameter(window, "AddParameter(\"pass", "Set password in the AppHost's user secrets…", secret: true, "s3cret-value");
             Ui.WaitFor(() => File.Exists(secrets) && File.ReadAllText(secrets).Contains("\"Parameters:password\": \"s3cret-value\"", StringComparison.Ordinal),
                 "the secret to be set in the AppHost's user secrets");
-            Ui.WaitFor(() => Unset(window).SetEquals(["mode"]), "the secret's mark to go once it has a value");
+            Ui.WaitFor(() => UnsetParameters(window).SetEquals(["mode"]), "the secret's mark to go once it has a value");
             Assert.True(window.Status == "Set password in the AppHost's user secrets", $"Setting the secret said: {window.Status}");
 
-            Set(window, "AddParameter(\"mo", "Set mode in the AppHost's appsettings.json…", secret: false, "fast");
+            SetParameter(window, "AddParameter(\"mo", "Set mode in the AppHost's appsettings.json…", secret: false, "fast");
             Ui.WaitFor(() => File.ReadAllText(settings).Contains("\"mode\": \"fast\"", StringComparison.Ordinal), "the value to be set in appsettings.json");
             Assert.Equal(written.Replace("\"given\": \"set\"\n", "\"given\": \"set\",\n    \"mode\": \"fast\"\n", StringComparison.Ordinal), File.ReadAllText(settings));
-            Ui.WaitFor(() => Unset(window).Count == 0, "every mark to go once each parameter has a value");
+            Ui.WaitFor(() => UnsetParameters(window).Count == 0, "every mark to go once each parameter has a value");
 
             Ui.Run(window, AppActions.FocusExplorer);
             Ui.Run(window, EditorActions.Undo);
@@ -186,24 +186,48 @@ public sealed class AspireCodeHelpTests : IClassFixture<AspireCodeHelpTests.Proj
             window.Close();
             File.Delete(secrets);
         }
+    }
 
-        static void Set(MainWindow window, string after, string fix, bool secret, string value)
+    /// <summary>A secret parameter of an AppHost with no UserSecretsId: its fix gives the AppHost one (a GUID in its project
+    /// file) and keeps the value in those user secrets, the run's own, in one command, the mark going once they give it;
+    /// undo takes back both.</summary>
+    [AvaloniaFact]
+    public void A_secret_parameters_fix_gives_an_AppHost_with_no_UserSecretsId_one_and_keeps_the_value_in_its_secrets()
+    {
+        string projectFile = project.PathOf("OtherHost/OtherHost.csproj");
+        string writtenProject = File.ReadAllText(projectFile);
+        Assert.Null(Passenger.App.Workspace.ProjectEdits.PropertyIn(writtenProject, "UserSecretsId"));
+        project.Rewrite("OtherHost/Program.cs", "using Aspire.Hosting;\nvar builder = DistributedApplication.CreateBuilder(args);\n"
+            + "var token = builder.AddParameter(\"token\", secret: true);\nbuilder.Build().Run();\n");
+        MainWindow window = project.Open(project.PathOf("OtherHost/Program.cs"));
+        window.Confirm = (_, _, _) => Task.FromResult(true);
+        string? id = null;
+        try
         {
-            Ui.PlaceAfter(window.EditorArea.CodeEditor, after);
-            Ui.Run(window, AppActions.QuickFix);
-            Choose(window, fix);
-            Ui.WaitFor(() => window.OwnedWindows.OfType<ConfirmDialog>().Any(), $"{fix} to ask for the value");
-            ConfirmDialog dialog = DialogButtonsTests.Check(Assert.Single(window.OwnedWindows.OfType<ConfirmDialog>()));
-            TextBox box = Assert.Single(dialog.GetVisualDescendants().OfType<TextBox>());
-            Assert.True(secret == (box.PasswordChar != default), $"{fix}'s box {(secret ? "shows a secret as it is typed" : "masks a value that is no secret")}");
-            dialog.KeyTextInput(value);
-            Ui.Press(dialog, "ENTER");
-            Ui.Settle();
-            Assert.DoesNotContain(value, window.Status ?? string.Empty, StringComparison.Ordinal);
-        }
+            Ui.WaitFor(() => UnsetParameters(window).SetEquals(["token"]), "the secret parameter with no value to be marked");
+            SetParameter(window, "AddParameter(\"tok", "Set token in the AppHost's user secrets…", secret: true, "t0ken-value");
+            Ui.WaitFor(() => Passenger.App.Workspace.ProjectEdits.PropertyIn(File.ReadAllText(projectFile), "UserSecretsId") is not null,
+                () => $"the AppHost to be given a UserSecretsId ({window.Status})");
+            id = Passenger.App.Workspace.ProjectEdits.PropertyIn(File.ReadAllText(projectFile), "UserSecretsId")!;
+            Assert.True(Guid.TryParse(id, out _), $"The AppHost was not given a GUID for its UserSecretsId: {id}");
+            string secrets = Path.Combine(TestRun.UserSecrets, id, "secrets.json");
+            Ui.WaitFor(() => File.Exists(secrets) && File.ReadAllText(secrets).Contains("\"Parameters:token\": \"t0ken-value\"", StringComparison.Ordinal),
+                "the secret to be kept in the AppHost's new user secrets, in the run's own folder");
+            Assert.True(window.Status == "Set token in the AppHost's user secrets, giving it a UserSecretsId", $"Setting the secret said: {window.Status}");
+            Ui.WaitFor(() => UnsetParameters(window).Count == 0, "the secret's mark to go once the AppHost's new user secrets give it");
 
-        static HashSet<string> Unset(MainWindow window) => [.. window.EditorArea.Active!.Markers
-            .Where(m => m.Message.StartsWith("Parameter '", StringComparison.Ordinal)).Select(m => m.Message.Split('\'')[1])];
+            Ui.Run(window, AppActions.FocusExplorer);
+            Ui.Run(window, EditorActions.Undo);
+            Ui.WaitFor(() => File.ReadAllText(projectFile) == writtenProject && !File.Exists(secrets), "undo to take back the UserSecretsId and the secrets it made");
+        }
+        finally
+        {
+            window.Close();
+            if (id is not null && Directory.Exists(Path.Combine(TestRun.UserSecrets, id)))
+            {
+                Directory.Delete(Path.Combine(TestRun.UserSecrets, id), recursive: true);
+            }
+        }
     }
 
     /// <summary>A parameter's value typed into the AppHost's appsettings.json is its value before it is saved: the mark on the
@@ -236,6 +260,27 @@ public sealed class AspireCodeHelpTests : IClassFixture<AspireCodeHelpTests.Proj
         HashSet<string> Unset() => [.. window.EditorArea.Find(program)!.Markers
             .Where(m => m.Message.StartsWith("Parameter '", StringComparison.Ordinal)).Select(m => m.Message.Split('\'')[1])];
     }
+
+    /// <summary>A parameter's fix chosen at the caret placed after some text, its value typed into the box it asks with
+    /// (masked for a secret); what the window says after never holds the value.</summary>
+    private static void SetParameter(MainWindow window, string after, string fix, bool secret, string value)
+    {
+        Ui.PlaceAfter(window.EditorArea.CodeEditor, after);
+        Ui.Run(window, AppActions.QuickFix);
+        Choose(window, fix);
+        Ui.WaitFor(() => window.OwnedWindows.OfType<ConfirmDialog>().Any(), $"{fix} to ask for the value");
+        ConfirmDialog dialog = DialogButtonsTests.Check(Assert.Single(window.OwnedWindows.OfType<ConfirmDialog>()));
+        TextBox box = Assert.Single(dialog.GetVisualDescendants().OfType<TextBox>());
+        Assert.True(secret == (box.PasswordChar != default), $"{fix}'s box {(secret ? "shows a secret as it is typed" : "masks a value that is no secret")}");
+        dialog.KeyTextInput(value);
+        Ui.Press(dialog, "ENTER");
+        Ui.Settle();
+        Assert.DoesNotContain(value, window.Status ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    /// <summary>The parameters the AppHost's file shown marks as having no value.</summary>
+    private static HashSet<string> UnsetParameters(MainWindow window) => [.. window.EditorArea.Active!.Markers
+        .Where(m => m.Message.StartsWith("Parameter '", StringComparison.Ordinal)).Select(m => m.Message.Split('\'')[1])];
 
     [AvaloniaFact]
     public void Connection_completion_offers_only_connected_resources_and_a_connection_warning_offers_a_native_reference_fix_undo_takes_back()

@@ -4,6 +4,7 @@ using Passenger.App.Workspace;
 using Passenger.Core;
 using Passenger.Editor;
 using Passenger.Text;
+using Passenger.Xaml.Features;
 using A = Passenger.App.AppActions;
 
 namespace Passenger.App;
@@ -65,54 +66,34 @@ public partial class MainWindow
             return SecretsSaid($"{Path.GetFileName(project)} is not one of the solution's projects");
         }
         string name = Path.GetFileNameWithoutExtension(model.Path);
-        string? id = model.Property(Passenger.Host.CarriedProperties.UserSecretsId) is { Length: > 0 } evaluated ? evaluated
-            : EditorArea.ReadText(model.Path) is { } text ? ProjectEdits.PropertyIn(text, "UserSecretsId") : null;
-        bool given = id is null;
-        id ??= Guid.NewGuid().ToString();
-        if (UserSecrets.FileOf(id) is not { } secrets)
+        (UserSecretsFile? secrets, string? problem) = UserSecrets.Ensure(model.Path, model.Property(Passenger.Host.CarriedProperties.UserSecretsId),
+            Editors.Texts().Text);
+        if (secrets is null)
         {
-            return SecretsSaid($"{name}'s UserSecretsId, {id}, names no folder for its secrets");
+            return SecretsSaid(problem);
         }
-        secrets = PathNames.Canonical(secrets);
-        bool made = !File.Exists(secrets);
-        if (given || made)
+        List<XamlFileChange> changes = [.. secrets.Given is { } given ? [given] : Array.Empty<XamlFileChange>()];
+        if (!File.Exists(secrets.File))
         {
-            if (given && SaveBeforeWriting([model.Path]) is { } unsaved)
-            {
-                return SecretsSaid($"{name} could not be given user secrets: {unsaved}");
-            }
+            changes.Add(new XamlFileChange(secrets.File, null, "{\n}\n"));
+        }
+        if (changes.Count > 0)
+        {
             try
             {
-                using CommandHistory.Recording recording = Editors.Commands.Record("Manage User Secrets");
-                if (given)
-                {
-                    recording.Watch(model.Path);
-                    try
-                    {
-                        if (ProjectEdits.SetProperty(model.Path, "UserSecretsId", id) is { } problem)
-                        {
-                            return SecretsSaid($"{name} could not be given user secrets: {problem}");
-                        }
-                    }
-                    finally
-                    {
-                        // Open, it takes the text now, inside the command, so the command's undo takes it back too.
-                        FollowWritten([model.Path]);
-                    }
-                }
-                if (made)
-                {
-                    Directory.CreateDirectory(Path.GetDirectoryName(secrets)!);
-                    WriteNew(recording, secrets, "{\n}\n");
-                }
+                Directory.CreateDirectory(Path.GetDirectoryName(secrets.File)!);
             }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException)
             {
                 return SecretsSaid($"{name}'s user secrets could not be made: {error.Message}");
             }
+            if (Assist.ApplyFileChanges("Manage User Secrets", changes) is { } refused)
+            {
+                return SecretsSaid($"{name}'s user secrets could not be made: {refused}");
+            }
         }
-        OpenFile(secrets);
-        return SecretsSaid(null, given ? $"Gave {name} the UserSecretsId {id}; its secrets.json is open, kept out of its files"
+        OpenFile(secrets.File);
+        return SecretsSaid(null, secrets.Given is not null ? $"Gave {name} the UserSecretsId {secrets.Id}; its secrets.json is open, kept out of its files"
             : $"{name}'s secrets.json is open, kept out of its files");
     }
 

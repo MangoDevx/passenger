@@ -136,7 +136,8 @@ public sealed partial class CodeAssist
         };
 
     /// <summary>A parameter's value set in its AppHost's configuration (<see cref="AspireParameters.Setting"/>) as one command,
-    /// its file's text as the editor has it when open, the AppHost's warnings pulled again; what it says never holds the value.</summary>
+    /// a secret giving the AppHost a UserSecretsId first where it has none; its files' texts as the editor has them when open,
+    /// the AppHost's warnings pulled again; what it says never holds the value.</summary>
     private RefactorOutcome SetParameter(OpenDocument file, string name, bool secret, string value)
     {
         if (service() is not { } csharp || csharp.AspireAppHostOf?.Invoke(file.Path) is not { } host)
@@ -148,25 +149,45 @@ public sealed partial class CodeAssist
         {
             return RefactorOutcome.Refused($"{name} was not set: the AppHost's configuration has a value for it already");
         }
-        (string? path, string? changed, string? problem) = AspireParameters.Setting(host, name, secret, value, text);
-        if (path is null || changed is null)
+        List<Passenger.Xaml.Features.XamlFileChange> changes = [];
+        string path = host.Settings;
+        if (secret)
+        {
+            (UserSecretsFile? secrets, string? unkept) = UserSecrets.Ensure(host.AppHost, host.UserSecretsId, text);
+            if (secrets is null)
+            {
+                return RefactorOutcome.Refused($"{name} was not set: {unkept}");
+            }
+            path = secrets.File;
+            if (secrets.Given is { } given)
+            {
+                changes.Add(given);
+            }
+        }
+        (string? changed, string? problem) = AspireParameters.Setting(path, text(path), name, secret, value);
+        if (changed is null)
         {
             return RefactorOutcome.Refused(problem ?? $"{name} was not set");
         }
         bool made = !File.Exists(path) && text(path) is null;
-        Passenger.Xaml.Features.XamlFileChange change = made ? new(path, null, changed) : new(path, now =>
-            AspireParameters.Setting(host, name, secret, value, _ => now) is { Text: { } then } ? [Difference(now, then)] : []);
+        changes.Add(made ? new(path, null, changed) : new(path, now =>
+            AspireParameters.Setting(path, now, name, secret, value) is { Text: { } then } ? [TextEdit.Between(now, then)] : []));
         if (made)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         }
-        if (ApplyFileChanges($"Set {name}", [change]) is { } refused)
+        if (ApplyFileChanges($"Set {name}", changes) is { } refused)
         {
             return RefactorOutcome.Refused(refused);
         }
         csharp.For(file)?.RefreshDiagnostics();
         string where = secret ? "the AppHost's user secrets" : $"the AppHost's {Path.GetFileName(path)}";
-        return new RefactorOutcome($"Set {name} in {where}", null, [new RefactoredFile(path, made ? "created" : "changed", [])], []);
+        List<RefactoredFile> files = [new RefactoredFile(path, made ? "created" : "changed", [])];
+        if (changes.Count > 1)
+        {
+            files.Add(new RefactoredFile(host.AppHost, "changed", []));
+        }
+        return new RefactorOutcome($"Set {name} in {where}" + (changes.Count > 1 ? ", giving it a UserSecretsId" : string.Empty), null, files, []);
     }
 
     /// <summary>Rename's box for the resource whose name the caret is on in an AppHost's or a service's string, placed at the

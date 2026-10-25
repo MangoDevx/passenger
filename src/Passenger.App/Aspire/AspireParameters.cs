@@ -10,8 +10,8 @@ public sealed record AspireAppHostSettings(string AppHost, string? UserSecretsId
 {
     public string Folder => Path.GetDirectoryName(AppHost)!;
 
-    /// <summary>Its user secrets' file, there or not; null without an id.</summary>
-    public string? Secrets => UserSecrets.FileOf(UserSecretsId);
+    /// <summary>Its user secrets' file, there or not, by its id (<see cref="UserSecrets.Of"/>); null without one.</summary>
+    public string? SecretsIn(Func<string, string?> text) => UserSecrets.FileOf(UserSecrets.Of(AppHost, UserSecretsId, text));
 
     /// <summary>Its appsettings.json, there or not.</summary>
     public string Settings => Path.Combine(Folder, "appsettings.json");
@@ -38,7 +38,7 @@ public static class AspireParameters
         {
             settings = [];
         }
-        return settings.Append(host.Secrets).OfType<string>().Any(file => Holds(text(file), name));
+        return settings.Append(host.SecretsIn(text)).OfType<string>().Any(file => Holds(text(file), name));
     }
 
     /// <summary>Whether a configuration file's text gives Parameters:NAME a value, its keys read as .NET's configuration
@@ -79,25 +79,19 @@ public static class AspireParameters
         }
     }
 
-    /// <summary>The file a parameter's value is set in and its text with it set (a new file's whole text when there is none),
-    /// or why it cannot be: user secrets for a secret (as <c>dotnet user-secrets set</c> writes them, beside a Parameters
-    /// object when the file has one), else appsettings.json's Parameters object.</summary>
-    public static (string? Path, string? Text, string? Problem) Setting(AspireAppHostSettings host, string name, bool secret, string value, Func<string, string?> text)
+    /// <summary>A configuration file's text with a parameter's value set (a new file's whole text when it has none), or why
+    /// it cannot be: in user secrets for a secret (as <c>dotnet user-secrets set</c> writes them, beside a Parameters object
+    /// when the file has one), else in appsettings.json's Parameters object.</summary>
+    public static (string? Text, string? Problem) Setting(string path, string? was, string name, bool secret, string value)
     {
-        string? path = secret ? host.Secrets : host.Settings;
-        if (path is null)
-        {
-            return (null, null, $"{Path.GetFileNameWithoutExtension(host.AppHost)} has no UserSecretsId, so it has no user secrets to keep {name} in: give it one (dotnet user-secrets init) first");
-        }
-        string? was = text(path);
         if (string.IsNullOrWhiteSpace(was))
         {
             JsonObject made = secret ? new JsonObject { [$"Parameters:{name}"] = value } : new JsonObject { ["Parameters"] = new JsonObject { [name] = value } };
-            return (path, made.ToJsonString(new JsonSerializerOptions(JsonText.Written) { WriteIndented = true }) + "\n", null);
+            return (made.ToJsonString(new JsonSerializerOptions(JsonText.Written) { WriteIndented = true }) + "\n", null);
         }
         bool nested = !secret || NestsParameters(was);
         (string? changed, string? problem) = nested ? JsonText.SetInRoot(was, "Parameters", name, value) : JsonText.SetInRoot(was, $"Parameters:{name}", null, value);
-        return changed is null ? (path, null, $"{Path.GetFileName(path)} was not changed: {problem}") : (path, changed, null);
+        return changed is null ? (null, $"{Path.GetFileName(path)} was not changed: {problem}") : (changed, null);
     }
 
     /// <summary>Whether a configuration file keeps its parameters in a Parameters object rather than as flat keys.</summary>

@@ -708,10 +708,10 @@ public static class ContainerPlans
     /// on Windows, ~/.microsoft/usersecrets elsewhere): read for that alone, so a test's run never mounts the person's own.</summary>
     public const string UserSecretsVariable = Workspace.UserSecrets.Variable;
 
-    /// <summary>The folder of a project's own user secrets on this machine and its id, when it has an id that names one
-    /// folder (no separator, never a dot or two alone) and that folder is there.</summary>
+    /// <summary>The folder of a project's own user secrets on this machine and its id (<see cref="Workspace.UserSecrets.Of"/>),
+    /// when it has an id that names one folder (no separator, never a dot or two alone) and that folder is there.</summary>
     private static (string Folder, string Id)? UserSecrets(ProjectModel? project) =>
-        project?.Property(Passenger.Host.CarriedProperties.UserSecretsId) is { Length: > 0 } id
+        project is not null && Workspace.UserSecrets.Of(project.Path, project.Property(Passenger.Host.CarriedProperties.UserSecretsId), Editors.EditorArea.ReadText) is { } id
             && Workspace.UserSecrets.FolderOf(id) is { } folder && Directory.Exists(folder) ? (folder, id) : null;
 
     private static JsonObject Labels(IReadOnlyList<string> words)
