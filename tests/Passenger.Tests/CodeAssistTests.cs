@@ -508,6 +508,26 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
     }
 
     [AvaloniaFact]
+    public void A_letter_deleted_inside_a_name_the_server_coloured_leaves_its_colour_on_the_name_left_until_the_server_answers()
+    {
+        MainWindow window = project.Open("Separators.cs");
+        CodeEditor editor = window.EditorArea.CodeEditor;
+        OpenDocument document = window.EditorArea.Active!;
+        int use = editor.Document.Snapshot.ToString().IndexOf("return total", StringComparison.Ordinal) + "return ".Length;
+        Ui.WaitFor(() => document.Highlighter!.GetSpans(editor.Document.Snapshot, use, 1).Any(s => s.Start == use && s.Kind == TokenKind.Local),
+            "the server's colour on the local's use");
+        editor.Selections = SelectionSet.Single(use + "tot".Length);
+        // The key alone, before the server is asked again: what shows is the colour carried through the delete.
+        window.KeyPress(Avalonia.Input.Key.Back, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.None, null);
+        window.KeyRelease(Avalonia.Input.Key.Back, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.None, null);
+        Assert.Equal("toal", editor.Document.Snapshot.GetText(use, 4));
+        SyntaxSpan[] spans = [.. document.Highlighter!.GetSpans(editor.Document.Snapshot, use, 4).Where(s => s.Kind == TokenKind.Local)];
+        Assert.True(spans is [{ Length: 4 } local] && local.Start == use,
+            $"After a letter was deleted inside the local's name, its colour was on [{string.Join(", ", spans.Select(s => $"{s.Start - use}+{s.Length}"))}] of the name left, not on all of it");
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public void Code_typed_below_a_comment_holding_line_breaks_only_roslyn_counts_is_squiggled_coloured_and_reformatted_in_place()
     {
         MainWindow window = project.Open("Separators.cs");

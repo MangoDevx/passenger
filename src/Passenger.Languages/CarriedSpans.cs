@@ -59,10 +59,10 @@ internal static class CarriedSpans
         return offset - shift;
     }
 
-    /// <summary>Carries colours through a batch of edits (sorted, in the old text's coordinates), in place. A
-    /// span an edit lands inside grows or shrinks with it; one an edit crosses is dropped until the
-    /// next pass brings it back.</summary>
-    public static void Forward(List<SyntaxSpan> spans, IReadOnlyList<TextEdit> batch)
+    /// <summary>Carries colours through a batch of edits (sorted, in the old text's coordinates), in place. A span text is
+    /// deleted inside shrinks with it, and one text is typed inside grows with it when <paramref name="grows"/> takes that
+    /// text (any, without one); one an edit crosses is dropped until the next pass brings it back.</summary>
+    public static void Forward(List<SyntaxSpan> spans, IReadOnlyList<TextEdit> batch, Func<string, bool>? grows = null)
     {
         int kept = 0;
         int e = 0;
@@ -82,7 +82,7 @@ internal static class CarriedSpans
             }
             TextEdit edit = batch[e];
             bool alone = e + 1 >= batch.Count || batch[e + 1].Start > span.End;
-            if (alone && edit.Length == 0 && edit.Start > span.Start)
+            if (alone && edit.Length == 0 && edit.Start > span.Start && grows?.Invoke(edit.Text) != false)
             {
                 spans[kept++] = new SyntaxSpan(span.Start + delta, span.Length + edit.Text.Length, span.Kind);
                 delta += edit.Text.Length;

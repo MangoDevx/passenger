@@ -381,8 +381,8 @@ public sealed class SemanticHighlighter : IHighlighter, IBraceMatcher, IDisposab
         int to = end;
         for (int i = history.Count - 1; i >= first; i--)
         {
-            from = Back(history[i].Edits, from);
-            to = Back(history[i].Edits, to) + 1;
+            from = CarriedSpans.Back(history[i].Edits, from, toEnd: false);
+            to = CarriedSpans.Back(history[i].Edits, to, toEnd: true) + 1;
         }
         SyntaxSpan[] all = tokens.Spans;
         int low = 0;
@@ -411,7 +411,7 @@ public sealed class SemanticHighlighter : IHighlighter, IBraceMatcher, IDisposab
         }
         for (int i = first; i < history.Count; i++)
         {
-            Forward(spans, history[i].Edits);
+            CarriedSpans.Forward(spans, history[i].Edits, Word);
         }
         return spans;
     }
@@ -427,58 +427,7 @@ public sealed class SemanticHighlighter : IHighlighter, IBraceMatcher, IDisposab
         return first;
     }
 
-    private static int Back(IReadOnlyList<Passenger.Text.TextEdit> batch, int offset)
-    {
-        int shift = 0;
-        for (int i = 0; i < batch.Count; i++)
-        {
-            Passenger.Text.TextEdit edit = batch[i];
-            int start = edit.Start + shift;
-            if (offset < start)
-            {
-                break;
-            }
-            if (offset <= start + edit.Text.Length)
-            {
-                return edit.Start;
-            }
-            shift += edit.Text.Length - edit.Length;
-        }
-        return offset - shift;
-    }
-
-    /// <summary>A token an edit lands inside grows or shrinks with it; one an edit crosses is dropped
-    /// until fresh tokens arrive. In place: an answer is carried through every edit since it, every frame.</summary>
-    private static void Forward(List<SyntaxSpan> spans, IReadOnlyList<Passenger.Text.TextEdit> batch)
-    {
-        int kept = 0;
-        int e = 0;
-        int delta = 0;
-        for (int i = 0; i < spans.Count; i++)
-        {
-            SyntaxSpan span = spans[i];
-            while (e < batch.Count && batch[e].End <= span.Start)
-            {
-                delta += batch[e].Text.Length - batch[e].Length;
-                e++;
-            }
-            if (e >= batch.Count || batch[e].Start > span.End || (batch[e].Start == span.End && batch[e].Length > 0))
-            {
-                spans[kept++] = span with { Start = span.Start + delta };
-                continue;
-            }
-            Passenger.Text.TextEdit edit = batch[e];
-            bool alone = e + 1 >= batch.Count || batch[e + 1].Start > span.End;
-            if (alone && edit.Length == 0 && edit.Start > span.Start && Word(edit.Text))
-            {
-                spans[kept++] = new SyntaxSpan(span.Start + delta, span.Length + edit.Text.Length, span.Kind);
-                delta += edit.Text.Length;
-                e++;
-            }
-        }
-        spans.RemoveRange(kept, spans.Count - kept);
-    }
-
+    /// <summary>Whether text typed inside a token keeps it one: a name's letters and digits, never what would split it.</summary>
     private static bool Word(string text)
     {
         foreach (char c in text)
