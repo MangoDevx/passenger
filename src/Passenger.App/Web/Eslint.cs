@@ -395,6 +395,9 @@ public sealed class EslintDocument : IDisposable
     /// <summary>The problems last reported, on the server's lines of the text as it stands.</summary>
     public IReadOnlyList<Diagnostic> Diagnostics => diagnostics.Placed;
 
+    /// <summary>The markers the problems draw as, where the text has carried them.</summary>
+    public IReadOnlyList<Marker> Markers => diagnostics.Markers;
+
     internal void Connect(LanguageSession started)
     {
         if (Lsp is not null || disposed)
@@ -487,7 +490,7 @@ public sealed class EslintDocument : IDisposable
         if (Web.Lint == this)
         {
             Web.Lint = null;
-            Web.ShowLint([]);
+            Web.ShowLint();
         }
     }
 
@@ -509,7 +512,11 @@ public sealed class EslintDocument : IDisposable
         {
             if (await diagnostics.PulledAsync(lsp, cancel) is { } pulled && lsp == Lsp)
             {
-                Web.ShowLint(diagnostics.Take(pulled, Marker));
+                diagnostics.Take(pulled, Marker);
+                if (Web.Lint == this)
+                {
+                    Web.ShowLint();
+                }
             }
         });
     }
