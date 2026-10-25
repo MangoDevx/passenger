@@ -88,7 +88,7 @@ public sealed class GitView : DockPanel
         static Control Explanation(LogRange range, int row)
         {
             TextBlock text = new() { Text = $"Commits that exist in {range.To} but don't exist in {range.From}", Margin = new Thickness(10, 6), FontSize = 12 };
-            text.Bind(TextBlock.ForegroundProperty, text.GetResourceObservable("Passenger.TextMuted"));
+            text.Classes.Add("muted");
             Grid.SetRow(text, row);
             return text;
         }

@@ -28,7 +28,7 @@ public partial class MainWindow
     public LocalHistory? LocalHistory => session.LocalHistory;
 
     /// <summary>The Local History tool window, built as it is first shown or asked for.</summary>
-    public LocalHistoryView LocalHistoryWindow => localHistoryView ?? (LocalHistoryView)Dock[ToolWindowIds.LocalHistory]!.Content;
+    public LocalHistoryView LocalHistoryWindow => localHistoryView ?? (LocalHistoryView)Dock[ToolWindowIds.LocalHistory].Content;
 
     private void AddLocalHistory()
     {

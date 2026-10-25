@@ -562,7 +562,7 @@ public sealed class BranchesPanel : DockPanel
         {
             // Where it pushes and pulls, muted after its name.
             TextBlock tracked = new() { Text = upstream, FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) };
-            tracked.Bind(TextBlock.ForegroundProperty, tracked.GetResourceObservable("Passenger.TextMuted"));
+            tracked.Classes.Add("muted");
             row.Children.Add(tracked);
         }
         return row;

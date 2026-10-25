@@ -84,7 +84,7 @@ public sealed class DebuggerTests : IClassFixture<DebuggerTests.Sum>, IClassFixt
         Assert.Equal(4, top.Line);
 
         Passenger.App.Docking.DockHost dock = window.DockHost;
-        dock.Move(dock[ToolWindowIds.Debug]!, Passenger.App.Docking.ToolAnchor.RightTop);
+        dock.Move(dock[ToolWindowIds.Debug], Passenger.App.Docking.ToolAnchor.RightTop);
         Ui.Settle();
         Passenger.App.ToolWindows.DebugView debug = window.DebugWindow;
         Point origin = debug.TranslatePoint(default, window)!.Value;
@@ -96,7 +96,7 @@ public sealed class DebuggerTests : IClassFixture<DebuggerTests.Sum>, IClassFixt
             Assert.True(list.Bounds.Width >= debug.Bounds.Width / 4 && at.X + list.Bounds.Width <= origin.X + debug.Bounds.Width + 0.5,
                 $"A list of the {debug.Bounds.Width:0.#} px Debug window is {list.Bounds.Width:0.#} px wide, ending at {at.X + list.Bounds.Width:0.#} where the window ends at {origin.X + debug.Bounds.Width:0.#}");
         }
-        dock.Move(dock[ToolWindowIds.Debug]!, Passenger.App.Docking.ToolAnchor.BottomLeft);
+        dock.Move(dock[ToolWindowIds.Debug], Passenger.App.Docking.ToolAnchor.BottomLeft);
         Ui.Settle();
         Assert.Contains(new LineAnnotation(0, "total: 0", LineAnnotationKind.InlineValue), editor.LineAnnotations);
         Assert.Contains(new LineAnnotation(1, "i: 1", LineAnnotationKind.InlineValue), editor.LineAnnotations);
@@ -150,7 +150,7 @@ public sealed class DebuggerTests : IClassFixture<DebuggerTests.Sum>, IClassFixt
         Ui.WaitFor(() => Value(window, "i") == "1", "the locals at the first stop");
 
         Passenger.App.Docking.DockHost dock = window.DockHost;
-        dock.SetMode(dock[ToolWindowIds.Debug]!, Passenger.App.Docking.ToolMode.Floating);
+        dock.SetMode(dock[ToolWindowIds.Debug], Passenger.App.Docking.ToolMode.Floating);
         Ui.Settle();
         Window floating = Assert.Single(window.OwnedWindows);
         Passenger.App.ToolWindows.DebugModel view = window.BottomPanel.Debug;

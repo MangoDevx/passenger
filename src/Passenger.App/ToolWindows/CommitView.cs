@@ -475,7 +475,7 @@ public sealed class CommitView : DockPanel
             Margin = new Thickness(8, 0, 0, 0),
             FontSize = 12,
         };
-        count.Bind(TextBlock.ForegroundProperty, count.GetResourceObservable("Passenger.TextMuted"));
+        count.Classes.Add("muted");
         return new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -496,7 +496,7 @@ public sealed class CommitView : DockPanel
             Margin = new Thickness(8, 0, 0, 0),
             FontSize = 12,
         };
-        count.Bind(TextBlock.ForegroundProperty, count.GetResourceObservable("Passenger.TextMuted"));
+        count.Classes.Add("muted");
         Button resolve = new() { Classes = { "link" }, Content = "Resolve", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0) };
         resolve.Click += (_, _) => ResolveRequested?.Invoke(this, EventArgs.Empty);
         return new StackPanel { Orientation = Orientation.Horizontal, Height = ListRow.Height, Children = { name, count, resolve } };
@@ -564,7 +564,7 @@ public sealed class CommitView : DockPanel
         }
         string where = repository is not null ? Path.GetDirectoryName(repository.Relative(change.Path))?.Replace('\\', '/') ?? string.Empty : string.Empty;
         TextBlock folder = new() { Text = where, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0), FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis };
-        folder.Bind(TextBlock.ForegroundProperty, folder.GetResourceObservable("Passenger.TextMuted"));
+        folder.Classes.Add("muted");
         // The folder takes what the row leaves, ending in an ellipsis in a narrow window rather than cut mid-letter.
         DockPanel.SetDock(icon, Dock.Left);
         DockPanel.SetDock(name, Dock.Left);

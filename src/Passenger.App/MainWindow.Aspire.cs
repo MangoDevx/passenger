@@ -22,7 +22,7 @@ public partial class MainWindow
     public AspireModel Aspire => Bottom.Aspire;
 
     /// <summary>The Aspire window's view, built as it is first shown or asked for (a person's action on its toolbar's menus).</summary>
-    public AspireView AspireWindow => aspireView ?? (AspireView)Dock[ToolWindowIds.Aspire]!.Content;
+    public AspireView AspireWindow => aspireView ?? (AspireView)Dock[ToolWindowIds.Aspire].Content;
 
     public AspireController AspireRuntime => session.Aspire;
     private AspireView? aspireView;

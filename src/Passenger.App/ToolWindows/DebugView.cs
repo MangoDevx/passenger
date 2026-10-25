@@ -361,7 +361,7 @@ public sealed class DebugView : DockPanel
             Margin = new Thickness(8, 0, 0, 0),
             VerticalAlignment = VerticalAlignment.Center,
         };
-        where.Bind(TextBlock.ForegroundProperty, where.GetResourceObservable("Passenger.TextMuted"));
+        where.Classes.Add("muted");
         // Its place gives way first, then its name, each ending in an ellipsis.
         return new ShrinkingRow
         {

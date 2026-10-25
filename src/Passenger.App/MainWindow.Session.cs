@@ -253,10 +253,7 @@ public partial class MainWindow
         // The last folder's build said nothing of this one.
         Bottom.Problems.ForgetBuild();
         buildRun.ShowBindings();
-        if (Dock[ToolWindowIds.Problems] is { } problemsWindow)
-        {
-            problemsWindow.Title = "Problems";
-        }
+        Dock[ToolWindowIds.Problems].Title = "Problems";
         Explorer.Tree.Unloaded = next.Unloaded;
         next.CSharpChanged += (_, _) =>
         {

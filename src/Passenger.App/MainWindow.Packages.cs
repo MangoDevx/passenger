@@ -10,7 +10,7 @@ public partial class MainWindow
     private ToolWindows.NuGetView? nuget;
 
     /// <summary>The NuGet tool window, built as it is first shown, by a person's action, or as a test asks for it.</summary>
-    public ToolWindows.NuGetView NuGet => nuget ?? (ToolWindows.NuGetView)Dock[ToolWindowIds.NuGet]!.Content;
+    public ToolWindows.NuGetView NuGet => nuget ?? (ToolWindows.NuGetView)Dock[ToolWindowIds.NuGet].Content;
 
     private void AddPackages()
     {

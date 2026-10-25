@@ -135,7 +135,7 @@ public sealed class AvaloniaFramesTests : IClassFixture<RestoredFolders>, IDispo
 
         DebugModel debug = window.BottomPanel.Debug;
         Assert.True(debug.Overlays.IsVisible, "The Debug window has no overlay toggle while an inspected app is debugged");
-        Toggle(window, "debug", debug.Overlays, "LayoutTimeGraph");
+        Toggle(window, ToolWindowIds.Debug, debug.Overlays, "LayoutTimeGraph");
         Assert.Equal(["LayoutTimeGraph"], Shown(window.LiveApp!));
         Assert.Equal(["LayoutTimeGraph"], window.Session.Overlays);
 
@@ -156,12 +156,12 @@ public sealed class AvaloniaFramesTests : IClassFixture<RestoredFolders>, IDispo
         LiveApp first = window.Session.RunApp!;
         Assert.Null(Shown(first));
 
-        Toggle(window, "run", run.Overlays, "Fps");
+        Toggle(window, ToolWindowIds.Run, run.Overlays, "Fps");
         Assert.Equal(["Fps"], Shown(first));
-        Toggle(window, "run", run.Overlays, "DirtyRects");
+        Toggle(window, ToolWindowIds.Run, run.Overlays, "DirtyRects");
         Assert.Equal(["Fps", "DirtyRects"], Shown(first));
         Assert.Contains("shows FPS, Dirty Rects on 1 window", window.Status, StringComparison.Ordinal);
-        Toggle(window, "run", run.Overlays, "Fps");
+        Toggle(window, ToolWindowIds.Run, run.Overlays, "Fps");
         Assert.Equal(["DirtyRects"], Shown(first));
 
         window.Perform(AppActions.OverlayRenderTimeGraph);

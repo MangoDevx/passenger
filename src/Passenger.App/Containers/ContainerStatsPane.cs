@@ -329,7 +329,7 @@ public sealed class ContainerStatsPane : DockPanel
     private static Control Chart(string title, Sparkline line, int column)
     {
         TextBlock name = new() { Text = title, FontSize = 11, [DockProperty] = Dock.Top };
-        name.Bind(TextBlock.ForegroundProperty, name.GetResourceObservable("Passenger.TextMuted"));
+        name.Classes.Add("muted");
         Border frame = new() { Classes = { "framed" }, Child = line };
         return new DockPanel { [Grid.ColumnProperty] = column, Margin = new Thickness(column == 0 ? 0 : 4, 0, column == 0 ? 4 : 0, 0), Children = { name, frame } };
     }

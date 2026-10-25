@@ -67,7 +67,7 @@ public static class DiffLines
         status.VerticalAlignment = VerticalAlignment.Center;
         status.Margin = new Thickness(12, 0);
         status.TextTrimming = TextTrimming.CharacterEllipsis;
-        status.Bind(TextBlock.ForegroundProperty, status.GetResourceObservable("Passenger.TextMuted"));
+        status.Classes.Add("muted");
         start.Children.Add(status);
         DockPanel row = new();
         if (end is not null)
@@ -90,7 +90,7 @@ public static class DiffLines
     public static Control Title(string text, int column)
     {
         TextBlock label = new() { Text = text, FontSize = 12, Margin = new Thickness(12, 4), TextTrimming = TextTrimming.CharacterEllipsis };
-        label.Bind(TextBlock.ForegroundProperty, label.GetResourceObservable("Passenger.TextMuted"));
+        label.Classes.Add("muted");
         Grid.SetColumn(label, column);
         return label;
     }

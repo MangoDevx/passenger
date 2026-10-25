@@ -109,7 +109,7 @@ public sealed class RecentLocationsPopup : SearchPopup<RecentLocation>
             VerticalAlignment = VerticalAlignment.Center,
             TextTrimming = TextTrimming.CharacterEllipsis,
         };
-        member.Bind(TextBlock.ForegroundProperty, member.GetResourceObservable("Passenger.TextMuted"));
+        member.Classes.Add("muted");
         StackPanel header = new()
         {
             Orientation = Orientation.Horizontal,

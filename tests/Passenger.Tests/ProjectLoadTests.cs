@@ -77,7 +77,7 @@ public sealed class ProjectLoadTests : IDisposable
             $"Hovering the status bar's load warning, which the bar cuts, shows \"{tip}\", not its whole text and where a click on it goes");
 
         ProblemsModel problems = window.BottomPanel.Problems;
-        window.DockHost.Hide("problems");
+        window.DockHost.Hide(ToolWindowIds.Problems);
         problems.Shown = ProblemsTab.File;
         ClickStatus(window);
         Assert.True(window.DockHost.IsShown(ToolWindowIds.Problems) && problems.Shown == ProblemsTab.Toolset,
@@ -171,7 +171,7 @@ public sealed class ProjectLoadTests : IDisposable
         Assert.True(window.StatusSeverity == ProblemSeverity.Error, $"The status bar's load error is marked as {window.StatusSeverity?.ToString() ?? "nothing"}, not an error");
 
         ProblemsModel problems = window.BottomPanel.Problems;
-        window.DockHost.Hide("problems");
+        window.DockHost.Hide(ToolWindowIds.Problems);
         problems.Shown = ProblemsTab.File;
         ClickStatus(window);
         Assert.True(window.DockHost.IsShown(ToolWindowIds.Problems) && problems.Shown == ProblemsTab.Toolset,
@@ -182,7 +182,7 @@ public sealed class ProjectLoadTests : IDisposable
         Assert.Equal(["Bad", Reason], problems.Rows.Select(r => r.Label));
         Assert.True(problems.Selected == error, $"A click on the status bar's load error chose {problems.Selected?.Message ?? "nothing"} in Problems, not the error");
 
-        window.DockHost.Hide("problems");
+        window.DockHost.Hide(ToolWindowIds.Problems);
         problems.Shown = ProblemsTab.File;
         Ui.Press(window, Ui.Shortcut(AppActions.ApplyHotReloadChanges));
         Assert.StartsWith("Nothing runs", window.Status, StringComparison.Ordinal);

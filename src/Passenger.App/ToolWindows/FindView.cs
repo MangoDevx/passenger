@@ -295,7 +295,7 @@ public sealed class FindView : DockPanel
         if (row.Usage is { } usage)
         {
             TextBlock number = new() { Text = row.Detail, MinWidth = 36, FontFamily = new FontFamily("avares://Passenger.Editor/Fonts#JetBrains Mono"), FontSize = 12, VerticalAlignment = VerticalAlignment.Center };
-            number.Bind(TextBlock.ForegroundProperty, number.GetResourceObservable("Passenger.TextMuted"));
+            number.Classes.Add("muted");
             panel.Children.Add(number);
             panel.Children.Add(new TextBlock { Text = row.Label, FontFamily = new FontFamily("avares://Passenger.Editor/Fonts#JetBrains Mono"), FontSize = 12, VerticalAlignment = VerticalAlignment.Center });
             return panel;
@@ -314,7 +314,7 @@ public sealed class FindView : DockPanel
         }
         panel.Children.Add(new TextBlock { Text = row.Label, VerticalAlignment = VerticalAlignment.Center, FontWeight = row.Depth == 0 ? FontWeight.SemiBold : FontWeight.Normal });
         TextBlock count = new() { Text = row.Detail, FontSize = 12, Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
-        count.Bind(TextBlock.ForegroundProperty, count.GetResourceObservable("Passenger.TextMuted"));
+        count.Classes.Add("muted");
         panel.Children.Add(count);
         return panel;
     }

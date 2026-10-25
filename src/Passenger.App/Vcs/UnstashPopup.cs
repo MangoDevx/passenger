@@ -177,7 +177,7 @@ public sealed class UnstashPopup : UserControl
     private static Control Row(StashInfo stash)
     {
         TextBlock when = new() { Text = ToolWindows.GitLogView.When(stash.Time), VerticalAlignment = VerticalAlignment.Center, FontSize = 12, Margin = new Thickness(12, 0, 4, 0) };
-        when.Bind(TextBlock.ForegroundProperty, when.GetResourceObservable("Passenger.TextMuted"));
+        when.Classes.Add("muted");
         DockPanel row = new() { Height = ListRow.Height, Margin = new Thickness(8, 0) };
         DockPanel.SetDock(when, Dock.Right);
         row.Children.Add(when);

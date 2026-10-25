@@ -20,7 +20,7 @@ public partial class MainWindow
     public ContainerEngine Engine { get; init; } = ContainerEngine.Shared;
 
     /// <summary>The Containers tool window, built as it is first shown or asked for (an agent's or a run's action on a row).</summary>
-    public ContainersView ContainersWindow => containersView ?? (ContainersView)Dock[ToolWindowIds.Containers]!.Content;
+    public ContainersView ContainersWindow => containersView ?? (ContainersView)Dock[ToolWindowIds.Containers].Content;
 
     private void AddContainers()
     {

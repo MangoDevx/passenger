@@ -198,7 +198,7 @@ public sealed class EndpointsTests : IDisposable
         Ui.WaitFor(() => window.Endpoints.Requests.Count == 4, "the new file's request");
         Assert.Contains(window.Endpoints.Requests, r => r.Method == "DELETE");
 
-        window.DockHost.Hide("endpoints");
+        window.DockHost.Hide(ToolWindowIds.Endpoints);
         Ui.Settle();
         File.WriteAllText(Path.Combine(folder, "later.http"), "PATCH {{base}}/items/1\n");
         window.ShowToolWindow(ToolWindowIds.Endpoints);

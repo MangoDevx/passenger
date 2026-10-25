@@ -97,7 +97,7 @@ public sealed class KeyboardShortcutDialog : Window
     {
         TextBlock name = new() { Text = title };
         TextBlock place = new() { Text = $" in {where}", TextTrimming = TextTrimming.CharacterEllipsis };
-        place.Bind(TextBlock.ForegroundProperty, place.GetResourceObservable("Passenger.TextMuted"));
+        place.Classes.Add("muted");
         DockPanel.SetDock(name, Dock.Left);
         return new DockPanel { Children = { name, place } };
     }

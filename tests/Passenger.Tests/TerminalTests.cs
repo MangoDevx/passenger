@@ -187,7 +187,7 @@ public sealed class TerminalTests
         {
             (MainWindow window, TerminalSession _) = Open(folder, OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh");
             // Run, Git and Bookmarks by their one-key shortcuts (Alt+4, Alt+9 and Ctrl+`; Cmd+4, Cmd+9 and Ctrl+` on macOS).
-            foreach ((string action, string shown) in new[] { (AppActions.ShowRun, "run"), (AppActions.ShowGit, "git"), (AppActions.ShowBookmarks, "bookmarks") })
+            foreach ((string action, string shown) in new[] { (AppActions.ShowRun, ToolWindowIds.Run), (AppActions.ShowGit, ToolWindowIds.Git), (AppActions.ShowBookmarks, ToolWindowIds.Bookmarks) })
             {
                 window.ShowToolWindow(ToolWindowIds.Terminal);
                 window.TerminalPanel.FocusView();
@@ -345,12 +345,12 @@ public sealed class TerminalTests
 
             // Moved to the right side, as a drag of its stripe button moves it, the terminal is a side panel's width.
             DockHost dock = window.DockHost;
-            dock.Move(dock[ToolWindowIds.Terminal]!, ToolAnchor.RightTop);
+            dock.Move(dock[ToolWindowIds.Terminal], ToolAnchor.RightTop);
             Ui.WaitFor(() => screen.Columns < wide, "the terminal to narrow on the right side");
             Assert.True(screen.Columns < 100, $"on the right side the terminal has {screen.Columns} columns, room for the whole line");
             Assert.True(Lines(screen).Contains(hundred), $"at {screen.Columns} columns the line of 100 no longer reads whole, its rows joined:\n{Screen(shell)}");
 
-            dock.Move(dock[ToolWindowIds.Terminal]!, ToolAnchor.BottomLeft);
+            dock.Move(dock[ToolWindowIds.Terminal], ToolAnchor.BottomLeft);
             Ui.WaitFor(() => screen.Columns == wide, "the terminal to widen back at the bottom");
             Ui.Settle();
             Assert.True(Enumerable.Range(0, screen.Rows).Any(r => screen.Lines[r].Text() == hundred),
@@ -360,7 +360,7 @@ public sealed class TerminalTests
             Ui.Press(window, "ENTER");
             WaitForLine(shell, "kept", "the command typed before the resizes to run");
 
-            dock.Move(dock[ToolWindowIds.Terminal]!, ToolAnchor.RightTop);
+            dock.Move(dock[ToolWindowIds.Terminal], ToolAnchor.RightTop);
             Ui.WaitFor(() => screen.Columns < wide, "the terminal to narrow again");
             Run(window, "stty size");
             WaitForLine(shell, $"{screen.Rows} {screen.Columns}", $"stty to count the terminal's {screen.Rows} rows and {screen.Columns} columns");

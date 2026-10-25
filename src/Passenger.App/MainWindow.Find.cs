@@ -16,7 +16,7 @@ public partial class MainWindow
     private FindView? find;
 
     /// <summary>The Find tool window, built as it is first shown or asked for.</summary>
-    public FindView Find => find ?? (FindView)Dock[ToolWindowIds.Find]!.Content;
+    public FindView Find => find ?? (FindView)Dock[ToolWindowIds.Find].Content;
 
     private void AddFind()
     {

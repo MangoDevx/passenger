@@ -266,7 +266,7 @@ public sealed class KeymapChoiceTests : IDisposable
         {
             Passenger.App.Docking.DockHost dock = window.DockHost;
             dock.Show(ToolWindowIds.Tests);
-            dock.SetMode(dock[ToolWindowIds.Tests]!, Passenger.App.Docking.ToolMode.Floating);
+            dock.SetMode(dock[ToolWindowIds.Tests], Passenger.App.Docking.ToolMode.Floating);
             Ui.Settle();
             Window floating = Assert.Single(window.OwnedWindows);
             TextBox search = window.BottomPanel.Tests.GetVisualDescendants().OfType<TextBox>().Single(b => b.Classes.Contains("search"));
@@ -313,7 +313,7 @@ public sealed class KeymapChoiceTests : IDisposable
             window.TerminalPanel.Shell = OperatingSystem.IsWindows() ? ("cmd.exe", []) : ("/bin/sh", []);
             window.ApplySettings(window.Settings with { Keymap = KeymapPreset.VSCode });
             Passenger.App.Docking.DockHost dock = window.DockHost;
-            dock.SetMode(dock[ToolWindowIds.Terminal]!, Passenger.App.Docking.ToolMode.Floating);
+            dock.SetMode(dock[ToolWindowIds.Terminal], Passenger.App.Docking.ToolMode.Floating);
             Ui.Settle();
             window.EditorArea.CodeEditor.Focus();
             Ui.Press(window, "control BACK_QUOTE");

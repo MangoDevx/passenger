@@ -37,7 +37,7 @@ public sealed class FrameViewer : Window, IOwnKeys
         MinHeight = 200;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         Bind(BackgroundProperty, this.GetResourceObservable("Passenger.Editor.Background"));
-        sizeText.Bind(TextBlock.ForegroundProperty, sizeText.GetResourceObservable("Passenger.TextMuted"));
+        sizeText.Classes.Add("muted");
 
         Border framed = new()
         {

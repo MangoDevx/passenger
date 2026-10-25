@@ -183,9 +183,9 @@ public sealed class ProjectWindowsTests : ProjectWindowsFolders
     {
         MainWindow first = Started(LaunchOptions.Empty with { Folder = alpha });
         MainWindow second = InNewWindow(first, beta);
-        first.DockHost.Move(first.DockHost["tests"]!, ToolAnchor.RightBottom);
+        first.DockHost.Move(first.DockHost[ToolWindowIds.Tests], ToolAnchor.RightBottom);
         first.DockHost.Show(ToolWindowIds.Tests);
-        second.DockHost.Hide("explorer");
+        second.DockHost.Hide(ToolWindowIds.Explorer);
         second.DockHost.Show(ToolWindowIds.Build);
         Ui.Settle();
 
@@ -197,9 +197,9 @@ public sealed class ProjectWindowsTests : ProjectWindowsFolders
         MainWindow again = Started(LaunchOptions.Empty);
         MainWindow other = Assert.Single(PassengerApp.Windows, w => w != again);
         Assert.Equal((PathNames.Canonical(alpha), PathNames.Canonical(beta)), (again.Folder, other.Folder));
-        Assert.True(again.DockHost["tests"]!.Anchor == ToolAnchor.RightBottom && again.DockHost.IsShown(ToolWindowIds.Tests) && again.DockHost.IsShown(ToolWindowIds.Explorer),
+        Assert.True(again.DockHost[ToolWindowIds.Tests].Anchor == ToolAnchor.RightBottom && again.DockHost.IsShown(ToolWindowIds.Tests) && again.DockHost.IsShown(ToolWindowIds.Explorer),
             "The first window's layout did not come back with its folder");
-        Assert.True(other.DockHost["tests"]!.Anchor != ToolAnchor.RightBottom && !other.DockHost.IsShown(ToolWindowIds.Explorer) && other.DockHost.IsShown(ToolWindowIds.Build),
+        Assert.True(other.DockHost[ToolWindowIds.Tests].Anchor != ToolAnchor.RightBottom && !other.DockHost.IsShown(ToolWindowIds.Explorer) && other.DockHost.IsShown(ToolWindowIds.Build),
             "The second window's layout did not come back with its folder, or took the first's");
         Assert.Equal(other, PassengerApp.Front);
 

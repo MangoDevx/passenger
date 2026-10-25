@@ -13,7 +13,7 @@ namespace Passenger.App;
 public sealed record StatusPlace(string Name, Action Go)
 {
     /// <summary>A tool window, shown in its place.</summary>
-    public static StatusPlace Window(DockHost dock, string id) => new($"open the {dock[id]?.Title ?? id} window", () => dock.Show(id));
+    public static StatusPlace Window(DockHost dock, string id) => new($"open the {dock[id].Title} window", () => dock.Show(id));
 
     /// <summary>Problems on one of its tabs, the first problem <paramref name="which"/> picks chosen.</summary>
     public static StatusPlace Problems(DockHost dock, ProblemsModel problems, ProblemsTab tab, Func<Problem, bool>? which = null) =>

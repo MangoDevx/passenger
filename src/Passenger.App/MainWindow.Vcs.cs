@@ -22,7 +22,7 @@ public partial class MainWindow
     public ToolWindows.GitLogView GitLog => GitWindow.Log;
 
     /// <summary>The Git tool window: its Log and the histories Show History opened beside it.</summary>
-    public ToolWindows.GitView GitWindow => gitView ?? (ToolWindows.GitView)Dock[ToolWindowIds.Git]!.Content;
+    public ToolWindows.GitView GitWindow => gitView ?? (ToolWindows.GitView)Dock[ToolWindowIds.Git].Content;
 
     /// <summary>The open folder's version control, its session's.</summary>
     public VcsController Vcs => session.Vcs;
@@ -43,7 +43,7 @@ public partial class MainWindow
     }
 
     /// <summary>The Commit tool window, built as it is first shown or asked for.</summary>
-    public ToolWindows.CommitView CommitView => commitView ?? (ToolWindows.CommitView)Dock[ToolWindowIds.Commit]!.Content;
+    public ToolWindows.CommitView CommitView => commitView ?? (ToolWindows.CommitView)Dock[ToolWindowIds.Commit].Content;
 
     /// <summary>Asks the person to agree to something that cannot be undone (a rollback): its title, what happens, and
     /// the button that does it.</summary>

@@ -463,7 +463,7 @@ public sealed partial class SettingsDialog : Window
         if (note is not null)
         {
             TextBlock said = new() { Text = note, TextWrapping = TextWrapping.Wrap, MaxWidth = 360, Margin = new Thickness(name.Width, 0, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
-            said.Bind(TextBlock.ForegroundProperty, said.GetResourceObservable("Passenger.TextMuted"));
+            said.Classes.Add("muted");
             row = new StackPanel { Spacing = 4, Children = { row, said } };
         }
         options.Add(new Option(page, label, row, $"{page} {label} {keywords}", action));

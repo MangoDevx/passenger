@@ -214,7 +214,7 @@ public sealed class ConflictsDialog : Window
         TextBlock name = new() { Text = row.Conflict.Name, VerticalAlignment = VerticalAlignment.Center };
         name.Bind(TextBlock.ForegroundProperty, name.GetResourceObservable("Passenger.Vcs.File.Conflicted"));
         TextBlock folder = new() { Text = row.Folder, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0), FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis };
-        folder.Bind(TextBlock.ForegroundProperty, folder.GetResourceObservable("Passenger.TextMuted"));
+        folder.Classes.Add("muted");
         StackPanel file = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(6, 0, 0, 0), Children = { icon, name, folder } };
         Grid line = new() { ColumnDefinitions = new ColumnDefinitions($"*,{StatusWidth},{StatusWidth}"), Height = ListRow.Height };
         line.Children.Add(file);

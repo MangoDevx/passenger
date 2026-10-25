@@ -39,12 +39,12 @@ public sealed class ActionPopup : SearchPopup<IdeAction>
         if (!action.CanRun(context))
         {
             // Listed, so it can be found, but greyed: it cannot run here.
-            title.Bind(TextBlock.ForegroundProperty, title.GetResourceObservable("Passenger.TextMuted"));
+            title.Classes.Add("muted");
         }
         TextBlock group = new() { Text = action.Group, FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0) };
-        group.Bind(TextBlock.ForegroundProperty, group.GetResourceObservable("Passenger.TextMuted"));
+        group.Classes.Add("muted");
         TextBlock keys = new() { Text = actions.Shortcut(action.Id) ?? string.Empty, FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 4, 0) };
-        keys.Bind(TextBlock.ForegroundProperty, keys.GetResourceObservable("Passenger.TextMuted"));
+        keys.Classes.Add("muted");
         DockPanel row = new() { Height = ListRow.Height, Margin = new Thickness(4, 0) };
         DockPanel.SetDock(keys, Dock.Right);
         row.Children.Add(keys);

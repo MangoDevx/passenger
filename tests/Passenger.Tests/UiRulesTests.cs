@@ -1265,6 +1265,65 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
             + $"(Tokens.axaml and Harbour.axaml, Dark and Light) or a radius resource, and read that:\n{string.Join("\n", found)}");
     }
 
+    /// <summary>Every theme key and icon the code names ("Passenger.X" and "Icon.X" in C#, a resource in XAML) is one the
+    /// app's resources give, dark and light: a misspelt or missing one finds nothing, drawn as nothing (Transparent, no icon)
+    /// with no error. A literal of that shape naming something else (a project's assembly, a diagnostic's source) is passed
+    /// over; a key made at run time ($"Icon.{kind}") is its own code's to check.</summary>
+    [AvaloniaFact]
+    public void Every_theme_key_and_icon_the_code_names_is_one_the_resources_give_dark_and_light()
+    {
+        Application app = Application.Current!;
+        Regex literal = new(@"""((?:Passenger|Icon)(?:\.[A-Z][A-Za-z0-9]*)+)""");
+        Regex resource = new(@"\{(?:DynamicResource|StaticResource)\s+((?:Passenger|Icon)\.[\w.]+)\}");
+        string root = Passenger.Tests.Debugging.Helpers.Debuggees.Root;
+        List<string> missing = [];
+        int named = 0;
+        foreach ((string path, string text) in UiFiles(theme: true))
+        {
+            string[] lines = text.Split('\n');
+            for (int i = 0; i < lines.Length; i++)
+            {
+                string line = lines[i];
+                if (line.TrimStart().StartsWith("//", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                foreach (Match match in (path.EndsWith(".cs", StringComparison.Ordinal) ? literal : resource).Matches(line))
+                {
+                    string key = match.Groups[1].Value;
+                    // An assembly or a type of it, or a diagnostic's source, shaped like a key but none.
+                    if (Assembly(key) || line.Contains("DiagnosticSource", StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+                    named++;
+                    if (!app.TryGetResource(key, ThemeVariant.Dark, out _) || !app.TryGetResource(key, ThemeVariant.Light, out _))
+                    {
+                        missing.Add($"{path}:{i + 1}: {key}");
+                    }
+                }
+            }
+        }
+        Assert.True(named > 500, $"Only {named} keys were found named in the code: the search no longer reads it");
+        Assert.True(missing.Count == 0, $"{missing.Count} keys the code names are no resource, dark or light, so what reads them draws nothing: give each in "
+            + $"the theme (Tokens.axaml and every look, or Icons.axaml) or name the one that is there:\n{string.Join("\n", missing)}");
+
+        bool Assembly(string name) => Enumerable.Range(2, name.Count(c => c == '.')).Any(parts =>
+            Directory.Exists(Path.Combine(root, "src", string.Join('.', name.Split('.').Take(parts)))));
+    }
+
+    /// <summary>Muted words are made one way, by the muted class (MutedText, or the class on a TextBlock of its own), so a
+    /// change to how muted words look is made once: a TextBlock's foreground bound by hand to the muted colour fails here.</summary>
+    [Fact]
+    public void Muted_words_take_the_muted_class_never_the_colour_bound_by_hand()
+    {
+        Regex byHand = new(@"Bind\(TextBlock\.ForegroundProperty, \w+\.GetResourceObservable\(""Passenger\.TextMuted""\)\)");
+        string[] found = [.. UiFiles().SelectMany(f => f.Text.Split('\n').Select((line, i) => (f.Path, Line: i + 1, Text: line)))
+            .Where(l => byHand.IsMatch(l.Text)).Select(l => $"{l.Path}:{l.Line}")];
+        Assert.True(found.Length == 0, $"{found.Length} TextBlocks bind the muted colour by hand: give each the muted class (MutedText.Of, or Classes.Add(\"muted\")):\n"
+            + string.Join("\n", found));
+    }
+
     /// <summary>Every tool window's bars are the shared pieces, ToolBars.Top along its top and ToolBars.Side down its left,
     /// so each is one height, one width and one rule: a bar built by hand (a fixed height over a rule, a strip down the left
     /// beside one, a ToolColumn of its own) fails here, naming its line.</summary>
@@ -1341,8 +1400,8 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
 
     private static string UiSource() => string.Join("\n", UiFiles().Select(f => f.Text));
 
-    /// <summary>The C# and XAML of the projects that draw the window, less the theme files.</summary>
-    private static IEnumerable<(string Path, string Text)> UiFiles()
+    /// <summary>The C# and XAML of the projects that draw the window, less the theme files unless <paramref name="theme"/>.</summary>
+    private static IEnumerable<(string Path, string Text)> UiFiles(bool theme = false)
     {
         string root = Passenger.Tests.Debugging.Helpers.Debuggees.Root;
         foreach (string project in (string[])["Passenger.App", "Passenger.Editor", "Passenger.Terminal", "Passenger.Profiler"])
@@ -1352,7 +1411,7 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
             {
                 string relative = Path.GetRelativePath(root, file).Replace('\\', '/');
                 if ((file.EndsWith(".cs", StringComparison.Ordinal) || file.EndsWith(".axaml", StringComparison.Ordinal))
-                    && !relative.Contains("/Theme/", StringComparison.Ordinal) && !relative.Contains("/obj/", StringComparison.Ordinal) && !relative.Contains("/bin/", StringComparison.Ordinal))
+                    && (theme || !relative.Contains("/Theme/", StringComparison.Ordinal)) && !relative.Contains("/obj/", StringComparison.Ordinal) && !relative.Contains("/bin/", StringComparison.Ordinal))
                 {
                     yield return (relative, File.ReadAllText(file));
                 }

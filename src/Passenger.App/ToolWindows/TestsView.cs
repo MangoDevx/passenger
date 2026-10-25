@@ -104,7 +104,7 @@ public sealed class TestsView : DockPanel
         };
         model.ViewChanged += (_, _) => ShowFilters();
         status = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0), TextTrimming = TextTrimming.CharacterEllipsis };
-        status.Bind(TextBlock.ForegroundProperty, status.GetResourceObservable("Passenger.TextMuted"));
+        status.Classes.Add("muted");
         placeholder = new TextBlock { Text = model.EmptyText, Classes = { "emptyText" } };
         model.Rows.CollectionChanged += (_, _) => ShowPlaceholder();
         model.EmptyTextChanged += (_, _) => ShowPlaceholder();
@@ -520,7 +520,7 @@ public sealed class TestsView : DockPanel
             state = new PathIcon { Classes = { "testState" }, VerticalAlignment = VerticalAlignment.Center };
             label = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
             duration = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0), FontSize = 12 };
-            duration.Bind(TextBlock.ForegroundProperty, duration.GetResourceObservable("Passenger.TextMuted"));
+            duration.Classes.Add("muted");
             Children.Add(toggle);
             Children.Add(state);
             Children.Add(label);

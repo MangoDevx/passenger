@@ -454,7 +454,7 @@ public partial class MainWindow : Window
 
     /// <summary>The Debug window's view, built as it is asked for; what it shows is <see cref="ToolWindows.ToolViews.Debug"/>,
     /// kept while it is not.</summary>
-    public ToolWindows.DebugView DebugWindow => debugView ?? (ToolWindows.DebugView)Dock[ToolWindowIds.Debug]!.Content;
+    public ToolWindows.DebugView DebugWindow => debugView ?? (ToolWindows.DebugView)Dock[ToolWindowIds.Debug].Content;
 
     /// <summary>The open folder, canonical, or null before one is opened.</summary>
     public string? Folder => session.Folder;
@@ -736,7 +736,7 @@ public partial class MainWindow : Window
     }
 
     /// <summary>The Structure tool window, built as it is first shown or asked for.</summary>
-    public ToolWindows.StructureView StructureView => (ToolWindows.StructureView)Dock[ToolWindowIds.Structure]!.Content;
+    public ToolWindows.StructureView StructureView => (ToolWindows.StructureView)Dock[ToolWindowIds.Structure].Content;
 
     /// <summary>The Structure window's view, built as it is first shown (<see cref="StructureView"/>) and wired then.</summary>
     private ToolWindows.StructureView MakeStructure()

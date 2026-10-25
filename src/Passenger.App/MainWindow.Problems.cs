@@ -27,7 +27,7 @@ public partial class MainWindow
 
     /// <summary>The Problems window's view, built as it is asked for; what it lists is <see cref="ToolViews.Problems"/>,
     /// kept while it is not.</summary>
-    public ProblemsView ProblemsWindow => (ProblemsView)Dock[ToolWindowIds.Problems]!.Content;
+    public ProblemsView ProblemsWindow => (ProblemsView)Dock[ToolWindowIds.Problems].Content;
 
     /// <summary>Whether the status bar says an error, a warning or neither, as its icon shows it.</summary>
     public ProblemSeverity? StatusSeverity => status.Severity;

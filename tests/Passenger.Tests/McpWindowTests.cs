@@ -121,7 +121,7 @@ public sealed class McpWindowTests : McpRig, IClassFixture<RestoredFolders>
             Press(Question(window, "the question for the agent's install"), "Allow");
             JsonElement installed = Await(installing, "the agent's install");
             Assert.Equal(["Lib.csproj"], installed.GetProperty("changed").EnumerateArray().Select(f => f.GetString()!));
-            Assert.False(window.DockHost[ToolWindowIds.NuGet]!.IsBuilt, "The agent's package search or install built the hidden NuGet window's view");
+            Assert.False(window.DockHost[ToolWindowIds.NuGet].IsBuilt, "The agent's package search or install built the hidden NuGet window's view");
 
             window.Perform(AppActions.ShowNuGet);
             global::Passenger.App.ToolWindows.NuGetView nuget = window.NuGet;

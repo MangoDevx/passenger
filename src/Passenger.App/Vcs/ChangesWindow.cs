@@ -94,7 +94,7 @@ public sealed class ChangesWindow : Window
             Margin = new Thickness(8, 0, 0, 0),
             FontSize = 12,
         };
-        folder.Bind(TextBlock.ForegroundProperty, folder.GetResourceObservable("Passenger.TextMuted"));
+        folder.Classes.Add("muted");
         return new StackPanel { Orientation = Orientation.Horizontal, Height = ListRow.Height, Children = { icon, name, folder } };
     }
 }

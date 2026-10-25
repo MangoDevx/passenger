@@ -257,7 +257,7 @@ public sealed class VariablesList : ListBox
         };
         icon.Bind(PathIcon.DataProperty, icon.GetResourceObservable(iconKey));
         TextBlock type = new() { Text = node.TypeLabel, VerticalAlignment = VerticalAlignment.Center };
-        type.Bind(TextBlock.ForegroundProperty, type.GetResourceObservable("Passenger.TextMuted"));
+        type.Classes.Add("muted");
         TextBlock value = new() { Text = node.Shown, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 900 };
         if (node.Role == VariableRole.Error)
         {

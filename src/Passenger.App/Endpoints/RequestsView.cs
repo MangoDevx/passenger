@@ -65,7 +65,7 @@ public sealed class RequestsView : DockPanel
         };
         placeholder = new TextBlock { Text = "No requests yet: run or debug a web app and send it one", Classes = { "emptyText" } };
         following = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0), TextTrimming = TextTrimming.CharacterEllipsis };
-        following.Bind(TextBlock.ForegroundProperty, following.GetResourceObservable("Passenger.TextMuted"));
+        following.Classes.Add("muted");
         Button clear = ToolButtons.Of("Icon.Clear", "Clear the requests", log.Clear);
         DockPanel bar = new() { Margin = new Thickness(8, 4) };
         DockPanel.SetDock(clear, Dock.Left);
@@ -290,7 +290,7 @@ public sealed class RequestsView : DockPanel
     private static TextBlock Muted(string words)
     {
         TextBlock text = new() { Text = words, VerticalAlignment = VerticalAlignment.Center, FontSize = 12, Margin = new Thickness(8, 0, 0, 0) };
-        text.Bind(TextBlock.ForegroundProperty, text.GetResourceObservable("Passenger.TextMuted"));
+        text.Classes.Add("muted");
         return text;
     }
 

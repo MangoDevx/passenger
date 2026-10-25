@@ -132,7 +132,11 @@ public sealed class DockHost : Grid
     /// windows (its keys, its popups) goes into it.</summary>
     public event EventHandler<Window>? WindowOpened;
 
-    public ToolWindow? this[string id] => windows.FirstOrDefault(w => w.Id == id);
+    /// <summary>The window of an id (<see cref="ToolWindowIds"/>); an id no window has is the caller's mistake, and throws.</summary>
+    public ToolWindow this[string id] => Find(id) ?? throw new ArgumentException($"No tool window has the id '{id}'", nameof(id));
+
+    /// <summary>The window of an id, or null: a kept layout may name one this build has not.</summary>
+    private ToolWindow? Find(string id) => windows.FirstOrDefault(w => w.Id == id);
 
     /// <summary>The window's actions, which each tool window's show action joins as it is added, and whose keymap gives
     /// the stripe buttons' tips.</summary>
@@ -170,10 +174,7 @@ public sealed class DockHost : Grid
     /// <summary>Shows a window in its place, hiding the one that was there.</summary>
     public void Show(string id)
     {
-        if (this[id] is not { } window)
-        {
-            return;
-        }
+        ToolWindow window = this[id];
         hiddenAll = null;
         if (window.Mode == ToolMode.Docked)
         {
@@ -344,7 +345,7 @@ public sealed class DockHost : Grid
 
     public void Toggle(string id)
     {
-        if (this[id] is { IsShown: true })
+        if (this[id].IsShown)
         {
             Hide(id);
         }
@@ -365,7 +366,7 @@ public sealed class DockHost : Grid
         return true;
     }
 
-    public bool IsShown(string id) => this[id]?.IsShown == true;
+    public bool IsShown(string id) => this[id].IsShown;
 
     /// <summary>Moves a window to another place (at an index among its buttons there), shown if it was.</summary>
     public void Move(ToolWindow window, ToolAnchor anchor, int? index = null)
@@ -421,7 +422,7 @@ public sealed class DockHost : Grid
         floats.Clear();
         Restore();
         hiddenAll = null;
-        others = layout.Windows.Where(w => this[w.Key] is null).ToDictionary();
+        others = layout.Windows.Where(w => Find(w.Key) is null).ToDictionary();
         foreach (ToolWindow window in windows)
         {
             if (layout.Windows.GetValueOrDefault(window.Id) is { } placed)

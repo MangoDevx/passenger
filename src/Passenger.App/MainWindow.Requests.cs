@@ -42,7 +42,7 @@ public partial class MainWindow
 
     /// <summary>The Requests window's view, built as it is first shown or asked for; what it lists is <see cref="RequestLog"/>,
     /// kept while it is not.</summary>
-    public RequestsView Requests => requestsView ?? (RequestsView)Dock[ToolWindowIds.Requests]!.Content;
+    public RequestsView Requests => requestsView ?? (RequestsView)Dock[ToolWindowIds.Requests].Content;
 
     /// <summary>The live requests heard, and what the window says it follows.</summary>
     public RequestLog RequestLog => requestLog!;

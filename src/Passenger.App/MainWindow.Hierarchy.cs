@@ -13,7 +13,7 @@ public partial class MainWindow
     private HierarchyView? hierarchy;
 
     /// <summary>The Hierarchy tool window, built as it is first shown or asked for.</summary>
-    public HierarchyView Hierarchy => hierarchy ?? (HierarchyView)Dock[ToolWindowIds.Hierarchy]!.Content;
+    public HierarchyView Hierarchy => hierarchy ?? (HierarchyView)Dock[ToolWindowIds.Hierarchy].Content;
 
     private void AddHierarchy()
     {

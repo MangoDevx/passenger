@@ -16,7 +16,7 @@ public partial class MainWindow
     public MigrationsController Migrations => migrations!;
 
     /// <summary>The Migrations window's view, built as it is first shown or asked for (a gap's Choose fix opening its chooser).</summary>
-    public MigrationsView MigrationsView => migrationsView ?? (MigrationsView)Dock[ToolWindowIds.Migrations]!.Content;
+    public MigrationsView MigrationsView => migrationsView ?? (MigrationsView)Dock[ToolWindowIds.Migrations].Content;
 
     private void AddMigrations()
     {

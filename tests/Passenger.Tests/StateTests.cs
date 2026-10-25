@@ -166,7 +166,7 @@ public sealed class StateTests : IDisposable
         window.OpenFolder(folder);
         Ui.Settle();
         Assert.Equal((ThemeChoice.Light, 16), (window.Settings.Theme, window.Settings.EditorFontSize));
-        Assert.Equal(ToolAnchor.RightBottom, window.DockHost["tests"]!.Anchor);
+        Assert.Equal(ToolAnchor.RightBottom, window.DockHost[ToolWindowIds.Tests].Anchor);
         Assert.True(window.DockHost.IsShown(ToolWindowIds.Tests));
         Assert.Equal("One.cs", window.EditorArea.Active?.Name);
         Assert.Equal(new TextPosition(2, 4), window.EditorArea.CodeEditor.CaretPosition);
@@ -302,22 +302,22 @@ public sealed class StateTests : IDisposable
     {
         string other = TestFolders.Create("other-");
         MainWindow first = Keeping(folder);
-        first.DockHost.Move(first.DockHost["tests"]!, ToolAnchor.RightBottom);
+        first.DockHost.Move(first.DockHost[ToolWindowIds.Tests], ToolAnchor.RightBottom);
         first.DockHost.Show(ToolWindowIds.Tests);
         first.OpenFolder(other);
         Ui.Settle();
-        Assert.Equal(ToolAnchor.RightBottom, first.DockHost["tests"]!.Anchor);
-        first.DockHost.Move(first.DockHost["tests"]!, ToolAnchor.LeftBottom);
+        Assert.Equal(ToolAnchor.RightBottom, first.DockHost[ToolWindowIds.Tests].Anchor);
+        first.DockHost.Move(first.DockHost[ToolWindowIds.Tests], ToolAnchor.LeftBottom);
         first.OpenFolder(folder);
         Ui.Settle();
-        Assert.Equal(ToolAnchor.RightBottom, first.DockHost["tests"]!.Anchor);
+        Assert.Equal(ToolAnchor.RightBottom, first.DockHost[ToolWindowIds.Tests].Anchor);
         first.Close();
 
         MainWindow second = Keeping();
-        Assert.Equal(ToolAnchor.RightBottom, second.DockHost["tests"]!.Anchor);
+        Assert.Equal(ToolAnchor.RightBottom, second.DockHost[ToolWindowIds.Tests].Anchor);
         second.OpenFolder(other);
         Ui.Settle();
-        Assert.Equal(ToolAnchor.LeftBottom, second.DockHost["tests"]!.Anchor);
+        Assert.Equal(ToolAnchor.LeftBottom, second.DockHost[ToolWindowIds.Tests].Anchor);
         Assert.True(second.DockHost.IsShown(ToolWindowIds.Tests));
         second.Close();
     }
@@ -333,7 +333,8 @@ public sealed class StateTests : IDisposable
                 "run": { "anchor": "BottomLeft", "order": 1, "shown": true, "mode": "Floating", "bounds": [100, 100, 700, 90000] },
                 "tests": { "anchor": "Sideways", "order": 0, "shown": false },
                 "problems": { "anchor": 42, "order": 0, "shown": false },
-                "structure": { "anchor": "RightTop", "order": 0, "shown": true, "mode": "Tabbed" }
+                "structure": { "anchor": "RightTop", "order": 0, "shown": true, "mode": "Tabbed" },
+                "later": { "anchor": "LeftBottom", "order": 0, "shown": true }
               }
             }
             """);
@@ -349,8 +350,10 @@ public sealed class StateTests : IDisposable
         }
         Assert.Equal(["Debug", "Run"], window.OwnedWindows.Select(w => w.Title).Order());
         // A place or a mode this build does not have is its default: where the window was added, docked.
-        Assert.Equal((ToolAnchor.BottomLeft, ToolAnchor.BottomLeft), (window.DockHost["tests"]!.Anchor, window.DockHost["problems"]!.Anchor));
-        Assert.Equal((ToolAnchor.RightTop, ToolMode.Docked, true), (window.DockHost["structure"]!.Anchor, window.DockHost["structure"]!.Mode, window.DockHost.IsShown(ToolWindowIds.Structure)));
+        Assert.Equal((ToolAnchor.BottomLeft, ToolAnchor.BottomLeft), (window.DockHost[ToolWindowIds.Tests].Anchor, window.DockHost[ToolWindowIds.Problems].Anchor));
+        Assert.Equal((ToolAnchor.RightTop, ToolMode.Docked, true), (window.DockHost[ToolWindowIds.Structure].Anchor, window.DockHost[ToolWindowIds.Structure].Mode, window.DockHost.IsShown(ToolWindowIds.Structure)));
+        // A window a later build has is passed over, and kept for it.
+        Assert.True(window.DockHost.Capture().Windows.ContainsKey("later"), "The later build's window was dropped from the layout kept");
         window.Close();
     }
 

@@ -149,7 +149,7 @@ public sealed class ProjectFileHelpTests : IClassFixture<ProjectFileHelpTests.Sh
         Assert.Equal(("Passenger.Sample", "2.0.0"), window.Assist.CompletionDetails[0]);
         Ui.Press(window, "ENTER");
         Assert.EndsWith("<PackageReference Include=\"Passenger.Sample|\" Version=\"2.0.0\" />", CaretLine(editor), StringComparison.Ordinal);
-        Assert.False(window.DockHost[ToolWindowIds.NuGet]!.IsBuilt, "The project file's package completion built the hidden NuGet window's view");
+        Assert.False(window.DockHost[ToolWindowIds.NuGet].IsBuilt, "The project file's package completion built the hidden NuGet window's view");
         window.Close();
     }
 

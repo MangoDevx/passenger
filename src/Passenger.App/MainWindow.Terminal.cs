@@ -11,7 +11,7 @@ public partial class MainWindow
 
     /// <summary>The Terminal tool window, built as it is first shown or asked for (a program run in it, Open In Terminal,
     /// an agent's command).</summary>
-    public ToolWindows.TerminalPanel TerminalPanel => terminal ?? (ToolWindows.TerminalPanel)Dock[ToolWindowIds.Terminal]!.Content;
+    public ToolWindows.TerminalPanel TerminalPanel => terminal ?? (ToolWindows.TerminalPanel)Dock[ToolWindowIds.Terminal].Content;
 
     private void AddTerminal()
     {

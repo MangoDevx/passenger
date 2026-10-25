@@ -109,7 +109,7 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         // A server started after the file opened, as a folder reopened with its files starts one.
         MainWindow window = new() { Width = 1200, Height = 800, Autosaves = false };
         window.Show();
-        ClickStripe(window, "structure");
+        ClickStripe(window, ToolWindowIds.Structure);
         window.OpenFolder(project.Folder);
         window.OpenFile("Program.cs");
         Ui.WaitFor(() => window.CSharpService?.IsReady == true, "the language server to load the project", TimeSpan.FromMinutes(2));
@@ -121,7 +121,7 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         // Opened from its stripe once the server has the file: the class's warm server is as good as any for that.
         window = project.Open("Program.cs");
         window.EditorArea.CodeEditor.GoTo(new TextPosition(4, 8));
-        ClickStripe(window, "structure");
+        ClickStripe(window, ToolWindowIds.Structure);
         Assert.True(window.DockHost.IsShown(ToolWindowIds.Structure));
         Passenger.App.ToolWindows.StructureView structure = window.StructureView;
         Assert.True(structure.Rows.Select(r => r.Name).SequenceEqual(["Program", "Main()"]),
@@ -132,9 +132,9 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Ui.WaitFor(() => structure.Rows.FirstOrDefault()?.Name == "Helper", "the other file's outline");
         Assert.Contains(structure.Rows, r => r.Name == "Twice(int)");
 
-        ClickStripe(window, "structure");
+        ClickStripe(window, ToolWindowIds.Structure);
         window.OpenFile("Program.cs");
-        ClickStripe(window, "structure");
+        ClickStripe(window, ToolWindowIds.Structure);
         Assert.True(structure.Rows.FirstOrDefault()?.Name == "Program",
             $"Structure opened again showed [{string.Join(", ", structure.Rows.Select(r => r.Name))}], not Program.cs's members");
         window.Close();

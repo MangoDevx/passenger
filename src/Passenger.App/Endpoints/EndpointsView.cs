@@ -433,7 +433,7 @@ public sealed class EndpointsView : DockPanel
         {
             // A named request shows its URL after the name, muted, ending in an ellipsis first.
             TextBlock url = new() { Text = request.Url, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, FontSize = 12, Margin = new Thickness(8, 0, 0, 0) };
-            url.Bind(TextBlock.ForegroundProperty, url.GetResourceObservable("Passenger.TextMuted"));
+            url.Classes.Add("muted");
             title.MaxWidth = 220;
             DockPanel.SetDock(title, Dock.Left);
             row.Children.Add(title);
@@ -467,7 +467,7 @@ public sealed class EndpointsView : DockPanel
         DockPanel.SetDock(template, Dock.Left);
         row.Children.Add(template);
         TextBlock kind = new() { Text = route.Kind, VerticalAlignment = VerticalAlignment.Center, FontSize = 12, Margin = new Thickness(8, 0, 4, 0), TextAlignment = TextAlignment.Right, TextTrimming = TextTrimming.CharacterEllipsis };
-        kind.Bind(TextBlock.ForegroundProperty, kind.GetResourceObservable("Passenger.TextMuted"));
+        kind.Classes.Add("muted");
         row.Children.Add(kind);
         ToolTip.SetTip(row, $"{RouteRequests.Title(route)}: {route.Handler}");
         return row;

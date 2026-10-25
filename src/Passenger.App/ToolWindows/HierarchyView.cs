@@ -226,7 +226,7 @@ public sealed class HierarchyView : DockPanel
             FontSize = 12,
             TextTrimming = TextTrimming.CharacterEllipsis,
         };
-        detail.Bind(TextBlock.ForegroundProperty, detail.GetResourceObservable("Passenger.TextMuted"));
+        detail.Classes.Add("muted");
         return new StackPanel
         {
             Orientation = Orientation.Horizontal,

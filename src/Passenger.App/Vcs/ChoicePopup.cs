@@ -33,7 +33,7 @@ public sealed class ChoicePopup : SearchPopup<Choice>
     protected override Control Draw(Choice choice)
     {
         TextBlock detail = new() { Text = choice.Detail, FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 4, 0) };
-        detail.Bind(TextBlock.ForegroundProperty, detail.GetResourceObservable("Passenger.TextMuted"));
+        detail.Classes.Add("muted");
         DockPanel row = new() { Height = ListRow.Height, Margin = new Thickness(4, 0) };
         DockPanel.SetDock(detail, Dock.Right);
         row.Children.Add(detail);

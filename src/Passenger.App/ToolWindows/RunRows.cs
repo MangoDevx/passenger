@@ -187,7 +187,7 @@ public static class RunRows
         TextBlock words = new() { Text = text, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
         if (muted)
         {
-            words.Bind(TextBlock.ForegroundProperty, words.GetResourceObservable("Passenger.TextMuted"));
+            words.Classes.Add("muted");
         }
         if (dock is { } side)
         {

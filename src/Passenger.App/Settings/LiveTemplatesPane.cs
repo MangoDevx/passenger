@@ -427,7 +427,7 @@ public sealed class LiveTemplatesPane : DockPanel
         }
         if (!template.Enabled)
         {
-            name.Bind(TextBlock.ForegroundProperty, name.GetResourceObservable("Passenger.TextMuted"));
+            name.Classes.Add("muted");
         }
         line.Children.Add(name);
         return line;

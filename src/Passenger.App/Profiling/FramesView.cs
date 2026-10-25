@@ -282,7 +282,7 @@ public sealed class FramesView : DockPanel
         TextBlock block = new() { Text = text, FontFamily = CSharp.Fonts.Mono, FontSize = 12, TextAlignment = TextAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
         if (text is "0" or "0.0 ms")
         {
-            block.Bind(TextBlock.ForegroundProperty, block.GetResourceObservable("Passenger.TextMuted"));
+            block.Classes.Add("muted");
         }
         return block;
     }

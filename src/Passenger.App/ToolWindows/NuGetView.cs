@@ -70,7 +70,7 @@ public sealed class NuGetView : DockPanel
         };
         prerelease = new CheckBox { Content = "Prerelease", VerticalAlignment = VerticalAlignment.Center };
         status = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0), TextTrimming = TextTrimming.CharacterEllipsis };
-        status.Bind(TextBlock.ForegroundProperty, status.GetResourceObservable("Passenger.TextMuted"));
+        status.Classes.Add("muted");
         Button refresh = ToolButtons.Of("Icon.Rerun", "Refresh", () => _ = ReloadSourcesAsync());
         refresh.Margin = new Thickness(6, 0, 0, 0);
         typing = new Debounce(Pause, RefreshAsync);
@@ -537,13 +537,13 @@ public sealed class NuGetView : DockPanel
         if (row.Authors.Length > 0 || row.Downloads > 0)
         {
             TextBlock by = new() { Text = row.Downloads > 0 ? $"{row.Authors}, {row.Downloads:N0} downloads" : row.Authors, FontSize = 12 };
-            by.Bind(TextBlock.ForegroundProperty, by.GetResourceObservable("Passenger.TextMuted"));
+            by.Classes.Add("muted");
             details.Children.Add(by);
         }
         if (row.Feeds.Count > 0)
         {
             TextBlock from = new() { Text = $"In {string.Join(", ", row.Feeds)}", FontSize = 12 };
-            from.Bind(TextBlock.ForegroundProperty, from.GetResourceObservable("Passenger.TextMuted"));
+            from.Classes.Add("muted");
             details.Children.Add(from);
         }
         if (vulnerable is not null)
@@ -652,7 +652,7 @@ public sealed class NuGetView : DockPanel
     private Control Row(PackageRow row)
     {
         TextBlock version = new() { Text = row.Version, FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) };
-        version.Bind(TextBlock.ForegroundProperty, version.GetResourceObservable("Passenger.TextMuted"));
+        version.Classes.Add("muted");
         PathIcon icon = new() { Width = 14, Height = 14, Margin = new Thickness(6, 0, 6, 0) };
         icon.Bind(PathIcon.DataProperty, icon.GetResourceObservable("Icon.Package"));
         StackPanel line = new()
