@@ -48,11 +48,8 @@ public sealed class PathsTests : IDisposable
         File.WriteAllText(program, "int total = 10;\nfor (int i = 1; i <= 3; i++)\n{\n    total += i;\n}\nConsole.WriteLine(total);\n");
         Restore.Run(repository);
 
-        MainWindow window = new() { Width = 1200, Height = 800, StartsLanguageServer = false };
-        window.Show();
         string spelled = Spelled(repository, spelling);
-        window.OpenFolder(spelled);
-        Ui.Settle();
+        MainWindow window = Ui.OpenFolder(spelled, languageServer: false);
 
         Ui.WaitFor(() => window.Vcs.Changes.Any(c => c.Name == "Program.cs" && c.Kind == ChangeKind.Modified), "Git to list Program.cs as changed");
         ExplorerNode row = Assert.Single(window.ExplorerView.Tree.Rows, r => r.Name == "Program.cs");

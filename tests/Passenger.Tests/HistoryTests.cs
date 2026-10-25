@@ -208,9 +208,7 @@ public sealed class HistoryTests : IDisposable
 
     private MainWindow Open(string? file)
     {
-        MainWindow window = new() { Width = 1200, Height = 800 };
-        window.Show();
-        window.OpenFolder(folder);
+        MainWindow window = Ui.OpenFolder(folder);
         if (file is not null)
         {
             window.OpenFile(Path.Combine(folder, file));

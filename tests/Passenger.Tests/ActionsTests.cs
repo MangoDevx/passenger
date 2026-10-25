@@ -26,9 +26,7 @@ public sealed class ActionsTests : IDisposable
     public void Every_action_Find_Action_lists_runs_where_it_was_asked_for_or_says_why_it_cannot()
     {
         File.WriteAllText(Path.Combine(folder, "One.cs"), "class One\n{\n    int Two() => 2;\n}\n");
-        MainWindow window = new() { Width = 1200, Height = 800 };
-        window.Show();
-        window.OpenFolder(folder);
+        MainWindow window = Ui.OpenFolder(folder);
         window.OpenFile("One.cs");
         Ui.Settle();
         try
@@ -113,9 +111,7 @@ public sealed class ActionsTests : IDisposable
         File.WriteAllText(Path.Combine(folder, "One.cs"), "class One\n{\n    int Two() => 2;\n}\n");
         TestGit.Init(folder);
         Keymap platforms = AppActions.Keymap(new Dictionary<string, string[]>());
-        MainWindow window = new() { Width = 1200, Height = 800 };
-        window.Show();
-        window.OpenFolder(folder);
+        MainWindow window = Ui.OpenFolder(folder);
         window.OpenFile("One.cs");
         Ui.Settle();
         Ui.WaitFor(() => window.Vcs.Repository is not null, "the folder's repository");

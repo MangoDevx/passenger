@@ -24,9 +24,7 @@ public sealed class FileTests : IDisposable
         string path = Path.Combine(folder, "Program.cs");
         File.WriteAllBytes(path, [.. bom, .. Encoding.UTF8.GetBytes("class A\r\n{\r\n}\r\n")]);
 
-        MainWindow window = new() { Width = 1200, Height = 800 };
-        window.Show();
-        window.OpenFolder(folder);
+        MainWindow window = Ui.OpenFolder(folder);
         window.OpenFile("Program.cs");
         Ui.Settle();
         CodeEditor editor = window.EditorArea.CodeEditor;
@@ -85,9 +83,7 @@ public sealed class FileTests : IDisposable
         string path = Path.Combine(folder, "data.bin");
         byte[] bytes = [0x89, 0x50, 0x4E, 0x47, 0x00, 0x00, 0x1A, 0x0A];
         File.WriteAllBytes(path, bytes);
-        MainWindow window = new() { Width = 1200, Height = 800 };
-        window.Show();
-        window.OpenFolder(folder);
+        MainWindow window = Ui.OpenFolder(folder);
         Assert.Null(window.OpenFile("data.bin"));
         Ui.Settle();
         Assert.True(window.EditorArea.Active is { IsBinary: true, IsReadOnly: true }, "data.bin should open as its bytes' text, read-only");
@@ -137,9 +133,7 @@ public sealed class FileTests : IDisposable
         byte[] bytes = [(byte)'k', (byte)'e', (byte)'y', 0, (byte)'\n', (byte)'k', (byte)'e', (byte)'y', 0xFF];
         File.WriteAllBytes(path, bytes);
         File.WriteAllText(Path.Combine(folder, "notes.txt"), "key\n");
-        MainWindow window = new() { Width = 1200, Height = 800 };
-        window.Show();
-        window.OpenFolder(folder);
+        MainWindow window = Ui.OpenFolder(folder);
         window.OpenFile("data.bin");
         Ui.Settle();
         Assert.True(window.EditorArea.Active is { IsBinary: true, HoldsText: false }, "data.bin did not open as its bytes' text");

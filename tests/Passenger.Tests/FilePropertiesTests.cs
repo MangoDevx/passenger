@@ -227,9 +227,7 @@ public sealed class FilePropertiesTests : IDisposable
     /// <summary>A window on the folder with a file of it open; it saves only when asked.</summary>
     private MainWindow Open(string file)
     {
-        MainWindow window = new() { Width = 1200, Height = 800, Autosaves = false };
-        window.Show();
-        window.OpenFolder(folder);
+        MainWindow window = Ui.OpenFolder(folder, autosaves: false);
         window.OpenFile(file);
         Ui.Settle();
         window.EditorArea.CodeEditor.Focus();

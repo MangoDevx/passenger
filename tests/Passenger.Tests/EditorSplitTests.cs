@@ -262,9 +262,7 @@ public sealed class EditorSplitTests : IDisposable
 
     private MainWindow Open(params string[] files)
     {
-        MainWindow window = new() { Width = 1200, Height = 800 };
-        window.Show();
-        window.OpenFolder(folder);
+        MainWindow window = Ui.OpenFolder(folder);
         foreach (string file in files)
         {
             window.OpenFile(Path.Combine(folder, file));

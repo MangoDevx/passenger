@@ -299,8 +299,11 @@ public sealed class DebugSession : IDisposable
         return this;
     }
 
-    /// <summary>A breakpoint in DebuggableConsoleApp's MyClass.cs, at line 22 unless another is given.</summary>
-    public DebugSession WithBreakpointsRequest(int line = 22) => WithBreakpointsRequest(line, Debuggees.Source("DebuggableConsoleApp", "MyClass.cs"));
+    /// <summary>A breakpoint on MyClass.MyMethod's last line (<see cref="Debuggees.MyMethodEnd"/>).</summary>
+    public DebugSession WithBreakpointsRequest() => WithBreakpointsRequest(Debuggees.MyMethodEnd);
+
+    /// <summary>A breakpoint on a line of DebuggableConsoleApp's MyClass.cs.</summary>
+    public DebugSession WithBreakpointsRequest(int line) => WithBreakpointsRequest(line, Debuggees.Source("DebuggableConsoleApp", "MyClass.cs"));
 
     public DebugSession WithBreakpointsRequest(int line, string filePath) => WithBreakpointsRequest([line], filePath);
 
@@ -626,6 +629,9 @@ public static class Debuggees
         }
         throw new DirectoryNotFoundException($"No Passenger.slnx above {AppContext.BaseDirectory}");
     });
+
+    /// <summary>DebuggableConsoleApp's MyClass.MyMethod's last line, its empty statement once every local is set.</summary>
+    public static readonly int MyMethodEnd = Line("DebuggableConsoleApp", "MyClass.cs", "var anotherVar = \"asdf\";") + 1;
 
     /// <summary>The repository the tests were built from, its Passenger.slnx at the top.</summary>
     public static string Root => Repository.Value;

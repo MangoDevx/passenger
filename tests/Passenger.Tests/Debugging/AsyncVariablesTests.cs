@@ -7,6 +7,9 @@ namespace Passenger.Tests.Debugging;
 [Collection(DebugSession.Collection)]
 public class AsyncVariablesTests(ITestOutputHelper testOutputHelper)
 {
+    private static readonly int FirstAwait = Debuggees.Line("DebuggableConsoleApp", "MyAsyncClass.cs", "var result = await AnotherClass.AnotherMethodAsync();");
+    private static readonly int AnotherMethodOpened = Debuggees.Line("DebuggableConsoleApp", "Namespace1/AnotherClass.cs", "AnotherMethodAsync()") + 1;
+
     [Fact]
     public async Task A_stop_in_an_async_method_lists_its_locals_as_they_are()
     {
@@ -19,7 +22,7 @@ public class AsyncVariablesTests(ITestOutputHelper testOutputHelper)
             .WithAttachRequest(p2.Id)
             .WaitForInitializedEvent();
         debugProtocolHost
-            .WithBreakpointsRequest(11, Debuggees.Source("DebuggableConsoleApp", "MyAsyncClass.cs"))
+            .WithBreakpointsRequest(FirstAwait, Debuggees.Source("DebuggableConsoleApp", "MyAsyncClass.cs"))
             .WithConfigurationDoneRequest()
             .WithOptionalResumeRuntime(p2.Id, startSuspended);
 
@@ -50,7 +53,7 @@ public class AsyncVariablesTests(ITestOutputHelper testOutputHelper)
         StoppedEvent stoppedEvent2 = await debugProtocolHost.WithStepInRequest(stoppedEvent.ThreadId!.Value).WaitForStoppedEvent();
         (string filePath, int line, int column) stopInfo = stoppedEvent2.ReadStopInfo();
         Assert.EndsWith("AnotherClass.cs", stopInfo.filePath);
-        Assert.Equal(18, stopInfo.line);
+        Assert.Equal(AnotherMethodOpened, stopInfo.line);
 
         debugProtocolHost
             .WithStackTraceRequest(stoppedEvent.ThreadId!.Value, out StackTraceResponse? stackTraceResponse2)

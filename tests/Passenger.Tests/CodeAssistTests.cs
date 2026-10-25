@@ -1836,9 +1836,7 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
     {
         string bare = project.PathOf("Bare.cs");
         string used = project.PathOf("Used.cs");
-        MainWindow window = new() { Width = 1200, Height = 800, Autosaves = false };
-        window.Show();
-        window.OpenFolder(project.Folder);
+        MainWindow window = Ui.OpenFolder(project.Folder, autosaves: false);
         window.OpenFile(bare);
         Ui.Settle();
         Assert.True(window.CSharpService?.IsReady, window.CSharpService?.State);
@@ -1897,9 +1895,7 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
     [AvaloniaFact]
     public void Typing_into_a_completion_list_narrows_it_off_the_UI_thread_in_the_rows_it_shows()
     {
-        MainWindow window = new() { Width = 1200, Height = 800, Autosaves = false };
-        window.Show();
-        window.OpenFolder(project.Folder);
+        MainWindow window = Ui.OpenFolder(project.Folder, autosaves: false);
         window.OpenFile(project.PathOf("Bare.cs"));
         Ui.Settle();
         Assert.True(window.CSharpService?.IsReady, window.CSharpService?.State);

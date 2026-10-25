@@ -31,9 +31,7 @@ public sealed class IdeErrorsTests : IDisposable
     {
         File.WriteAllText(Path.Combine(folder, "One.cs"), "class One { }\n");
         File.WriteAllText(Path.Combine(folder, "Two.cs"), "class Two { }\n");
-        MainWindow window = new() { Width = 1200, Height = 800 };
-        window.Show();
-        window.OpenFolder(folder);
+        MainWindow window = Ui.OpenFolder(folder);
         window.OpenFile("One.cs");
         window.OpenFile("Two.cs");
         Ui.Settle();
@@ -482,9 +480,7 @@ public sealed class IdeErrorsTests : IDisposable
     private MainWindow OpenProgram(string? program = null)
     {
         WriteProgram(folder, program);
-        MainWindow window = new() { Width = 1200, Height = 800 };
-        window.Show();
-        window.OpenFolder(folder);
+        MainWindow window = Ui.OpenFolder(folder);
         window.OpenFile("Program.cs");
         Ui.Settle();
         Assert.True(window.CSharpService?.IsReady, window.CSharpService?.State);

@@ -1983,9 +1983,7 @@ public sealed class DebuggerTests : IClassFixture<DebuggerTests.Sum>, IClassFixt
         {
             return sum.Open(Program, languageServer: hotReload);
         }
-        MainWindow window = new() { Width = 1200, Height = 800, StartsLanguageServer = hotReload };
-        window.Show();
-        window.OpenFolder(fresh);
+        MainWindow window = Ui.OpenFolder(fresh, languageServer: hotReload);
         window.OpenFile(Program);
         Ui.Settle();
         return window;
@@ -2043,9 +2041,7 @@ public sealed class DebuggerTests : IClassFixture<DebuggerTests.Sum>, IClassFixt
     private MainWindow OpenSleeper(string started, bool languageServer)
     {
         string project = PathNames.Canonical(sleeper.Folder);
-        MainWindow window = new() { Width = 1200, Height = 800, Autosaves = false, StartsLanguageServer = languageServer };
-        window.Show();
-        window.OpenFolder(sleeper.Folder);
+        MainWindow window = Ui.OpenFolder(sleeper.Folder, autosaves: false, languageServer: languageServer);
         window.OpenFile(Path.Combine(project, "Program.cs"));
         Ui.Settle();
         window.SetConfigurations([new Passenger.App.Run.RunConfiguration { Name = "Sleeper writing its id", Project = Path.Combine(project, "Sleeper.csproj"), Arguments = $"\"{started}\"" }], "Sleeper writing its id");

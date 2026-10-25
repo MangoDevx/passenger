@@ -43,9 +43,7 @@ public sealed class MenuTests : IDisposable
     public void The_menus_show_each_actions_shortcut_disable_what_cannot_run_and_run_what_is_chosen()
     {
         File.WriteAllText(Path.Combine(folder, "One.cs"), "class One { }\n");
-        MainWindow window = new() { Width = 1200, Height = 800 };
-        window.Show();
-        window.OpenFolder(folder);
+        MainWindow window = Ui.OpenFolder(folder);
         window.OpenFile("One.cs");
         Ui.Settle();
         NativeMenu bar = window.MenuBar;
@@ -87,9 +85,7 @@ public sealed class MenuTests : IDisposable
     public void The_editors_menu_shows_a_chord_for_an_action_whose_keys_are_all_chords()
     {
         File.WriteAllText(Path.Combine(folder, "One.cs"), "class One { }\n");
-        MainWindow window = new() { Width = 1200, Height = 800 };
-        window.Show();
-        window.OpenFolder(folder);
+        MainWindow window = Ui.OpenFolder(folder);
         window.OpenFile("One.cs");
         Ui.Settle();
         window.EditorArea.CodeEditor.Focus();
@@ -153,12 +149,9 @@ public sealed class MenuTests : IDisposable
     {
         // The menu on the toolbar, as on Windows and Linux, rather than in macOS's own menu bar.
         MainWindow.SystemMenuBar = false;
-        MainWindow window = new() { Width = 1800, Height = 800 };
+        MainWindow window = Ui.OpenFolder(folder, width: 1800);
         try
         {
-            window.Show();
-            window.OpenFolder(folder);
-            Ui.Settle();
             window.ApplySettings(window.Settings with { MainMenuBar = true });
             Ui.Settle();
             MainMenuPlace place = window.FindControl<MainMenuPlace>("MainMenuPlace")!;
@@ -226,11 +219,9 @@ public sealed class MenuTests : IDisposable
     {
         MainWindow.SystemMenuBar = false;
         File.WriteAllText(Path.Combine(folder, "Notes.txt"), "notes\n");
-        MainWindow window = new() { Width = 1800, Height = 800 };
+        MainWindow window = Ui.OpenFolder(folder, width: 1800);
         try
         {
-            window.Show();
-            window.OpenFolder(folder);
             window.OpenFile("Notes.txt");
             window.ApplySettings(window.Settings with { MainMenuBar = true });
             window.EditorArea.CodeEditor.Focus();

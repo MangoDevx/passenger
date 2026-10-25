@@ -119,9 +119,7 @@ public sealed class TerminalTests
         string folder = TestFolders.Create("terminal-");
         try
         {
-            MainWindow window = new() { Width = 1200, Height = 800 };
-            window.Show();
-            window.OpenFolder(folder);
+            MainWindow window = Ui.OpenFolder(folder);
             window.TerminalPanel.Shell = OperatingSystem.IsWindows() ? ("cmd.exe", []) : ("/bin/sh", []);
             Ui.Run(window, AppActions.ShowTerminal);
             Ui.WaitFor(() => window.TerminalPanel.Active is { IsRunning: true }, "the shell to start");
@@ -644,9 +642,7 @@ public sealed class TerminalTests
     /// <summary>The window over a folder, its Terminal open on a shell of the test's and the keys going to it.</summary>
     internal static (MainWindow Window, TerminalSession Shell) Open(string folder, string shell, params string[] arguments)
     {
-        MainWindow window = new() { Width = 1200, Height = 800 };
-        window.Show();
-        window.OpenFolder(folder);
+        MainWindow window = Ui.OpenFolder(folder);
         window.TerminalPanel.Shell = (shell, arguments);
         Ui.Run(window, AppActions.ShowTerminal);
         Ui.WaitFor(() => window.TerminalPanel.Active is { IsRunning: true }, "the shell to start");

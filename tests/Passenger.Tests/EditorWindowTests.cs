@@ -189,9 +189,7 @@ public sealed class EditorWindowTests : IDisposable
 
     private MainWindow Open(double width, double height, params string[] files)
     {
-        MainWindow window = new() { Width = width, Height = height };
-        window.Show();
-        window.OpenFolder(folder);
+        MainWindow window = Ui.OpenFolder(folder, width: width, height: height);
         foreach (string file in files)
         {
             window.OpenFile(Path.Combine(folder, file));

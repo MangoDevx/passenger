@@ -600,9 +600,7 @@ public abstract class ActiveEditorFolders : IDisposable
     {
         string path = Path.Combine(folder, name);
         File.WriteAllText(path, text);
-        MainWindow window = new() { Width = 1100, Height = 800 };
-        window.Show();
-        window.OpenFolder(folder);
+        MainWindow window = Ui.OpenFolder(folder, width: 1100);
         window.OpenFile(path);
         Ui.Settle();
         return window;

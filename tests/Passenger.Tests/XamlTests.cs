@@ -342,9 +342,7 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
                     """);
                 Restore.Run(shop);
             }, folder);
-            MainWindow window = new() { Width = 1200, Height = 800, Autosaves = false };
-            window.Show();
-            window.OpenFolder(folder);
+            MainWindow window = Ui.OpenFolder(folder, autosaves: false);
             window.OpenFile(Path.Combine(shop, "MainWindow.axaml"));
             OpenDocument view = window.EditorArea.Active!;
             Ui.WaitFor(() => view.Markers.Count == 2, "the two properties the referenced project's view model lacks marked");
@@ -431,9 +429,7 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
             TestFolders.LinkFolder(Path.Combine(views, "here"), views);
             TestFolders.LinkFolder(Path.Combine(views, "Parts", "up"), views);
 
-            MainWindow window = new() { Width = 1200, Height = 800, Autosaves = false };
-            window.Show();
-            window.OpenFolder(folder);
+            MainWindow window = Ui.OpenFolder(folder, autosaves: false);
             window.OpenFile(Path.Combine(shop, "MainWindow.axaml"));
             Ui.Settle();
             CodeEditor editor = window.EditorArea.CodeEditor;
@@ -482,9 +478,7 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
                     """);
                 Restore.Run(folder);
             }, folder);
-            MainWindow window = new() { Width = 1200, Height = 800, Autosaves = false };
-            window.Show();
-            window.OpenFolder(folder);
+            MainWindow window = Ui.OpenFolder(folder, autosaves: false);
             window.OpenFile(Path.Combine(folder, "MainView.axaml"));
             OpenDocument document = window.EditorArea.Active!;
             Passenger.App.Xaml.XamlDocument xaml = window.XamlService.For(document) ?? throw new InvalidOperationException("The XAML file of a C# project was given no XAML");
@@ -538,9 +532,7 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
                     """);
                 Restore.Run(folder);
             }, folder);
-            MainWindow window = new() { Width = 1200, Height = 800, Autosaves = false };
-            window.Show();
-            window.OpenFolder(folder);
+            MainWindow window = Ui.OpenFolder(folder, autosaves: false);
             window.OpenFile(Path.Combine(folder, "MainWindow.axaml"));
             OpenDocument document = window.EditorArea.Active!;
             Ui.WaitFor(() => document.Markers.Any(m => m.Message.Contains("AvaloniaHeadlessPlatformOptions", StringComparison.Ordinal)),

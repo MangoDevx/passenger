@@ -626,9 +626,7 @@ public sealed class VcsTests : IDisposable
     {
         Git("commit", "-q", "--allow-empty", "-m", "Second commit's subject");
         // As wide as a 1024x768 desktop leaves a maximized window, the Git window under the editors with its branches.
-        MainWindow window = new() { Width = 957, Height = 699 };
-        window.Show();
-        window.OpenFolder(folder);
+        MainWindow window = Ui.OpenFolder(folder, width: 957, height: 699);
         GitLogView log = window.GitLog;
         window.Perform(AppActions.ShowGit);
         Ui.Landed(() => log.Rows.Count == 2, "the two commits");
@@ -697,9 +695,7 @@ public sealed class VcsTests : IDisposable
         File.WriteAllText(Path.Combine(folder, "Shop.cs"), Original.Replace("int count", "long count", StringComparison.Ordinal));
         Git("commit", "-q", "-am", "Long");
 
-        MainWindow window = new() { Width = 1200, Height = 800 };
-        window.Show();
-        window.OpenFolder(clone);
+        MainWindow window = Ui.OpenFolder(clone);
         window.OpenFile(Path.Combine(clone, "Shop.cs"));
         Ui.Settle();
         Assert.Equal("main", window.Vcs.Branch);
@@ -1395,9 +1391,7 @@ public sealed class VcsTests : IDisposable
 
     private MainWindow Open()
     {
-        MainWindow window = new() { Width = 1200, Height = 800 };
-        window.Show();
-        window.OpenFolder(folder);
+        MainWindow window = Ui.OpenFolder(folder);
         window.OpenFile(Path.Combine(folder, "Shop.cs"));
         Ui.Settle();
         return window;

@@ -230,7 +230,7 @@ public class LaunchTests(ITestOutputHelper testOutputHelper)
             .WithInitializeRequest()
             .WithLaunchRequest(Debuggees.Program("DebuggableConsoleApp"), stopAtEntry: false, justMyCode: true, environment: hold.Environment)
             .WaitForInitializedEvent();
-        host.WithBreakpointsRequest(22);
+        host.WithBreakpointsRequest();
         Task configured = host.Send(DapCommands.ConfigurationDone);
         await hold.Held();
 
@@ -239,7 +239,7 @@ public class LaunchTests(ITestOutputHelper testOutputHelper)
         await hold.LetGo();
         await configured.WaitAsync(DebugSession.RequestLimit, TestContext.Current.CancellationToken);
         StoppedEvent stopped = await host.WaitForStoppedEvent();
-        Assert.True((stopped.Reason, stopped.Line) == (StopReasons.Breakpoint, 22), $"The program that started late stopped for {stopped.Reason} at line {stopped.Line}, not at its breakpoint");
+        Assert.True((stopped.Reason, stopped.Line) == (StopReasons.Breakpoint, Debuggees.MyMethodEnd), $"The program that started late stopped for {stopped.Reason} at line {stopped.Line}, not at its breakpoint");
     }
 
     /// <summary>A launch stopped while its program's runtime is still starting ends at once, the program with it, and says why:

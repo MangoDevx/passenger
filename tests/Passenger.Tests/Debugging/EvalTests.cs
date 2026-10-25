@@ -7,9 +7,6 @@ namespace Passenger.Tests.Debugging;
 [Collection(DebugSession.Collection)]
 public class EvalTests(ITestOutputHelper testOutputHelper)
 {
-    /// <summary>MyClass.MyMethod's last line, its empty statement after every local is set.</summary>
-    private static readonly int AfterAnotherVar = Debuggees.Line("DebuggableConsoleApp", "MyClass.cs", "var anotherVar = \"asdf\";") + 1;
-
     /// <summary>At a stop in a method, its locals and parameters are listed as they are, and an evaluation reads and assigns
     /// them, its fields and properties (static ones too, by any qualified name), and calls its methods, a chain of calls
     /// keeping each one's result alive.</summary>
@@ -25,7 +22,7 @@ public class EvalTests(ITestOutputHelper testOutputHelper)
             .WithAttachRequest(p2.Id)
             .WaitForInitializedEvent();
         debugProtocolHost
-            .WithBreakpointsRequest(AfterAnotherVar, Debuggees.Source("DebuggableConsoleApp", "MyClass.cs"))
+            .WithBreakpointsRequest(Debuggees.MyMethodEnd, Debuggees.Source("DebuggableConsoleApp", "MyClass.cs"))
             .WithConfigurationDoneRequest()
             .WithOptionalResumeRuntime(p2.Id, startSuspended);
 
@@ -591,7 +588,7 @@ public class EvalTests(ITestOutputHelper testOutputHelper)
             .WithAttachRequest(program.Id)
             .WaitForInitializedEvent();
         host
-            .WithBreakpointsRequest(AfterAnotherVar, Debuggees.Source("DebuggableConsoleApp", "MyClass.cs"))
+            .WithBreakpointsRequest(Debuggees.MyMethodEnd, Debuggees.Source("DebuggableConsoleApp", "MyClass.cs"))
             .WithConfigurationDoneRequest()
             .WithOptionalResumeRuntime(program.Id, true);
 

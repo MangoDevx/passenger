@@ -317,9 +317,7 @@ public sealed class IndentationTests : IDisposable
     /// <summary>A window on the folder, with a file of it open when one is named; it saves only when asked.</summary>
     private MainWindow Open(string? file)
     {
-        MainWindow window = new() { Width = 1200, Height = 800, Autosaves = false };
-        window.Show();
-        window.OpenFolder(folder);
+        MainWindow window = Ui.OpenFolder(folder, autosaves: false);
         if (file is not null)
         {
             window.OpenFile(file);

@@ -1783,26 +1783,11 @@ public static partial class Processes
         }
     }
 
-    /// <summary>A process as a failure names it: its id and its command line (its name on Windows).</summary>
-    public static string Describe(int id)
-    {
-        try
-        {
-            if (OperatingSystem.IsWindows())
-            {
-                using System.Diagnostics.Process process = System.Diagnostics.Process.GetProcessById(id);
-                return $"{id} {process.ProcessName}";
-            }
-            using System.Diagnostics.Process ps = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("ps", ["-o", "command=", "-p", id.ToString(System.Globalization.CultureInfo.InvariantCulture)]) { RedirectStandardOutput = true })!;
-            string command = ps.StandardOutput.ReadToEnd().Trim();
-            ps.WaitForExit();
-            return $"{id} {command}";
-        }
-        catch (Exception gone) when (gone is ArgumentException or InvalidOperationException)
-        {
-            return $"{id} (gone)";
-        }
-    }
+    /// <summary>A process as a failure names it: its id and its command line (its name where the system gives none), as
+    /// Core reads them.</summary>
+    public static string Describe(int id) => Passenger.Core.DotnetProcesses.Describe(id) is { } process
+        ? $"{id} {(process.CommandLine.Length > 0 ? process.CommandLine : process.Name)}"
+        : $"{id} (gone)";
 
     /// <summary>Each process now by id, as ps lists it on macOS and Linux: its id, parent, nice value and command line, for a
     /// failure to say what ran and at what priority. Empty on Windows, which has no ps.</summary>
@@ -1851,7 +1836,8 @@ public static partial class Processes
         return (counted, Math.Max(1, Environment.ProcessorCount * 3 / 2));
     }
 
-    private static string[] Ps(params string[] arguments)
+    /// <summary>The lines ps lists for these arguments, each trimmed (macOS and Linux).</summary>
+    public static string[] Ps(params string[] arguments)
     {
         using System.Diagnostics.Process ps = System.Diagnostics.Process.Start(new ProcessStartInfo("ps", arguments) { RedirectStandardOutput = true })!;
         string text = ps.StandardOutput.ReadToEnd();
@@ -1878,17 +1864,22 @@ public static partial class Processes
     /// <summary>Each process and its parent: ps's columns on macOS and Linux, Win32_Process's on Windows, which has no ps.</summary>
     private static IEnumerable<(int Child, int Parent)> ParentsOfAll()
     {
-        System.Diagnostics.ProcessStartInfo list = OperatingSystem.IsWindows()
-            ? new("powershell", ["-NoProfile", "-Command", "Get-CimInstance Win32_Process | ForEach-Object { \"$($_.ProcessId) $($_.ParentProcessId)\" }"])
-            : new("ps", ["-A", "-o", "pid=,ppid="]);
-        list.RedirectStandardOutput = true;
-        string text;
-        using (System.Diagnostics.Process ps = System.Diagnostics.Process.Start(list)!)
+        string[] lines;
+        if (OperatingSystem.IsWindows())
         {
-            text = ps.StandardOutput.ReadToEnd();
-            ps.WaitForExit();
+            System.Diagnostics.ProcessStartInfo list = new("powershell", ["-NoProfile", "-Command", "Get-CimInstance Win32_Process | ForEach-Object { \"$($_.ProcessId) $($_.ParentProcessId)\" }"])
+            {
+                RedirectStandardOutput = true,
+            };
+            using System.Diagnostics.Process listing = System.Diagnostics.Process.Start(list)!;
+            lines = listing.StandardOutput.ReadToEnd().Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            listing.WaitForExit();
         }
-        foreach (string line in text.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        else
+        {
+            lines = Ps("-A", "-o", "pid=,ppid=");
+        }
+        foreach (string line in lines)
         {
             string[] words = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (words.Length == 2 && int.TryParse(words[0], out int child) && int.TryParse(words[1], out int parent))
@@ -2047,33 +2038,6 @@ public static partial class NativeStacks
             {
             }
         }
-    }
-
-    /// <summary>A child of a process by its program's name, from the process list (macOS and Linux); null when there is
-    /// none, or elsewhere.</summary>
-    public static int? ChildNamed(int parent, string name)
-    {
-        if (OperatingSystem.IsWindows())
-        {
-            return null;
-        }
-        using System.Diagnostics.Process ps = System.Diagnostics.Process.Start(new ProcessStartInfo("ps", ["-A", "-o", "pid=,ppid=,comm="])
-        {
-            RedirectStandardOutput = true,
-            UseShellExecute = false,
-        })!;
-        string listed = ps.StandardOutput.ReadToEnd();
-        ps.WaitForExit();
-        foreach (string line in listed.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            string[] columns = line.Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
-            if (columns.Length == 3 && columns[1] == parent.ToString(System.Globalization.CultureInfo.InvariantCulture)
-                && Path.GetFileName(columns[2]) == name && int.TryParse(columns[0], out int child))
-            {
-                return child;
-            }
-        }
-        return null;
     }
 
     // "    881 Thread_57752918   DispatchQueue_1: com.apple.main-thread  (serial)"

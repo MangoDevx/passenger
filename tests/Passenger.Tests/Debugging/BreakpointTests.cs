@@ -7,6 +7,8 @@ namespace Passenger.Tests.Debugging;
 [Collection(DebugSession.Collection)]
 public class BreakpointTests(ITestOutputHelper testOutputHelper)
 {
+    private static readonly int MyIntSet = Debuggees.Line("DebuggableConsoleApp", "MyClass.cs", "var myInt = 4;");
+
     [Fact]
     public async Task A_breakpoint_set_before_its_module_loads_is_told_pending_then_bound_at_its_statement()
     {
@@ -19,7 +21,7 @@ public class BreakpointTests(ITestOutputHelper testOutputHelper)
             .WaitForInitializedEvent();
         string breakpointedFilePath = Debuggees.Source("DebuggableConsoleApp", "MyClass.cs");
         debugProtocolHost
-            .WithBreakpointsRequest([11], breakpointedFilePath)
+            .WithBreakpointsRequest([MyIntSet], breakpointedFilePath)
             .WithConfigurationDoneRequest()
             .WithOptionalResumeRuntime(p2.Id, startSuspended);
 
@@ -31,7 +33,7 @@ public class BreakpointTests(ITestOutputHelper testOutputHelper)
                 Id = 1,
                 Message = "Breakpoint has not been processed by the debugger.",
                 Verified = false,
-                Line = 11
+                Line = MyIntSet
             }
         };
         BreakpointEvent breakpointEvent = await debugProtocolHost.WaitForEvent<BreakpointEvent>();
@@ -44,9 +46,9 @@ public class BreakpointTests(ITestOutputHelper testOutputHelper)
             {
                 Id = 1,
                 Verified = true,
-                Line = 11,
+                Line = MyIntSet,
                 Column = 3,
-                EndLine = 11,
+                EndLine = MyIntSet,
                 EndColumn = 17,
                 Offset = 0,
                 Source = new DapSource { Path = breakpointedFilePath, Name = "MyClass.cs", SourceReference = 0 }
@@ -59,7 +61,7 @@ public class BreakpointTests(ITestOutputHelper testOutputHelper)
         StoppedEvent stoppedEvent = await debugProtocolHost.WaitForStoppedEvent();
         (string filePath, int line, int column) stopInfo = stoppedEvent.ReadStopInfo();
         Assert.EndsWith("MyClass.cs", stopInfo.filePath);
-        Assert.Equal(11, stopInfo.line);
+        Assert.Equal(MyIntSet, stopInfo.line);
     }
 
     [Fact]
@@ -74,7 +76,7 @@ public class BreakpointTests(ITestOutputHelper testOutputHelper)
             .WaitForInitializedEvent();
 
         string breakpointedFilePath = Debuggees.Source("DebuggableConsoleApp", "ColumnBreakpointClass.cs");
-        int line = GetLineNumber(breakpointedFilePath, "column-breakpoint-line");
+        int line = Debuggees.Line("DebuggableConsoleApp", "ColumnBreakpointClass.cs", "column-breakpoint-line");
         int column = GetColumnNumber(breakpointedFilePath, line, "var third");
         int endColumn = column + "var third = second + 1;".Length;
 
@@ -110,7 +112,7 @@ public class BreakpointTests(ITestOutputHelper testOutputHelper)
             .WaitForInitializedEvent();
 
         string breakpointedFilePath = Debuggees.Source("DebuggableConsoleApp", "ColumnBreakpointClass.cs");
-        int line = GetLineNumber(breakpointedFilePath, "column-breakpoint-line");
+        int line = Debuggees.Line("DebuggableConsoleApp", "ColumnBreakpointClass.cs", "column-breakpoint-line");
         int expectedColumn = GetColumnNumber(breakpointedFilePath, line, "var first");
 
         debugProtocolHost
@@ -139,7 +141,7 @@ public class BreakpointTests(ITestOutputHelper testOutputHelper)
             .WaitForInitializedEvent();
 
         string breakpointedFilePath = Debuggees.Source("DebuggableConsoleApp", "ColumnBreakpointClass.cs");
-        int statementStartLine = GetLineNumber(breakpointedFilePath, "var multi =");
+        int statementStartLine = Debuggees.Line("DebuggableConsoleApp", "ColumnBreakpointClass.cs", "var multi =");
         int requestedLine = statementStartLine + 1;
         int requestedColumn = GetColumnNumber(breakpointedFilePath, requestedLine, "1 + 25");
         int expectedColumn = GetColumnNumber(breakpointedFilePath, statementStartLine, "var multi");
@@ -174,7 +176,7 @@ public class BreakpointTests(ITestOutputHelper testOutputHelper)
             .WaitForInitializedEvent();
 
         string breakpointedFilePath = Debuggees.Source("DebuggableConsoleApp", "ColumnBreakpointClass.cs");
-        int line = GetLineNumber(breakpointedFilePath, "column-breakpoint-line");
+        int line = Debuggees.Line("DebuggableConsoleApp", "ColumnBreakpointClass.cs", "column-breakpoint-line");
 
         debugProtocolHost
             .WithBreakpointsRequest(breakpointedFilePath, [new DapSourceBreakpoint(line)])
@@ -210,31 +212,23 @@ public class BreakpointTests(ITestOutputHelper testOutputHelper)
         // MyClass.cs is in the project's root; SomeFolder holds other files, none of them this one.
         string wrongFolder = Debuggees.Source("DebuggableConsoleApp", "SomeFolder", "MyClass.cs");
         SetBreakpointsResponse wrong = debugProtocolHost.Request<SetBreakpointsResponse>(DapCommands.SetBreakpoints,
-            new SetBreakpointsArguments(new DapSource { Path = wrongFolder }, [new DapSourceBreakpoint(22)]));
+            new SetBreakpointsArguments(new DapSource { Path = wrongFolder }, [new DapSourceBreakpoint(Debuggees.MyMethodEnd)]));
         string dotted = Debuggees.Source("DebuggableConsoleApp", "Namespace1", "..", "MyClass.cs");
         debugProtocolHost
-            .WithBreakpointsRequest(dotted, [new DapSourceBreakpoint(22)], out SetBreakpointsResponse right)
+            .WithBreakpointsRequest(dotted, [new DapSourceBreakpoint(Debuggees.MyMethodEnd)], out SetBreakpointsResponse right)
             .WithConfigurationDoneRequest()
             .WithOptionalResumeRuntime(p2.Id, startSuspended);
 
         StoppedEvent stoppedEvent = await debugProtocolHost.WaitForStoppedEvent();
         Assert.Equal(Debuggees.Source("DebuggableConsoleApp", "MyClass.cs"), Path.GetFullPath(stoppedEvent.ReadStopInfo().filePath));
-        Assert.Equal(22, stoppedEvent.ReadStopInfo().line);
+        Assert.Equal(Debuggees.MyMethodEnd, stoppedEvent.ReadStopInfo().line);
         Assert.Equal([right.Breakpoints.Single().Id!.Value], stoppedEvent.HitBreakpointIds);
         Assert.False(wrong.Breakpoints.Single().Verified);
 
         // With the program's symbols loaded, the other folder's name still binds to nothing.
         SetBreakpointsResponse again = debugProtocolHost.Request<SetBreakpointsResponse>(DapCommands.SetBreakpoints,
-            new SetBreakpointsArguments(new DapSource { Path = wrongFolder }, [new DapSourceBreakpoint(22)]));
+            new SetBreakpointsArguments(new DapSource { Path = wrongFolder }, [new DapSourceBreakpoint(Debuggees.MyMethodEnd)]));
         Assert.False(again.Breakpoints.Single().Verified);
-    }
-
-    private static int GetLineNumber(string filePath, string marker)
-    {
-        return File.ReadLines(filePath)
-            .Select((line, index) => (line, index))
-            .Single(item => item.line.Contains(marker))
-            .index + 1;
     }
 
     private static int GetColumnNumber(string filePath, int lineNumber, string marker)

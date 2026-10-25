@@ -662,10 +662,7 @@ public sealed class BuildRunTests : IClassFixture<RestoredFolders>, IDisposable
         {
             return [];
         }
-        using Process ps = Process.Start(new ProcessStartInfo("ps", ["-A", "-o", "pid=,pgid=,command="]) { RedirectStandardOutput = true })!;
-        string listed = ps.StandardOutput.ReadToEnd();
-        ps.WaitForExit();
-        return [.. listed.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+        return [.. Processes.Ps("-A", "-o", "pid=,pgid=,command=")
             .Select(line => line.Split(' ', 3, StringSplitOptions.RemoveEmptyEntries))
             .Where(words => words.Length == 3 && words[2].Contains("/nodemode:1", StringComparison.Ordinal)
                 && int.TryParse(words[1], System.Globalization.CultureInfo.InvariantCulture, out int pgid) && pgid == group)
