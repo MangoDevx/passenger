@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using Passenger.Core;
 
 namespace Passenger.App.Workspace;
@@ -44,32 +45,33 @@ public static partial class ProjectEdits
     }
 
     /// <summary>A package reference added as dotnet add package writes one, its version given (none under central package
-    /// management, whose Directory.Packages.props holds it): on a line of its own after the project's last package reference,
-    /// indented as it is, else in an item group of its own before &lt;/Project&gt;. Null once done, else why not.</summary>
+    /// management, whose Directory.Packages.props holds it): after the project's last package reference outside comments
+    /// (<see cref="XmlText.After"/>), else in an item group of its own before &lt;/Project&gt;. Null once done, else why not.</summary>
     public static string? AddPackage(string project, string id, string? version)
     {
         ProjectText file = new(project);
-        string text = file.Text;
-        if (Regex.IsMatch(text, $"<PackageReference\\s+Include=\"{Regex.Escape(id)}\"", RegexOptions.IgnoreCase))
+        XmlText text = new(file.Text);
+        List<XElement> references = PackageReferences(text);
+        if (references.Any(r => string.Equals((string?)r.Attribute("Include"), id, StringComparison.OrdinalIgnoreCase)))
         {
             return $"{Path.GetFileNameWithoutExtension(project)} already references {id}";
         }
-        string element = version is null ? $"<PackageReference Include=\"{id}\" />" : $"<PackageReference Include=\"{id}\" Version=\"{version}\" />";
-        if (Regex.Matches(text, "<PackageReference\\b[^>]*/>").LastOrDefault() is { } last)
+        string include = XmlText.Escape(id);
+        string element = version is null ? $"<PackageReference Include=\"{include}\" />" : $"<PackageReference Include=\"{include}\" Version=\"{XmlText.Escape(version)}\" />";
+        if (references.LastOrDefault() is { } last)
         {
-            int end = last.Index + last.Length;
-            int lineEnd = text.IndexOf('\n', end);
-            string eol = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
-            if (text[end..(lineEnd < 0 ? text.Length : lineEnd)].Trim().Length > 0)
-            {
-                file.Write(text.Insert(end, element));
-                return null;
-            }
-            file.Write(text.Insert(lineEnd < 0 ? text.Length : lineEnd + 1, $"{LineIndent(text, last.Index)}{element}{eol}"));
+            text.After(last, element);
+            file.Write(text.Text);
             return null;
         }
         return InGroupOfItsOwn(file, project, element);
     }
+
+    /// <summary>Whether a project file's text references a package, outside comments.</summary>
+    public static bool HasPackage(string text, string id) =>
+        PackageReferences(new XmlText(text)).Any(r => string.Equals((string?)r.Attribute("Include"), id, StringComparison.OrdinalIgnoreCase));
+
+    private static List<XElement> PackageReferences(XmlText text) => [.. text.Root.Descendants().Where(e => e.Name.LocalName == "PackageReference")];
 
     /// <summary>An item put in an item group of its own before &lt;/Project&gt;, indented as the file indents.</summary>
     private static string? InGroupOfItsOwn(ProjectText file, string project, string element)

@@ -105,6 +105,29 @@ public sealed class AspireOrchestrationTests : IClassFixture<AspireOrchestration
     }
 
     [AvaloniaFact]
+    public void A_hosting_package_is_added_beside_one_the_AppHost_has_commented_out_and_the_comment_is_left_as_it_was()
+    {
+        string commented = $"    <!-- <PackageReference Include=\"Aspire.Hosting.PostgreSQL\" Version=\"{AspireApp.TemplatesVersion}\" /> -->\n";
+        project.Write("Host/Host.csproj", $"<Project Sdk=\"Microsoft.NET.Sdk\">\n  <Sdk Name=\"Aspire.AppHost.Sdk\" Version=\"{AspireApp.TemplatesVersion}\" />\n"
+            + $"  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>{TestProjects.Framework}</TargetFramework><ImplicitUsings>enable</ImplicitUsings><IsAspireHost>true</IsAspireHost></PropertyGroup>\n"
+            + $"  <ItemGroup>\n    <PackageReference Include=\"Aspire.Hosting.AppHost\" Version=\"{AspireApp.TemplatesVersion}\" />\n{commented}"
+            + "    <ProjectReference Include=\"../Api/Api.csproj\" />\n  </ItemGroup>\n</Project>\n");
+        project.Write("Plain/Plain.csproj", $"<Project Sdk=\"Microsoft.NET.Sdk.Web\"><PropertyGroup><TargetFramework>{TestProjects.Framework}</TargetFramework><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>"
+            + "<ItemGroup><PackageReference Include=\"Npgsql\" Version=\"9.0.3\" /></ItemGroup></Project>");
+        project.Write("Plain/appsettings.json", "{\n  \"ConnectionStrings\": {\n    \"shopdb\": \"Host=localhost;Database=shop;Username=app;Password=app\"\n  }\n}\n");
+        MainWindow window = Open();
+        window.Confirm = (_, _, _) => Task.FromResult(true);
+        Ui.WaitFor(() => window.WorkspaceModel!.Projects.Any(p => p.Name == "Plain" && p.Packages.Any(q => q.Name == "Npgsql")), "Plain's packages to be evaluated");
+        Assert.Equal("Added Aspire orchestration", Add(window, "Plain", existing: true));
+        string hostProject = File.ReadAllText(project.PathOf("Host/Host.csproj"));
+        string expected = $"    <PackageReference Include=\"Aspire.Hosting.AppHost\" Version=\"{AspireApp.TemplatesVersion}\" />\n"
+            + $"    <PackageReference Include=\"Aspire.Hosting.PostgreSQL\" Version=\"{AspireApp.TemplatesVersion}\" />\n{commented}";
+        Assert.True(hostProject.Contains(expected, StringComparison.Ordinal),
+            $"The AppHost was not given Aspire.Hosting.PostgreSQL on a line of its own after its last reference, beside the one commented out:\n{hostProject}");
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public void Reordered_named_AddProject_arguments_do_not_add_the_same_resource_twice()
     {
         MainWindow window = Open();

@@ -448,7 +448,7 @@ public static class AspireOrchestration
     {
         string stagedHost = staged(host);
         string text = Read(stagedHost).Text;
-        if (System.Text.RegularExpressions.Regex.IsMatch(text, $"Include=\"{System.Text.RegularExpressions.Regex.Escape(package)}\"", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+        if (ProjectEdits.HasPackage(text, package))
         {
             return;
         }
