@@ -59,29 +59,19 @@ public sealed class MigrationsView : DockPanel
         against.Name = "MigrationsDatabase";
         WrapPanel top = new()
         {
-            Margin = new Thickness(8, 4),
+            Margin = new Thickness(8, 2),
             Children = { Labelled("Project", projects), Labelled("Startup", startups), Labelled("Context", contexts), against },
         };
-        Border topBar = new() { [DockProperty] = Dock.Top, BorderThickness = new Thickness(0, 0, 0, 1), Child = top };
-        topBar.Bind(Border.BorderBrushProperty, topBar.GetResourceObservable("Passenger.Divider"));
+        Border topBar = ToolBars.Top(top);
 
-        ToolColumn left = new()
-        {
-            Spacing = 2,
-            Margin = new Thickness(0, 6),
-            Children =
-            {
-                Tool(AppActions.MigrationsRefresh, "Icon.Rerun", "Refresh Migrations"),
-                Tool(AppActions.AddMigration, "Icon.Add", "Add Migration…"),
-                Tool(AppActions.UpdateDatabase, "Icon.Update", "Update Database"),
-                Tool(AppActions.RemoveLastMigration, "Icon.Clear", "Remove Last Migration"),
-                new Border { Height = 8 },
-                Tool(AppActions.ScriptMigrations, "Icon.DocumentText", "Script Migrations…"),
-                Tool(AppActions.BundleMigrations, "Icon.Package", "Bundle Migrations"),
-            },
-        };
-        Border leftBar = new() { [DockProperty] = Dock.Left, Width = 36, BorderThickness = new Thickness(0, 0, 1, 0), Child = left };
-        leftBar.Bind(Border.BorderBrushProperty, leftBar.GetResourceObservable("Passenger.Divider"));
+        Border leftBar = ToolBars.Side(
+            Tool(AppActions.MigrationsRefresh, "Icon.Rerun", "Refresh Migrations"),
+            Tool(AppActions.AddMigration, "Icon.Add", "Add Migration…"),
+            Tool(AppActions.UpdateDatabase, "Icon.Update", "Update Database"),
+            Tool(AppActions.RemoveLastMigration, "Icon.Clear", "Remove Last Migration"),
+            ToolBars.Gap(),
+            Tool(AppActions.ScriptMigrations, "Icon.DocumentText", "Script Migrations…"),
+            Tool(AppActions.BundleMigrations, "Icon.Package", "Bundle Migrations"));
 
         gaps = new StackPanel { [DockProperty] = Dock.Top, Name = "MigrationsGaps", Spacing = 4, Margin = new Thickness(8, 6, 8, 0) };
         list = new ListBox

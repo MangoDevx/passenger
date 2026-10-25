@@ -81,8 +81,7 @@ public sealed class AspireView : DockPanel, IDisposable
         commands = tools.Single(t => t.Action == AppActions.AspireCommand).Button;
         DockPanel top = new() { Children = { bar, status } };
         DockPanel.SetDock(bar, Dock.Left);
-        Border toolbar = new() { [DockProperty] = Dock.Top, Height = 34, BorderThickness = new Thickness(0, 0, 0, 1), Child = top };
-        toolbar.Bind(Border.BorderBrushProperty, toolbar.GetResourceObservable("Passenger.Divider"));
+        Border toolbar = ToolBars.Top(top);
         Children.Add(toolbar);
 
         ResourceList = new ListBox
@@ -134,12 +133,7 @@ public sealed class AspireView : DockPanel, IDisposable
         {
             AddPage(name, contents[name], strip);
         }
-        Border tabBar = new()
-        {
-            [DockProperty] = Dock.Top, Height = 32, BorderThickness = new Thickness(0, 0, 0, 1),
-            Child = new ScrollViewer { Content = strip, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled },
-        };
-        tabBar.Bind(Border.BorderBrushProperty, tabBar.GetResourceObservable("Passenger.Divider"));
+        Border tabBar = ToolBars.Top(new ScrollViewer { Content = strip, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled });
         DockPanel right = new() { Children = { tabBar, page } };
 
         Grid panes = new() { ColumnDefinitions = new ColumnDefinitions("2*,1,3*") };

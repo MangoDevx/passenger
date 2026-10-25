@@ -31,8 +31,7 @@ public sealed class ProblemsView : DockPanel
             tabs[tab] = button;
             strip.Children.Add(button);
         }
-        Border bar = new() { [DockProperty] = Dock.Top, Height = 32, BorderThickness = new Thickness(0, 0, 0, 1), Child = strip };
-        bar.Bind(Border.BorderBrushProperty, bar.GetResourceObservable("Passenger.Divider"));
+        Border bar = ToolBars.Top(strip);
         Children.Add(bar);
         list = new ListBox
         {

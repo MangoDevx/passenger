@@ -9,6 +9,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Passenger.App.CSharp;
 using Passenger.Inspector;
+using Passenger.App.ToolWindows;
 
 namespace Passenger.App.LiveTree;
 
@@ -75,14 +76,12 @@ public sealed class LiveTreeView : DockPanel
         SelectElement.Click += (_, _) => PickRequested?.Invoke(this, SelectElement.IsChecked == true);
         Button refresh = ToolButtons.Of("Icon.Rerun", "Refresh", () => RefreshRequested?.Invoke(this, EventArgs.Empty));
         status = new TextBlock { Classes = { "muted" }, FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0), TextTrimming = TextTrimming.CharacterEllipsis };
-        DockPanel top = new() { Height = 32, Margin = new Thickness(6, 0) };
+        DockPanel top = new() { Margin = new Thickness(6, 0) };
         StackPanel buttons = new() { Orientation = Orientation.Horizontal, Spacing = 2, VerticalAlignment = VerticalAlignment.Center, Children = { SelectElement, refresh } };
         DockPanel.SetDock(buttons, Dock.Left);
         top.Children.Add(buttons);
         top.Children.Add(status);
-        Border bar = new() { [DockProperty] = Dock.Top, BorderThickness = new Thickness(0, 0, 0, 1), Child = top };
-        bar.Bind(Border.BorderBrushProperty, bar.GetResourceObservable("Passenger.Divider"));
-        Children.Add(bar);
+        Children.Add(ToolBars.Top(top));
 
         bannerText = new TextBlock { TextWrapping = TextWrapping.Wrap, FontSize = 12 };
         banner = new Border { [DockProperty] = Dock.Top, Padding = new Thickness(10, 6), IsVisible = false, Child = bannerText };

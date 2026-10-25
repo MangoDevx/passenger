@@ -80,14 +80,7 @@ public sealed class HistoryTab : DockPanel
         filter = new TextBox { Classes = { "search" }, PlaceholderText = isFolder ? "Search by file name" : "Search by content", Width = 240, Margin = new Thickness(8, 0) };
         filter.TextChanged += (_, _) => _ = FilterAsync();
         Button revert = ToolButtons.Of("Icon.Rollback", "Revert Selected and Later Changes", () => _ = RevertAsync());
-        Border top = new()
-        {
-            [DockProperty] = Dock.Top,
-            Height = 36,
-            BorderThickness = new Thickness(0, 0, 0, 1),
-            Child = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Children = { filter, revert } },
-        };
-        top.Bind(Border.BorderBrushProperty, top.GetResourceObservable("Passenger.Divider"));
+        Border top = ToolBars.Top(new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Children = { filter, revert } });
 
         Control right = diffHost;
         if (isFolder)

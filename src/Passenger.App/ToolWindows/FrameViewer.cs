@@ -74,8 +74,7 @@ public sealed class FrameViewer : Window, IOwnKeys
         DockPanel bar = new() { Children = { tools, sizeText } };
         DockPanel.SetDock(tools, Avalonia.Controls.Dock.Left);
         sizeText.HorizontalAlignment = HorizontalAlignment.Right;
-        Border top = new() { [DockPanel.DockProperty] = Avalonia.Controls.Dock.Top, Height = 34, BorderThickness = new Thickness(0, 0, 0, 1), Child = bar };
-        top.Bind(Border.BorderBrushProperty, top.GetResourceObservable("Passenger.Divider"));
+        Border top = ToolBars.Top(bar);
         top.Bind(Border.BackgroundProperty, top.GetResourceObservable("Passenger.Panel"));
         Content = new DockPanel { Children = { top, scroller } };
 

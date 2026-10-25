@@ -165,28 +165,17 @@ public sealed class TestsView : DockPanel
         }
         DockPanel top = new() { Children = { search, bar, status } };
         DockPanel.SetDock(bar, Dock.Left);
-        Border topBar = new() { [DockProperty] = Dock.Top, Height = 34, BorderThickness = new Thickness(0, 0, 0, 1), Child = top };
-        topBar.Bind(Border.BorderBrushProperty, topBar.GetResourceObservable("Passenger.Divider"));
+        Border topBar = ToolBars.Top(top);
         ShowFilters();
         ShowPlaceholder();
         stop = ActionTool(AppActions.StopTests, "Icon.Stop", "Stop");
         stop.IsEnabled = false;
-        StackPanel left = new()
-        {
-            Spacing = 2,
-            Margin = new Thickness(0, 6),
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Children =
-            {
-                ActionTool(AppActions.RunAllTests, "Icon.Run", "Run All Tests"),
-                ActionTool(AppActions.RunTests, "Icon.RunOutline", "Run Selected Tests"),
-                ActionTool(AppActions.DebugTests, "Icon.Debug", "Debug Selected Tests"),
-                ActionTool(AppActions.RerunFailedTests, "Icon.Rerun", "Rerun Failed Tests"),
-                stop,
-            },
-        };
-        Border leftBar = new() { [DockProperty] = Dock.Left, Width = 36, BorderThickness = new Thickness(0, 0, 1, 0), Child = left };
-        leftBar.Bind(Border.BorderBrushProperty, leftBar.GetResourceObservable("Passenger.Divider"));
+        Border leftBar = ToolBars.Side(
+            ActionTool(AppActions.RunAllTests, "Icon.Run", "Run All Tests"),
+            ActionTool(AppActions.RunTests, "Icon.RunOutline", "Run Selected Tests"),
+            ActionTool(AppActions.DebugTests, "Icon.Debug", "Debug Selected Tests"),
+            ActionTool(AppActions.RerunFailedTests, "Icon.Rerun", "Rerun Failed Tests"),
+            stop);
         Children.Add(leftBar);
         Children.Add(topBar);
         Children.Add(split);

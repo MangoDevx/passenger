@@ -478,7 +478,8 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
             Assert.True(window.Perform(AppActions.ShowDebug), "Debug did not show");
             Ui.Settle();
             Passenger.App.ToolWindows.DebugView debug = window.DockHost.GetVisualDescendants().OfType<Passenger.App.ToolWindows.DebugView>().First(v => v.IsEffectivelyVisible);
-            Passenger.App.ToolWindows.ToolColumn tools = debug.GetVisualDescendants().OfType<Passenger.App.ToolWindows.ToolColumn>().Single();
+            // The window's own side bar, not its console's.
+            Passenger.App.ToolWindows.ToolColumn tools = debug.GetVisualDescendants().OfType<Passenger.App.ToolWindows.ToolColumn>().Single(c => c.Parent?.Parent == debug);
             // A button with no room is put above the column, which clips it away.
             static bool Drawn(Control button) => button.IsVisible && button.Bounds.Bottom > 0;
             void Fits()
@@ -1262,6 +1263,64 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
         }
         Assert.True(found.Count == 0, $"{found.Count} colours or rounded corners are written outside Theme/, so one look's would show under another: give each a token "
             + $"(Tokens.axaml and Harbour.axaml, Dark and Light) or a radius resource, and read that:\n{string.Join("\n", found)}");
+    }
+
+    /// <summary>Every tool window's bars are the shared pieces, ToolBars.Top along its top and ToolBars.Side down its left,
+    /// so each is one height, one width and one rule: a bar built by hand (a fixed height over a rule, a strip down the left
+    /// beside one, a ToolColumn of its own) fails here, naming its line.</summary>
+    [Fact]
+    public void Every_tool_windows_bars_are_the_shared_top_and_side_bars()
+    {
+        Regex made = new(@"\bnew(?:\s+[\w.]+)?\s*(?:\(\))?\s*\{");
+        Regex column = new(@"\bToolColumn\s+\w+\s*=\s*new\b|\bnew\s+ToolColumn\b");
+        List<string> found = [];
+        foreach ((string path, string text) in UiFiles())
+        {
+            // A dialog has no tool bars: its bands over a list's columns are its own.
+            if (!path.EndsWith(".cs", StringComparison.Ordinal) || path.EndsWith("/ToolBars.cs", StringComparison.Ordinal) || path.EndsWith("Dialog.cs", StringComparison.Ordinal))
+            {
+                continue;
+            }
+            foreach (Match match in made.Matches(text))
+            {
+                string own = Initializer(text, match.Index + match.Length);
+                Match width = Regex.Match(own, @"\bWidth\s*=\s*(\d+)\b");
+                bool narrow = !width.Success || int.Parse(width.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture) <= 48;
+                // Over a rule with a height of its own, or docked at the top with no padding (a table's header band has some).
+                bool top = own.Contains("Thickness(0, 0, 0, 1)", StringComparison.Ordinal)
+                    && (Regex.IsMatch(own, @"\bHeight\s*=\s*\d") || (own.Contains("Dock.Top", StringComparison.Ordinal) && !own.Contains("Padding", StringComparison.Ordinal)));
+                bool side = own.Contains("Dock.Left", StringComparison.Ordinal) && narrow
+                    && (own.Contains("Thickness(0, 0, 1, 0)", StringComparison.Ordinal) || (width.Success && own.Contains("Child", StringComparison.Ordinal)));
+                if (top || side)
+                {
+                    found.Add($"{path}:{LineOf(text, match.Index)}: a {(top ? "top" : "side")} bar built by hand");
+                }
+            }
+            foreach (Match match in column.Matches(text).Where(_ => !path.EndsWith("/ToolColumn.cs", StringComparison.Ordinal)))
+            {
+                found.Add($"{path}:{LineOf(text, match.Index)}: a ToolColumn of its own");
+            }
+        }
+        Assert.True(found.Count == 0, $"{found.Count} tool window bars are built by hand, so their heights, widths and rules drift apart: make each with "
+            + $"ToolBars.Top or ToolBars.Side:\n{string.Join("\n", found)}");
+
+        // An object initializer's own settings, from after its brace to its end, less the initializers inside it.
+        static string Initializer(string text, int from)
+        {
+            System.Text.StringBuilder own = new();
+            int depth = 1;
+            for (int i = from; i < text.Length && depth > 0; i++)
+            {
+                depth += text[i] switch { '{' => 1, '}' => -1, _ => 0 };
+                if (depth == 1 && text[i] != '}')
+                {
+                    own.Append(text[i]);
+                }
+            }
+            return own.ToString();
+        }
+
+        static int LineOf(string text, int at) => text.AsSpan(0, at).Count('\n') + 1;
     }
 
     /// <summary>A colour that is the content's own, not the window's, so no look has a token for it.</summary>

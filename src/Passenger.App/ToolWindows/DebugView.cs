@@ -132,8 +132,7 @@ public sealed class DebugView : DockPanel
                 model.Overlays,
             },
         };
-        Border topBar = new() { [DockProperty] = Dock.Top, Height = 32, BorderThickness = new Thickness(0, 0, 0, 1), Child = top };
-        topBar.Bind(Border.BorderBrushProperty, topBar.GetResourceObservable("Passenger.Divider"));
+        Border topBar = ToolBars.Top(top);
 
         // Under the program's own buttons: pressed while every breakpoint is muted.
         mute = ToolButtons.Toggle("Icon.MuteBreakpoints", "Mute Breakpoints");
@@ -144,26 +143,16 @@ public sealed class DebugView : DockPanel
             mute.IsChecked = model.ShowsMuted;
         };
 
-        // A Debug window too short for its buttons puts the rest behind More.
-        ToolColumn left = new()
-        {
-            Spacing = 2,
-            Margin = new Thickness(0, 6),
-            Children =
-            {
-                Tool(AppActions.Rerun, "Icon.Rerun", "Rerun"),
-                Tool(AppActions.Resume, "Icon.Resume", "Resume Program"),
-                Tool(AppActions.Pause, "Icon.Pause", "Pause Program"),
-                Tool(AppActions.Stop, "Icon.Stop", "Stop"),
-                Tool(AppActions.Detach, "Icon.Detach", "Detach"),
-                HotReloadTool(),
-                new Border { Height = 8 },
-                Tool(AppActions.ViewBreakpoints, "Icon.Breakpoints", "View Breakpoints and Exceptions"),
-                mute,
-            },
-        };
-        Border leftBar = new() { [DockProperty] = Dock.Left, Width = 36, BorderThickness = new Thickness(0, 0, 1, 0), Child = left };
-        leftBar.Bind(Border.BorderBrushProperty, leftBar.GetResourceObservable("Passenger.Divider"));
+        Border leftBar = ToolBars.Side(
+            Tool(AppActions.Rerun, "Icon.Rerun", "Rerun"),
+            Tool(AppActions.Resume, "Icon.Resume", "Resume Program"),
+            Tool(AppActions.Pause, "Icon.Pause", "Pause Program"),
+            Tool(AppActions.Stop, "Icon.Stop", "Stop"),
+            Tool(AppActions.Detach, "Icon.Detach", "Detach"),
+            HotReloadTool(),
+            ToolBars.Gap(),
+            Tool(AppActions.ViewBreakpoints, "Icon.Breakpoints", "View Breakpoints and Exceptions"),
+            mute);
 
         Children.Add(leftBar);
         Children.Add(topBar);

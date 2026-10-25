@@ -75,14 +75,12 @@ public sealed class HierarchyView : DockPanel
         second = Toggle();
         first.Click += (_, _) => _ = ChooseAsync(first: true);
         second.Click += (_, _) => _ = ChooseAsync(first: false);
-        DockPanel top = new() { Height = 32 };
+        DockPanel top = new();
         StackPanel toggles = new() { Orientation = Orientation.Horizontal, Spacing = 2, Margin = new Thickness(8, 0), VerticalAlignment = VerticalAlignment.Center, Children = { first, second } };
         DockPanel.SetDock(toggles, Dock.Right);
         top.Children.Add(toggles);
         top.Children.Add(title);
-        Border bar = new() { [DockProperty] = Dock.Top, BorderThickness = new Thickness(0, 0, 0, 1), Child = top };
-        bar.Bind(Border.BorderBrushProperty, bar.GetResourceObservable("Passenger.Divider"));
-        Children.Add(bar);
+        Children.Add(ToolBars.Top(top));
         list = new ListBox
         {
             Classes = { "tree" },

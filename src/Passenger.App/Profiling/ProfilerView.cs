@@ -9,6 +9,7 @@ using Avalonia.Threading;
 using Passenger.Editor;
 using Passenger.Profiler;
 using Passenger.Core;
+using Passenger.App.ToolWindows;
 
 namespace Passenger.App.Profiling;
 
@@ -225,8 +226,7 @@ public sealed class ProfilerView : DockPanel
         bar.Children.Add(left);
         bar.Children.Add(right);
         bar.Children.Add(status);
-        Border top = new() { [DockProperty] = Dock.Top, Height = 34, BorderThickness = new Thickness(0, 0, 0, 1), Child = bar };
-        top.Bind(Border.BorderBrushProperty, top.GetResourceObservable("Passenger.Divider"));
+        Border top = ToolBars.Top(bar);
         Children.Add(top);
         timeline = new Timeline();
         timeline.Chosen += (_, stretch) => _ = ChooseAsync(stretch);

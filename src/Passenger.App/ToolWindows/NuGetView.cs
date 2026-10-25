@@ -99,14 +99,7 @@ public sealed class NuGetView : DockPanel
             Grid.SetColumn(parts[i], i);
             row.Children.Add(parts[i]);
         }
-        Border top = new()
-        {
-            [DockProperty] = Dock.Top,
-            Height = 36,
-            BorderThickness = new Thickness(0, 0, 0, 1),
-            Child = row,
-        };
-        top.Bind(Border.BorderBrushProperty, top.GetResourceObservable("Passenger.Divider"));
+        Border top = ToolBars.Top(row);
 
         list = new ListBox
         {

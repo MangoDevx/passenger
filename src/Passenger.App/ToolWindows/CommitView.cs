@@ -220,8 +220,7 @@ public sealed class CommitView : DockPanel
                 }),
             },
         };
-        Border top = new() { [DockProperty] = Dock.Top, Height = 32, BorderThickness = new Thickness(0, 0, 0, 1), Child = tools };
-        top.Bind(Border.BorderBrushProperty, top.GetResourceObservable("Passenger.Divider"));
+        Border top = ToolBars.Top(tools);
 
         Children.Add(top);
         Children.Add(bottom);

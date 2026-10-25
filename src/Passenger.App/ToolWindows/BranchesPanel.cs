@@ -130,28 +130,19 @@ public sealed class BranchesPanel : DockPanel
                 ToggleFavorite(branch);
             }
         });
-        StackPanel tools = new()
-        {
-            Orientation = Orientation.Vertical,
-            Margin = new Thickness(2, 4, 2, 0),
-            Children =
+        Border strip = ToolBars.Side(
+            ToolButtons.Of("Icon.Add", "New Branch…", () => Request(NewBranchRequested)),
+            ToolButtons.Of("Icon.Update", "Update Selected", () =>
             {
-                ToolButtons.Of("Icon.Add", "New Branch…", () => Request(NewBranchRequested)),
-                ToolButtons.Of("Icon.Update", "Update Selected", () =>
+                if (Selected is { Branch: { Kind: RefKind.Local } branch })
                 {
-                    if (Selected is { Branch: { Kind: RefKind.Local } branch })
-                    {
-                        _ = vcs.UpdateBranchAsync(branch);
-                    }
-                }),
-                ToolButtons.Of("Icon.Clear", "Delete", () => Request(DeleteRequested)),
-                favorite,
-                ToolButtons.Of("Icon.Locate", "Navigate Log to Selected Branch Head", () => Request(NavigateRequested)),
-            },
-        };
-        Border strip = new() { [DockProperty] = Dock.Left, BorderThickness = new Thickness(0, 0, 1, 0), Child = tools };
-        strip.Bind(Border.BorderBrushProperty, strip.GetResourceObservable("Passenger.Divider"));
-        Border top = new() { [DockProperty] = Dock.Top, Height = 36, Child = search };
+                    _ = vcs.UpdateBranchAsync(branch);
+                }
+            }),
+            ToolButtons.Of("Icon.Clear", "Delete", () => Request(DeleteRequested)),
+            favorite,
+            ToolButtons.Of("Icon.Locate", "Navigate Log to Selected Branch Head", () => Request(NavigateRequested)));
+        Border top = ToolBars.Top(search);
         Children.Add(strip);
         Children.Add(top);
         Children.Add(list);

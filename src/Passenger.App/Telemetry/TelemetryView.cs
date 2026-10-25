@@ -155,8 +155,7 @@ public sealed class TelemetryView : IDisposable
                 spans.Click += (_, _) => Choose(TelemetryPage.Traces);
                 PageWanted += (_, wanted) => Choose(wanted);
                 StackPanel strip = new() { Orientation = Orientation.Horizontal, Spacing = 2, Margin = new Thickness(8, 0), VerticalAlignment = VerticalAlignment.Center, Children = { logs, spans } };
-                Border tabBar = new() { Height = 32, BorderThickness = new Thickness(0, 0, 0, 1), Child = strip };
-                tabBar.Bind(Border.BorderBrushProperty, tabBar.GetResourceObservable("Passenger.Divider"));
+                Border tabBar = ToolBars.Top(strip);
                 both = WithHeader(tabBar, page);
                 choose = Choose;
 

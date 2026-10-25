@@ -86,8 +86,7 @@ public sealed class ContainersView : DockPanel
         {
             tools.Children.Add(ActionTool(action, icon, parts.Title(action)));
         }
-        Border bar = new() { [DockProperty] = Dock.Top, Height = 32, BorderThickness = new Thickness(0, 0, 0, 1), Child = tools };
-        bar.Bind(Border.BorderBrushProperty, bar.GetResourceObservable("Passenger.Divider"));
+        Border bar = ToolBars.Top(tools);
         Children.Add(bar);
 
         list = new ListBox
@@ -134,8 +133,7 @@ public sealed class ContainersView : DockPanel
             tabs[name] = tab;
             strip.Children.Add(tab);
         }
-        Border tabBar = new() { [DockProperty] = Dock.Top, Height = 32, BorderThickness = new Thickness(0, 0, 0, 1), Child = strip };
-        tabBar.Bind(Border.BorderBrushProperty, tabBar.GetResourceObservable("Passenger.Divider"));
+        Border tabBar = ToolBars.Top(strip);
         DockPanel details = new() { Children = { tabBar, new Panel { Children = { detail, nothingChosen } } } };
 
         Grid panes = new() { ColumnDefinitions = new ColumnDefinitions("2*,1,3*") };

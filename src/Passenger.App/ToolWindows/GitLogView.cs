@@ -134,14 +134,7 @@ public sealed class GitLogView : DockPanel
             Child = new StackPanel { Orientation = Orientation.Horizontal, Children = { branchFilterText, clearBranch } },
         };
         branchFilter.Bind(Border.BackgroundProperty, branchFilter.GetResourceObservable("Passenger.Selected"));
-        Border top = new()
-        {
-            [DockProperty] = Dock.Top,
-            Height = 36,
-            BorderThickness = new Thickness(0, 0, 0, 1),
-            Child = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Children = { filter, branchFilter, refresh } },
-        };
-        top.Bind(Border.BorderBrushProperty, top.GetResourceObservable("Passenger.Divider"));
+        Border top = ToolBars.Top(new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Children = { filter, branchFilter, refresh } });
 
         Grid right = new() { RowDefinitions = new RowDefinitions("*,1,*") };
         HairlineDivider between = new(GridResizeDirection.Rows) { [Grid.RowProperty] = 1 };

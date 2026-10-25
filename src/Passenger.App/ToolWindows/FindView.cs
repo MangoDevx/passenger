@@ -73,15 +73,8 @@ public sealed class FindView : DockPanel
     public FindView(Func<string, string?> textOf)
     {
         this.textOf = textOf;
-        tabBar = new Border
-        {
-            [DockProperty] = Dock.Top,
-            Height = 32,
-            IsVisible = false,
-            BorderThickness = new Thickness(0, 0, 0, 1),
-            Child = new ScrollViewer { HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden, Content = tabs, Margin = new Thickness(8, 0) },
-        };
-        tabBar.Bind(Border.BorderBrushProperty, tabBar.GetResourceObservable("Passenger.Divider"));
+        tabBar = ToolBars.Top(new ScrollViewer { HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden, Content = tabs, Margin = new Thickness(8, 0) });
+        tabBar.IsVisible = false;
         Children.Add(tabBar);
         list = new ListBox
         {

@@ -53,18 +53,7 @@ public sealed class OutputView : DockPanel
         stop.Click += (_, _) => StopClicked?.Invoke(this, EventArgs.Empty);
         hotReload.Click += (_, _) => HotReloadClicked?.Invoke(this, EventArgs.Empty);
         clear.Click += (_, _) => Clear();
-        Border tools = new()
-        {
-            [DockProperty] = Dock.Left,
-            Width = 36,
-            Child = new StackPanel
-            {
-                Spacing = 2,
-                Margin = new Thickness(0, 6),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                Children = { rerun, stop, hotReload, clear, new Border { Height = 8 }, Overlays },
-            },
-        };
+        Border tools = ToolBars.Side(rerun, stop, hotReload, clear, ToolBars.Gap(), Overlays);
         if (toolbar)
         {
             Children.Add(tools);
