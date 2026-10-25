@@ -36,10 +36,8 @@ public sealed class VsTestRunner : ITestRunner
 
     private readonly VsTestConsoleWrapper console;
 
-    /// <summary>The test cases discovered, by the key of the test each was told as, and each assembly's keys, which its
-    /// next discovery replaces. Touched only by one discovery or run at a time, as the controller asks.</summary>
-    private readonly Dictionary<string, TestCase> cases = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, List<string>> byAssembly = new(StringComparer.Ordinal);
+    /// <summary>The test cases discovered, by the key of the test each was told as.</summary>
+    private readonly TestCatalog<TestCase> cases = new();
 
     private VsTestRunner(VsTestConsoleWrapper console) => this.console = console;
 
@@ -136,7 +134,7 @@ public sealed class VsTestRunner : ITestRunner
         List<TestCase> chosen = [];
         foreach (TestItem test in tests)
         {
-            if (cases.TryGetValue(test.Key, out TestCase? found) && running.TryAdd((found.Id, found.Source), test))
+            if (cases.Of(test.Key) is { } found && running.TryAdd((found.Id, found.Source), test))
             {
                 chosen.Add(found);
             }
@@ -208,55 +206,23 @@ public sealed class VsTestRunner : ITestRunner
     }
 
     /// <summary>VSTest's test cases told as the IDE's tests, each with the project and framework of the assembly it is
-    /// in, and kept to be run by the key of the test told. Two cases a test's id cannot tell apart (an MSTest data row
-    /// named as its method) are told as rows named by the order they came in.</summary>
+    /// in, and kept to be run by the key of the test told. VSTest names an assembly and a source file as it was given or
+    /// as the PDB says: the tree's are canonical.</summary>
     private IReadOnlyList<TestItem> Tell(IReadOnlyList<TestAssembly> assemblies, IReadOnlyList<TestCase> found)
     {
-        Dictionary<string, TestAssembly> bySource = new(StringComparer.Ordinal);
-        foreach (TestAssembly assembly in assemblies)
+        Dictionary<string, TestAssembly> bySource = assemblies.GroupBy(a => a.Path, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.Last(), StringComparer.Ordinal);
+        IEnumerable<(TestAssembly, TestCase)> inAssemblies = found
+            .Select(test => (Assembly: bySource.GetValueOrDefault(cases.Canonical(test.Source)), Test: test))
+            .Where(pair => pair.Assembly is not null)
+            .Select(pair => (pair.Assembly!, pair.Test));
+        return cases.Tell(assemblies, inAssemblies, test => test.Id.ToString(), (assembly, test) => new TestItem(assembly.Project.Path, test.FullyQualifiedName, test.DisplayName)
         {
-            bySource[assembly.Path] = assembly;
-            foreach (string key in byAssembly.GetValueOrDefault(assembly.Path) ?? [])
-            {
-                cases.Remove(key);
-            }
-            byAssembly[assembly.Path] = [];
-        }
-        Dictionary<string, string> canonical = new(StringComparer.Ordinal);
-        List<TestItem> told = new(found.Count);
-        foreach (TestCase test in found)
-        {
-            if (!bySource.TryGetValue(Canonical(test.Source), out TestAssembly? assembly))
-            {
-                continue;
-            }
-            TestItem item = new(assembly.Project.Path, test.FullyQualifiedName, test.DisplayName)
-            {
-                Framework = assembly.Framework,
-                Row = TestItem.RowOf(test.FullyQualifiedName, test.DisplayName),
-                Path = string.IsNullOrEmpty(test.CodeFilePath) ? null : Canonical(test.CodeFilePath),
-                Line = test.LineNumber,
-                Traits = [.. test.Traits.Select(t => new KeyValuePair<string, string>(t.Name, t.Value))],
-            };
-            for (int again = 2; cases.ContainsKey(item.Key); again++)
-            {
-                item = item with { Row = $"{item.Row ?? item.DisplayName} ({again})" };
-            }
-            cases[item.Key] = test;
-            byAssembly[assembly.Path].Add(item.Key);
-            told.Add(item);
-        }
-        return told;
-
-        // VSTest names an assembly and a source file as it was given or as the PDB says: the tree's are canonical.
-        string Canonical(string path)
-        {
-            if (!canonical.TryGetValue(path, out string? made))
-            {
-                canonical[path] = made = PathNames.Canonical(path);
-            }
-            return made;
-        }
+            Framework = assembly.Framework,
+            Row = TestItem.RowOf(test.FullyQualifiedName, test.DisplayName),
+            Path = string.IsNullOrEmpty(test.CodeFilePath) ? null : cases.Canonical(test.CodeFilePath),
+            Line = test.LineNumber,
+            Traits = [.. test.Traits.Select(t => new KeyValuePair<string, string>(t.Name, t.Value))],
+        }, (_, test) => test);
     }
 
     private static TestOutcome Outcome(TestItem test, VsResult result) => new(test, StateOf(result.Outcome), result.Duration)
@@ -390,21 +356,12 @@ public sealed class VsTestRunner : ITestRunner
             AttachDebuggerToProcess(attachDebuggerInfo.ProcessId, cancellationToken);
     }
 
-    /// <summary>What VSTest or a test adapter said: a warning or an error in the run's output and vstest.log, the rest
-    /// (each adapter's progress) in vstest.log only while protocols are traced.</summary>
+    /// <summary>What VSTest or a test adapter said: a warning or an error is notable.</summary>
     private static void Said(TestMessageLevel level, string? message, Action<string>? log)
     {
-        if (message is null)
+        if (message is not null)
         {
-            return;
-        }
-        if (level != TestMessageLevel.Informational || IdeLog.Traces)
-        {
-            IdeLog.Write(IdeLog.Tests, $"{level}: {message}");
-        }
-        if (level != TestMessageLevel.Informational)
-        {
-            log?.Invoke(message);
+            TestRunners.Said(level != TestMessageLevel.Informational, level.ToString(), message, log);
         }
     }
 

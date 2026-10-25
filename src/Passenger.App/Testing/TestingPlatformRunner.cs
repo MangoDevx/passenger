@@ -29,10 +29,8 @@ public sealed class TestingPlatformRunner : ITestRunner
     /// <summary>How long a test host done with its request has to tell its last results and exit before it is ended.</summary>
     private static readonly TimeSpan ExitLimit = TimeSpan.FromSeconds(10);
 
-    /// <summary>The test nodes discovered, by the key of the test each was told as, and each assembly's keys, which its
-    /// next discovery replaces. Touched only by one discovery or run at a time, as the controller asks.</summary>
-    private readonly Dictionary<string, Found> found = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, List<string>> byAssembly = new(StringComparer.Ordinal);
+    /// <summary>The test nodes discovered, by the key of the test each was told as.</summary>
+    private readonly TestCatalog<Found> found = new();
 
     public bool IsUsable => true;
 
@@ -104,7 +102,7 @@ public sealed class TestingPlatformRunner : ITestRunner
     {
         RunSummary summary = new(TimeSpan.Zero, false, false, null);
         foreach (IGrouping<string, (TestItem Test, Found Node)> assembly in tests
-            .Select(t => (Test: t, Node: found.GetValueOrDefault(t.Key)!))
+            .Select(t => (Test: t, Node: found.Of(t.Key)!))
             .Where(t => t.Node is not null)
             .GroupBy(t => t.Node.Assembly.Path, StringComparer.Ordinal))
         {
@@ -181,51 +179,19 @@ public sealed class TestingPlatformRunner : ITestRunner
     }
 
     /// <summary>The test nodes found told as the IDE's tests, each with the project and framework of its assembly, and kept
-    /// to be run by the key of the test told. Two nodes a test's id cannot tell apart are told as rows named by the order
-    /// they came in.</summary>
-    private IReadOnlyList<TestItem> Tell((TestAssembly Assembly, IReadOnlyList<Node> Nodes)[] asked)
-    {
-        Dictionary<string, string> canonical = new(StringComparer.Ordinal);
-        List<TestItem> told = [];
-        foreach ((TestAssembly assembly, IReadOnlyList<Node> nodes) in asked)
-        {
-            foreach (string key in byAssembly.GetValueOrDefault(assembly.Path) ?? [])
+    /// to be run by the key of the test told. The platform names a source file as the compiler was given it: the tree's are
+    /// canonical.</summary>
+    private IReadOnlyList<TestItem> Tell((TestAssembly Assembly, IReadOnlyList<Node> Nodes)[] asked) =>
+        found.Tell(asked.Select(a => a.Assembly), asked.SelectMany(a => a.Nodes.Where(n => n.IsTest).Select(n => (a.Assembly, n))), node => node.Uid,
+            (assembly, node) => new TestItem(assembly.Project.Path, node.FullyQualifiedName, node.DisplayName)
             {
-                found.Remove(key);
-            }
-            List<string> keys = byAssembly[assembly.Path] = [];
-            HashSet<string> uids = new(StringComparer.Ordinal);
-            foreach (Node node in nodes.Where(n => n.IsTest && uids.Add(n.Uid)))
-            {
-                TestItem item = new(assembly.Project.Path, node.FullyQualifiedName, node.DisplayName)
-                {
-                    Framework = assembly.Framework,
-                    Row = TestItem.RowOf(node.FullyQualifiedName, node.DisplayName),
-                    Path = node.File is { Length: > 0 } file ? Canonical(file) : null,
-                    Line = node.Line,
-                    Traits = node.Traits,
-                };
-                for (int again = 2; found.ContainsKey(item.Key); again++)
-                {
-                    item = item with { Row = $"{item.Row ?? item.DisplayName} ({again})" };
-                }
-                found[item.Key] = new Found(assembly, node.Uid, node.DisplayName);
-                keys.Add(item.Key);
-                told.Add(item);
-            }
-        }
-        return told;
-
-        // The platform names a source file as the compiler was given it: the tree's are canonical.
-        string Canonical(string path)
-        {
-            if (!canonical.TryGetValue(path, out string? made))
-            {
-                canonical[path] = made = PathNames.Canonical(path);
-            }
-            return made;
-        }
-    }
+                Framework = assembly.Framework,
+                Row = TestItem.RowOf(node.FullyQualifiedName, node.DisplayName),
+                Path = node.File is { Length: > 0 } file ? found.Canonical(file) : null,
+                Line = node.Line,
+                Traits = node.Traits,
+            },
+            (assembly, node) => new Found(assembly, node.Uid, node.DisplayName));
 
     /// <summary>A node's result as the IDE's outcome; null for an update that is not one (discovered, in progress, an attempt
     /// a retry replaces, or one the stop canceled, which stays not run).</summary>
@@ -250,19 +216,9 @@ public sealed class TestingPlatformRunner : ITestRunner
             : null;
     }
 
-    /// <summary>What the platform said of a test host as a message for the person, in the log, and in vstest.log.</summary>
-    private static void Said(string level, string message, Action<string>? log)
-    {
-        bool notable = level is "Warning" or "Error" or "Critical";
-        if (notable || IdeLog.Traces)
-        {
-            IdeLog.Write(IdeLog.Tests, $"{level}: {message}");
-        }
-        if (notable)
-        {
-            log?.Invoke(message);
-        }
-    }
+    /// <summary>What the platform said of a test host: a warning, an error or worse is notable.</summary>
+    private static void Said(string level, string message, Action<string>? log) =>
+        TestRunners.Said(level is "Warning" or "Error" or "Critical", level, message, log);
 
     /// <summary>A test the platform discovered: the node it is run by, in the assembly it is in.</summary>
     private sealed record Found(TestAssembly Assembly, string Uid, string DisplayName);

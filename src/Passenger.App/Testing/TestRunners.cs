@@ -8,6 +8,20 @@ namespace Passenger.App.Testing;
 /// them in one tree, and Run All runs both.</summary>
 public sealed class TestRunners(string folder, Func<string, CancellationToken, Task<ITestRunner>>? startVsTest = null) : ITestRunner
 {
+    /// <summary>What a runner or a test host said: a <paramref name="notable"/> warning or error in the run's output and
+    /// vstest.log, the rest (an adapter's progress) in vstest.log only while protocols are traced.</summary>
+    internal static void Said(bool notable, string level, string message, Action<string>? log)
+    {
+        if (notable || IdeLog.Traces)
+        {
+            IdeLog.Write(IdeLog.Tests, $"{level}: {message}");
+        }
+        if (notable)
+        {
+            log?.Invoke(message);
+        }
+    }
+
     private readonly TestingPlatformRunner platform = new();
     private readonly Func<string, CancellationToken, Task<ITestRunner>> startVsTest = startVsTest ?? VsTestRunner.StartAsync;
     private ITestRunner? vsTest;
