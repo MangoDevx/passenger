@@ -265,7 +265,7 @@ public sealed class FindView : DockPanel
             TextDocument document = new(text);
             preview.Document = document;
             (preview.Highlighter as IDisposable)?.Dispose();
-            preview.Highlighter = Languages.Highlighters.For(Workspace.Language.ForPath(usage.Path).Name, document);
+            preview.Highlighter = Languages.Highlighters.For(Languages.Language.ForPath(usage.Path), document);
             preview.Tag = usage.Path;
         }
         TextSnapshot snapshot = preview.Document.Snapshot;

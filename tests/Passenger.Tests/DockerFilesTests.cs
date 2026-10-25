@@ -13,6 +13,7 @@ using Passenger.App.Settings;
 using Passenger.App.Workspace;
 using Passenger.Core;
 using Passenger.Editor;
+using Passenger.Languages;
 using Passenger.Text;
 
 namespace Passenger.Tests;

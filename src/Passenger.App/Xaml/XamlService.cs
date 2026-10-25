@@ -83,8 +83,8 @@ public sealed class XamlService : IDisposable
         }
     }
 
-    /// <summary>Whether a path is a XAML file Passenger reads, by its extension.</summary>
-    public static bool IsXaml(string path) => Path.GetExtension(path).ToLowerInvariant() is ".axaml" or ".paml" or ".xaml";
+    /// <summary>Whether a path is a XAML file Passenger reads, by its name.</summary>
+    public static bool IsXaml(string path) => Languages.Language.ForPath(path) == Languages.Language.Xaml;
 
     /// <summary>An open file's XAML, null for a file that is not XAML of a C# project.</summary>
     public XamlDocument? For(OpenDocument document) => documents.GetValueOrDefault(document);
@@ -115,7 +115,7 @@ public sealed class XamlService : IDisposable
             }
             return;
         }
-        if (document.Language.Name == "C#")
+        if (document.Language == Languages.Language.CSharp)
         {
             // Only a file a XAML project may read waits for a pause: each wait holds background work half a second.
             Debounce wait = new(SourceSettle, () => SourceTypedAsync(document));

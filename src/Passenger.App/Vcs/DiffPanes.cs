@@ -51,7 +51,7 @@ public sealed class DiffPanes(Func<DiffHighlighting> chosen, Action<DiffHighligh
                 open.PropertyChanged += OnOpenChanged;
                 letGo.Add(() => open.PropertyChanged -= OnOpenChanged);
             }
-            else if (Languages.Highlighters.For(Language.ForPath(path).Name, pane.Document) is { } colours)
+            else if (Languages.Highlighters.For(Languages.Language.ForPath(path), pane.Document) is { } colours)
             {
                 pane.Highlighter = colours;
                 if (colours is IDisposable owned)

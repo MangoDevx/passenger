@@ -456,7 +456,7 @@ public sealed class FindInFilesPopup : UserControl, IAnswers<SearchMatch?>
         TextDocument shown = new(text.ToString());
         preview.Show(shown, SelectionSet.Single(0), default);
         (preview.Highlighter as IDisposable)?.Dispose();
-        preview.Highlighter = Languages.Highlighters.For(Workspace.Language.ForPath(match.Path).Name, shown);
+        preview.Highlighter = Languages.Highlighters.For(Languages.Language.ForPath(match.Path), shown);
         if (match.Line < shown.Snapshot.LineCount)
         {
             int at = shown.Snapshot.GetLineStart(match.Line) + match.Column;

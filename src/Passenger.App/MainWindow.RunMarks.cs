@@ -78,7 +78,7 @@ public partial class MainWindow
     }
 
     /// <summary>Whether a file is a compose file or a Dockerfile, where a container configuration's run icon may stand.</summary>
-    private static bool IsRunFile(string path) => Web.ComposeDeclarations.IsCompose(path) || Web.WebLanguages.IsDockerfile(Path.GetFileName(path));
+    private static bool IsRunFile(string path) => Web.ComposeDeclarations.IsCompose(path) || Languages.Language.ForPath(path) == Languages.Language.Dockerfile;
 
     /// <summary>The AppHost an open C# file is a source of, as a configuration names it; null for any other file, whose keys
     /// read no AppHost's resources.</summary>

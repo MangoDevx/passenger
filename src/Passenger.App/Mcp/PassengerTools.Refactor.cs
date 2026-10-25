@@ -93,7 +93,7 @@ public sealed partial class PassengerTools
         Served served = await Serve(path, cancel);
         return served switch
         {
-            ServerServed { Language: "C#", Web: null } csharp => (csharp.Document, csharp.Lsp),
+            ServerServed { Web: null } csharp when csharp.Document.Language == Languages.Language.CSharp => (csharp.Document, csharp.Lsp),
             XamlServed => throw Lacks(served, Titled(kind),
                 "rename renames an element's name, code_actions and apply_code_action extract a resource or a style, and code_cleanup reformats it"),
             MSBuildServed => throw Lacks(served, Titled(kind), MSBuildHas),

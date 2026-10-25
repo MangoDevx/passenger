@@ -229,7 +229,7 @@ public sealed class EditorGroup : DockPanel
     internal void FollowMarkdown()
     {
         OpenDocument? document = active?.Document;
-        bool shows = document is not null && InEditor(document) && document.Language.Name == "Markdown";
+        bool shows = document is not null && InEditor(document) && document.Language == Languages.Language.Markdown;
         FollowPreviewToggle();
         if (shows && area.ShowsMarkdownPreview)
         {
@@ -252,7 +252,7 @@ public sealed class EditorGroup : DockPanel
     internal void FollowPreviewToggle()
     {
         OpenDocument? document = active is { } shown && InEditor(shown.Document) ? shown.Document : null;
-        bool markdown = document?.Language.Name == "Markdown";
+        bool markdown = document?.Language == Languages.Language.Markdown;
         bool xaml = !markdown && document is not null && area.HasXamlPreview(document);
         PreviewToggle.IsVisible = markdown || xaml;
         PreviewToggle.IsChecked = markdown ? area.ShowsMarkdownPreview : xaml && area.ShowsXamlPreview;

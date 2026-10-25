@@ -176,14 +176,14 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
 
     private Task<IReadOnlyList<Finding>> FileDiagnostics(string path, CancellationToken cancel) => OnUi(cancel, async () =>
     {
-        if (await DocumentAsync(path, cancel) is { Language.Name: not ("C#" or "Razor") } marked)
+        if (await DocumentAsync(path, cancel) is { Language.Service: not Languages.LanguageService.CSharp } marked)
         {
             // Its own checks only; the rest of the IDE's work (a build, a test run, a busy console) is not waited for.
             await When(() => !marked.IsChecking, MarkersLimit, cancel, On(h => marked.Checked += h, h => marked.Checked -= h));
             List<Finding> missing = [];
             if (Session.Web is { } web && web.For(marked) is { Lsp: null })
             {
-                if (!WebLanguages.IsDockerfile(Path.GetFileName(marked.Path)) && !ComposeDeclarations.IsCompose(marked.Path))
+                if (Languages.Language.ForPath(marked.Path) != Languages.Language.Dockerfile && !ComposeDeclarations.IsCompose(marked.Path))
                 {
                     // A web file whose server cannot start has no checks: none found would read as none there.
                     throw new InvalidOperationException(web.Unready("Its diagnostics", marked));
@@ -245,7 +245,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
             return "Nothing is known about this position";
         }
         string said = Shapes.Text(hover.Contents).Trim();
-        return served.Document.Language.Name == "C#" && await server.Lsp.SymbolAtAsync(offset) is { Id: { } id } ? $"{said}\n\nDocumentation id: {id}" : said;
+        return served.Document.Language == Languages.Language.CSharp && await server.Lsp.SymbolAtAsync(offset) is { Id: { } id } ? $"{said}\n\nDocumentation id: {id}" : said;
     });
 
     [McpServerTool(Name = "definition", Title = "Go to definition", ReadOnly = true), Description(
@@ -1842,7 +1842,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
             throw new InvalidOperationException(Refusals.NoCSharp);
         }
         // The server is never given another language's file, so waiting for it to load one would wait out the limit.
-        if (document.Language.Name is not ("C#" or "Razor"))
+        if (document.Language.Service != Languages.LanguageService.CSharp)
         {
             throw new InvalidOperationException($"This is the C# language server's, which answers for C# and Razor files, not {LanguageOf(document)} ones such as {Path.GetFileName(document.Path)}");
         }

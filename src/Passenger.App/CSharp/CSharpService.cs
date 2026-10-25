@@ -190,7 +190,7 @@ public sealed class CSharpService : IAsyncDisposable
     public void FollowIndent(OpenDocument? shown)
     {
         UiThread.Check();
-        if (shown is not { Language.Name: "C#" } || shown.Indentation.Options == told)
+        if (shown is null || shown.Language != Languages.Language.CSharp || shown.Indentation.Options == told)
         {
             return;
         }
@@ -513,7 +513,7 @@ public sealed class CSharpService : IAsyncDisposable
     public void Attach(OpenDocument document)
     {
         UiThread.Check();
-        if (document.Language.Name is not ("C#" or "Razor") || documents.ContainsKey(document))
+        if (document.Language.Service != Languages.LanguageService.CSharp || documents.ContainsKey(document))
         {
             return;
         }

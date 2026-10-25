@@ -77,7 +77,7 @@ public sealed class EngineChecks : IDisposable
         {
             return;
         }
-        EngineCheck? check = WebLanguages.IsDockerfile(Path.GetFileName(document.Path)) ? new DockerfileCheck(this, document, web)
+        EngineCheck? check = Languages.Language.ForPath(document.Path) == Languages.Language.Dockerfile ? new DockerfileCheck(this, document, web)
             : ComposeDeclarations.IsCompose(document.Path) ? new ComposeCheck(this, document, web) : null;
         if (check is null)
         {

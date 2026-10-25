@@ -69,7 +69,7 @@ public sealed partial class PassengerTools
                 ? new ServerServed(document, LanguageOf(document), server, web)
                 : throw new InvalidOperationException(languages.Unready("Its code help", document));
         }
-        if (document.Language.Name is "C#" or "Razor")
+        if (document.Language.Service == Languages.LanguageService.CSharp)
         {
             (_, LspDocument lsp) = await Code(path, cancel);
             return new ServerServed(document, document.Language.Name, lsp);
@@ -130,22 +130,13 @@ public sealed partial class PassengerTools
 
     /// <summary>A file's language as the tools name it: XAML, MSBuild and the web languages by what reads them, the rest as
     /// the editor names them.</summary>
-    private static string LanguageOf(OpenDocument document) =>
-        XamlService.IsXaml(document.Path) ? "XAML"
-        : MSBuild.MSBuildFiles.Is(document.Path) ? "MSBuild"
-        : WebLanguages.LanguageOf(document.Path)?.LanguageId switch
-        {
-            "typescript" or "typescriptreact" => "TypeScript",
-            "javascript" or "javascriptreact" => "JavaScript",
-            "html" => "HTML",
-            "css" => "CSS",
-            "scss" => "SCSS",
-            "less" => "Less",
-            "json" or "jsonc" => "JSON",
-            "dockerfile" => "Dockerfile",
-            "yaml" => "YAML",
-            _ => document.Language.Name,
-        };
+    private static string LanguageOf(OpenDocument document) => Languages.Language.ForPath(document.Path) switch
+    {
+        { Service: Languages.LanguageService.Xaml } => "XAML",
+        { Service: Languages.LanguageService.MSBuild } => "MSBuild",
+        { Service: not (Languages.LanguageService.None or Languages.LanguageService.CSharp) } web => web.Name,
+        _ => document.Language.Name,
+    };
 
     /// <summary>Go to Declaration in JSON, whose server has none: a package.json dependency's package, a script's run.</summary>
     private async Task<IReadOnlyList<Place>> JsonDefinition(ServerServed json, int offset, CancellationToken cancel)
@@ -183,7 +174,7 @@ public sealed partial class PassengerTools
     /// <summary>Aspire's Go to Declaration in an AppHost's or a service's C# file, as the window's goes: AddProject's project,
     /// a connection string's or service's name to the AppHost line declaring it; null elsewhere, for the server's own.</summary>
     private async Task<IReadOnlyList<Place>?> AspireDefinition(Served served, int offset, CancellationToken cancel) =>
-        served is ServerServed { Web: null, Language: "C#" } csharp && Session.AspireFiles.RoleOf(csharp.Document.Path) != Aspire.AspireRole.None
+        served is ServerServed { Web: null } csharp && csharp.Document.Language == Languages.Language.CSharp && Session.AspireFiles.RoleOf(csharp.Document.Path) != Aspire.AspireRole.None
             && await CSharpAssist.AspireDeclarationAsync(csharp.Lsp, offset, ServerPlaces.Texts(Editors)) is { } place
             ? await PlacesOf([place], cancel) : null;
 
