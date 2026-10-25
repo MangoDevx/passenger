@@ -105,6 +105,10 @@ referenced projects twice).
   each `PASSENGER_` variable's const, the theme's keys as `TokenKeys` and `IconKeys`, generated from their XAML): PSG0001
   (`src/Passenger.Analyzers`, every rule's id and words in `Rules.cs`) fails its text written anywhere else, a plain word
   only where a parameter or member marked `[IdentifierOf]` its home takes it.
+- **Async is awaited**: no async void (PSG0002), no async lambda given to a void delegate (PSG0003), no blocking wait on
+  a task (PSG0004; a read where the task has certainly ended passes, and the Debugger's ICorDebug callbacks and the
+  tests are not looked at yet); a caller that must stay synchronous (Main's end, a library's synchronous callback) goes
+  through `Synchronously.Run`, saying why.
 - **A malformed flag or environment value is fatal**, never a silent default (`LaunchOptions.cs`).
 - **A warning is fixed at its cause.** Turning it off (NoWarn, a pragma, a lowered severity, a suppression) or moving
   the line it checks (a raised budget or limit) does not count as fixing it; neither does an analyzer's baseline.
@@ -206,6 +210,8 @@ Projects in `src/`:
   answering over a Unix socket (`Protocol.cs` compiled into both ends). `Passenger.WpfPreview`: WPF's previewer (Windows
   only, design mode). `Passenger.TestFrames`: pictures of a failed headless test. `Passenger.Terminal`: the VT emulator
   and Porta.Pty sessions.
+- `Passenger.Analyzers`: Passenger's own analyzer rules (PSG…), referenced by every project as an analyzer; a rule goes
+  on only where nothing it flags is left.
 - `tools/`: `Passenger.Notices` (the notices files), `Passenger.NodePackages` (the web servers without Node.js), the test
   runner and shard scripts, packaging scripts (`tools/linux`, the disk image's layout), site shots.
 
