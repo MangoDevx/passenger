@@ -992,8 +992,9 @@ public sealed class ProjectSession : IAsyncDisposable
 
     public ValueTask DisposeAsync() => new(CloseAsync());
 
-    /// <summary>What ends at once (the store's documents, the watcher, Local History, programs, builds, the profiled run and
-    /// its port, a test run), and what is asked to end: the test runner and the language server, with the parts given.</summary>
+    /// <summary>What ends at once (the store's documents, the watcher, Local History, the bookmarks', places' and breakpoints'
+    /// hold on the files left open, programs, builds, the profiled run and its port, a test run), and what is asked to end:
+    /// the test runner and the language server, with the parts given.</summary>
     private List<(string What, Task Ending)> End(List<(string What, Task Ending)> parts, Task debuggers)
     {
         closing = true;
@@ -1002,6 +1003,10 @@ public sealed class ProjectSession : IAsyncDisposable
         DesignTimeBuilds.Close();
         Watcher?.Dispose();
         LocalHistory?.Release();
+        // Files left open are the next session's to follow; what each store kept of them stays where it was carried.
+        Bookmarks.DetachAll();
+        Navigation.DetachAll();
+        Debug.Breakpoints.DetachAll();
         // A build stopped now says so with nothing of this folder's in Problems, which another folder's take next.
         Problems.Clear();
         parts.Add(("the Aspire applications", Aspire.DisposeAsync().AsTask()));

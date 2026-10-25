@@ -127,6 +127,16 @@ public sealed class BookmarkStore
         }
     }
 
+    /// <summary>The session ended with files still open, which the next session follows: every file is let go as if
+    /// closed, its bookmarks kept on the lines they were carried to.</summary>
+    public void DetachAll()
+    {
+        foreach (string path in open.Keys.ToList())
+        {
+            Detach(path);
+        }
+    }
+
     private Bookmark Made(string path, int line)
     {
         Bookmark made = new(path, line);

@@ -159,6 +159,16 @@ public sealed class NavigationHistory
         }
     }
 
+    /// <summary>The session ended with files still open, which the next session follows: every file is let go as if
+    /// closed, its places kept where they were carried.</summary>
+    public void DetachAll()
+    {
+        foreach (string path in open.Keys.ToList())
+        {
+            Detach(path);
+        }
+    }
+
     /// <summary>Carries the places in a file, or in every file of a folder, to where it moved.</summary>
     public void Move(string from, string to)
     {

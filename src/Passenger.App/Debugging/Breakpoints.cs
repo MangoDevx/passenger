@@ -775,6 +775,16 @@ public sealed class BreakpointStore
         Unanchor(In(path));
     }
 
+    /// <summary>The session ended with files still open, which the next session follows: every file is let go as if
+    /// closed, its breakpoints kept on the lines they were carried to.</summary>
+    public void DetachAll()
+    {
+        foreach (string path in open.Keys.ToList())
+        {
+            Detach(path);
+        }
+    }
+
     /// <summary>Reads the lines of a file's breakpoints after an edit to it, their anchors having carried them.</summary>
     public void Follow(string path)
     {

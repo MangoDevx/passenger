@@ -337,6 +337,43 @@ public sealed class FindInFilesTests : IDisposable
         window.Close();
     }
 
+    /// <summary>A file open with no folder stays open as a folder opens, and the session left lets go of all it carried in
+    /// the file's text (its bookmark, breakpoint and places), so the text carries no more than it did before them.</summary>
+    [AvaloniaFact]
+    public void A_file_left_open_as_a_folder_opens_is_carried_by_nothing_of_the_session_left()
+    {
+        string other = TestFolders.Create("other-");
+        try
+        {
+            MainWindow window = new() { Width = 1200, Height = 800, Autosaves = false, StartsLanguageServer = false };
+            window.Show();
+            window.OpenFile(Path.Combine(folder, "Alpha.cs"));
+            Ui.Settle();
+            OpenDocument alpha = window.EditorArea.Active!;
+            int bare = alpha.Text.Anchors;
+            Passenger.Editor.CodeEditor editor = window.EditorArea.CodeEditor;
+            editor.GoTo(new TextPosition(2, 4));
+            Ui.Run(window, AppActions.ToggleBookmark);
+            window.Debugger.Breakpoints.Toggle(alpha.Path, 2);
+            editor.ApplyEdits([new TextEdit(0, 0, "// top\n")]);
+            Ui.Settle();
+            Assert.Equal([3], alpha.Bookmarks);
+            int carried = alpha.Text.Anchors;
+            Assert.True(carried >= bare + 3, $"The file's text carries {carried} anchors with a bookmark, a breakpoint and an edit's place, {bare} without");
+
+            window.OpenFolder(other);
+            Ui.Settle();
+            Assert.Same(alpha, window.EditorArea.Active);
+            Assert.True(alpha.Text.Anchors == bare,
+                $"With a folder open, the file left open carries {alpha.Text.Anchors} anchors, {bare} before the session left set any: its bookmark, breakpoint or places are still carried");
+            window.Close();
+        }
+        finally
+        {
+            TestFolders.Delete(other);
+        }
+    }
+
     /// <summary>A breakpoint is an anchor its file's text carries, so a key moves those below it without touching each: the
     /// least of twenty keys typed above 2,000 breakpoints allocates on the UI thread under 2 bytes for each more than above
     /// none, and a line broken above them takes each one down with its line.</summary>
