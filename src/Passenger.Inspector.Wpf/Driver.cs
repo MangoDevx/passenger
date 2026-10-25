@@ -669,9 +669,9 @@ internal sealed class Driver(Inspector inspector)
     private static DependencyObject? Took(DependencyObject? element, DependencyObject? hit) =>
         element is not null && hit is not null && Shown.IsWithin(hit, element) ? element : hit;
 
-    private static string Box(Rect rect) => string.Create(CultureInfo.InvariantCulture, $"{rect.X:0.##},{rect.Y:0.##} {rect.Width:0.##}x{rect.Height:0.##}");
+    private static string Box(Rect rect) => Words.Box(rect.X, rect.Y, rect.Width, rect.Height);
 
-    private static string Spot(Point point) => string.Create(CultureInfo.InvariantCulture, $"{point.X:0.##},{point.Y:0.##}");
+    private static string Spot(Point point) => Words.Spot(point.X, point.Y);
 
     private InputDone Done(Visual top, Point? at, DependencyObject? target, string? shows) => new(
         inspector.IdOf(top),

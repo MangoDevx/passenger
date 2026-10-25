@@ -26,6 +26,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- What Breaks.cs, linked into both inspectors, hands the debugger: Avalonia's own control and property. -->
+    <Using Include="Avalonia.AvaloniaObject" Alias="InspectedObject" />
+    <Using Include="Avalonia.AvaloniaProperty" Alias="InspectedProperty" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- A property breakpoint's hit count is kept here, where its changes are seen, in the debugger's own words. -->
     <Compile Include="../Passenger.Dap/HitCondition.cs" Link="HitCondition.cs" />
     <!-- A failed binding's nearest names, measured as the rest of Passenger measures a misspelling. -->

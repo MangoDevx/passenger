@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -15,27 +14,17 @@ namespace Passenger.Inspector.Wpf;
 /// for an agent the windows' pictures and input to them (<see cref="Pictures"/>, <see cref="Driver"/>). Elements are
 /// named by ids that last as long as the element does. A top level is a window or a popup's root, each the root visual
 /// of a presentation source of the app's.</summary>
-internal sealed class Inspector
+internal sealed class Inspector : Inspecting<DependencyObject>
 {
-    /// <summary>How long the app's elements may come and go before Passenger is told its tree changed, once.</summary>
-    private static readonly TimeSpan Settled = TimeSpan.FromMilliseconds(300);
-
     /// <summary>The inspector the class handlers below speak for; WPF's class handlers last as long as the app does.</summary>
     private static Inspector? current;
 
-    private readonly Connection connection;
     private readonly Picker picker;
     private readonly Driver driver;
     private readonly PropertyBreaks breaks = new();
-    private bool told;
-    private bool stopped;
 
-    /// <summary>Whether Passenger has asked for the tree since it was last told of a change, so it is told only once.</summary>
-    private bool watched;
-
-    public Inspector(Connection connection)
+    public Inspector(Connection connection) : base(connection)
     {
-        this.connection = connection;
         picker = new Picker(this, connection);
         driver = new Driver(this);
         bool first = current is null;
@@ -44,39 +33,6 @@ internal sealed class Inspector
         {
             EventManager.RegisterClassHandler(typeof(FrameworkElement), FrameworkElement.LoadedEvent, new RoutedEventHandler((sender, _) => current?.Changed(sender)), handledEventsToo: true);
             EventManager.RegisterClassHandler(typeof(FrameworkElement), FrameworkElement.UnloadedEvent, new RoutedEventHandler((sender, _) => current?.Changed(sender)), handledEventsToo: true);
-        }
-    }
-
-    public Reply Handle(Request request)
-    {
-        try
-        {
-            return request.Method switch
-            {
-                Wire.Tree => new Reply { Id = request.Id, Tree = Tree(request) },
-                Wire.Windows => new Reply { Id = request.Id, Windows = Windows() },
-                Wire.Details => Find(request.Element) is { } element
-                    ? new Reply { Id = request.Id, Details = new Details(this).Of(element) }
-                    : Gone(request),
-                Wire.Pick => Done(request, () => picker.Choose(request.On == true)),
-                Wire.Highlight => Done(request, () => picker.Outline(Find(request.Element))),
-                Wire.Capture => Find(request.Element) is { } shown
-                    ? new Reply { Id = request.Id, Picture = Pictures.Take(this, shown, request) }
-                    : Gone(request),
-                Wire.Input => new Reply { Id = request.Id, Done = driver.Do(request.Input ?? throw new Refusal("No input was given")) },
-                Wire.Watch => Done(request, () => Watch(request)),
-                Wire.Values => new Reply { Id = request.Id, Error = "Binding values after a XAML file's lines are read from an Avalonia app's .axaml; a WPF app's are not" },
-                Wire.Overlays => new Reply { Id = request.Id, Error = "Renderer debug overlays are Avalonia's: a WPF app has none" },
-                _ => new Reply { Id = request.Id, Error = $"The inspector does not know '{request.Method}'" },
-            };
-        }
-        catch (Refusal refused)
-        {
-            return new Reply { Id = request.Id, Error = refused.Message };
-        }
-        catch (Exception error)
-        {
-            return new Reply { Id = request.Id, Error = $"{error.GetType().Name}: {error.Message}" };
         }
     }
 
@@ -89,10 +45,8 @@ internal sealed class Inspector
         }
     }
 
-    /// <summary>Passenger has gone: nothing of the inspector's is left in the app's windows.</summary>
-    public void Stop()
+    protected override void Stopping()
     {
-        stopped = true;
         breaks.Stop();
         picker.Choose(false);
         picker.Outline(null);
@@ -102,38 +56,43 @@ internal sealed class Inspector
         }
     }
 
-    private static Reply Gone(Request request) => new() { Id = request.Id, Error = "That element is no longer in the app" };
+    protected override ElementDetails DetailsOf(DependencyObject element) => new Details(this).Of(element);
 
-    private static Reply Done(Request request, Action action)
-    {
-        action();
-        return new Reply { Id = request.Id };
-    }
+    protected override void Pick(bool on) => picker.Choose(on);
 
-    /// <summary>A property breakpoint's watch begun (again, with its hit count) or ended.</summary>
-    private void Watch(Request request)
+    protected override void Outline(DependencyObject? element) => picker.Outline(element);
+
+    protected override Picture Capture(DependencyObject element, Request request) => Pictures.Take(this, element, request);
+
+    protected override InputDone Do(InputAction input) => driver.Do(input);
+
+    protected override void Watch(int breakpoint, DependencyObject element, string property, string? hitCondition) => breaks.Watch(breakpoint, element, property, hitCondition);
+
+    protected override void Unwatch(int breakpoint) => breaks.Unwatch(breakpoint);
+
+    protected override XamlValues ValuesOf(Request request) =>
+        throw new Refusal("Binding values after a XAML file's lines are read from an Avalonia app's .axaml; a WPF app's are not");
+
+    protected override List<AppWindow> SetOverlays(Request request) => throw new Refusal("Renderer debug overlays are Avalonia's: a WPF app has none");
+
+    protected override void Later(TimeSpan delay, Action action)
     {
-        int breakpoint = request.Breakpoint ?? throw new Refusal("No property breakpoint was named");
-        if (request.On == false)
+        DispatcherTimer timer = new(DispatcherPriority.Background) { Interval = delay };
+        timer.Tick += (_, _) =>
         {
-            breaks.Unwatch(breakpoint);
-            return;
-        }
-        DependencyObject element = Find(request.Element) ?? throw new Refusal("That element is no longer in the app");
-        breaks.Watch(breakpoint, element, request.Property ?? throw new Refusal("No property was named"), request.HitCondition);
+            timer.Stop();
+            action();
+        };
+        timer.Start();
     }
 
-    public long IdOf(DependencyObject element) => ElementIds.Of(element);
-
-    public DependencyObject? Find(long? id) => ElementIds.Find(id);
+    protected override bool LeftOut(DependencyObject element) => IsOwn(element);
 
     /// <summary>Whether an element is the inspector's own (Select Element's outline), which the tree leaves out.</summary>
     public bool IsOwn(DependencyObject element) => picker.IsOwn(element);
 
-    private AppTree Tree(Request request)
+    protected override AppTree Tree(Request request)
     {
-        watched = true;
-        told = false;
         Look? look = request.Layout == true || request.Properties is { Count: > 0 }
             ? new Look(request.Layout == true, request.Properties ?? [], Keyboard.FocusedElement)
             : null;
@@ -148,8 +107,7 @@ internal sealed class Inspector
     /// <summary>What an agent's tree carries beyond each element's identity: layout and text, and property values.</summary>
     private sealed record Look(bool Layout, IReadOnlyList<string> Properties, IInputElement? Focused);
 
-    /// <summary>The app's top levels as an agent lists them.</summary>
-    public List<AppWindow> Windows()
+    protected override List<AppWindow> Windows()
     {
         List<AppWindow> windows = [];
         foreach (Visual top in TopLevels())
@@ -157,7 +115,7 @@ internal sealed class Inspector
             Size size = Shown.ClientSize(top);
             windows.Add(new AppWindow(
                 IdOf(top),
-                TypeName(top.GetType()),
+                Words.TypeName(top.GetType()),
                 (top as FrameworkElement)?.Name is { Length: > 0 } name ? name : null,
                 (top as Window)?.Title,
                 Math.Round(size.Width, 2),
@@ -200,7 +158,7 @@ internal sealed class Inspector
         }
         if (tops.Count == 0)
         {
-            Agent.Trace($"no top levels: Application {Application.Current?.GetType().FullName} (on this thread {Application.Current?.CheckAccess()}), "
+            InspectorTrace.Step($"no top levels: Application {Application.Current?.GetType().FullName} (on this thread {Application.Current?.CheckAccess()}), "
                 + $"its windows {(Application.Current?.CheckAccess() == true ? Application.Current.Windows.Count : -1)}, presentation sources {sources}");
         }
         return tops;
@@ -283,7 +241,7 @@ internal sealed class Inspector
         FrameworkElement? framed = element as FrameworkElement;
         Element node = new(
             IdOf(element),
-            TypeName(element.GetType()),
+            Words.TypeName(element.GetType()),
             framed?.Name is { Length: > 0 } name ? name : null,
             [],
             framed?.TemplatedParent is not null,
@@ -328,67 +286,4 @@ internal sealed class Inspector
     /// template made it.</summary>
     public static string Named(DependencyObject element) =>
         element is FrameworkElement { TemplatedParent: DependencyObject parent } ? $"{Shown.Called(element)} in {Shown.Called(parent)}'s template" : Shown.Called(element);
-
-    /// <summary>A type as the tree names it: no namespace, no generic arity.</summary>
-    public static string TypeName(Type type)
-    {
-        string name = type.Name;
-        int tick = name.IndexOf('`', StringComparison.Ordinal);
-        return tick < 0 ? name : name[..tick];
-    }
-
-    /// <summary>An element came or went: Passenger, if it has the tree, hears once that it changed, a moment after the last.</summary>
-    private void Changed(object? sender)
-    {
-        if (stopped || (sender is DependencyObject element && IsOwn(element)) || !watched || told)
-        {
-            return;
-        }
-        told = true;
-        DispatcherTimer timer = new(DispatcherPriority.Background) { Interval = Settled };
-        timer.Tick += (_, _) =>
-        {
-            timer.Stop();
-            watched = false;
-            if (!stopped)
-            {
-                connection.Send(new Reply { Event = Wire.TreeChanged });
-            }
-        };
-        timer.Start();
-    }
-}
-
-/// <summary>Why the inspector will not do what it was asked (the element is disabled, covered, gone), in words an agent
-/// reads as they are.</summary>
-internal sealed class Refusal(string message) : Exception(message);
-
-/// <summary>The ids Passenger knows the app's elements by, each the same for as long as the element lives: the Live Visual
-/// Tree's and an agent's, so an element named in one is the one in the other. The app's UI thread's alone.</summary>
-internal static class ElementIds
-{
-    private static readonly ConditionalWeakTable<DependencyObject, object> Ids = new();
-    private static readonly Dictionary<long, WeakReference<DependencyObject>> ById = [];
-    private static long next;
-
-    public static long Of(DependencyObject element)
-    {
-        if (Ids.TryGetValue(element, out object? known))
-        {
-            return (long)known;
-        }
-        long id = ++next;
-        Ids.Add(element, id);
-        if (ById.Count > 4096 && ById.Count % 4096 == 0)
-        {
-            foreach (long dead in ById.Where(e => !e.Value.TryGetTarget(out _)).Select(e => e.Key).ToList())
-            {
-                ById.Remove(dead);
-            }
-        }
-        ById[id] = new WeakReference<DependencyObject>(element);
-        return id;
-    }
-
-    public static DependencyObject? Find(long? id) => id is long known && ById.TryGetValue(known, out WeakReference<DependencyObject>? held) && held.TryGetTarget(out DependencyObject? element) ? element : null;
 }

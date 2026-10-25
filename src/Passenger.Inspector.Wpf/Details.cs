@@ -20,7 +20,7 @@ internal sealed class Details(Inspector inspector)
         FrameworkElement? framed = element as FrameworkElement;
         return new ElementDetails(
             inspector.IdOf(element),
-            Inspector.TypeName(type),
+            Words.TypeName(type),
             type.FullName ?? type.Name,
             framed?.Name is { Length: > 0 } name ? name : null,
             [],
@@ -43,7 +43,7 @@ internal sealed class Details(Inspector inspector)
         }
         if (element is FrameworkElement { TemplatedParent: { } parent })
         {
-            return (null, $"Made by {Inspector.TypeName(parent.GetType())}'s template, which was compiled without line information (a theme's, or a Release build's)");
+            return (null, $"Made by {Words.TypeName(parent.GetType())}'s template, which was compiled without line information (a theme's, or a Release build's)");
         }
         Queue<DependencyObject> next = new(inspector.Children(element));
         for (int seen = 0; next.Count > 0 && seen < 64; seen++)
@@ -91,7 +91,7 @@ internal sealed class Details(Inspector inspector)
 
     /// <summary>An element as a sentence names it: its type, then #name.</summary>
     public static string Describe(DependencyObject element) =>
-        element is FrameworkElement { Name: { Length: > 0 } name } ? $"{Inspector.TypeName(element.GetType())}#{name}" : Inspector.TypeName(element.GetType());
+        element is FrameworkElement { Name: { Length: > 0 } name } ? $"{Words.TypeName(element.GetType())}#{name}" : Words.TypeName(element.GetType());
 
     private static LayoutInfo Layout(DependencyObject element)
     {
@@ -142,8 +142,8 @@ internal sealed class Details(Inspector inspector)
     private static PropertyValue Row(DependencyObject element, DependencyProperty property, bool attached, Styling styling)
     {
         string name = Wpf.Properties.NameOf(property, attached);
-        string owner = Inspector.TypeName(property.OwnerType);
-        string type = Inspector.TypeName(property.PropertyType);
+        string owner = Words.TypeName(property.OwnerType);
+        string type = Words.TypeName(property.PropertyType);
         string value;
         ValueSource source;
         try
@@ -199,9 +199,9 @@ internal sealed class Details(Inspector inspector)
         {
             BaseValueSource.Style => "its Style",
             BaseValueSource.StyleTrigger => "a trigger of its Style",
-            BaseValueSource.ImplicitStyleReference => $"the implicit Style for {Inspector.TypeName(element.GetType())}",
-            BaseValueSource.DefaultStyle => $"{Inspector.TypeName(element.GetType())}'s default style (the theme)",
-            BaseValueSource.DefaultStyleTrigger => $"a trigger of {Inspector.TypeName(element.GetType())}'s default style (the theme)",
+            BaseValueSource.ImplicitStyleReference => $"the implicit Style for {Words.TypeName(element.GetType())}",
+            BaseValueSource.DefaultStyle => $"{Words.TypeName(element.GetType())}'s default style (the theme)",
+            BaseValueSource.DefaultStyleTrigger => $"a trigger of {Words.TypeName(element.GetType())}'s default style (the theme)",
             BaseValueSource.TemplateTrigger => "a trigger of its template",
             BaseValueSource.ParentTemplate => parent is null ? "its parent's template" : $"{parent}'s template",
             BaseValueSource.ParentTemplateTrigger => parent is null ? "a trigger of its parent's template" : $"a trigger of {parent}'s template",
@@ -246,13 +246,13 @@ internal sealed class Details(Inspector inspector)
             {
                 RelativeSourceMode.TemplatedParent => "RelativeSource={RelativeSource TemplatedParent}",
                 RelativeSourceMode.Self => "RelativeSource={RelativeSource Self}",
-                RelativeSourceMode.FindAncestor => $"RelativeSource={{RelativeSource AncestorType={Inspector.TypeName(relative.AncestorType ?? typeof(object))}}}",
+                RelativeSourceMode.FindAncestor => $"RelativeSource={{RelativeSource AncestorType={Words.TypeName(relative.AncestorType ?? typeof(object))}}}",
                 _ => $"RelativeSource={{RelativeSource {relative.Mode}}}",
             });
         }
         if (binding.Source is { } source)
         {
-            parts.Add($"Source={Inspector.TypeName(source.GetType())}");
+            parts.Add($"Source={Words.TypeName(source.GetType())}");
         }
         if (binding.Mode is not BindingMode.Default)
         {
@@ -296,42 +296,22 @@ internal sealed class Details(Inspector inspector)
         LogicalTreeHelper.GetParent(element) ?? (element is Visual ? VisualTreeHelper.GetParent(element) : null);
 
     /// <summary>A value as the window shows it: text quoted, a brush by its colour, a binding as XAML writes it.</summary>
-    public static string Format(object? value)
-    {
-        string text = value switch
-        {
-            null => "(null)",
-            string s => $"\"{s}\"",
-            SolidColorBrush brush => brush.Opacity < 1 ? $"{brush.Color} ({brush.Opacity.ToString("0.##", CultureInfo.InvariantCulture)})" : brush.Color.ToString(CultureInfo.InvariantCulture),
-            Thickness t => string.Create(CultureInfo.InvariantCulture, $"{t.Left},{t.Top},{t.Right},{t.Bottom}"),
-            IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
-            _ when value == DependencyProperty.UnsetValue => "(unset)",
-            BindingExpressionBase { ParentBindingBase: Binding binding } => Written(binding),
-            Binding binding => Written(binding),
-            DynamicResourceExtension dynamic => $"{{DynamicResource {dynamic.ResourceKey}}}",
-            StaticResourceExtension resource => $"{{StaticResource {resource.ResourceKey}}}",
-            // A setter's {DynamicResource} is WPF's own expression by the time the style is sealed.
-            _ when value.GetType().Name == "ResourceReferenceExpression"
-                && value.GetType().GetProperty("ResourceKey", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic)?.GetValue(value) is { } key
-                => $"{{DynamicResource {key}}}",
-            _ => Described(value),
-        };
-        return text.Length > 300 ? text[..297] + "..." : text;
-    }
+    public static string Format(object? value) => Words.Value(value, Framed);
 
-    /// <summary>What an object says it is, or its type when it says nothing more (an object's ToString is its type's name).</summary>
-    private static string Described(object value)
+    /// <summary>WPF's own words for a value, or null for those it has none of.</summary>
+    private static string? Framed(object value) => value switch
     {
-        string? said;
-        try
-        {
-            said = value.ToString();
-        }
-        catch (Exception error)
-        {
-            return $"({error.GetType().Name} from its ToString)";
-        }
-        string full = value.GetType().FullName ?? string.Empty;
-        return said is null || said == full ? Inspector.TypeName(value.GetType()) : said;
-    }
+        SolidColorBrush brush => brush.Opacity < 1 ? $"{brush.Color} ({brush.Opacity.ToString("0.##", CultureInfo.InvariantCulture)})" : brush.Color.ToString(CultureInfo.InvariantCulture),
+        Thickness t => string.Create(CultureInfo.InvariantCulture, $"{t.Left},{t.Top},{t.Right},{t.Bottom}"),
+        _ when value == DependencyProperty.UnsetValue => "(unset)",
+        BindingExpressionBase { ParentBindingBase: Binding binding } => Written(binding),
+        Binding binding => Written(binding),
+        DynamicResourceExtension dynamic => $"{{DynamicResource {dynamic.ResourceKey}}}",
+        StaticResourceExtension resource => $"{{StaticResource {resource.ResourceKey}}}",
+        // A setter's {DynamicResource} is WPF's own expression by the time the style is sealed.
+        _ when value.GetType().Name == "ResourceReferenceExpression"
+            && value.GetType().GetProperty("ResourceKey", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic)?.GetValue(value) is { } key
+            => $"{{DynamicResource {key}}}",
+        _ => null,
+    };
 }

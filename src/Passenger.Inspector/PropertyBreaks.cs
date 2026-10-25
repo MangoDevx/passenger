@@ -21,7 +21,7 @@ internal sealed class PropertyBreaks
     /// in place of what the breakpoint watched before.</summary>
     public void Watch(int breakpoint, AvaloniaObject element, string name, string? hitCondition)
     {
-        AvaloniaProperty property = Find(element, name) ?? throw new Refusal($"{Inspector.TypeName(element.GetType())} has no property {name}");
+        AvaloniaProperty property = Find(element, name) ?? throw new Refusal($"{Words.TypeName(element.GetType())} has no property {name}");
         HitCondition? hits = null;
         if (hitCondition is { Length: > 0 })
         {
@@ -58,7 +58,7 @@ internal sealed class PropertyBreaks
         return dot < 0
             ? AvaloniaPropertyRegistry.Instance.FindRegistered(element, name)
             : AvaloniaPropertyRegistry.Instance.GetRegisteredAttached(element.GetType())
-                .FirstOrDefault(p => p.Name == name[(dot + 1)..] && Inspector.TypeName(p.OwnerType) == name[..dot]);
+                .FirstOrDefault(p => p.Name == name[(dot + 1)..] && Words.TypeName(p.OwnerType) == name[..dot]);
     }
 
     [DebuggerNonUserCode]

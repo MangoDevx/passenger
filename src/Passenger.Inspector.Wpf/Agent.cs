@@ -4,9 +4,10 @@ using System.Windows.Threading;
 
 namespace Passenger.Inspector.Wpf;
 
-/// <summary>The inspector inside a WPF app, started by the startup hook: it connects to Passenger and turns on WPF's binding
-/// diagnostics before the app's Main (<see cref="Bindings"/>), waits for the app's UI thread (the dispatcher its Application
-/// was made on, never one of the inspector's making), says hello, and answers each request there. It ends when Passenger goes.</summary>
+/// <summary>The inspector inside a WPF app, started by the startup hook and served as either framework's is
+/// (<see cref="Serving"/>): it turns on WPF's binding diagnostics before the app's Main (<see cref="Bindings"/>), and waits
+/// for the app's UI thread (the dispatcher its Application was made on, never one of the inspector's making) and its first
+/// window.</summary>
 public static class Agent
 {
     /// <summary>How often it looks for the app's UI before it is up.</summary>
@@ -15,110 +16,11 @@ public static class Agent
     /// <summary>How long an answer to input waits for what it set going in an app whose UI thread is never idle.</summary>
     private static readonly TimeSpan Busy = TimeSpan.FromSeconds(1);
 
-    /// <summary>A file in the app's environment, PASSENGER_INSPECTOR_TRACE=FILE: the inspector adds each step of its start and
-    /// what it answers to it, for an inspector that never says hello or answers wrongly.</summary>
-    public const string TraceVariable = "PASSENGER_INSPECTOR_TRACE";
-
-    private static readonly string? TraceFile = Environment.GetEnvironmentVariable(TraceVariable) is { Length: > 0 } file ? file : null;
-
-    private static readonly object Tracer = new();
-
-    /// <summary>A step of the inspector's to the trace file, while <see cref="TraceVariable"/> names one.</summary>
-    internal static void Trace(string step)
-    {
-        if (TraceFile is not { } file)
-        {
-            return;
-        }
-        try
-        {
-            lock (Tracer)
-            {
-                File.AppendAllText(file, $"{DateTime.Now:HH:mm:ss.fff} [{Environment.ProcessId}/{Environment.CurrentManagedThreadId}] {step}{Environment.NewLine}");
-            }
-        }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-        {
-            // A trace that cannot be written is no failure of the app's.
-        }
-    }
-
     /// <param name="project">The launched project's folder (<see cref="Wire.ProjectVariable"/>), or null.</param>
     public static void Start(string socket, Thread main, string? project)
     {
-        Trace($"connecting to {socket}");
-        if (Connection.Open(socket) is not { } connection)
-        {
-            Trace("Passenger is not listening");
-            return;
-        }
         Sources.Project = project;
-        string? problem = null;
-        try
-        {
-            Bindings.Start(connection);
-        }
-        catch (Exception error)
-        {
-            // The tree and the agents' tools still serve an app whose binding errors cannot be heard.
-            problem = $"The inspector could not listen to WPF's binding errors: {error.GetBaseException().Message}";
-            Trace(problem);
-        }
-        Thread thread = new(() => Serve(connection, main, problem)) { IsBackground = true, Name = "Passenger inspector" };
-        thread.Start();
-        Trace($"waiting for the app's UI (the main thread has a dispatcher before Main: {Dispatcher.FromThread(main) is not null})");
-    }
-
-    private static void Serve(Connection connection, Thread main, string? problem)
-    {
-        using Connection held = connection;
-        Dispatcher dispatcher;
-        Inspector inspector;
-        try
-        {
-            while (true)
-            {
-                dispatcher = WaitForUi(main);
-                Trace($"the app's UI dispatcher is thread {dispatcher.Thread.ManagedThreadId}'s");
-                try
-                {
-                    inspector = dispatcher.Invoke(() => new Inspector(connection));
-                    Trace("made on the UI thread");
-                    if (WaitForWindow(dispatcher, inspector))
-                    {
-                        break;
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    // Found while WPF was still making it (registered before its window, so it takes no work yet), or shut down.
-                }
-                Trace($"that dispatcher took no work (shut down: {dispatcher.HasShutdownStarted}); looking again");
-                Thread.Sleep(Look);
-            }
-        }
-        catch (Exception error)
-        {
-            Trace($"could not start: {error}");
-            // Said, and written before the connection closes, so Passenger shows why rather than an app gone silent.
-            connection.Send(new Reply { Event = Wire.Hello, Hello = new Hello(Wire.Version, Environment.ProcessId, null, $"The inspector could not start: {error.GetBaseException().Message}") { Framework = Framework() } });
-            connection.Drain();
-            Bindings.Stop();
-            return;
-        }
-        if (problem is not null)
-        {
-            connection.Send(new Reply { Event = Wire.BindingFailed, Error = problem });
-        }
-        connection.Send(new Reply { Event = Wire.Hello, Hello = new Hello(Wire.Version, Environment.ProcessId, null, null) { Framework = Framework() } });
-        Trace("said hello");
-        while (connection.Read() is { } request)
-        {
-            _ = AnswerAsync(dispatcher, inspector, connection, request);
-        }
-        Trace("Passenger has gone");
-        Bindings.Stop();
-        dispatcher.BeginInvoke(inspector.Stop);
+        Serving.Start(socket, new WpfUi(main));
     }
 
     /// <summary>Until the app shows its first window (its Application is made before its StartupUri's window is), so what is
@@ -139,13 +41,13 @@ public static class Agent
                 DispatcherOperation<int> shown = dispatcher.InvokeAsync(() => inspector.TopLevels().Count, DispatcherPriority.Background);
                 if (shown.Task.Wait(TimeSpan.FromSeconds(1)) && shown.Result > 0)
                 {
-                    Trace($"the app shows {shown.Result} top level(s)");
+                    InspectorTrace.Step($"the app shows {shown.Result} top level(s)");
                     return true;
                 }
             }
             catch (Exception error) when (error is InvalidOperationException or TaskCanceledException or AggregateException)
             {
-                Trace($"no window to wait for: {error.GetBaseException().Message}");
+                InspectorTrace.Step($"no window to wait for: {error.GetBaseException().Message}");
                 return !dispatcher.HasShutdownStarted;
             }
             Thread.Sleep(Look);
@@ -188,35 +90,77 @@ public static class Agent
             }
             if (looked % 50 == 0)
             {
-                Trace($"still no dispatcher on the main thread (thread {main.ManagedThreadId}, {main.ThreadState})");
+                InspectorTrace.Step($"still no dispatcher on the main thread (thread {main.ManagedThreadId}, {main.ThreadState})");
             }
             Thread.Sleep(Look);
         }
     }
 
-    private static async Task AnswerAsync(Dispatcher dispatcher, Inspector inspector, Connection connection, Request request)
+    /// <summary>A WPF app as the serve loop reaches it.</summary>
+    private sealed class WpfUi(Thread main) : IAppUi
     {
-        Reply reply;
-        try
+        private Dispatcher? dispatcher;
+        private Inspector? inspector;
+
+        public void Listen(Connection connection)
         {
+            InspectorTrace.Step($"the main thread has a dispatcher before Main: {Dispatcher.FromThread(main) is not null}");
+            Bindings.Start(connection);
+        }
+
+        public void Open(Connection connection)
+        {
+            while (true)
+            {
+                Dispatcher found = WaitForUi(main);
+                InspectorTrace.Step($"the app's UI dispatcher is thread {found.Thread.ManagedThreadId}'s");
+                try
+                {
+                    Inspector made = found.Invoke(() => new Inspector(connection));
+                    InspectorTrace.Step("made on the UI thread");
+                    if (WaitForWindow(found, made))
+                    {
+                        (dispatcher, inspector) = (found, made);
+                        return;
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    // Found while WPF was still making it (registered before its window, so it takes no work yet), or shut down.
+                }
+                InspectorTrace.Step($"that dispatcher took no work (shut down: {found.HasShutdownStarted}); looking again");
+                Thread.Sleep(Look);
+            }
+        }
+
+        public Hello Hello(string? problem) => new(Wire.Version, Environment.ProcessId, null, problem) { Framework = Framework() };
+
+        public async Task<Reply> AnswerAsync(Request request)
+        {
+            Dispatcher ui = dispatcher!;
+            Inspector served = inspector!;
             bool input = request.Method == Wire.Input;
             if (input)
             {
                 // What changed since is laid out first (a popup just opened).
-                await dispatcher.InvokeAsync(inspector.Settle, DispatcherPriority.Loaded);
+                await ui.InvokeAsync(served.Settle, DispatcherPriority.Loaded);
             }
-            reply = await dispatcher.InvokeAsync(() => inspector.Handle(request));
+            Reply reply = await ui.InvokeAsync(() => served.Handle(request));
             if (input)
             {
                 // Once what it set going ran (an automation click comes at Input priority) and is laid out, within a moment.
-                await Task.WhenAny(dispatcher.InvokeAsync(inspector.Settle, DispatcherPriority.Background).Task, Task.Delay(Busy));
+                await Task.WhenAny(ui.InvokeAsync(served.Settle, DispatcherPriority.Background).Task, Task.Delay(Busy));
+            }
+            return reply;
+        }
+
+        public void Close()
+        {
+            Bindings.Stop();
+            if (inspector is { } made)
+            {
+                dispatcher?.BeginInvoke(made.Stop);
             }
         }
-        catch (Exception error)
-        {
-            reply = new Reply { Id = request.Id, Error = error.Message };
-        }
-        Trace($"{request.Method} {request.Id}: {reply.Error ?? (reply.Windows is { } windows ? $"{windows.Count} window(s)" : reply.Tree is { } tree ? $"{tree.Roots.Count} root(s)" : "answered")}");
-        connection.Send(reply);
     }
 }

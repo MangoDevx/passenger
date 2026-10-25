@@ -132,7 +132,7 @@ internal static partial class Selectors
     private static string Who(string? who, bool asObject = false) => who is null or "it" ? (asObject ? "it" : "It") : who;
 
     private static string Describe(StyledElement element) =>
-        element.Name is { Length: > 0 } name ? $"{Inspector.TypeName(element.GetType())}#{name}" : Inspector.TypeName(element.GetType());
+        element.Name is { Length: > 0 } name ? $"{Words.TypeName(element.GetType())}#{name}" : Words.TypeName(element.GetType());
 
     private static Explained MatchCompound(Compound part, StyledElement control, IStyle? parent, string who)
     {
@@ -144,7 +144,7 @@ internal static partial class Selectors
             {
                 ControlTheme { TargetType: { } target } => target.IsAssignableFrom(control.StyleKey)
                     ? new Explained(null, true)
-                    : new Explained($"{subject} is a {Inspector.TypeName(control.StyleKey)}, not the {Inspector.TypeName(target)} its theme styles", false),
+                    : new Explained($"{subject} is a {Words.TypeName(control.StyleKey)}, not the {Words.TypeName(target)} its theme styles", false),
                 Style { Selector: { } selector } style => Match(new Parser(selector.ToString()).List(), control, style.Parent, subject: who == "it"),
                 _ => new Explained(null, true),
             };
@@ -159,7 +159,7 @@ internal static partial class Selectors
         }
         if (part.Type is not null && !TypeMatches(part, control))
         {
-            return new Explained($"{subject} is a {Inspector.TypeName(control.StyleKey)}, not {(part.OrDerived ? "derived from " : "a ")}{part.Type}", false);
+            return new Explained($"{subject} is a {Words.TypeName(control.StyleKey)}, not {(part.OrDerived ? "derived from " : "a ")}{part.Type}", false);
         }
         if (part.Name is not null && control.Name != part.Name)
         {
@@ -180,7 +180,7 @@ internal static partial class Selectors
     {
         for (Type? type = control.StyleKey; type is not null; type = type.BaseType)
         {
-            if (Inspector.TypeName(type) == part.Type)
+            if (Words.TypeName(type) == part.Type)
             {
                 return true;
             }
@@ -206,7 +206,7 @@ internal static partial class Selectors
                 AvaloniaProperty? property = value.Owner is null
                     ? AvaloniaPropertyRegistry.Instance.FindRegistered(control, value.Property)
                     : AvaloniaPropertyRegistry.Instance.GetRegisteredAttached(control.GetType())
-                        .FirstOrDefault(p => p.Name == value.Property && Inspector.TypeName(p.OwnerType) == value.Owner);
+                        .FirstOrDefault(p => p.Name == value.Property && Words.TypeName(p.OwnerType) == value.Owner);
                 if (property is null)
                 {
                     return $"{subject} has no property {value.Property} for `{value.Text}`";

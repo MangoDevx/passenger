@@ -18,7 +18,7 @@ internal sealed class PropertyBreaks
     /// in place of what the breakpoint watched before.</summary>
     public void Watch(int breakpoint, DependencyObject element, string name, string? hitCondition)
     {
-        DependencyProperty property = Properties.Find(element, name) ?? throw new Refusal($"{Inspector.TypeName(element.GetType())} has no property {name}");
+        DependencyProperty property = Properties.Find(element, name) ?? throw new Refusal($"{Words.TypeName(element.GetType())} has no property {name}");
         HitCondition? hits = null;
         if (hitCondition is { Length: > 0 })
         {
@@ -26,7 +26,7 @@ internal sealed class PropertyBreaks
         }
         Unwatch(breakpoint);
         DependencyPropertyDescriptor descriptor = DependencyPropertyDescriptor.FromProperty(property, element.GetType())
-            ?? throw new Refusal($"WPF cannot watch {name} on {Inspector.TypeName(element.GetType())}");
+            ?? throw new Refusal($"WPF cannot watch {name} on {Words.TypeName(element.GetType())}");
         Watched watch = new(breakpoint, element, property, descriptor, hits);
         watches[breakpoint] = watch;
         descriptor.AddValueChanged(element, watch.Changed);

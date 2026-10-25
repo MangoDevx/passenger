@@ -51,11 +51,11 @@ internal sealed class Styling
                 return LastActive(styles, property) is { } triggered ? new Won($"{Condition(triggered.Trigger)} of its Style", Details.Place(triggered.Setter)) : null;
             case BaseValueSource.DefaultStyle:
                 return FirstSetter(theme, property) is { } themed
-                    ? new Won($"{Inspector.TypeName(element.GetType())}'s default style (the theme)", Details.Place(themed.Setter))
+                    ? new Won($"{Words.TypeName(element.GetType())}'s default style (the theme)", Details.Place(themed.Setter))
                     : null;
             case BaseValueSource.DefaultStyleTrigger:
                 return LastActive(theme, property) is { } themeTriggered
-                    ? new Won($"{Condition(themeTriggered.Trigger)} of {Inspector.TypeName(element.GetType())}'s default style (the theme)", Details.Place(themeTriggered.Setter))
+                    ? new Won($"{Condition(themeTriggered.Trigger)} of {Words.TypeName(element.GetType())}'s default style (the theme)", Details.Place(themeTriggered.Setter))
                     : null;
             case BaseValueSource.TemplateTrigger when element is Control { Template: { } own }:
                 return LastActive(own.Triggers, property, null, element) is { } ownTriggered
@@ -123,7 +123,7 @@ internal sealed class Styling
         bool set = element is FrameworkElement && DependencyPropertyHelper.GetValueSource(element, FrameworkElement.StyleProperty).BaseValueSource == BaseValueSource.Local;
         for (int i = 0; i < styles.Count; i++)
         {
-            string origin = i > 0 ? $"BasedOn by {Selector(styles[i - 1])}" : set ? "Set on it" : $"Implicit, for {Inspector.TypeName(element.GetType())}";
+            string origin = i > 0 ? $"BasedOn by {Selector(styles[i - 1])}" : set ? "Set on it" : $"Implicit, for {Words.TypeName(element.GetType())}";
             reports.Add(StyleReport(styles[i], StyleKinds.Style, origin, BaseValueSource.Style));
         }
         for (int i = styles.Count - 1; i >= 0; i--)
@@ -247,7 +247,7 @@ internal sealed class Styling
     };
 
     /// <summary>A style as the window names it: "Style TargetType=Button".</summary>
-    public static string Selector(Style style) => style.TargetType is { } type ? $"Style TargetType={Inspector.TypeName(type)}" : "Style";
+    public static string Selector(Style style) => style.TargetType is { } type ? $"Style TargetType={Words.TypeName(type)}" : "Style";
 
     /// <summary>A trigger as its XAML would read: "Trigger IsMouseOver=True", "MultiTrigger IsEnabled=False, IsChecked=True",
     /// "DataTrigger {Binding State}=Done".</summary>
@@ -258,7 +258,7 @@ internal sealed class Styling
         DataTrigger d => $"DataTrigger {Bound(d.Binding)}={Value(d.Value)}",
         MultiDataTrigger md => $"MultiDataTrigger {string.Join(", ", md.Conditions.Select(c => $"{Bound(c.Binding)}={Value(c.Value)}"))}",
         EventTrigger e => $"EventTrigger {e.RoutedEvent?.Name}",
-        _ => Inspector.TypeName(trigger.GetType()),
+        _ => Words.TypeName(trigger.GetType()),
     };
 
     private static string Of(string? source, DependencyProperty? property) => source is { Length: > 0 } ? $"{source}.{property?.Name}" : property?.Name ?? "?";

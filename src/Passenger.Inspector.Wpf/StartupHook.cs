@@ -35,7 +35,7 @@ internal static class StartupHook
     /// <summary>Apart from <see cref="Initialize"/>, so an app without WPF fails here, inside its try, as WPF's types load.</summary>
     private static void Start(string socket, string? project)
     {
-        Passenger.Inspector.Wpf.Agent.Trace($"the startup hook, on thread {Environment.CurrentManagedThreadId} ({Thread.CurrentThread.GetApartmentState()})");
+        InspectorTrace.Step($"the startup hook, on thread {Environment.CurrentManagedThreadId} ({Thread.CurrentThread.GetApartmentState()})");
         Passenger.Inspector.Wpf.Agent.Start(socket, Thread.CurrentThread, project);
     }
 

@@ -26,9 +26,7 @@ internal static class Shown
         visual == top ? new Rect(top.ClientSize) : visual.TransformToVisual(top) is { } matrix ? new Rect(visual.Bounds.Size).TransformToAABB(matrix) : null;
 
     /// <summary>A box as the protocol carries it, to a hundredth of a unit.</summary>
-    public static Box Boxed(Rect rect) => new(Round(rect.X), Round(rect.Y), Round(rect.Width), Round(rect.Height));
-
-    private static double Round(double value) => Math.Round(value, 2);
+    public static Box Boxed(Rect rect) => Words.Boxed(rect.X, rect.Y, rect.Width, rect.Height);
 
     /// <summary>The text an element shows: a text block's or text box's (a password box's masked), a content control's or a
     /// header's when it is text, a window's title; null for anything else.</summary>
@@ -72,7 +70,7 @@ internal static class Shown
         AvaloniaProperty? property = dot < 0
             ? AvaloniaPropertyRegistry.Instance.FindRegistered(visual, name)
             : AvaloniaPropertyRegistry.Instance.GetRegisteredAttached(visual.GetType())
-                .FirstOrDefault(p => p.Name == name[(dot + 1)..] && Inspector.TypeName(p.OwnerType) == name[..dot]);
+                .FirstOrDefault(p => p.Name == name[(dot + 1)..] && Words.TypeName(p.OwnerType) == name[..dot]);
         if (property is not null)
         {
             return Details.Format(visual.GetValue(property));

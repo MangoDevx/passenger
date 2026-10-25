@@ -329,12 +329,12 @@ internal static class FrameRecorder
         }
         foreach ((Layoutable control, Work work) in done.Controls)
         {
-            long id = ElementIds.Of(control);
+            long id = ElementIds<Visual>.Of(control);
             if (Described.Add(id))
             {
                 Type type = control.GetType();
                 SourcePlace? place = Details.Place(control);
-                log.Control(id, Inspector.TypeName(type), type.FullName ?? type.Name, (control as StyledElement)?.Name ?? string.Empty,
+                log.Control(id, Words.TypeName(type), type.FullName ?? type.Name, (control as StyledElement)?.Name ?? string.Empty,
                     control is StyledElement { TemplatedParent: Visual parent } ? Shown.Called(parent) : string.Empty, place?.File ?? string.Empty, place?.Line ?? 0);
             }
             log.Layout(done.Number, id, work.Measures, Ms(work.Measure), Ms(work.MeasureOwn), work.Arranges, Ms(work.Arrange), Ms(work.ArrangeOwn));

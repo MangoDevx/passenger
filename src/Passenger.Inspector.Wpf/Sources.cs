@@ -4,6 +4,7 @@ using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Resources;
 using System.Windows.Diagnostics;
+using Passenger.Core;
 
 namespace Passenger.Inspector.Wpf;
 
@@ -177,24 +178,12 @@ internal static class Sources
         return documents;
     }
 
-    /// <summary>A file's path with each part as the disk has its case (a BAML's name is lower case), or null when it is not there.</summary>
+    /// <summary>A file's path as the disk names it (a BAML's name is lower case), or null when it is not there.</summary>
     private static string? Cased(string path)
     {
-        if (!File.Exists(path))
-        {
-            return null;
-        }
         try
         {
-            string full = Path.GetFullPath(path);
-            string root = Path.GetPathRoot(full) ?? string.Empty;
-            string cased = root;
-            foreach (string part in full[root.Length..].Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries))
-            {
-                string? entry = Directory.EnumerateFileSystemEntries(cased, part).FirstOrDefault();
-                cased = entry ?? Path.Combine(cased, part);
-            }
-            return cased;
+            return File.Exists(path) ? PathNames.Canonical(path) : null;
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException)
         {

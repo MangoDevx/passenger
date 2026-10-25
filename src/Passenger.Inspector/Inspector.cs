@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -16,27 +15,18 @@ namespace Passenger.Inspector;
 /// Select Element and the outline over the element chosen, a word to Passenger as controls come and go, and for an agent
 /// the windows' pictures and input to them (<see cref="Pictures"/>, <see cref="Driver"/>). Elements are named by ids that
 /// last as long as the element does.</summary>
-internal sealed class Inspector
+internal sealed class Inspector : Inspecting<Visual>
 {
-    /// <summary>How long the app's controls may come and go before Passenger is told its tree changed, once.</summary>
-    private static readonly TimeSpan Settle = TimeSpan.FromMilliseconds(300);
-
-    private readonly Connection connection;
     private readonly List<IDisposable> handlers = [];
     private readonly Picker picker;
     private readonly Driver driver;
     private readonly PropertyBreaks breaks = new();
     private readonly ValueWatch values;
-    private bool told;
-
-    /// <summary>Whether Passenger has asked for the tree since it was last told of a change, so it is told only once.</summary>
-    private bool watched;
 
     /// <param name="overlays">The renderer debug overlays the launch asked for (<see cref="Wire.OverlaysVariable"/>), or null.</param>
-    public Inspector(Connection connection, string? overlays = null)
+    public Inspector(Connection connection, string? overlays = null) : base(connection)
     {
         Dispatcher.UIThread.VerifyAccess();
-        this.connection = connection;
         picker = new Picker(this, connection);
         driver = new Driver(this);
         values = new ValueWatch(connection);
@@ -51,39 +41,6 @@ internal sealed class Inspector
         if (overlays is { Length: > 0 })
         {
             Overlays.Want(overlays.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries), TopLevels());
-        }
-    }
-
-    public Reply Handle(Request request)
-    {
-        try
-        {
-            return request.Method switch
-            {
-                Wire.Tree => new Reply { Id = request.Id, Tree = Tree(request) },
-                Wire.Windows => new Reply { Id = request.Id, Windows = Windows() },
-                Wire.Details => Find(request.Element) is { } visual
-                    ? new Reply { Id = request.Id, Details = new Details(this).Of(visual) }
-                    : Gone(request),
-                Wire.Pick => Done(request, () => picker.Choose(request.On == true)),
-                Wire.Highlight => Done(request, () => picker.Outline(Find(request.Element))),
-                Wire.Capture => Find(request.Element) is { } shown
-                    ? new Reply { Id = request.Id, Picture = Pictures.Take(shown, request) }
-                    : Gone(request),
-                Wire.Input => new Reply { Id = request.Id, Done = driver.Do(request.Input ?? throw new Refusal("No input was given")) },
-                Wire.Watch => Done(request, () => Watch(request)),
-                Wire.Values => new Reply { Id = request.Id, Values = Values(request) },
-                Wire.Overlays => new Reply { Id = request.Id, Windows = SetOverlays(request) },
-                _ => new Reply { Id = request.Id, Error = $"The inspector does not know '{request.Method}'" },
-            };
-        }
-        catch (Refusal refused)
-        {
-            return new Reply { Id = request.Id, Error = refused.Message };
-        }
-        catch (Exception error)
-        {
-            return new Reply { Id = request.Id, Error = $"{error.GetType().Name}: {error.Message}" };
         }
     }
 
@@ -103,8 +60,7 @@ internal sealed class Inspector
     /// <summary>How long input waits for a frame before going on without: an app whose windows render nothing.</summary>
     private static readonly TimeSpan FrameLimit = TimeSpan.FromMilliseconds(500);
 
-    /// <summary>Passenger has gone: nothing of the inspector's is left in the app's windows.</summary>
-    public void Stop()
+    protected override void Stopping()
     {
         breaks.Stop();
         values.Stop();
@@ -116,23 +72,22 @@ internal sealed class Inspector
         }
     }
 
-    private static Reply Gone(Request request) => new() { Id = request.Id, Error = "That element is no longer in the app" };
+    protected override ElementDetails DetailsOf(Visual element) => new Details(this).Of(element);
 
-    /// <summary>A property breakpoint's watch begun (again, with its hit count) or ended.</summary>
-    private void Watch(Request request)
-    {
-        int breakpoint = request.Breakpoint ?? throw new Refusal("No property breakpoint was named");
-        if (request.On == false)
-        {
-            breaks.Unwatch(breakpoint);
-            return;
-        }
-        Visual element = Find(request.Element) ?? throw new Refusal("That element is no longer in the app");
-        breaks.Watch(breakpoint, element, request.Property ?? throw new Refusal("No property was named"), request.HitCondition);
-    }
+    protected override void Pick(bool on) => picker.Choose(on);
+
+    protected override void Outline(Visual? element) => picker.Outline(element);
+
+    protected override Picture Capture(Visual element, Request request) => Pictures.Take(element, request);
+
+    protected override InputDone Do(InputAction input) => driver.Do(input);
+
+    protected override void Watch(int breakpoint, Visual element, string property, string? hitCondition) => breaks.Watch(breakpoint, element, property, hitCondition);
+
+    protected override void Unwatch(int breakpoint) => breaks.Unwatch(breakpoint);
 
     /// <summary>A XAML file's bindings with their values, the properties read watched from now so the app says when they change.</summary>
-    private XamlValues Values(Request request)
+    protected override XamlValues ValuesOf(Request request)
     {
         XamlRead read = request.Xaml ?? throw new Refusal("No XAML file was named");
         List<(AvaloniaObject, AvaloniaProperty)> watched = [];
@@ -141,35 +96,24 @@ internal sealed class Inspector
         return answer;
     }
 
-    private static Reply Done(Request request, Action action)
-    {
-        action();
-        return new Reply { Id = request.Id };
-    }
-
     /// <summary>The overlays asked for set on every window, those opened later too, and the windows as they are now.</summary>
-    private List<AppWindow> SetOverlays(Request request)
+    protected override List<AppWindow> SetOverlays(Request request)
     {
         Overlays.Want(request.Overlays ?? [], TopLevels());
         return Windows();
     }
 
-    /// <summary>The id Passenger knows a visual by, the same for as long as it lives.</summary>
-    public long IdOf(Visual visual) => ElementIds.Of(visual);
-
-    public Visual? Find(long? id) => ElementIds.Find(id);
+    protected override void Later(TimeSpan delay, Action action) => DispatcherTimer.RunOnce(action, delay);
 
     /// <summary>Whether a visual is the inspector's own (Select Element's outline), which the tree leaves out.</summary>
     public bool IsOwn(Visual visual) => picker.IsOwn(visual);
 
     /// <summary>What the tree leaves out: the inspector's own, and an adorner layer holding nothing of the app's (the one a
     /// window makes for the first outline), whose coming is no change in the app's controls either.</summary>
-    private bool LeftOut(Visual visual) => IsOwn(visual) || (visual is AdornerLayer layer && layer.Children.All(c => IsOwn(c)));
+    protected override bool LeftOut(Visual element) => IsOwn(element) || (element is AdornerLayer layer && layer.Children.All(c => IsOwn(c)));
 
-    private AppTree Tree(Request request)
+    protected override AppTree Tree(Request request)
     {
-        watched = true;
-        told = false;
         Look? look = request.Layout == true || request.Properties is { Count: > 0 }
             ? new Look(request.Layout == true, request.Properties ?? [], Shown.Focused())
             : null;
@@ -179,10 +123,9 @@ internal sealed class Inspector
     /// <summary>What an agent's tree carries beyond each element's identity: layout and text, and property values.</summary>
     private sealed record Look(bool Layout, IReadOnlyList<string> Properties, IInputElement? Focused);
 
-    /// <summary>The app's top levels as an agent lists them.</summary>
-    private List<AppWindow> Windows() => [.. TopLevels().Select(top => new AppWindow(
+    protected override List<AppWindow> Windows() => [.. TopLevels().Select(top => new AppWindow(
         IdOf(top),
-        TypeName(top.GetType()),
+        Words.TypeName(top.GetType()),
         top.Name,
         (top as Window)?.Title,
         top.ClientSize.Width,
@@ -253,7 +196,7 @@ internal sealed class Inspector
         StyledElement? styled = visual as StyledElement;
         Element node = new(
             IdOf(visual),
-            TypeName(visual.GetType()),
+            Words.TypeName(visual.GetType()),
             styled?.Name,
             styled is null ? [] : [.. styled.Classes.Where(c => !c.StartsWith(':'))],
             styled?.TemplatedParent is not null,
@@ -283,62 +226,4 @@ internal sealed class Inspector
     /// template made it.</summary>
     public static string Named(Visual visual) =>
         visual is StyledElement { TemplatedParent: Visual parent } ? $"{Shown.Called(visual)} in {Shown.Called(parent)}'s template" : Shown.Called(visual);
-
-    /// <summary>A type as the tree names it: no namespace, no generic arity.</summary>
-    public static string TypeName(Type type)
-    {
-        string name = type.Name;
-        int tick = name.IndexOf('`', StringComparison.Ordinal);
-        return tick < 0 ? name : name[..tick];
-    }
-
-    /// <summary>A control came or went: Passenger, if it has the tree, hears once that it changed, a moment after the last.</summary>
-    private void Changed(object? sender)
-    {
-        if ((sender is Visual visual && LeftOut(visual)) || !watched || told)
-        {
-            return;
-        }
-        told = true;
-        DispatcherTimer.RunOnce(() =>
-        {
-            watched = false;
-            connection.Send(new Reply { Event = Wire.TreeChanged });
-        }, Settle);
-    }
-}
-
-/// <summary>Why the inspector will not do what it was asked (the element is disabled, covered, gone), in words an agent
-/// reads as they are.</summary>
-internal sealed class Refusal(string message) : Exception(message);
-
-/// <summary>The ids Passenger knows the app's visuals by, each the same for as long as the visual lives: the Live Visual Tree's,
-/// an agent's, and the profiler's frames' (<see cref="FrameRecorder"/>), so a control named in one is the one in the others.
-/// The app's UI thread's alone.</summary>
-internal static class ElementIds
-{
-    private static readonly ConditionalWeakTable<Visual, object> Ids = new();
-    private static readonly Dictionary<long, WeakReference<Visual>> ById = [];
-    private static long next;
-
-    public static long Of(Visual visual)
-    {
-        if (Ids.TryGetValue(visual, out object? known))
-        {
-            return (long)known;
-        }
-        long id = ++next;
-        Ids.Add(visual, id);
-        if (ById.Count > 4096 && ById.Count % 4096 == 0)
-        {
-            foreach (long dead in ById.Where(e => !e.Value.TryGetTarget(out _)).Select(e => e.Key).ToList())
-            {
-                ById.Remove(dead);
-            }
-        }
-        ById[id] = new WeakReference<Visual>(visual);
-        return id;
-    }
-
-    public static Visual? Find(long? id) => id is long known && ById.TryGetValue(known, out WeakReference<Visual>? held) && held.TryGetTarget(out Visual? visual) ? visual : null;
 }

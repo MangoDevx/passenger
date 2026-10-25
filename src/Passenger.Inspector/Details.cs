@@ -27,7 +27,7 @@ internal sealed class Details(Inspector inspector)
         Styling styling = new(visual);
         return new ElementDetails(
             inspector.IdOf(visual),
-            Inspector.TypeName(type),
+            Words.TypeName(type),
             type.FullName ?? type.Name,
             styled?.Name,
             styled is null ? [] : [.. styled.Classes.Where(c => !c.StartsWith(':'))],
@@ -50,7 +50,7 @@ internal sealed class Details(Inspector inspector)
         }
         if (visual is StyledElement { TemplatedParent: Visual parent })
         {
-            return (null, $"Made by {Inspector.TypeName(parent.GetType())}'s template, which was compiled without source information (a theme's, or a Release build's)");
+            return (null, $"Made by {Words.TypeName(parent.GetType())}'s template, which was compiled without source information (a theme's, or a Release build's)");
         }
         if (visual is ILogical logical)
         {
@@ -83,7 +83,7 @@ internal sealed class Details(Inspector inspector)
 
     /// <summary>A visual as a sentence names it: its type, then #name.</summary>
     public static string Describe(Visual visual) =>
-        visual is StyledElement { Name: { Length: > 0 } name } ? $"{Inspector.TypeName(visual.GetType())}#{name}" : Inspector.TypeName(visual.GetType());
+        visual is StyledElement { Name: { Length: > 0 } name } ? $"{Words.TypeName(visual.GetType())}#{name}" : Words.TypeName(visual.GetType());
 
     private static LayoutInfo Layout(Visual visual)
     {
@@ -141,9 +141,9 @@ internal sealed class Details(Inspector inspector)
 
     private static PropertyValue Row(Visual visual, AvaloniaProperty property, bool attached, Styling styling)
     {
-        string name = attached ? $"{Inspector.TypeName(property.OwnerType)}.{property.Name}" : property.Name;
-        string owner = Inspector.TypeName(property.OwnerType);
-        string type = Inspector.TypeName(property.PropertyType);
+        string name = attached ? $"{Words.TypeName(property.OwnerType)}.{property.Name}" : property.Name;
+        string owner = Words.TypeName(property.OwnerType);
+        string type = Words.TypeName(property.PropertyType);
         if (property.IsDirect)
         {
             object? direct = visual.GetValue(property);
@@ -215,33 +215,21 @@ internal sealed class Details(Inspector inspector)
                     BindingPriority.Animation => "an animation",
                     _ => "a value",
                 };
-                return ($"From {(at is Visual ancestor ? Describe(ancestor) : Inspector.TypeName(at.GetType()))} ({how})", Place(at));
+                return ($"From {(at is Visual ancestor ? Describe(ancestor) : Words.TypeName(at.GetType()))} ({how})", Place(at));
             }
         }
         return (null, null);
     }
 
-    /// <summary>A value as the window shows it: text quoted, a brush by its colour, a binding or resource as XAML writes it.</summary>
-    public static string Format(object? value)
-    {
-        string text = value switch
-        {
-            null => "(null)",
-            string s => $"\"{s}\"",
-            ISolidColorBrush brush => brush.Opacity < 1 ? $"{brush.Color} ({brush.Opacity.ToString("0.##", CultureInfo.InvariantCulture)})" : brush.Color.ToString(),
-            Thickness t => t.ToString(),
-            IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
-            _ when value == AvaloniaProperty.UnsetValue => "(unset)",
-            _ => Described(value),
-        };
-        return text.Length > 300 ? text[..297] + "..." : text;
-    }
+    /// <summary>A value as the window shows it: text quoted, a brush by its colour.</summary>
+    public static string Format(object? value) => Words.Value(value, Framed);
 
-    /// <summary>What an object says it is, or its type when it says nothing more (an object's ToString is its type's name).</summary>
-    private static string Described(object value)
+    /// <summary>Avalonia's own words for a value, or null for those it has none of.</summary>
+    private static string? Framed(object value) => value switch
     {
-        string? said = value.ToString();
-        string full = value.GetType().FullName ?? string.Empty;
-        return said is null || said == full ? Inspector.TypeName(value.GetType()) : said;
-    }
+        ISolidColorBrush brush => brush.Opacity < 1 ? $"{brush.Color} ({brush.Opacity.ToString("0.##", CultureInfo.InvariantCulture)})" : brush.Color.ToString(),
+        Thickness t => t.ToString(),
+        _ when value == AvaloniaProperty.UnsetValue => "(unset)",
+        _ => null,
+    };
 }

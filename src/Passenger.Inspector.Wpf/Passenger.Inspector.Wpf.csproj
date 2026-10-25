@@ -12,11 +12,16 @@
     <RootNamespace>Passenger.Inspector.Wpf</RootNamespace>
     <!-- Never optimized, a Release build as a Debug one: the debugger reads a binding error's argument where the app stops. -->
     <Optimize>false</Optimize>
+    <!-- PathNames asks Windows for a file's own name into a buffer it fixes. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
     <!-- WPF's implicit usings leave System.IO out, for its Path beside System.Windows.Shapes.Path, which nothing here uses. -->
     <Using Include="System.IO" />
+    <!-- What the linked Breaks.cs hands the debugger: WPF's own element and property. -->
+    <Using Include="System.Windows.DependencyObject" Alias="InspectedObject" />
+    <Using Include="System.Windows.DependencyProperty" Alias="InspectedProperty" />
   </ItemGroup>
 
   <ItemGroup>
@@ -24,12 +29,17 @@
     <Compile Include="../Passenger.Inspector/Protocol.cs" Link="Protocol.cs" />
     <Compile Include="../Passenger.Inspector/Connection.cs" Link="Connection.cs" />
     <Compile Include="../Passenger.Core/JsonLines.cs" Link="JsonLines.cs" />
+    <!-- The serve loop, the request switch and the words both inspectors answer in, and where the debugger stops them. -->
+    <Compile Include="../Passenger.Inspector/Serving.cs" Link="Serving.cs" />
+    <Compile Include="../Passenger.Inspector/Breaks.cs" Link="Breaks.cs" />
     <!-- The failed bindings told and counted, and a failure's nearest names, one definition for both inspectors. -->
     <Compile Include="../Passenger.Inspector/BindingFailures.cs" Link="BindingFailures.cs" />
     <Compile Include="../Passenger.Core/Spelling.cs" Link="Spelling.cs" />
     <!-- The runtime's variables, and the startup hooks' rule (this hook first, taken out as it starts), as Passenger names them. -->
     <Compile Include="../Passenger.Core/RuntimeVariables.cs" Link="RuntimeVariables.cs" />
     <Compile Include="../Passenger.Core/StartupHooks.cs" Link="StartupHooks.cs" />
+    <!-- A XAML file's path as the disk names it, as the rest of Passenger reads one. -->
+    <Compile Include="../Passenger.Core/PathNames.cs" Link="PathNames.cs" />
     <!-- A property breakpoint's hit count is kept here, where its changes are seen, in the debugger's own words. -->
     <Compile Include="../Passenger.Dap/HitCondition.cs" Link="HitCondition.cs" />
   </ItemGroup>

@@ -53,7 +53,7 @@ internal sealed class Styling
         {
             if (host.IsStylesInitialized)
             {
-                string origin = host is Application ? "Application" : host is Visual shown ? Details.Describe(shown) : Inspector.TypeName(host.GetType());
+                string origin = host is Application ? "Application" : host is Visual shown ? Details.Describe(shown) : Words.TypeName(host.GetType());
                 foreach (IStyle style in host.Styles)
                 {
                     FromStyles(style, $"{origin}.Styles", host);
@@ -94,7 +94,7 @@ internal sealed class Styling
                 origin = include.Source?.ToString() ?? origin;
                 break;
             case Styles styles when styles.GetType() != typeof(Styles):
-                origin = Inspector.TypeName(styles.GetType());
+                origin = Words.TypeName(styles.GetType());
                 break;
         }
         Nested(style, StyleKinds.Style, origin, host);
@@ -126,7 +126,7 @@ internal sealed class Styling
             {
                 if (style is IResourceProvider provider && provider.TryGetResource(element.StyleKey, element.ActualThemeVariant, out object? found) && found == theme)
                 {
-                    return style is StyleInclude { Source: { } source } ? source.ToString() : Inspector.TypeName(style.GetType());
+                    return style is StyleInclude { Source: { } source } ? source.ToString() : Words.TypeName(style.GetType());
                 }
             }
         }
@@ -150,7 +150,7 @@ internal sealed class Styling
     /// theme by the type it styles.</summary>
     public static string SelectorText(StyleBase style) => style switch
     {
-        ControlTheme theme => theme.TargetType is { } target ? Inspector.TypeName(target) : "ControlTheme",
+        ControlTheme theme => theme.TargetType is { } target ? Words.TypeName(target) : "ControlTheme",
         Style { Selector: { } selector } nested => Expanded(selector.ToString(nested), nested.Parent),
         _ => style.ToString() ?? "Style",
     };
@@ -203,7 +203,7 @@ internal sealed class Styling
                 {
                     ControlTheme theme => theme.TargetType?.IsAssignableFrom(element.StyleKey) == true
                         ? new Explained(null, true)
-                        : new Explained($"it is a {Inspector.TypeName(element.StyleKey)}, not a {Inspector.TypeName(theme.TargetType!)}", false),
+                        : new Explained($"it is a {Words.TypeName(element.StyleKey)}, not a {Words.TypeName(theme.TargetType!)}", false),
                     Style style => Selectors.Explain(style, element, candidate.Host),
                     _ => new Explained(null, true),
                 };
@@ -227,7 +227,7 @@ internal sealed class Styling
         AvaloniaProperty property = setter.Property!;
         // Foreground, not TextElement.Foreground, on a control that took TextElement's for its own.
         string name = property.IsAttached && !AvaloniaPropertyRegistry.Instance.GetRegistered(element.GetType()).Contains(property)
-            ? $"{Inspector.TypeName(property.OwnerType)}.{property.Name}"
+            ? $"{Words.TypeName(property.OwnerType)}.{property.Name}"
             : property.Name;
         string value = SetterValue(setter.Value);
         SourcePlace? place = Details.Place(setter);

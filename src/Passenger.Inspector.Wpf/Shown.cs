@@ -74,7 +74,7 @@ internal static class Shown
     public static bool Clips(DependencyObject element) => element is UIElement { ClipToBounds: true } || element is ScrollContentPresenter;
 
     /// <summary>A box as the protocol carries it, to a hundredth of a unit.</summary>
-    public static Box Boxed(Rect rect) => new(Math.Round(rect.X, 2), Math.Round(rect.Y, 2), Math.Round(rect.Width, 2), Math.Round(rect.Height, 2));
+    public static Box Boxed(Rect rect) => Words.Boxed(rect.X, rect.Y, rect.Width, rect.Height);
 
     /// <summary>The text an element shows: a text block's or text box's (a password box's masked), a content control's or a
     /// header's when it is text, a combo box's choice, a window's title; null for anything else.</summary>

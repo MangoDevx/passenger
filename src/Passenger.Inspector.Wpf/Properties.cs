@@ -36,14 +36,14 @@ internal static class Properties
 
     /// <summary>A property as the window names it: its own name, an attached one's owner first.</summary>
     public static string NameOf(DependencyProperty property, bool attached) =>
-        attached ? $"{Inspector.TypeName(property.OwnerType)}.{property.Name}" : property.Name;
+        attached ? $"{Words.TypeName(property.OwnerType)}.{property.Name}" : property.Name;
 
     /// <summary>An element's property by the name the Live Visual Tree lists it under, or null.</summary>
     public static DependencyProperty? Find(DependencyObject element, string name)
     {
         foreach ((DependencyProperty property, bool attached) in Of(element))
         {
-            if (NameOf(property, attached) == name || (!attached && name.Contains('.', StringComparison.Ordinal) && $"{Inspector.TypeName(property.OwnerType)}.{property.Name}" == name))
+            if (NameOf(property, attached) == name || (!attached && name.Contains('.', StringComparison.Ordinal) && $"{Words.TypeName(property.OwnerType)}.{property.Name}" == name))
             {
                 return property;
             }

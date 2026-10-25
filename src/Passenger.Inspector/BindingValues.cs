@@ -224,7 +224,7 @@ internal static class BindingReader
     private static AvaloniaObject? Parent(AvaloniaObject of) =>
         (of as Visual)?.GetVisualParent() as AvaloniaObject ?? (of as ILogical)?.LogicalParent as AvaloniaObject;
 
-    private static string Called(AvaloniaObject made) => made is Visual visual ? Details.Describe(visual) : Inspector.TypeName(made.GetType());
+    private static string Called(AvaloniaObject made) => made is Visual visual ? Details.Describe(visual) : Words.TypeName(made.GetType());
 
     /// <summary>A property of an element by the name its attribute has: its own, or an attached one as Owner.Name (the owner's
     /// XML prefix left off), or its own written in full (TextBlock.Text).</summary>
@@ -238,8 +238,8 @@ internal static class BindingReader
         string owner = name[..dot];
         owner = owner[(owner.LastIndexOf(':') + 1)..];
         string property = name[(dot + 1)..];
-        return AvaloniaPropertyRegistry.Instance.GetRegisteredAttached(made.GetType()).FirstOrDefault(p => p.Name == property && Inspector.TypeName(p.OwnerType) == owner)
-            ?? (Inspector.TypeName(made.GetType()) == owner || made.GetType().Name == owner ? AvaloniaPropertyRegistry.Instance.FindRegistered(made, property) : null);
+        return AvaloniaPropertyRegistry.Instance.GetRegisteredAttached(made.GetType()).FirstOrDefault(p => p.Name == property && Words.TypeName(p.OwnerType) == owner)
+            ?? (Words.TypeName(made.GetType()) == owner || made.GetType().Name == owner ? AvaloniaPropertyRegistry.Instance.FindRegistered(made, property) : null);
     }
 
     /// <summary>A binding on a property of an instance: the property's value now and the binding's path walked step by step; a
@@ -248,7 +248,7 @@ internal static class BindingReader
     {
         if (PropertyNamed(instance, name) is not { } property)
         {
-            return new BoundValue(name, string.Empty, null, [], $"{Inspector.TypeName(instance.GetType())} has no property {name}", null);
+            return new BoundValue(name, string.Empty, null, [], $"{Words.TypeName(instance.GetType())} has no property {name}", null);
         }
         watched?.Add((instance, property));
         UntypedBindingExpressionBase? expression;
@@ -339,7 +339,7 @@ internal static class BindingReader
         }
         if (Property(node, "Property") is AvaloniaProperty property)
         {
-            return property.IsAttached ? $"({Inspector.TypeName(property.OwnerType)}.{property.Name})" : property.Name;
+            return property.IsAttached ? $"({Words.TypeName(property.OwnerType)}.{property.Name})" : property.Name;
         }
         switch (node.GetType().Name)
         {

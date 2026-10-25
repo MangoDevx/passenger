@@ -281,9 +281,9 @@ internal sealed class Driver(Inspector inspector)
         return aim;
     }
 
-    private static string Box(Rect rect) => string.Create(CultureInfo.InvariantCulture, $"{rect.X:0.##},{rect.Y:0.##} {rect.Width:0.##}x{rect.Height:0.##}");
+    private static string Box(Rect rect) => Words.Box(rect.X, rect.Y, rect.Width, rect.Height);
 
-    private static string Spot(Point point) => string.Create(CultureInfo.InvariantCulture, $"{point.X:0.##},{point.Y:0.##}");
+    private static string Spot(Point point) => Words.Spot(point.X, point.Y);
 
     /// <summary>What took pointer input aimed at an element: the element when the hit is it or inside it, else what was hit
     /// (an ancestor, the element taking no input where it was aimed).</summary>

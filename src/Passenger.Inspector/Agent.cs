@@ -4,10 +4,10 @@ using Avalonia.Threading;
 
 namespace Passenger.Inspector;
 
-/// <summary>The inspector inside the app, started by the startup hook in its own context: it connects to Passenger and takes
-/// Avalonia's logger for the app's failed bindings before the app's Main, waits for the app's UI thread to exist (never
-/// touching the dispatcher before the app makes it, which would make the wrong thread the UI's), says hello, and answers
-/// each request there. It ends when Passenger goes.</summary>
+/// <summary>The inspector inside the app, started by the startup hook in its own context and served as either framework's
+/// is (<see cref="Serving"/>): it takes Avalonia's logger for the app's failed bindings before the app's Main, and waits
+/// for the app's UI thread to exist, never touching the dispatcher before the app makes it, which would make the wrong
+/// thread the UI's.</summary>
 public static class Agent
 {
     /// <summary>How often it looks for the app's UI before it is up.</summary>
@@ -27,44 +27,8 @@ public static class Agent
     public static void Guard(Func<object, string?> refusing) => Refusing = refusing;
 
     /// <param name="overlays">The renderer debug overlays the launch named (<see cref="Wire.OverlaysVariable"/>), or null.</param>
-    public static void Start(string socket, Thread main, string avalonia, string? overlays)
-    {
-        // Before the app's Main, so a binding that fails as its first window opens is heard.
-        if (Connection.Open(socket) is not { } connection)
-        {
-            return;
-        }
-        Bindings.Start(connection);
-        Thread thread = new(() => Serve(connection, main, avalonia, overlays)) { IsBackground = true, Name = "Passenger inspector" };
-        thread.Start();
-    }
-
-    private static void Serve(Connection connection, Thread main, string avalonia, string? overlays)
-    {
-        using Connection held = connection;
-        Dispatcher dispatcher = WaitForUi(main);
-        Ui = dispatcher;
-        Inspector inspector;
-        try
-        {
-            inspector = dispatcher.Invoke(() => Current = new Inspector(connection, overlays));
-        }
-        catch (Exception error)
-        {
-            connection.Send(new Reply { Event = Wire.Hello, Hello = new Hello(Wire.Version, Environment.ProcessId, avalonia, $"The inspector could not start: {error.Message}") });
-            // Written before the connection closes, so Passenger shows why rather than an app gone silent.
-            connection.Drain();
-            Bindings.Stop();
-            return;
-        }
-        connection.Send(new Reply { Event = Wire.Hello, Hello = new Hello(Wire.Version, Environment.ProcessId, avalonia, null) });
-        while (connection.Read() is { } request)
-        {
-            _ = AnswerAsync(dispatcher, inspector, connection, request);
-        }
-        Bindings.Stop();
-        dispatcher.Post(inspector.Stop);
-    }
+    public static void Start(string socket, Thread main, string avalonia, string? overlays) =>
+        Serving.Start(socket, new AvaloniaUi(main, avalonia, overlays));
 
     /// <summary>The app's UI dispatcher once the app has made it and its Application: the main thread's in a desktop app, or
     /// whichever thread made Avalonia's, read without making one.</summary>
@@ -95,28 +59,49 @@ public static class Agent
         }
     }
 
-    private static async Task AnswerAsync(Dispatcher dispatcher, Inspector inspector, Connection connection, Request request)
+    /// <summary>An Avalonia app as the serve loop reaches it.</summary>
+    private sealed class AvaloniaUi(Thread main, string avalonia, string? overlays) : IAppUi
     {
-        Reply reply;
-        try
+        private Dispatcher? dispatcher;
+        private Inspector? inspector;
+
+        public void Listen(Connection connection) => Bindings.Start(connection);
+
+        public void Open(Connection connection)
         {
+            dispatcher = WaitForUi(main);
+            Ui = dispatcher;
+            inspector = dispatcher.Invoke(() => Current = new Inspector(connection, overlays));
+        }
+
+        public Hello Hello(string? problem) => new(Wire.Version, Environment.ProcessId, avalonia, problem);
+
+        public async Task<Reply> AnswerAsync(Request request)
+        {
+            Dispatcher ui = dispatcher!;
+            Inspector served = inspector!;
             bool input = request.Method == Wire.Input;
             if (input)
             {
                 // Hit testing reads the scene last rendered, so what changed since (a popup opening) is drawn first.
-                await dispatcher.InvokeAsync(inspector.RenderedAsync);
+                await ui.InvokeAsync(served.RenderedAsync);
             }
-            reply = await dispatcher.InvokeAsync(() => inspector.Handle(request));
+            Reply reply = await ui.InvokeAsync(() => served.Handle(request));
             if (input)
             {
                 // Answered once what the input set going is laid out and drawn, so what the agent looks at next shows it.
-                await dispatcher.InvokeAsync(inspector.RenderedAsync);
+                await ui.InvokeAsync(served.RenderedAsync);
+            }
+            return reply;
+        }
+
+        public void Close()
+        {
+            Bindings.Stop();
+            if (inspector is { } made)
+            {
+                dispatcher?.Post(made.Stop);
             }
         }
-        catch (Exception error)
-        {
-            reply = new Reply { Id = request.Id, Error = error.Message };
-        }
-        connection.Send(reply);
     }
 }

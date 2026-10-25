@@ -76,7 +76,7 @@ internal static partial class Bindings
         object? bound = named.GetValueOrDefault("Property");
         string property = bound switch
         {
-            AvaloniaProperty { IsAttached: true } attached => $"{Inspector.TypeName(attached.OwnerType)}.{attached.Name}",
+            AvaloniaProperty { IsAttached: true } attached => $"{Words.TypeName(attached.OwnerType)}.{attached.Name}",
             AvaloniaProperty own => own.Name,
             { } other => other.ToString() ?? "(unknown)",
             null => "(unknown)",
@@ -88,7 +88,7 @@ internal static partial class Bindings
         {
             Visual visual => Details.Describe(visual),
             null => "(unknown)",
-            _ => Inspector.TypeName(source.GetType()),
+            _ => Words.TypeName(source.GetType()),
         };
         // Avalonia's attached properties are read on the object's own thread, which is the one logging, in every app.
         AvaloniaObject? made = source as AvaloniaObject;
@@ -106,7 +106,7 @@ internal static partial class Bindings
         if (failure is not null && debugged && !stopped)
         {
             object? dataContext = onItsThread && made is StyledElement styled ? styled.DataContext : null;
-            failure = failure with { DataContext = dataContext is null ? null : Inspector.TypeName(dataContext.GetType()) };
+            failure = failure with { DataContext = dataContext is null ? null : Words.TypeName(dataContext.GetType()) };
             Breaks.BindingFailed(new BindingError(made, bound as AvaloniaProperty, dataContext, failure,
                 JsonSerializer.Serialize(failure, WireJson.Default.BindingFailure)));
         }

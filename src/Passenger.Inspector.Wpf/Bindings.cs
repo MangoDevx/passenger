@@ -134,7 +134,7 @@ internal static partial class Bindings
         if (failure is not null && debugged && !stopped)
         {
             object? dataContext = onItsThread && target is FrameworkElement framed ? framed.DataContext : onItsThread && target is FrameworkContentElement content ? content.DataContext : null;
-            failure = failure with { DataContext = dataContext is null ? null : Inspector.TypeName(dataContext.GetType()) };
+            failure = failure with { DataContext = dataContext is null ? null : Words.TypeName(dataContext.GetType()) };
             Breaks.BindingFailed(new BindingError(target, targetProperty, dataContext, failure, JsonSerializer.Serialize(failure, WireJson.Default.BindingFailure)));
         }
     }
