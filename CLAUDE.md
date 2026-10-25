@@ -282,6 +282,8 @@ aspire and requests scenes run `tools/site-shots/services`, an AppHost that need
 - **Roslyn's server** stays at the latest *stable* build, 5.11.0 (owner's rule): later builds start Visual Studio
   Telemetry's session even with telemetry off (dotnet/roslyn#86122, fixed by #86130 in no package yet; #234). After
   lowering it, delete `artifacts/bin/*/debug/roslyn*`, or the copy leaves a mixed server that won't start.
+- **Roslyn's server makes a C# file opened before its project loads a Miscellaneous File** and restores a project of its
+  own for it, so `CSharpService` opens a loading project's files only once the server says that project loaded.
 - **Roslyn's server writes its MEF caches beside its DLLs** (`roslyn/cache/`, no option for elsewhere), so where that
   folder is in a macOS bundle (a file added breaks the seal: "damaged", #450) or read-only, it runs from a copy in the
   state's `cache/roslyn/` (`RoslynServerFolder`); nothing a Passenger runs may write inside the app.
