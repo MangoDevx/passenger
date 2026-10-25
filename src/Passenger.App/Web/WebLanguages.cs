@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using Avalonia.Threading;
 using Passenger.App.Settings;
 using Passenger.App.Workspace;
 using Passenger.Core;
@@ -41,13 +40,9 @@ public enum WebServerKind
 /// <see cref="UiThread"/>.</summary>
 public sealed class WebLanguages : IAsyncDisposable
 {
-    private const int RestartLimit = 3;
-
-    private static readonly TimeSpan RestartWindow = TimeSpan.FromMinutes(5);
-
     private readonly string folder;
     private readonly Func<AppSettings> settings;
-    private readonly Dictionary<WebServerKind, Server> servers = [];
+    private readonly Dictionary<WebServerKind, NodeServer> servers = [];
     private readonly Dictionary<OpenDocument, WebDocument> documents = [];
 
     /// <summary>The folders npm install runs in now, whose files' banners say so.</summary>
@@ -192,7 +187,7 @@ public sealed class WebLanguages : IAsyncDisposable
         }
         WebDocument features = new(document, language.Kind, language.LanguageId);
         documents[document] = features;
-        Server server = ServerFor(language.Kind);
+        NodeServer server = ServerFor(language.Kind);
         if (server.Session is { } running)
         {
             features.Connect(running);
@@ -226,11 +221,14 @@ public sealed class WebLanguages : IAsyncDisposable
     }
 
     /// <summary>The Node.js the servers run on, looked for once. Asked from any thread.</summary>
-    private Task<NodeRuntime> FindNodeAsync() => UiThread.InvokeAsync(() =>
+    private Task<NodeRuntime> FindNodeAsync() => UiThread.InvokeAsync(NodeAsync);
+
+    /// <summary><see cref="FindNodeAsync"/> on the UI thread.</summary>
+    private Task<NodeRuntime> NodeAsync()
     {
         string? asked = configured;
         return finding ??= BackgroundWork.Run(() => NodeRuntime.FindAsync(asked));
-    });
+    }
 
     private static (ToolConfiguration, string?, string) Linting(AppSettings settings) => (settings.Eslint, settings.EslintPackage, settings.EslintFiles);
 
@@ -422,7 +420,7 @@ public sealed class WebLanguages : IAsyncDisposable
         {
             return null;
         }
-        Server server = ServerFor(WebServerKind.Html);
+        NodeServer server = ServerFor(WebServerKind.Html);
         if (server.Session is null && server.Problem is null && server.Starting is null)
         {
             Start(server);
@@ -444,9 +442,9 @@ public sealed class WebLanguages : IAsyncDisposable
         finding = null;
         Eslint.Reset();
         _ = Prettier.ResetAsync();
-        foreach (Server server in servers.Values.ToList())
+        foreach ((WebServerKind kind, NodeServer server) in servers.ToList())
         {
-            Replace(server, restart: true);
+            Replace(kind, server);
         }
     }
 
@@ -460,101 +458,61 @@ public sealed class WebLanguages : IAsyncDisposable
             return;
         }
         asksDockerHub = asks;
-        if (servers.TryGetValue(WebServerKind.Dockerfile, out Server? server) && server.Problem is null)
+        if (servers.TryGetValue(WebServerKind.Dockerfile, out NodeServer? server) && server.Problem is null)
         {
-            Replace(server, restart: true);
+            Replace(WebServerKind.Dockerfile, server);
         }
     }
 
-    private Server ServerFor(WebServerKind kind)
+    /// <summary>A kind's server, made as a file first needs it, counting its restarts in <paramref name="restarts"/>
+    /// (those of the servers before it in its place).</summary>
+    private NodeServer ServerFor(WebServerKind kind, ServerRestarts? restarts = null)
     {
-        if (!servers.TryGetValue(kind, out Server? server))
+        if (servers.TryGetValue(kind, out NodeServer? server))
         {
-            server = new Server(kind);
-            servers[kind] = server;
+            return server;
         }
-        return server;
+        NodeServer made = null!;
+        made = new NodeServer(Name(kind), folder, NodeAsync, restarts ?? new ServerRestarts())
+        {
+            Package = Path.Combine(Modules, Package(kind), "package.json"),
+            Missing = () => Missing(kind),
+            Command = node => Starting(kind, node),
+            Configure = language => Configure(kind, language),
+            Listen = started => started.Server.TypeScriptVersion += (_, _) => UiThread.Post(() => StateChanged?.Invoke(this, EventArgs.Empty)),
+            Started = started => Started(kind, started),
+            Unavailable = () => Unavailable(kind),
+            Refresh = () =>
+            {
+                foreach (WebDocument features in documents.Values.Where(d => d.Kind == kind))
+                {
+                    features.Refresh();
+                }
+            },
+            Lost = what => Lost(kind, made, what),
+        };
+        servers[kind] = made;
+        return made;
     }
 
-    private void Start(Server server)
+    private void Start(NodeServer server)
     {
-        CancellationTokenSource cancel = new();
-        server.Cancel = cancel;
-        server.State = "starting…";
+        server.Start();
         StateChanged?.Invoke(this, EventArgs.Empty);
-        BackgroundWork.Begin();
-        Task<LanguageSession?> starting = StartAsync(server, cancel.Token);
-        // One that could not start said so before it returned, its end already past.
-        server.Starting = starting.IsCompleted ? null : starting;
     }
 
-    private async Task<LanguageSession?> StartAsync(Server server, CancellationToken cancel)
+    /// <summary>A kind's server started: its files connected to it, their banners said again.</summary>
+    private void Started(WebServerKind kind, LanguageSession started)
     {
-        long began = Stopwatch.GetTimestamp();
-        try
+        foreach (WebDocument features in documents.Values.Where(d => d.Kind == kind))
         {
-            string? asked = configured;
-            NodeRuntime node = await (finding ??= BackgroundWork.Run(() => NodeRuntime.FindAsync(asked)));
-            if (cancel.IsCancellationRequested)
-            {
-                return null;
-            }
-            string package = Path.Combine(Modules, Package(server.Kind), "package.json");
-            if (node.Problem is { } none)
-            {
-                Unavailable(server, none, node.Path is null || !File.Exists(node.Path) ? "no Node.js" : "Node.js could not run");
-                return null;
-            }
-            if (node.TooOldFor(package, $"the {Name(server.Kind)} language server") is { } old)
-            {
-                Unavailable(server, old, "Node.js too old");
-                return null;
-            }
-            if (Missing(server.Kind) is { } missing)
-            {
-                Unavailable(server, missing, "language server missing");
-                return null;
-            }
-            ServerStart start = Starting(server.Kind, node.Path!);
-            LanguageSession started = await BackgroundWork.Run(() => LanguageSession.StartAsync(start, cancel), cancel);
-            if (cancel.IsCancellationRequested || disposed)
-            {
-                _ = Task.Run(() => started.DisposeAsync().AsTask());
-                return null;
-            }
-            await Configure(server.Kind, started.Server);
-            Hear(server, started);
-            server.Session = started;
-            server.Problem = null;
-            server.State = $"{Name(server.Kind)} ready";
-            IdeErrors.Write($"{Name(server.Kind)} language server (process {started.Server.ProcessId}) started for {folder} on Node.js {node.Version} in {Stopwatch.GetElapsedTime(began).TotalSeconds:0.00} s");
-            foreach (WebDocument features in documents.Values.Where(d => d.Kind == server.Kind))
-            {
-                features.Connect(started);
-            }
-            foreach (OpenDocument open in documents.Keys.Where(d => documents[d].Kind == server.Kind).ToList())
-            {
-                Announce(open);
-            }
-            StateChanged?.Invoke(this, EventArgs.Empty);
-            return started;
+            features.Connect(started);
         }
-        catch (Exception error) when (error is OperationCanceledException || cancel.IsCancellationRequested)
+        foreach (OpenDocument open in documents.Keys.Where(d => documents[d].Kind == kind).ToList())
         {
-            return null;
+            Announce(open);
         }
-        catch (Exception error)
-        {
-            string why = error is LanguageServerFailed failed ? failed.Reason : error.Message;
-            IdeErrors.Write($"The {Name(server.Kind)} language server could not start for {folder}: {error}");
-            Unavailable(server, $"its language server could not start: {why}", "language server could not start");
-            return null;
-        }
-        finally
-        {
-            server.Starting = null;
-            Dispatcher.UIThread.Post(() => BackgroundWork.End());
-        }
+        StateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>Why a server cannot start that this build is to blame for: its package, or the Dockerfile server's preload,
@@ -565,12 +523,10 @@ public sealed class WebLanguages : IAsyncDisposable
         : null;
 
     /// <summary>A server that cannot run: its files keep their colours and say why in their banner, the status bar in a
-    /// few words (<paramref name="label"/>).</summary>
-    private void Unavailable(Server server, string problem, string label)
+    /// few words.</summary>
+    private void Unavailable(WebServerKind kind)
     {
-        server.Problem = problem;
-        server.State = label;
-        foreach (OpenDocument open in documents.Where(d => d.Value.Kind == server.Kind).Select(d => d.Key).ToList())
+        foreach (OpenDocument open in documents.Where(d => d.Value.Kind == kind).Select(d => d.Key).ToList())
         {
             documents[open].Unreached();
             Announce(open);
@@ -727,103 +683,33 @@ public sealed class WebLanguages : IAsyncDisposable
         }
     }
 
-    /// <summary>Listens to a server once it has started: its errors and warnings to the IDE's log, its end and its hang
-    /// to a replacement, its call to pull diagnostics again to its files.</summary>
-    private void Hear(Server server, LanguageSession started)
-    {
-        LanguageServer language = started.Server;
-        string name = Name(server.Kind);
-        language.Logged += (_, message) =>
-        {
-            if (message.Type is 1 or 2)
-            {
-                IdeErrors.Write($"{name} language server (process {language.ProcessId}) {(message.Type == 1 ? "error" : "warning")}: {message.Message}");
-            }
-        };
-        language.Shown += (_, message) => IdeErrors.Write($"{name} language server (process {language.ProcessId}) says: {message.Message}");
-        language.TypeScriptVersion += (_, _) => UiThread.Post(() => StateChanged?.Invoke(this, EventArgs.Empty));
-        language.DiagnosticsRefreshRequested += (_, _) => UiThread.Post(() =>
-        {
-            if (server.Session == started)
-            {
-                foreach (WebDocument features in documents.Values.Where(d => d.Kind == server.Kind))
-                {
-                    features.Refresh();
-                }
-            }
-        });
-        void Lose(string why) => UiThread.Post(() =>
-        {
-            if (!disposed && server.Session == started)
-            {
-                IdeErrors.Write($"The {name} language server (process {language.ProcessId}) ended: {why}");
-                Lost(server, $"The {name} language server ended");
-            }
-        });
-        language.Exited += (_, why) => Lose(why);
-        // One that ended before it was listened to is lost as any that ends.
-        if (language.Ended is { } gone)
-        {
-            Lose(gone);
-        }
-        language.NotResponding += (_, why) => UiThread.Post(() =>
-        {
-            if (!disposed && server.Session == started)
-            {
-                IdeErrors.Write($"The {name} language server (process {language.ProcessId}) is not responding: {why}");
-                language.Kill();
-                Lost(server, $"{name} server not responding");
-            }
-        });
-    }
-
     /// <summary>A server gone: started again with its files, unless servers of its kind have gone too often to be worth it.</summary>
-    private void Lost(Server server, string what)
+    private void Lost(WebServerKind kind, NodeServer server, string what)
     {
-        DateTime now = DateTime.UtcNow;
-        server.Restarts.RemoveAll(at => now - at > RestartWindow);
-        bool again = server.Restarts.Count < RestartLimit;
-        if (again)
-        {
-            server.Restarts.Add(now);
-        }
-        Replace(server, restart: true, stopped: again ? null : $"its language server stopped {RestartLimit + 1} times in {RestartWindow.TotalMinutes:0} minutes");
-        Stopped?.Invoke(this, again ? $"{what}; starting it again"
-            : $"{what} {RestartLimit + 1} times in {RestartWindow.TotalMinutes:0} minutes, so it was left stopped; the IDE's log says why");
+        bool again = server.Restarts.Again();
+        Replace(kind, server, stopped: again ? null : $"its language server stopped {ServerRestarts.Often}");
+        Stopped?.Invoke(this, ServerRestarts.Said(what, again));
     }
 
-    /// <summary>Ends a server (or its start) and lets its files go, then, when asked, gives them a new one: started, or
-    /// left stopped for the reason given, which their banners say.</summary>
-    private void Replace(Server server, bool restart, string? stopped = null)
+    /// <summary>Ends a server (or its start) and lets its files go, then gives them a new one: started, or left stopped for
+    /// the reason given, which their banners say.</summary>
+    private void Replace(WebServerKind kind, NodeServer server, string? stopped = null)
     {
-        server.Cancel?.Cancel();
-        LanguageSession? ending = server.Session;
-        server.Session = null;
-        server.Starting = null;
-        server.Problem = null;
-        if (ending is not null)
-        {
-            _ = Task.Run(() => ending.DisposeAsync().AsTask());
-        }
-        List<OpenDocument> open = [.. documents.Where(d => d.Value.Kind == server.Kind).Select(d => d.Key)];
+        _ = server.End();
+        List<OpenDocument> open = [.. documents.Where(d => d.Value.Kind == kind).Select(d => d.Key)];
         foreach (OpenDocument document in open)
         {
             Detach(document);
         }
-        servers.Remove(server.Kind);
-        if (restart)
+        servers.Remove(kind);
+        NodeServer again = ServerFor(kind, server.Restarts);
+        if (stopped is not null)
         {
-            Server again = ServerFor(server.Kind);
-            again.Restarts.AddRange(server.Restarts);
-            if (stopped is not null)
-            {
-                again.Problem = stopped;
-                again.State = "language server stopped";
-            }
-            foreach (OpenDocument document in open)
-            {
-                Attach(document);
-            }
+            again.Stop(stopped);
+        }
+        foreach (OpenDocument document in open)
+        {
+            Attach(document);
         }
         StateChanged?.Invoke(this, EventArgs.Empty);
     }
@@ -848,34 +734,9 @@ public sealed class WebLanguages : IAsyncDisposable
             document.NoticeAction = null;
         }
         documents.Clear();
-        List<LanguageSession> closing = [];
-        foreach (Server server in servers.Values)
-        {
-            server.Cancel?.Cancel();
-            if (server.Session is { } session)
-            {
-                closing.Add(session);
-            }
-        }
+        List<Task> closing = [linter, formatter, .. servers.Values.Select(s => s.End())];
         servers.Clear();
         // Done at once with nothing running, so the folder opened next opens as the call that left this one returns.
-        if (closing.Count == 0 && linter.IsCompleted && formatter.IsCompleted)
-        {
-            return ValueTask.CompletedTask;
-        }
-        // Not held: the window's end waits for it with no UI thread to come back to.
-        return new ValueTask(Task.Run(() => Task.WhenAll([linter, formatter, .. closing.Select(s => s.DisposeAsync().AsTask())])));
-    }
-
-    /// <summary>One kind's server: running, starting, or unable to run and why, and when it was last started again.</summary>
-    private sealed class Server(WebServerKind kind)
-    {
-        public WebServerKind Kind { get; } = kind;
-        public LanguageSession? Session { get; set; }
-        public Task<LanguageSession?>? Starting { get; set; }
-        public CancellationTokenSource? Cancel { get; set; }
-        public string State { get; set; } = string.Empty;
-        public string? Problem { get; set; }
-        public List<DateTime> Restarts { get; } = [];
+        return closing.All(t => t.IsCompleted) ? ValueTask.CompletedTask : new ValueTask(Task.WhenAll(closing));
     }
 }

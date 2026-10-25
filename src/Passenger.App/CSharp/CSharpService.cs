@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Threading.Channels;
-using Avalonia.Threading;
 using Passenger.App.Run;
 using Passenger.App.Workspace;
 using Passenger.Core;
@@ -25,13 +24,8 @@ public sealed class CSharpService : IAsyncDisposable
     /// load is logged before the message that there were problems loading it).</summary>
     private static readonly TimeSpan ReasonWindow = TimeSpan.FromSeconds(10);
 
-    /// <summary>How many times a server that keeps ending or hanging is started again within <see cref="RestartWindow"/>.</summary>
-    private const int RestartLimit = 3;
-
-    private static readonly TimeSpan RestartWindow = TimeSpan.FromMinutes(5);
-
     private readonly Dictionary<OpenDocument, CSharpDocument> documents = [];
-    private readonly List<DateTime> restarts = [];
+    private readonly ServerRestarts restarts = new();
     private readonly WarmServer? warm;
 
     /// <summary>What this service hung on its server's events, undone when the server is kept for another window.</summary>
@@ -730,7 +724,7 @@ public sealed class CSharpService : IAsyncDisposable
         }
         finally
         {
-            Dispatcher.UIThread.Post(() => BackgroundWork.End());
+            UiThread.Post(() => BackgroundWork.End());
         }
     }
 
@@ -1057,16 +1051,13 @@ public sealed class CSharpService : IAsyncDisposable
             Detach(open);
             Attach(open);
         }
-        DateTime now = DateTime.UtcNow;
-        restarts.RemoveAll(at => now - at > RestartWindow);
-        if (restarts.Count >= RestartLimit)
+        if (!restarts.Again())
         {
             SetState("C# stopped");
-            Stopped?.Invoke(this, $"{what} {RestartLimit + 1} times in {RestartWindow.TotalMinutes:0} minutes, so it was left stopped; the IDE's log says why");
+            Stopped?.Invoke(this, ServerRestarts.Said(what, again: false));
             return;
         }
-        restarts.Add(now);
-        Stopped?.Invoke(this, $"{what}; starting it again");
+        Stopped?.Invoke(this, ServerRestarts.Said(what, again: true));
         Start(restarting);
     }
 

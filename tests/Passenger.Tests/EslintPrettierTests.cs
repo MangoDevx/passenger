@@ -102,6 +102,37 @@ public sealed class EslintPrettierTests : IClassFixture<EslintPrettierTests.Proj
     }
 
     [AvaloniaFact]
+    public void A_file_whose_eslint_needs_a_later_Node_js_says_why_it_is_not_checked_and_the_rest_are_checked_still()
+    {
+        Project.SkipWithoutNode();
+        project.AddFolder("future", ("app.js", "let total = 1;\nconsole.log(total);\n"));
+        project.AddFolder("future/node_modules/eslint", ("package.json", "{ \"name\": \"eslint\", \"version\": \"99.0.0\", \"engines\": { \"node\": \">=99\" } }\n"));
+        NodeRuntime node = Task.Run(() => NodeRuntime.FindAsync(null)).GetAwaiter().GetResult();
+        MainWindow window = project.Open("future/app.js");
+        try
+        {
+            string said = $"ESLint cannot check app.js: ESLint needs Node.js 99.0.0 or later, and {node.Path} is {node.Version}: update it, or name a later one in {NodeRuntime.SettingsPlace}";
+            Ui.WaitFor(() => window.Status == said, () => $"the status bar to say the file's eslint needs a later Node.js (it says '{window.Status}')");
+            Assert.DoesNotContain(window.EditorArea.Active!.Markers, m => m.Message.StartsWith("ESLint:", StringComparison.Ordinal));
+
+            window.OpenFile(project.PathOf("src/app.js"));
+            Ui.Settle();
+            OpenDocument checkedStill = window.EditorArea.Active!;
+            Ui.PlaceAfter(window.EditorArea.CodeEditor, "console.log(items);");
+            Ui.Press(window, "ENTER");
+            window.KeyTextInput("let total = items.length;");
+            Ui.Press(window, "ENTER");
+            window.KeyTextInput("console.log(total);");
+            Ui.WaitFor(() => checkedStill.Markers.Any(m => m.Message == PreferConst), "ESLint's problem in the file whose eslint runs on this Node.js");
+        }
+        finally
+        {
+            window.Close();
+            project.Reset();
+        }
+    }
+
+    [AvaloniaFact]
     public void Fix_ESLint_Problems_fixes_the_whole_file_and_a_save_fixes_first_when_Settings_ask_and_Disabled_takes_ESLints_problems_away()
     {
         Project.SkipWithoutNode();

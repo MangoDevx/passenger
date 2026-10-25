@@ -1,7 +1,5 @@
-using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Avalonia.Threading;
 using Passenger.App.CSharp;
 using Passenger.App.Settings;
 using Passenger.App.Workspace;
@@ -20,20 +18,15 @@ namespace Passenger.App.Web;
 /// object.</summary>
 public sealed class EslintService : IAsyncDisposable
 {
-    private const int RestartLimit = 3;
-
-    private static readonly TimeSpan RestartWindow = TimeSpan.FromMinutes(5);
-
     private readonly string folder;
     private readonly Func<AppSettings> settings;
     private readonly Func<Task<NodeRuntime>> node;
     private readonly Dictionary<OpenDocument, EslintDocument> documents = [];
-    private readonly List<DateTime> restarts = [];
+    private readonly ServerRestarts restarts = new();
     private readonly HashSet<string> said = new(StringComparer.Ordinal);
-    private LanguageSession? session;
-    private Task<LanguageSession?>? starting;
-    private CancellationTokenSource? cancel;
-    private string? problem;
+
+    /// <summary>The server, running, starting or unable to run; null before the first file it checks.</summary>
+    private NodeServer? server;
     private bool disposed;
 
     /// <summary>ESLint for a folder, configured as Settings says, on the Node.js <paramref name="node"/> finds.</summary>
@@ -91,14 +84,32 @@ public sealed class EslintService : IAsyncDisposable
         EslintDocument lint = new(document, web);
         documents[document] = lint;
         web.Lint = lint;
-        if (session is { } running)
+        if (server is null)
         {
-            lint.Connect(running);
+            server = Server();
+            server.Start();
         }
-        else if (starting is null && problem is null)
+        else if (server.Session is { } running)
         {
-            Start();
+            Connect(document, lint, running, server.Runtime!);
         }
+        // Else the start under way connects it with the rest, or the server cannot run.
+    }
+
+    /// <summary>Connects a file to the server unless its eslint needs a later Node.js than the server runs on, which is
+    /// said once for each package.</summary>
+    private void Connect(OpenDocument document, EslintDocument lint, LanguageSession running, NodeRuntime runtime)
+    {
+        string package = PackageFor(document.Path) is { } found ? Path.Combine(found, "package.json") : string.Empty;
+        if (runtime.TooOldFor(package, "ESLint") is { } old)
+        {
+            if (said.Add("too old" + package))
+            {
+                Message?.Invoke(this, $"ESLint cannot check {document.Name}: {old}");
+            }
+            return;
+        }
+        lint.Connect(running);
     }
 
     public void Detach(OpenDocument document)
@@ -117,7 +128,7 @@ public sealed class EslintService : IAsyncDisposable
         UiThread.Check();
         List<object> changes = [.. paths.Where(p => Configures(Path.GetFileName(p)))
             .Select(p => new { uri = DocumentUris.FromPath(p), type = File.Exists(p) ? 2 : 3 })];
-        if (changes.Count > 0 && session is { } running)
+        if (changes.Count > 0 && server?.Session is { } running)
         {
             running.Server.Notify("workspace/didChangeWatchedFiles", new { changes });
         }
@@ -139,98 +150,51 @@ public sealed class EslintService : IAsyncDisposable
             lint.Dispose();
         }
         documents.Clear();
-        End();
-        problem = null;
+        _ = server?.End();
+        server = null;
         said.Clear();
     }
 
-    private void End()
+    /// <summary>The server for the folder: its files connected once it has started, its own messages heard, and its end
+    /// a replacement. Without a Node.js, the file's banner says why for its language server, which needs one as much.</summary>
+    private NodeServer Server()
     {
-        cancel?.Cancel();
-        starting = null;
-        if (session is { } ending)
+        NodeServer made = null!;
+        made = new NodeServer("ESLint", folder, node, restarts)
         {
-            session = null;
-            _ = Task.Run(() => ending.DisposeAsync().AsTask());
-        }
-    }
-
-    private void Start()
-    {
-        CancellationTokenSource started = new();
-        cancel = started;
-        BackgroundWork.Begin();
-        Task<LanguageSession?> start = StartAsync(started);
-        // One that could not start said so before it returned, its end already past.
-        starting = start.IsCompleted ? null : start;
-    }
-
-    /// <summary>One start of the server, <paramref name="own"/> its cancellation: the folder's start until another takes its
-    /// place (<see cref="End"/> cancels it first), after which its server, if it still comes, is ended rather than kept.</summary>
-    private async Task<LanguageSession?> StartAsync(CancellationTokenSource own)
-    {
-        CancellationToken cancelled = own.Token;
-        long began = Stopwatch.GetTimestamp();
-        try
-        {
-            NodeRuntime runtime = await node();
-            if (cancelled.IsCancellationRequested || disposed)
-            {
-                return null;
-            }
-            if (runtime.Problem is { } none)
-            {
-                // The file's banner says so for its language server, which needs it as much.
-                problem = none;
-                return null;
-            }
-            if (!File.Exists(Script))
-            {
-                problem = $"the ESLint language server is missing from the app's folder ({Script})";
-                Message?.Invoke(this, $"ESLint cannot run: {problem}");
-                return null;
-            }
-            ServerStart start = new(ChildProcesses.Command(runtime.Path!, [Script, "--stdio"], folder), folder, WebLanguages.LogFolder, ClientCapabilities.Web)
+            Package = Path.Combine(WebLanguages.Modules, "vscode-langservers-extracted", "package.json"),
+            Missing = () => File.Exists(Script) ? null : $"the ESLint language server is missing from the app's folder ({Script})",
+            Command = runtime => new ServerStart(ChildProcesses.Command(runtime, [Script, "--stdio"], folder), folder, WebLanguages.LogFolder, ClientCapabilities.Web)
             {
                 Configuration = Section,
                 ApplyEdit = edit => UiThread.InvokeAsync<string?>(() => disposed ? "the folder was closed" : ApplyEdit?.Invoke(edit) ?? "Passenger cannot make ESLint's edit here"),
-            };
-            LanguageSession started = await BackgroundWork.Run(() => LanguageSession.StartAsync(start, cancelled), cancelled);
-            if (cancelled.IsCancellationRequested || disposed || cancel != own)
+            },
+            HearsOwnLog = true,
+            Listen = Hear,
+            Started = started =>
             {
-                _ = Task.Run(() => started.DisposeAsync().AsTask());
-                return null;
-            }
-            Hear(started);
-            session = started;
-            IdeErrors.Write($"ESLint language server (process {started.Server.ProcessId}) started for {folder} on Node.js {runtime.Version} in {Stopwatch.GetElapsedTime(began).TotalSeconds:0.00} s");
-            foreach (EslintDocument lint in documents.Values)
+                foreach ((OpenDocument document, EslintDocument lint) in documents)
+                {
+                    Connect(document, lint, started, made.Runtime!);
+                }
+            },
+            Unavailable = () =>
             {
-                lint.Connect(started);
-            }
-            return started;
-        }
-        catch (Exception error) when (error is OperationCanceledException || cancelled.IsCancellationRequested)
-        {
-            return null;
-        }
-        catch (Exception error)
-        {
-            string why = error is LanguageServerFailed failed ? failed.Reason : error.Message;
-            IdeErrors.Write($"The ESLint language server could not start for {folder}: {error}");
-            problem = $"its language server could not start: {why}";
-            Message?.Invoke(this, $"ESLint could not start: {why}");
-            return null;
-        }
-        finally
-        {
-            // A start ended (Settings, the Node.js changed) unwinds after the one in its place has begun, which it leaves be.
-            if (cancel == own)
+                if (!made.WithoutNode)
+                {
+                    Message?.Invoke(this, $"ESLint cannot run: {made.Problem}");
+                }
+            },
+            Refresh = () =>
             {
-                starting = null;
-            }
-            Dispatcher.UIThread.Post(() => BackgroundWork.End());
-        }
+                foreach (EslintDocument lint in documents.Values)
+                {
+                    lint.Refresh();
+                }
+            },
+            Lost = Lost,
+        };
+        return made;
     }
 
     /// <summary>What the server reads as each file's settings, asked for whole: lint as typed, the package found from
@@ -271,8 +235,8 @@ public sealed class EslintService : IAsyncDisposable
         return JsonDocument.Parse(answer.ToJsonString()).RootElement.Clone();
     }
 
-    /// <summary>Listens to a server once it has started: its errors to the IDE's log, its end to a replacement, its own
-    /// messages to the status bar once a kind and file.</summary>
+    /// <summary>Listens to a server once it has started: its errors to the IDE's log, its own messages to the status bar
+    /// once a kind and file.</summary>
     private void Hear(LanguageSession started)
     {
         LanguageServer server = started.Server;
@@ -299,7 +263,6 @@ public sealed class EslintService : IAsyncDisposable
             }
             IdeErrors.Write($"ESLint language server (process {server.ProcessId}) {(message.Type == 1 ? "error" : "warning")}: {said}");
         };
-        server.Shown += (_, message) => IdeErrors.Write($"ESLint language server (process {server.ProcessId}) says: {message.Message}");
         server.Said += (_, message) =>
         {
             bool unconfigured = false;
@@ -309,39 +272,6 @@ public sealed class EslintService : IAsyncDisposable
             }
             UiThread.Post(() => Heard(started, message, unconfigured));
         };
-        server.DiagnosticsRefreshRequested += (_, _) => UiThread.Post(() =>
-        {
-            if (session == started)
-            {
-                foreach (EslintDocument lint in documents.Values)
-                {
-                    lint.Refresh();
-                }
-            }
-        });
-        void Lose(string why) => UiThread.Post(() =>
-        {
-            if (!disposed && session == started)
-            {
-                IdeErrors.Write($"The ESLint language server (process {server.ProcessId}) ended: {why}");
-                Lost("The ESLint language server ended");
-            }
-        });
-        server.Exited += (_, why) => Lose(why);
-        // One that ended before it was listened to is lost as any that ends.
-        if (server.Ended is { } gone)
-        {
-            Lose(gone);
-        }
-        server.NotResponding += (_, why) => UiThread.Post(() =>
-        {
-            if (!disposed && session == started)
-            {
-                IdeErrors.Write($"The ESLint language server (process {server.ProcessId}) is not responding: {why}");
-                server.Kill();
-                Lost("ESLint not responding");
-            }
-        });
     }
 
     /// <summary>The first line vscode-eslint's catch-all writes before the error's stack, as a message of its own.</summary>
@@ -364,7 +294,7 @@ public sealed class EslintService : IAsyncDisposable
     /// status after its configuration was not found (<paramref name="unconfigured"/>) is said as eslint/noConfig is.</summary>
     private void Heard(LanguageSession from, ServerMessage message, bool unconfigured)
     {
-        if (session != from)
+        if (server?.Session != from)
         {
             return;
         }
@@ -395,25 +325,22 @@ public sealed class EslintService : IAsyncDisposable
     /// <summary>A server gone: started again with its files, unless one has gone too often to be worth it.</summary>
     private void Lost(string what)
     {
-        DateTime now = DateTime.UtcNow;
-        restarts.RemoveAll(at => now - at > RestartWindow);
-        bool again = restarts.Count < RestartLimit;
+        bool again = restarts.Again();
         List<(OpenDocument Document, WebDocument Web)> open = [.. documents.Select(d => (d.Key, d.Value.Web))];
         Reset();
         if (again)
         {
-            restarts.Add(now);
             foreach ((OpenDocument document, WebDocument web) in open)
             {
                 Attach(document, web);
             }
-            Message?.Invoke(this, $"{what}; starting it again");
         }
         else
         {
-            problem = $"it stopped {RestartLimit + 1} times in {RestartWindow.TotalMinutes:0} minutes";
-            Message?.Invoke(this, $"{what} {RestartLimit + 1} times in {RestartWindow.TotalMinutes:0} minutes, so it was left stopped; the IDE's log says why");
+            server = Server();
+            server.Stop($"it stopped {ServerRestarts.Often}");
         }
+        Message?.Invoke(this, ServerRestarts.Said(what, again));
     }
 
     public ValueTask DisposeAsync()
@@ -425,11 +352,9 @@ public sealed class EslintService : IAsyncDisposable
             lint.Dispose();
         }
         documents.Clear();
-        cancel?.Cancel();
-        LanguageSession? ending = session;
-        session = null;
-        // Not held: the window's end waits for it with no UI thread to come back to.
-        return ending is null ? ValueTask.CompletedTask : new ValueTask(Task.Run(() => ending.DisposeAsync().AsTask()));
+        Task ending = server?.End() ?? Task.CompletedTask;
+        server = null;
+        return new ValueTask(ending);
     }
 }
 
