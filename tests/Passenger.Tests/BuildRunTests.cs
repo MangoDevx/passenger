@@ -765,6 +765,8 @@ public sealed class BuildRunTests : IClassFixture<RestoredFolders>, IDisposable
 
             window.ApplySettings(window.Settings with { OpenBuildWindowOnImplicitBuild = true });
             window.ShowToolWindow(ToolWindowIds.Problems);
+            // A change for it to build, a run of what its last build left starting with none.
+            Write("src/Hello/Program.cs", "Console.WriteLine(\"Hello again\");\n");
             window.Perform(AppActions.RunProgram);
             Ui.PumpUntil(() => window.IsBuilding, "the second run's build to start", TimeSpan.FromMinutes(1));
             Assert.True(window.DockHost.IsShown(ToolWindowIds.Build), "With Rider's \"even when the build is invoked implicitly\" on, Run's build did not open the Build window");

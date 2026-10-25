@@ -556,8 +556,49 @@ public sealed partial class BuildRunController
     private string Canceled(Working work, string name) => session.IsEnded ? Refusals.SolutionClosed : StoppedStarting(name);
 
     /// <summary>A start's build of what it starts, in the Build window, which comes forward only as Settings says for a build
-    /// Run, Debug or Profile begins: stopped as the start is (<paramref name="stopping"/>), as Stop stops a build.</summary>
-    public Task<BuildOutcome> BuildForAsync(BuildStep step, CancellationToken stopping) => BuildForAsync([step.Project], stopping, step.Framework, step.Output);
+    /// Run, Debug or Profile begins: stopped as the start is (<paramref name="stopping"/>), as Stop stops a build. What is
+    /// open is saved first; a project whose last build here stands (<see cref="UpToDate"/>) is not built again, the Build
+    /// window and the status bar saying so.</summary>
+    public async Task<BuildOutcome> BuildForAsync(BuildStep step, CancellationToken stopping)
+    {
+        UiThread.Check();
+        UpToDate.Check? check = null;
+        if (session.Folder is { } folder && !IsBuilding && !session.IsEnded)
+        {
+            parts.Editors.SaveAll();
+            bool windows = BuildOutput.WindowsTargeting(step.Project, session.Projects);
+            IReadOnlyList<string> arguments = BuildOutput.Arguments(step.Project, BuildKind.Build, step.Framework, windows, step.Output);
+            check = await BackgroundWork.Run(() => UpToDate.CheckAsync(step, arguments, windows, folder, stopping));
+            if (stopping.IsCancellationRequested)
+            {
+                return new BuildOutcome(BuildStatus.Stopped, "Build stopped");
+            }
+            if (check is { Holds: true } && !IsBuilding && !session.IsEnded)
+            {
+                string said = UpToDateSaid(Path.GetFileNameWithoutExtension(step.Project));
+                parts.Views.Build.Clear();
+                parts.Views.Build.Append($"{said}\n");
+                parts.Say(said);
+                return new BuildOutcome(BuildStatus.Succeeded, said);
+            }
+        }
+        BuildOutcome built = await BuildForAsync([step.Project], stopping, step.Framework, step.Output);
+        if (check is not null)
+        {
+            if (built.Succeeded)
+            {
+                await BackgroundWork.Run(() => UpToDate.BuiltAsync(check, stopping));
+            }
+            else
+            {
+                UpToDate.Forget(check);
+            }
+        }
+        return built;
+    }
+
+    /// <summary>What a start says of a project it did not build: nothing its build reads changed since its last.</summary>
+    public static string UpToDateSaid(string project) => $"{project} is up to date: nothing its build reads has changed since it was built, so it was not built again";
 
     /// <summary>A start's build of projects one after another (<see cref="BuildForAsync(BuildStep, CancellationToken)"/>).</summary>
     private async Task<BuildOutcome> BuildForAsync(IReadOnlyList<string> projects, CancellationToken stopping, string? framework = null, string? output = null)
