@@ -13,11 +13,11 @@ namespace Passenger.App.CSharp;
 
 /// <summary>C# for the open folder: Roslyn's language server started on the workspace's solution or projects, its state
 /// for the status bar, and a <see cref="CSharpDocument"/> for every C# file open in a tab. Files opened before the
-/// server is ready are attached once it is. A server that ends on its own, or stops answering, is started again with
-/// the open files, a few times at most. What the server tells the person (a project that did not load or loaded with
-/// warnings, and why) is said in the status bar and logged, each project's load problems kept for Problems, the load's
-/// progress shown, and each start's phases timed. A UI-thread object: what the server says from its threads crosses
-/// through <see cref="UiThread"/>.</summary>
+/// server is ready are attached once it is, a file of a project it is loading once that project has loaded. A server
+/// that ends on its own, or stops answering, is started again with the open files, a few times at most. What the server
+/// tells the person (a project that did not load or loaded with warnings, and why) is said in the status bar and logged,
+/// each project's load problems kept for Problems, the load's progress shown, and each start's phases timed. A UI-thread
+/// object: what the server says from its threads crosses through <see cref="UiThread"/>.</summary>
 public sealed class CSharpService : IAsyncDisposable
 {
     /// <summary>How long after an error the server logged a message it shows can be its reason (a project's failure to
@@ -38,6 +38,10 @@ public sealed class CSharpService : IAsyncDisposable
     /// <summary>When the window heard the server had loaded every project (a Stopwatch timestamp), for the start's
     /// timing.</summary>
     private (RoslynSession Session, long At)? loadedAt;
+
+    /// <summary>The projects a server has said it loaded (a load report naming each), and that server: a file one of them
+    /// holds is opened in it from then on (<see cref="ConnectLoaded"/>).</summary>
+    private (LanguageServer? Server, HashSet<string> Projects) reported = (null, new HashSet<string>(PathNames.Comparer));
 
     /// <summary>A service that starts its own server and ends it with itself, or, given a <see cref="WarmServer"/>, takes
     /// up the server kept there and leaves its own there as it ends.</summary>
@@ -522,7 +526,38 @@ public sealed class CSharpService : IAsyncDisposable
         documents[document] = features;
         if (session is not null)
         {
-            features.Connect(session);
+            ConnectLoaded(session);
+        }
+    }
+
+    /// <summary>Opens in the server each open file it can have in a project of its own now: every one once all the projects
+    /// have loaded, before that one no project of the folder holds, or whose project the server has said it loaded. One
+    /// opened while its project loads would be one of the server's Miscellaneous Files meanwhile, whose project it restores.</summary>
+    private void ConnectLoaded(RoslynSession started)
+    {
+        foreach ((OpenDocument open, CSharpDocument features) in documents)
+        {
+            if (started.IsLoaded || HolderOf(open.Path) is not { } project || (reported.Server == started.Server && reported.Projects.Contains(project)))
+            {
+                features.Connect(started);
+            }
+        }
+    }
+
+    /// <summary>The project of the folder's that holds a file, by its path; null for none.</summary>
+    private string? HolderOf(string path) => workspace is { } opened ? ProjectModel.Owning(opened.Projects, path)?.Path : null;
+
+    /// <summary>A server has said a project loaded, with problems or none: its files open are opened in it.</summary>
+    private void Reported(LanguageServer from, string project)
+    {
+        if (reported.Server != from)
+        {
+            reported = (from, new HashSet<string>(PathNames.Comparer));
+        }
+        reported.Projects.Add(project);
+        if (session is { } current && current.Server == from)
+        {
+            ConnectLoaded(current);
         }
     }
 
@@ -688,10 +723,7 @@ public sealed class CSharpService : IAsyncDisposable
                 started.Server.SetOptions(IndentSettings(told));
             }
             SetState(started.Solution is { } opened ? $"Loading {Path.GetFileName(opened)}…" : "Loading projects…");
-            foreach (CSharpDocument features in documents.Values)
-            {
-                features.Connect(started);
-            }
+            ConnectLoaded(started);
             if (!started.IsLoaded)
             {
                 // A wait with no fault to leave behind: a window gone meanwhile never hears its end.
@@ -706,6 +738,7 @@ public sealed class CSharpService : IAsyncDisposable
                 }
             }
             IdeErrors.Write($"C# language server (process {started.Server.ProcessId}) loaded {loading} in {Since(began)}");
+            ConnectLoaded(started);
             loadedAt = (started, Stopwatch.GetTimestamp());
             SetState("C# ready");
             RefreshAll();
@@ -814,8 +847,10 @@ public sealed class CSharpService : IAsyncDisposable
                 }
                 batch.Add(problem);
                 ProjectProblemsChanged?.Invoke(this, EventArgs.Empty);
+                Reported(from, problem.Project);
                 break;
             case { Kind: LoadReportKind.Loaded, Project: { } project }:
+                Reported(from, project);
                 if (loadProblems.Remove(project))
                 {
                     ProjectProblemsChanged?.Invoke(this, EventArgs.Empty);

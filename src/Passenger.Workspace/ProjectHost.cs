@@ -31,13 +31,21 @@ public sealed class ProjectHost : IAsyncDisposable
 
     private volatile bool gone;
 
-    private ProjectHost(Process process, HostReady ready)
+    /// <summary>The folder the host was started for, with the global.json over it as it stood (<see cref="Dotnet.GlobalJsonOver"/>).</summary>
+    private readonly (string Folder, string GlobalJson) startedFor;
+
+    private ProjectHost(Process process, HostReady ready, string folder, string globalJson)
     {
         this.process = process;
         ProcessId = process.Id;
         Sdk = ready.Sdk;
         Version = ready.Version;
+        startedFor = (folder, globalJson);
     }
+
+    /// <summary>Whether its SDK is the one a folder picks, known without asking dotnet: the host was started for that folder,
+    /// whose global.json stands as it did, and found the SDK as dotnet does there.</summary>
+    public bool StartedFor(string folder) => PathNames.Same(startedFor.Folder, folder) && Dotnet.GlobalJsonOver(folder) == startedFor.GlobalJson;
 
     /// <summary>Where the app carries the host.</summary>
     public static string Assembly => Path.Combine(AppContext.BaseDirectory, "host", "Passenger.Host.dll");
@@ -59,6 +67,8 @@ public sealed class ProjectHost : IAsyncDisposable
         {
             throw new ProjectHostFailed("the project host is missing from the app's folder");
         }
+        // As it stands before the host reads it, so a change while it starts is a change since.
+        string globalJson = Dotnet.GlobalJsonOver(folder);
         ProcessStartInfo start;
         try
         {
@@ -107,7 +117,7 @@ public sealed class ProjectHost : IAsyncDisposable
                 throw new ProjectHostFailed(error);
             }
             HostReady ready = reply.Result?.Deserialize<HostReady>(HostJson.Options) ?? throw new ProjectHostFailed("the project host did not say which SDK it loaded");
-            ProjectHost host = new(process, ready);
+            ProjectHost host = new(process, ready, folder, globalJson);
             _ = Task.Run(host.ReadAsync);
             return host;
         }
@@ -339,6 +349,10 @@ public static class ProjectHosts
         try
         {
             Running.RemoveAll(h => h.HasExited);
+            if (Running.FirstOrDefault(h => h.StartedFor(folder)) is { } own)
+            {
+                return own;
+            }
             if (Running.Count > 0)
             {
                 string? wanted;

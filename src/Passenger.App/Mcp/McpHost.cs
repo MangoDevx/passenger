@@ -10,6 +10,7 @@ using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Passenger.App.State;
 using Passenger.Core;
+using Passenger.Workspace;
 
 namespace Passenger.App.Mcp;
 
@@ -227,18 +228,19 @@ public static partial class McpHost
         Stream output = Console.OpenStandardOutput();
         // Standard output is the protocol's alone, and standard error the agent may never read: the console goes to the log.
         IdeLog.TakeConsole();
+        StartHostAhead(launch);
 
         using CancellationTokenSource done = new();
         TaskCompletionSource<PassengerTools> ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
         TaskCompletionSource ended = new(TaskCreationOptions.RunContinuationsAsynchronously);
         // The agent's own IDE: nobody else is at it to ask.
         AgentConnection connection = new(done.Token, attached: false);
-        McpServer server = McpServer.Create(new PeerTransport(new StreamServerTransport(input, output, "passenger")), Options(ready.Task, connection));
-        // Not held: it serves for as long as the agent stays, and each tool holds what it starts.
+        // Not held, and made on a worker while the window is: it serves as long as the agent stays, each tool holding what it starts.
         _ = Task.Run(async () =>
         {
             try
             {
+                McpServer server = McpServer.Create(new PeerTransport(new StreamServerTransport(input, output, "passenger")), Options(ready.Task, connection));
                 await server.RunAsync(done.Token);
             }
             finally
@@ -269,6 +271,32 @@ public static partial class McpHost
         PassengerApp.Quit();
         PassengerApp.End();
         return 0;
+    }
+
+    /// <summary>Starts the project host for the folder the command line names, on a worker, while the window is made, which
+    /// the folder's first evaluation would wait for; one that cannot start says why when the folder asks for it.</summary>
+    private static void StartHostAhead(LaunchOptions launch)
+    {
+        if ((launch.Workspace ?? launch.Folder) is not { } named)
+        {
+            return;
+        }
+        string full = PathNames.Canonical(named);
+        string folder = File.Exists(full) && WorkspaceModel.Opens(full) ? Path.GetDirectoryName(full)! : full;
+        if (Directory.Exists(folder))
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await ProjectHosts.ForAsync(folder);
+                }
+                catch (ProjectHostFailed)
+                {
+                    // Said when the folder asks for its host.
+                }
+            });
+        }
     }
 
     /// <summary><c>--headless [PATH]</c>: a person's window on the headless platform, which <c>--mcp-attach</c> starts
