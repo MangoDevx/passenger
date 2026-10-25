@@ -473,16 +473,16 @@ public sealed partial class PassengerTools
         return (live, null, chosen);
     }
 
-    private static List<string>? Modifiers(IReadOnlyList<string>? names) => names is null ? null : [.. names.Select(Modifier)];
+    private static List<Modifier>? Modifiers(IReadOnlyList<string>? names) => names is null ? null : [.. names.Select(ModifierNamed)];
 
-    /// <summary>A modifier's name as the inspector takes it, or an error naming those there are.</summary>
-    private static string Modifier(string name) => name.Trim().ToLowerInvariant() switch
+    /// <summary>A modifier as an agent names it, or an error naming those there are.</summary>
+    private static Modifier ModifierNamed(string name) => name.Trim().ToLowerInvariant() switch
     {
-        "ctrl" or "control" => "Control",
-        "shift" => "Shift",
-        "alt" or "option" or "opt" => "Alt",
-        "cmd" or "command" or "meta" or "win" or "super" => "Meta",
-        "primary" or "cmdorctrl" => "Primary",
+        "ctrl" or "control" => Modifier.Control,
+        "shift" => Modifier.Shift,
+        "alt" or "option" or "opt" => Modifier.Alt,
+        "cmd" or "command" or "meta" or "win" or "super" => Modifier.Meta,
+        "primary" or "cmdorctrl" => Modifier.Primary,
         _ => throw new ArgumentException($"No modifier '{name}': there are ctrl, shift, alt, cmd (meta) and primary"),
     };
 
@@ -494,7 +494,7 @@ public sealed partial class PassengerTools
         {
             // The plus key is a chord's last + when it ends in two, or the whole chord.
             string[] parts = written == "+" ? ["+"] : written.EndsWith("++", StringComparison.Ordinal) ? [.. written[..^2].Split('+'), "+"] : written.Split('+');
-            List<string> held = [.. parts[..^1].Select(Modifier)];
+            List<Modifier> held = [.. parts[..^1].Select(ModifierNamed)];
             chords.Add(new Chord(KeyName(parts[^1]), held));
         }
         return chords.Count > 0 ? chords : throw new ArgumentException("Name the keys to press");

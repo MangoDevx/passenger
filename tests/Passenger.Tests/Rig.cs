@@ -1372,34 +1372,11 @@ public static class Ui
     public static void Run(TopLevel window, string action)
     {
         Shortcut shortcut = Passenger.App.AppActions.Keymap().ShortcutsFor(action)[0];
-        Press(window, shortcut.Second is { } second ? $"{Notation(shortcut.First)} , {Notation(second)}" : Notation(shortcut.First));
+        Press(window, shortcut.Notation());
     }
 
     /// <summary>The first shortcut the platform's keymap gives an IDE action, in keymap notation.</summary>
-    public static string Shortcut(string action) => Notation(Passenger.App.AppActions.Keymap().ShortcutsFor(action)[0].First);
-
-    private static string Notation(Keystroke stroke)
-    {
-        List<string> parts = [];
-        if (stroke.Modifiers.HasFlag(KeyModifiers.Meta))
-        {
-            parts.Add("meta");
-        }
-        if (stroke.Modifiers.HasFlag(KeyModifiers.Control))
-        {
-            parts.Add("control");
-        }
-        if (stroke.Modifiers.HasFlag(KeyModifiers.Alt))
-        {
-            parts.Add("alt");
-        }
-        if (stroke.Modifiers.HasFlag(KeyModifiers.Shift))
-        {
-            parts.Add("shift");
-        }
-        parts.Add(stroke.Key.ToString());
-        return string.Join(' ', parts);
-    }
+    public static string Shortcut(string action) => Passenger.App.AppActions.Keymap().ShortcutsFor(action)[0].First.Notation();
 
     public static RawInputModifiers Raw(KeyModifiers modifiers)
     {

@@ -302,20 +302,20 @@ internal sealed class Driver(Inspector inspector)
         shows,
         Shown.Focused() is Visual focused ? Inspector.Named(focused) : null);
 
-    /// <summary>The modifiers named, Primary being the platform's command key (Cmd on macOS, Ctrl elsewhere).</summary>
-    private static RawInputModifiers Held(IReadOnlyList<string>? names)
+    /// <summary>The modifiers held, Primary being the platform's command key (Cmd on macOS, Ctrl elsewhere).</summary>
+    private static RawInputModifiers Held(IReadOnlyList<Modifier>? modifiers)
     {
         RawInputModifiers held = RawInputModifiers.None;
-        foreach (string name in names ?? [])
+        foreach (Modifier modifier in modifiers ?? [])
         {
-            held |= name.ToLowerInvariant() switch
+            held |= modifier switch
             {
-                "control" or "ctrl" => RawInputModifiers.Control,
-                "shift" => RawInputModifiers.Shift,
-                "alt" or "option" => RawInputModifiers.Alt,
-                "meta" or "cmd" or "command" or "win" => RawInputModifiers.Meta,
-                "primary" => Raw(Hotkeys.Command),
-                _ => throw new Refusal($"No modifier '{name}'"),
+                Modifier.Control => RawInputModifiers.Control,
+                Modifier.Shift => RawInputModifiers.Shift,
+                Modifier.Alt => RawInputModifiers.Alt,
+                Modifier.Meta => RawInputModifiers.Meta,
+                Modifier.Primary => Raw(Hotkeys.Command),
+                _ => throw new Refusal($"No modifier {modifier}"),
             };
         }
         return held;

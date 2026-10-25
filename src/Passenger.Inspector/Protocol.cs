@@ -15,7 +15,7 @@ namespace Passenger.Inspector;
 public static class Wire
 {
     /// <summary>Bumped by a change either end must know of: a hello of another version is refused, saying so.</summary>
-    public const int Version = 7;
+    public const int Version = 8;
 
     /// <summary>The app's environment: the socket's path, where it connects.</summary>
     public const string SocketVariable = "PASSENGER_INSPECTOR";
@@ -149,8 +149,8 @@ public sealed record ShownValue(string Text, string Type, int Slot);
 /// <summary>Input to the app as a person gives it: into its window's own way in from the platform, so hit testing, routing,
 /// pointer-over, focus, gestures, key bindings and commands all run as they would. Kind is one of <see cref="InputKinds"/>.
 /// The pointer acts at the element's centre (or X,Y from its top left), or at X,Y in the window; typing and keys go to the
-/// element, focused first, else to whatever has the focus. Keys are chords: an Avalonia Key's name and its modifiers
-/// (Control, Shift, Alt, Meta, or Primary for the platform's command key).</summary>
+/// element, focused first, else to whatever has the focus. Keys are chords: an Avalonia Key's name and its
+/// <see cref="Modifier"/>s.</summary>
 public sealed record InputAction(string Kind)
 {
     public long? Window { get; init; }
@@ -168,7 +168,7 @@ public sealed record InputAction(string Kind)
     public int? Count { get; init; }
 
     /// <summary>Held through a click or a scroll.</summary>
-    public IReadOnlyList<string>? Modifiers { get; init; }
+    public IReadOnlyList<Modifier>? Modifiers { get; init; }
 
     public string? Text { get; init; }
 
@@ -192,7 +192,19 @@ public static class InputKinds
 }
 
 /// <summary>A key and the modifiers held with it.</summary>
-public sealed record Chord(string Key, IReadOnlyList<string> Modifiers);
+public sealed record Chord(string Key, IReadOnlyList<Modifier> Modifiers);
+
+/// <summary>A modifier held with a key, a click or a scroll; Primary is the platform's command key (Cmd on macOS, Ctrl
+/// elsewhere, and in a WPF app).</summary>
+[JsonConverter(typeof(JsonStringEnumConverter<Modifier>))]
+public enum Modifier
+{
+    Control,
+    Shift,
+    Alt,
+    Meta,
+    Primary,
+}
 
 /// <summary>What an input did: its window, where in it the pointer acted, the element there (the one that took it, or the
 /// focused one for keys), what that element shows after (its text, a scroll viewer's offset), and what has the focus.</summary>

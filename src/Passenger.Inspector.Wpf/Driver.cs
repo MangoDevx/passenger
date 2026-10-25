@@ -48,7 +48,7 @@ internal sealed class Driver(Inspector inspector)
         Point at = At(top, element, action, "click");
         DependencyObject? hit = Hit(top, at);
         DependencyObject? took = hit ?? element;
-        if (action.Modifiers is { Count: > 0 } held && held.Any(h => !h.Equals("shift", StringComparison.OrdinalIgnoreCase)))
+        if (action.Modifiers is { Count: > 0 } held && held.Any(h => h != Modifier.Shift))
         {
             throw new Refusal("WPF reads a modifier's state from the keyboard itself, so a click in a WPF app holds none but Shift: click without them");
         }
@@ -402,7 +402,7 @@ internal sealed class Driver(Inspector inspector)
                 return;
             }
         }
-        throw new Refusal($"Nothing in the app takes {string.Join("+", chord.Modifiers.Append(chord.Key))}: no input binding or command it can run has that gesture");
+        throw new Refusal($"Nothing in the app takes {string.Join("+", chord.Modifiers.Select(m => m.ToString()).Append(chord.Key))}: no input binding or command it can run has that gesture");
     }
 
     /// <summary>WPF's own commands, which its controls bind to their usual keys.</summary>
@@ -682,19 +682,19 @@ internal sealed class Driver(Inspector inspector)
         shows,
         KeyTarget(top) is DependencyObject focused && focused != top ? Inspector.Named(focused) : null);
 
-    /// <summary>The modifiers named, Primary being Ctrl, WPF's command key.</summary>
-    private static ModifierKeys Held(IReadOnlyList<string>? names)
+    /// <summary>The modifiers held, Primary being Ctrl, WPF's command key.</summary>
+    private static ModifierKeys Held(IReadOnlyList<Modifier>? modifiers)
     {
         ModifierKeys held = ModifierKeys.None;
-        foreach (string name in names ?? [])
+        foreach (Modifier modifier in modifiers ?? [])
         {
-            held |= name.ToLowerInvariant() switch
+            held |= modifier switch
             {
-                "control" or "ctrl" or "primary" => ModifierKeys.Control,
-                "shift" => ModifierKeys.Shift,
-                "alt" or "option" => ModifierKeys.Alt,
-                "meta" or "cmd" or "command" or "win" => ModifierKeys.Windows,
-                _ => throw new Refusal($"No modifier '{name}'"),
+                Modifier.Control or Modifier.Primary => ModifierKeys.Control,
+                Modifier.Shift => ModifierKeys.Shift,
+                Modifier.Alt => ModifierKeys.Alt,
+                Modifier.Meta => ModifierKeys.Windows,
+                _ => throw new Refusal($"No modifier {modifier}"),
             };
         }
         return held;
