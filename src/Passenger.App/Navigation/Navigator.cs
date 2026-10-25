@@ -311,7 +311,7 @@ public sealed class Navigator
             open.TryAdd(document.Path, document.Text.Snapshot);
         }
         System.Collections.Concurrent.ConcurrentDictionary<string, Lsp.ServerLines?> files = symbolFiles;
-        return await BackgroundWork.Run(() => (IReadOnlyList<SymbolRow>)[.. found.Take(200).Select(symbol =>
+        return await BackgroundWork.Run(() => (IReadOnlyList<SymbolRow>)[.. found.Where(s => Lsp.DocumentUris.GeneratedName(s.Location.Uri) is null).Take(200).Select(symbol =>
         {
             string path = Lsp.DocumentUris.ToPath(symbol.Location.Uri);
             Lsp.ServerLines? lines = open.TryGetValue(path, out TextSnapshot? text)

@@ -80,6 +80,29 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         window.Close();
     }
 
+    /// <summary>Go to Symbol lists the solution's own declarations, never what a source generator wrote for them: a
+    /// [GeneratedRegex] method is found in its own file, and nothing at a generated file's name.</summary>
+    [AvaloniaFact]
+    public void Go_to_Symbol_lists_a_generated_methods_own_declaration_and_nothing_a_generator_wrote()
+    {
+        project.Write("Words.cs", "using System.Text.RegularExpressions;\n\nstatic partial class Words\n{\n"
+            + "    [GeneratedRegex(@\"\\w+\")]\n    public static partial Regex Word();\n}\n");
+        MainWindow window = project.Open("Words.cs");
+        try
+        {
+            Ui.Run(window, AppActions.GoToSymbol);
+            SymbolPopup popup = Assert.IsType<SymbolPopup>(window.Popup);
+            window.KeyTextInput("Word");
+            Ui.WaitFor(() => popup.IsSettled && popup.Rows.Any(r => r.Where?.StartsWith("Words.cs:", StringComparison.Ordinal) == true),
+                () => $"Word's own declaration among the server's symbols: [{string.Join(", ", popup.Rows.Select(r => $"{r.Name} {r.Where}"))}]");
+            Assert.DoesNotContain(popup.Rows, r => r.Where is { } where && (where.Contains(".g.cs", StringComparison.Ordinal) || where.StartsWith('/')));
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
     [AvaloniaFact]
     public void The_structure_window_shows_the_shown_files_outline_whenever_it_is_shown_and_once_the_server_has_the_file_and_follows_the_editor()
     {

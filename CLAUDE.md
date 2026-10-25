@@ -31,6 +31,7 @@ just package-win [RID]     # Velopack's per-user installer; just package-linux [
 just container-tools [RID] [--archive]  # the in-container tools (linux[-musl]-x64/arm64) into artifacts/container-tools
 just notices               # fail naming any carried package the notices miss
 just mcp [FOLDER]          # Passenger as an MCP server over a folder, from a clone of the last build
+just mcp-call FOLDER TOOL [JSON]  # one MCP tool over a folder (a worktree) from the shell, its server kept
 just site-shots [SCENE...] # site/images/<scene>-<dark|light>.webp retaken (macOS, cwebp)
 just icons | file-icons | themes | unicode-widths | aspire-protocol | app-icon   # regenerate checked-in files
 ```
@@ -284,7 +285,7 @@ aspire and requests scenes run `tools/site-shots/services`, an AppHost that need
   calling a deleted body.
 - **The inspector** never touches `Dispatcher.UIThread` before the app makes it, never waits on Passenger, and readies its
   wire's types before the app's Main (System.Text.Json's lock against a thread the debugger stopped).
-- **MCP's tool list** is paid for by every agent session (46.5 KB, held under 62 KB by McpDebuggingTests): say each thing
+- **MCP's tool list** is paid for by every agent session (45.2 KB, held under 62 KB by McpDebuggingTests): say each thing
   once (shared parameters in `McpHost.Instructions`), and add no tool another covers. `save_all` stays a tool of its own:
   never asked about on a person's window (#278). `debug_evaluate`, `debug_input` and `breakpoint_set` are `Destructive`
   and ask the person the first time; every question closes unanswered after 2 minutes; calls send progress every 10 s
