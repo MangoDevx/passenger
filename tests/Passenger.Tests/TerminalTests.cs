@@ -295,6 +295,7 @@ public sealed class TerminalTests
             string hundred = string.Concat(Enumerable.Range(10, 50));
             RunCase(window, "hundred");
             WaitForLine(shell, hundred, "the line of 100 printed");
+            WaitForScreen(window, shell, s => s.CursorColumn > 0 && s.Lines[s.CursorRow].Text() != hundred, "the prompt after the program");
             window.KeyTextInput("echo kept");
             Ui.WaitFor(() => screen.Lines[screen.CursorRow].Text().EndsWith("echo kept", StringComparison.Ordinal), "the command typed");
             string prompt = screen.Lines[screen.CursorRow].Text();
