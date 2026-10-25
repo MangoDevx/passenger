@@ -42,8 +42,7 @@ public sealed class DebugTab(string name, OutputView console) : Observable
     internal Debugging.HotReload? HotReload { get; set; }
 
     /// <summary>Its program as an Avalonia or WPF app with Passenger's inspector in it, from its launch until the tab goes
-    /// (ended with its session, its failed bindings kept while the tab is); null for any other program. The Live Visual
-    /// Tree, binding values and agents' app tools follow the chosen tab's.</summary>
+    /// (ended with its session, its failed bindings kept while the tab is); null for any other program.</summary>
     public LiveTree.LiveApp? App { get; internal set; }
 
     /// <summary>Whether its program was launched with its output in this console, rather than attached to or in the terminal.</summary>
@@ -73,7 +72,7 @@ public sealed class DebugTab(string name, OutputView console) : Observable
     public bool IsLive => !HasEnded && Session is not { State: DebugState.Ended };
 }
 
-/// <summary>What the Debug window shows, kept whether or not its view is built (#441): each program's tab and console, the
+/// <summary>What the Debug window shows, kept whether or not its view is built: each program's tab and console, the
 /// chosen one's threads, frames and values, which of its tabs (Debugger or Console) is shown, and what its toolbar can press.
 /// The debugger writes and reads it; <see cref="DebugView"/> shows it once the window is first shown, and what is done there
 /// (a frame chosen, an expression evaluated, a toolbar button) comes back through its events.</summary>
@@ -150,7 +149,7 @@ public sealed class DebugModel
 
     public VariablesTree Tree { get; } = new();
 
-    /// <summary>The chosen program's output, as Rider's Console tab shows it.</summary>
+    /// <summary>The chosen program's output, as the Console tab shows it.</summary>
     public OutputView Console => shown;
 
     /// <summary>Every session's console, the first made with the window.</summary>
@@ -243,7 +242,7 @@ public sealed class DebugModel
     }
 
     /// <summary>What can be pressed in each state. The panes show what the controller gives them: a stop's frames and
-    /// values, cleared a moment after the program goes on, as Rider's are.</summary>
+    /// values, cleared a moment after the program goes on.</summary>
     public void SetState(DebugState state)
     {
         this.state = state;

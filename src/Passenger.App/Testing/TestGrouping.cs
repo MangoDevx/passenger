@@ -3,8 +3,8 @@ using Passenger.App.State;
 
 namespace Passenger.App.Testing;
 
-/// <summary>What the Unit Tests window groups tests by above their classes: Rider's Group By levels, in the order its
-/// menu lists them and a tree nests them.</summary>
+/// <summary>What the Unit Tests window groups tests by above their classes, in the order the Group By menu lists them and
+/// a tree nests them.</summary>
 public enum TestGroupLevel
 {
     TargetFramework,
@@ -15,17 +15,17 @@ public enum TestGroupLevel
     Duration,
 }
 
-/// <summary>Rider's groupings: its predefined ones, the levels a person turns on or off, and how a test's traits and
-/// time name the groups it is in.</summary>
+/// <summary>The groupings: the predefined ones, the levels a person turns on or off, and how a test's traits and time
+/// name the groups it is in.</summary>
 public static class TestGroupings
 {
-    /// <summary>What a test without a category is under, as Rider names it.</summary>
+    /// <summary>What a test without a category is under.</summary>
     public const string Uncategorized = "<Uncategorized>";
 
-    /// <summary>Rider's default: each project's tests by namespace.</summary>
+    /// <summary>The default: each project's tests by namespace.</summary>
     public static readonly IReadOnlyList<TestGroupLevel> Default = [TestGroupLevel.Project, TestGroupLevel.Namespace];
 
-    /// <summary>Rider's predefined groupings, in its Group By menu's order.</summary>
+    /// <summary>The predefined groupings.</summary>
     public static readonly IReadOnlyList<(string Name, IReadOnlyList<TestGroupLevel> Levels)> Predefined =
     [
         ("Test Hierarchy", []),
@@ -37,7 +37,7 @@ public static class TestGroupings
         ("Project and Categories", [TestGroupLevel.Project, TestGroupLevel.Category]),
     ];
 
-    /// <summary>Rider's grades of a test's time: the most each takes, and its group's name.</summary>
+    /// <summary>The grades of a test's time: the most each takes, and its group's name.</summary>
     private static readonly (TimeSpan Under, string Name)[] Grades =
     [
         (TimeSpan.FromMilliseconds(100), "Fast (<100 ms)"),
@@ -57,8 +57,8 @@ public static class TestGroupings
     /// <summary>The levels as a tree nests them, each once, those this build does not have left out.</summary>
     public static IReadOnlyList<TestGroupLevel> Ordered(IEnumerable<TestGroupLevel> levels) => [.. levels.Where(Enum.IsDefined).Distinct().Order()];
 
-    /// <summary>A test's categories as Rider names them: NUnit's Category and MSTest's TestCategory, and an xUnit trait named
-    /// Category, by each of their comma-separated values; any other trait as "Name [Value]".</summary>
+    /// <summary>A test's categories: NUnit's Category and MSTest's TestCategory, and an xUnit trait named Category, by each
+    /// of their comma-separated values; any other trait as "Name [Value]".</summary>
     public static IEnumerable<string> Categories(IEnumerable<KeyValuePair<string, string>> traits)
     {
         foreach ((string name, string value) in traits)
@@ -84,8 +84,8 @@ public static class TestGroupings
     }
 }
 
-/// <summary>The Unit Tests window's choices for a folder, as Rider keeps a session's: how its tests are grouped and which
-/// outcomes it shows (none for all of them).</summary>
+/// <summary>The Unit Tests window's choices for a folder: how its tests are grouped and which outcomes it shows (none for
+/// all of them).</summary>
 public sealed record UnitTestsState : IStateDocument<UnitTestsState>
 {
     public List<TestGroupLevel> Grouping { get; init; } = [.. TestGroupings.Default];

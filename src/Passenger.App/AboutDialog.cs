@@ -9,9 +9,9 @@ using Avalonia.Platform;
 
 namespace Passenger.App;
 
-/// <summary>Rider's About: the version, the commit it was built from and the runtime it runs on beside Passenger's icon;
-/// the open-source software it carries (its notices) and its own licence a click away; Copy and Close for a bug report.
-/// A link closes it and hands its file to <c>open</c>.</summary>
+/// <summary>About: the version, the commit it was built from and the runtime it runs on beside Passenger's icon; the
+/// open-source software it carries (its notices) and its own licence a click away; Copy and Close for a bug report. A
+/// link closes it and hands its file to <c>open</c>.</summary>
 public sealed class AboutDialog : Window
 {
     public const string NoticesLink = "open-source software";
@@ -87,8 +87,8 @@ public sealed class AboutDialog : Window
         }
     }
 
-    /// <summary>What Copy and Close copies, as Rider's does for a bug report: the version, the full commit, the runtime
-    /// and the system.</summary>
+    /// <summary>What Copy and Close copies for a bug report: the version, the full commit, the runtime and the
+    /// system.</summary>
     public string Text { get; }
 
     /// <summary>Running text with a link in it.</summary>

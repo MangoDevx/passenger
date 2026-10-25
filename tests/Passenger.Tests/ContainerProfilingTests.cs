@@ -13,12 +13,12 @@ using Passenger.Profiler;
 
 namespace Passenger.Tests;
 
-/// <summary>Profiling a .NET program in a container, as a person does with Attach Profiler: the program chosen among the
-/// running containers' when nothing of the folder's runs, or the one debugged there first, recorded there by Passenger's
-/// tools and read here, its hot method leading; the Frames page saying why a container's run has none; and memory
-/// snapshots taken there, with the container's own DAC, listing what the program keeps and compared object by object as a
-/// snapshot of this machine's is. Each skips, saying why, where no Linux engine runs. The program is built here for .NET 10
-/// and copied into an image of .NET's runtime, labelled as the run's (<see cref="Spins"/>).</summary>
+/// <summary>Profiling a .NET program in a container, as a person does with Attach Profiler: the program chosen among
+/// the running containers' when nothing of the folder's runs, or the one debugged there first, recorded there by
+/// Passenger's tools and read here, its hot method leading; the Frames page saying why a container's run has none; and
+/// memory snapshots taken there, with the container's own DAC, listing what the program keeps and compared object by
+/// object. Each skips, saying why, where no Linux engine runs. The program is built here for .NET 10 and copied into an
+/// image of .NET's runtime, labelled as the run's (<see cref="Spins"/>).</summary>
 [Collection(Alone.Name)]
 public sealed class ContainerProfilingTests(ContainerProfilingTests.Spins.Built built) : IClassFixture<ContainerProfilingTests.Spins.Built>
 {
@@ -32,7 +32,6 @@ public sealed class ContainerProfilingTests(ContainerProfilingTests.Spins.Built 
         MainWindow window = Open();
         try
         {
-            // Nothing of the folder's runs: Attach Profiler offers the containers' programs, as Attach to Process lists them.
             Assert.True(window.Perform(AppActions.AttachProfiler), "Attach Profiler could not run");
             Ui.Settle();
             AttachToProcessDialog dialog = Assert.Single(window.OwnedWindows.OfType<AttachToProcessDialog>());
@@ -53,7 +52,6 @@ public sealed class ContainerProfilingTests(ContainerProfilingTests.Spins.Built 
             Assert.Contains(window.ProfilerView.Rows, r => r.Node.Name.StartsWith("Hot.Spin", StringComparison.Ordinal));
             Assert.Equal(FramesView.InContainer(container), window.ProfilerView.FramesPage.Placeholder);
 
-            // Its recording there ended with the snapshot, and the program runs on.
             Ui.WaitFor(() => !Spins.Top(container).Contains(ContainerTools.Executable, StringComparison.Ordinal), "the tools' recording in the container to end with the snapshot");
             int kept = Spins.Kept(container);
             Ui.WaitFor(() => Spins.Kept(container) > kept, "the program in the container to run on after its snapshot");
@@ -75,9 +73,7 @@ public sealed class ContainerProfilingTests(ContainerProfilingTests.Spins.Built 
         {
             DotnetProcess program = Assert.Single(Ui.Await(window.AttachableAsync(), "the containers' programs to be listed"), p => p.Container == container);
 
-            // Where its snapshot cannot be written, Attach Profiler says so and starts no recording there: the snapshot's
-            // file is made before the tools, which were left recording for no one when it failed. A folder takes the place
-            // of each name the snapshot could take for the next while.
+            // A folder in the place of each name the snapshot could take for the next while, so none can be written.
             DateTime now = DateTime.Now;
             for (int ahead = -1; ahead <= TimeSpan.FromMinutes(2).Scaled().TotalSeconds; ahead++)
             {
@@ -105,8 +101,7 @@ public sealed class ContainerProfilingTests(ContainerProfilingTests.Spins.Built 
             MemoryView memory = window.ProfilerView.MemoryPage;
             Assert.Equal([first, second], memory.Snapshots);
 
-            // Compared on the newer, as a snapshot of this machine's is: the first's Keepsakes all survived, moved or not,
-            // and those kept since are new.
+            // The first's Keepsakes all survived, moved or not, and those kept since are new.
             Ui.ClickButton(memory, "Compare with…");
             MenuItem older = Assert.Single(memory.CompareMenu!.Items.OfType<MenuItem>());
             Ui.Click(older, settle: false);
@@ -117,7 +112,6 @@ public sealed class ContainerProfilingTests(ContainerProfilingTests.Spins.Built 
             Assert.Equal((keepsakes.Count, 0), (kept.SurvivedObjects, kept.DeadObjects));
             Assert.True(kept.NewObjects >= 400, $"Only {kept.NewObjects} Keepsakes were new in the second snapshot");
 
-            // A type's objects open to the static that keeps them, read from the graph the container sent.
             memory.Choose(kept);
             Ui.ClickButton(memory, "Open New Objects");
             Ui.WaitFor(() => memory.Set is not null, "the new Keepsakes");

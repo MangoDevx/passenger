@@ -12,7 +12,8 @@ namespace Passenger.App;
 
 public partial class MainWindow
 {
-    /// <summary>The aspire CLI this window runs for AppHosts it did not start: by default the PATH's; a test's own stand-in.</summary>
+    /// <summary>The aspire CLI this window runs for AppHosts it did not start: the PATH's, unless one is
+    /// given.</summary>
     public string? AspireCliFrom { get; init; }
 
     private AspireClient AspireCli() => new(AspireCliFrom);
@@ -271,9 +272,9 @@ public partial class MainWindow
         return new(AspireClient.CanonicalAppHost(appHost), selected);
     }
 
-    /// <summary>An agent's run of an AppHost resource's command (container_action), as the Aspire window's menu runs it but
-    /// asking no one: the agent's call is its confirmation, as an agent's run asks no one about the certificate, and a command
-    /// that asks for input the person gives is refused. What it answered, its output after it; a failure is thrown.</summary>
+    /// <summary>An agent's run of an AppHost resource's command (container_action), as the Aspire window's menu runs it
+    /// but asking no one: the agent's call is its confirmation, and a command that asks for input the person gives is
+    /// refused. What it answered, its output after it; a failure is thrown.</summary>
     public async Task<string> ExecuteAspireResourceCommandAsync(string appHost, string resource, string command, CancellationToken cancel = default)
     {
         ProjectSession current = session;

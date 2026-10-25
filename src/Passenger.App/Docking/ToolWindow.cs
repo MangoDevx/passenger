@@ -3,8 +3,8 @@ using Avalonia.Controls;
 
 namespace Passenger.App.Docking;
 
-/// <summary>Where a tool window docks, as IntelliJ's six places: each side's upper or lower half, the bottom's left
-/// or right half. A place shows one of its windows at a time.</summary>
+/// <summary>Where a tool window docks: each side's upper or lower half, the bottom's left or right half. A place shows
+/// one of its windows at a time.</summary>
 public enum ToolAnchor
 {
     LeftTop,
@@ -15,8 +15,8 @@ public enum ToolAnchor
     BottomRight,
 }
 
-/// <summary>How a tool window stands, as IntelliJ's View Mode: in its place, in a window kept over the IDE's, or in a
-/// window of its own the system manages like any other.</summary>
+/// <summary>How a tool window stands: in its place, in a window kept over the IDE's, or in a window of its own the
+/// system manages like any other.</summary>
 public enum ToolMode
 {
     Docked,
@@ -84,8 +84,8 @@ public sealed class ToolWindow(string id, string title, string icon, Func<Contro
     /// <summary>The header's controls of a view built when first shown, asked for once its <see cref="Content"/> is.</summary>
     public Func<Control?>? Tools { get; init; }
 
-    /// <summary>Menu items of its own atop its header's options, as IntelliJ puts a tool window's (the Explorer's
-    /// Appearance), made as the menu opens.</summary>
+    /// <summary>Menu items of its own atop its header's options (the Explorer's Appearance), made as the menu
+    /// opens.</summary>
     public Func<IReadOnlyList<Control>>? Options { get; init; }
 
     /// <summary>The id of the action that shows it, if there is one (its shortcut is the button's tip): the dock adds it

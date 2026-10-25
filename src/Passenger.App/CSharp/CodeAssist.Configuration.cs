@@ -12,11 +12,11 @@ using Passenger.Xaml.Features;
 namespace Passenger.App.CSharp;
 
 /// <summary>Configuration known from what the app reads (the extension's one reading of a project's keys, through
-/// <see cref="Handlers.ConnectionReads"/>): completion of a section's keys and of a value's choices in appsettings*.json and the
-/// project's secrets.json, merged ahead of the JSON server's items as a compose file's names are ahead of the YAML server's;
-/// Go to Declaration from a key there to the options property or the code that reads it, and from a read in C# to where each
-/// file gives it; and the fixes of a read's warning that nothing gives its key, which set it in appsettings.json, or in the
-/// user secrets for a secret's.</summary>
+/// <see cref="Handlers.ConnectionReads"/>): completion of a section's keys and of a value's choices in
+/// appsettings*.json and the project's secrets.json, merged ahead of the JSON server's items; Go to Declaration from a
+/// key there to the options property or the code that reads it, and from a read in C# to where each file gives it; and
+/// the fixes of a read's warning that nothing gives its key, which set it in appsettings.json, or in the user secrets
+/// for a secret's.</summary>
 public sealed partial class CodeAssist
 {
     /// <summary>The projects a settings file or a secrets.json configures (the session's <see cref="ProjectSession.ConfiguredBy"/>).</summary>
@@ -362,7 +362,7 @@ public sealed partial class CodeAssist
         string? madeId = null;
         if (path is null)
         {
-            // No UserSecretsId: given one, as Manage User Secrets gives it, in the same command.
+            // No UserSecretsId: given one in the same command.
             madeId = Guid.NewGuid().ToString();
             path = Passenger.Core.PathNames.Canonical(UserSecrets.FileOf(madeId)!);
             changes.Add(new XamlFileChange(project.Project, now => ProjectEdits.WithProperty(now, project.Project, "UserSecretsId", madeId) is { Text: { } then } && then != now

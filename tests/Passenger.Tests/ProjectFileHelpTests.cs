@@ -11,13 +11,13 @@ using Passenger.Text;
 
 namespace Passenger.Tests;
 
-/// <summary>Code help in project files, as Rider gives it, through the window: an SDK-style project and a
-/// Directory.Packages.props complete their elements, properties and values, package ids and versions from the folder's
-/// feed (a stand-in on loopback, never nuget.org), paths and the names MSBuild's evaluation knows; the card over a name
-/// says its evaluated value and where it was set; Go to Declaration goes where a property, target or import is defined,
-/// the SDK's own targets read-only, and an item's card counts the files its wildcards take in as they come and go on disk;
-/// the evaluation's errors and a vulnerable package are marked on their lines and listed in Problems; and a project file saved
-/// has the Solution view show what it says now.</summary>
+/// <summary>Code help in project files, through the window: an SDK-style project and a Directory.Packages.props complete
+/// their elements, properties and values, package ids and versions from the folder's feed (a stand-in on loopback, never
+/// nuget.org), paths and the names MSBuild's evaluation knows; the card over a name says its evaluated value and where it
+/// was set; Go to Declaration goes where a property, target or import is defined, the SDK's own targets read-only, and an
+/// item's card counts the files its wildcards take in as they come and go on disk; the evaluation's errors and a
+/// vulnerable package are marked on their lines and listed in Problems; and a project file saved has the Solution view
+/// show what it says now.</summary>
 public sealed class ProjectFileHelpTests : IClassFixture<ProjectFileHelpTests.Shop>
 {
     private const string Advisory = "https://github.com/advisories/GHSA-pass-0000-test";
@@ -76,7 +76,6 @@ public sealed class ProjectFileHelpTests : IClassFixture<ProjectFileHelpTests.Sh
         window.KeyTextInput("<");
         Ui.WaitFor(() => window.Assist.CompletionLabels.Contains("TargetFramework"), "the properties a PropertyGroup takes after a tag's '<'");
         Assert.Equal(["TargetFramework", "TargetFrameworks", "OutputType", "Nullable", "ImplicitUsings"], window.Assist.CompletionLabels.Take(5));
-        // A property's value now is beside it, as the evaluation has it from Directory.Build.props.
         Assert.Contains(("TargetFramework", TestProjects.Framework), window.Assist.CompletionDetails);
         window.KeyTextInput("Nul");
         Ui.Settle();
@@ -89,7 +88,6 @@ public sealed class ProjectFileHelpTests : IClassFixture<ProjectFileHelpTests.Sh
         Ui.Press(window, "ENTER");
         Assert.EndsWith("<Nullable>enable|</Nullable>", CaretLine(editor), StringComparison.Ordinal);
 
-        // Those the project's own files set are offered too, Directory.Build.props' among them.
         Ui.PlaceAfter(editor, "<Nullable>enable</Nullable>");
         Ui.Press(window, "ENTER");
         window.KeyTextInput("<");
@@ -99,14 +97,12 @@ public sealed class ProjectFileHelpTests : IClassFixture<ProjectFileHelpTests.Sh
         Assert.Equal(("ShopLogs", "true"), window.Assist.CompletionDetails.FirstOrDefault());
         Ui.Press(window, "ESCAPE");
 
-        // A property in a condition: the names the evaluation knows, a property of Directory.Build.props among them.
         Ui.PlaceAfter(editor, "'$(Shop");
         Ui.Run(window, AppActions.Complete);
         Ui.WaitFor(() => window.Assist.CompletionLabels.Count > 0, "the properties offered after '$('");
         Assert.Equal(("ShopLogs", "true"), window.Assist.CompletionDetails[0]);
         Ui.Press(window, "ESCAPE");
 
-        // A project reference's path, a folder at a time from the project's own.
         Ui.PlaceAfter(editor, "<ProjectReference Include=\"../");
         Ui.Run(window, AppActions.Complete);
         Ui.WaitFor(() => window.Assist.CompletionLabels.Contains("Core"), "the folders beside the project's");
@@ -133,14 +129,12 @@ public sealed class ProjectFileHelpTests : IClassFixture<ProjectFileHelpTests.Sh
         Ui.WaitFor(() => window.BottomPanel.Problems.FileProblems.Any(p => p.Severity == ProblemSeverity.Warning && p.Message.Contains("Passenger.Vulnerable", StringComparison.Ordinal)),
             "Problems listing the vulnerable package");
 
-        // The versions the feed has, newest first, the vulnerable one saying so.
         Ui.PlaceAfter(editor, "Include=\"Passenger.Vulnerable\" Version=\"");
         Ui.Run(window, AppActions.Complete);
         Ui.WaitFor(() => window.Assist.CompletionLabels.Count == 3, "the package's three versions");
         Assert.Equal([("1.1.0", ""), ("1.0.1", ""), ("1.0.0", "Moderate severity vulnerability")], window.Assist.CompletionDetails);
         Ui.Press(window, "ESCAPE");
 
-        // A new reference: the item, then its id from the feed, which goes in with the feed's latest version.
         Ui.PlaceAfter(editor, "<ProjectReference Include=\"../\" />");
         Ui.Press(window, "ENTER");
         window.KeyTextInput("<");
@@ -175,14 +169,12 @@ public sealed class ProjectFileHelpTests : IClassFixture<ProjectFileHelpTests.Sh
         Assert.EndsWith("earlier definition)\nType of output to generate (WinExe, Exe, or Library)", window.Assist.HoverText);
         Ui.Press(window, "ESCAPE");
 
-        // From a property to where it is set.
         Ui.PlaceAfter(editor, "'$(Shop");
         Ui.Run(window, AppActions.GoToDeclaration);
         Ui.Settle();
         Assert.Equal("Directory.Build.props", window.EditorArea.Active?.Name);
         Assert.Equal("    |<ShopLogs>true</ShopLogs>", CaretLine(window.EditorArea.CodeEditor));
 
-        // From an import to its file.
         window.OpenFile(Path.Combine(folder, "App", "App.csproj"));
         Ui.Settle();
         editor = window.EditorArea.CodeEditor;
@@ -191,7 +183,6 @@ public sealed class ProjectFileHelpTests : IClassFixture<ProjectFileHelpTests.Sh
         Ui.Settle();
         Assert.Equal("Shared.targets", window.EditorArea.Active?.Name);
 
-        // From a target into the SDK's own targets, which open read-only.
         window.OpenFile(Path.Combine(folder, "App", "App.csproj"));
         Ui.Settle();
         editor = window.EditorArea.CodeEditor;
@@ -207,7 +198,6 @@ public sealed class ProjectFileHelpTests : IClassFixture<ProjectFileHelpTests.Sh
         Assert.True(targets.IsReadOnly, "the SDK's targets opened editable");
         Assert.Equal("  |<Target", CaretLine(window.EditorArea.CodeEditor));
         Assert.Contains("Name=\"Build\"", targets.Text.Snapshot.GetLineText(window.EditorArea.CodeEditor.CaretPosition.Line + 1), StringComparison.Ordinal);
-        // In the SDK's file the card still knows the project's values, gone into from it.
         Ui.PlaceAfter(window.EditorArea.CodeEditor, "\"$(BuildDepends");
         Ui.Run(window, AppActions.QuickDocumentation);
         Ui.WaitFor(() => window.Assist.HoverText is not null, "the card over the SDK's property");
@@ -264,7 +254,6 @@ public sealed class ProjectFileHelpTests : IClassFixture<ProjectFileHelpTests.Sh
         Ui.WaitFor(() => window.BottomPanel.Problems.FileProblems.Any(p => p.Severity == ProblemSeverity.Error && p.Message.StartsWith("MSB4019", StringComparison.Ordinal)),
             "Problems listing the import not found");
 
-        // A malformed condition, as typed: the evaluation stops there, and says so on it.
         Replace(editor, "'$(ShopLogs)' == 'true'", "'$(ShopLogs)' ==");
         Ui.WaitFor(() => document.Markers.Any(m => m.Message.StartsWith("MSB4092", StringComparison.Ordinal)), "the malformed condition marked");
         Marker condition = MarkerOn(editor, document, "'$(ShopLogs)' ==");
@@ -273,7 +262,6 @@ public sealed class ProjectFileHelpTests : IClassFixture<ProjectFileHelpTests.Sh
         Replace(editor, "'$(ShopLogs)' ==", "'$(ShopLogs)' == 'true'");
         Ui.WaitFor(() => !document.Markers.Any(m => m.Message.StartsWith("MSB4092", StringComparison.Ordinal)), "the condition put right no longer marked");
 
-        // An SDK that is not there.
         Replace(editor, "Sdk=\"Microsoft.NET.Sdk\"", "Sdk=\"Microsoft.NET.Sdk.Nowhere\"");
         Ui.WaitFor(() => document.Markers.Any(m => m.Message.StartsWith("MSB4236", StringComparison.Ordinal)), "the unknown SDK marked");
         Assert.Equal("MSB4236: The SDK 'Microsoft.NET.Sdk.Nowhere' specified could not be found.", MarkerOn(editor, document, "Microsoft.NET.Sdk.Nowhere").Message);
@@ -328,7 +316,6 @@ public sealed class ProjectFileHelpTests : IClassFixture<ProjectFileHelpTests.Sh
         Assert.Equal("Directory.Build.props", window.EditorArea.Active?.Name);
         Assert.Equal("    |<SampleVersion>2.0.0</SampleVersion>", CaretLine(window.EditorArea.CodeEditor));
 
-        // A reference added under central package management names no version: Directory.Packages.props takes it, in order.
         window.OpenFile(Path.Combine(folder, "App", "App.csproj"));
         Ui.Settle();
         editor = window.EditorArea.CodeEditor;

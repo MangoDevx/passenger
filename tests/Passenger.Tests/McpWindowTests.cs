@@ -23,7 +23,7 @@ public sealed class McpWindowTests : McpRig, IClassFixture<RestoredFolders>
 
     /// <summary>An agent's package change is the NuGet window's own: the window shows it as its work while dotnet runs and
     /// lists the package installed once it is, and while the window's own change runs the agent's is refused, saying what is
-    /// under way, where it ran dotnet on the same project beside it unseen.</summary>
+    /// under way.</summary>
     [AvaloniaFact]
     public void An_agents_package_change_shows_as_the_nuget_windows_work_and_waits_its_turn_behind_the_windows_own()
     {
@@ -72,7 +72,6 @@ public sealed class McpWindowTests : McpRig, IClassFixture<RestoredFolders>
             Assert.True(worked.Contains("Installing Passenger.Sample 1.0.0 in Lib…"), $"The agent's install did not show as the NuGet window's work; it showed: {string.Join(" | ", worked)}");
             WaitFor(() => nuget.Selected is { Id: "Passenger.Sample", IsInstalled: true }, "the NuGet window to list the agent's package as installed");
 
-            // The window's own install, held in its restore graph: the agent's change waits for no one's turn but is refused.
             nuget.Query = "other";
             searched = nuget.RefreshAsync();
             Ui.Landed(() => searched.IsCompleted && nuget.Selected?.Id == "Passenger.Other" && nuget.Versions.Count == 1, "Passenger.Other and its version");
@@ -146,7 +145,6 @@ public sealed class McpWindowTests : McpRig, IClassFixture<RestoredFolders>
         McpClient client = Await(Task.Run(() => Start(["--mcp-attach", ProcessId])), "the agent attaching");
         try
         {
-            // A misspelt id, asked about first as any action an agent runs on the person's window is.
             Task<CallToolResult> misspelt = Task.Run(() => Result(client, "ide_action", new() { ["action"] = "app.biuld" }));
             Press(Question(window, "the question for the agent's action"), "Allow");
             CallToolResult unknown = Await(misspelt, "the misspelt action");
@@ -154,7 +152,6 @@ public sealed class McpWindowTests : McpRig, IClassFixture<RestoredFolders>
             Assert.True(unknown.IsError == true, $"An action no action has was answered as run: {said}");
             Assert.Contains("No action is called app.biuld", said, StringComparison.Ordinal);
 
-            // Commit, in a folder in no repository, says that is why; the Commit window stays as it was.
             CallToolResult commit = Await(Task.Run(() => Result(client, "ide_action", new() { ["action"] = AppActions.Commit })), "the commit with no repository");
             said = Text(commit);
             Assert.True(commit.IsError == true, $"Commit in a folder with no repository was answered as run: {said}");
@@ -168,11 +165,10 @@ public sealed class McpWindowTests : McpRig, IClassFixture<RestoredFolders>
         }
     }
 
-    /// <summary>An agent's question of an open file costs the person's window what it asks, not the file's size (#438): the
-    /// disk, which the agent's own file tools may have written, is looked at off the UI thread and the file read only once
-    /// its length or time changed, so editor_text of one line of an open 20,000-line file allocates on the UI thread about
-    /// what one of a ten-line file does, where every question read the whole file and made the editor's text a string again
-    /// there; and the agent's own write is still taken before its next question.</summary>
+    /// <summary>An agent's question of an open file costs the person's window what it asks, not the file's size: the disk,
+    /// which the agent's own file tools may have written, is looked at off the UI thread and the file read only once its
+    /// length or time changed, so editor_text of one line of an open 20,000-line file allocates on the UI thread about what
+    /// one of a ten-line file does; and the agent's own write is still taken before its next question.</summary>
     [AvaloniaFact]
     public void An_agents_question_of_an_open_file_costs_the_window_what_it_asks_not_the_files_size()
     {
@@ -192,7 +188,7 @@ public sealed class McpWindowTests : McpRig, IClassFixture<RestoredFolders>
             Assert.True(many < few + 64 * 1024,
                 $"editor_text of an open 20,000-line file allocated {many / 1024} KB on the UI thread, of a ten-line file {few / 1024} KB: the file is read again there at each question");
 
-            // The agent's own write, as its file tools make one, is the text its next question reads.
+            // As the agent's own file tools write.
             File.WriteAllText(large, "written by the agent's own tools\n" + File.ReadAllText(large));
             string said = Text(Await(Task.Run(() => Result(client, "editor_text", new() { ["path"] = large, ["from"] = 1, ["to"] = 1 })), "the question after the agent's write"));
             Assert.Contains("written by the agent's own tools", said, StringComparison.Ordinal);
@@ -271,14 +267,12 @@ public sealed class McpWindowTests : McpRig, IClassFixture<RestoredFolders>
         Press(Question(window, "the question for the agent's breakpoint"), "Allow");
         looked.TrySetResult();
         WaitFor(() => agent.IsCompleted, "the agent's calls", AgentLimit);
-        // The status bar says an agent is on the window while it is, and stops saying so once it goes.
         Assert.Equal(1, shown);
         WaitFor(() => window.Agents == 0, "the window to see the agent go");
         Assert.Equal(window.Folder, agent.GetAwaiter().GetResult());
         Assert.Equal(3, Assert.Single(window.Debugger.Breakpoints.In(program)).Line);
         Assert.Contains(new LineMark(3, LineMarkKind.Breakpoint), window.EditorArea.CodeEditor.LineMarks);
 
-        // A closed IDE leaves no socket for the next agent to try.
         window.Close();
         Assert.False(File.Exists(socket), "A closed window left its socket for agents to try");
     }
@@ -292,7 +286,6 @@ public sealed class McpWindowTests : McpRig, IClassFixture<RestoredFolders>
         window.OpenFolder(Folder);
         Ui.Settle();
 
-        // Off as the window opens: it listens all the same, and an agent's first call waits for the person to let it in.
         string socket = window.AgentSocket ?? throw new InvalidOperationException($"The window does not listen for agents: {window.Status}");
         Assert.Equal([socket], Sockets());
         McpClient client = Await(Task.Run(() => Start(["--mcp-attach", Folder])), "the agent attaching");
@@ -306,7 +299,6 @@ public sealed class McpWindowTests : McpRig, IClassFixture<RestoredFolders>
             Assert.Equal(window.Folder, Await(asking, "the agent's workspace call").GetProperty("folder").GetString());
             WaitFor(() => window.AgentStatus == "Agent connected", "the status bar to say an agent is connected");
 
-            // The person turns it on in Settings, under MCP Server: agents come in unasked from then on.
             SettingsDialog dialog = window.ShowSettings();
             Ui.Settle();
             dialog.Query = "agents";
@@ -321,7 +313,6 @@ public sealed class McpWindowTests : McpRig, IClassFixture<RestoredFolders>
             Assert.Empty(window.OwnedWindows.OfType<AgentAdmissionDialog>());
             WaitFor(() => window.AgentStatus == "2 agents connected", "the status bar to count both agents");
 
-            // Turned off again, the agents' connections end; the socket stays, and an agent's next call asks again.
             window.ApplySettings(window.Settings with { McpServer = false });
             WaitFor(() => window.AgentStatus is null, "the status bar to say no agent is on the window");
             Assert.True(File.Exists(socket), "Turning the MCP server off closed the window's socket, where it is to ask instead");
@@ -351,7 +342,6 @@ public sealed class McpWindowTests : McpRig, IClassFixture<RestoredFolders>
         Dictionary<string, object?> run = new() { ["waitSeconds"] = 600 };
         try
         {
-            // The first run waits for the person, who sees what it asks for and denies it.
             Task<CallToolResult> denied = Task.Run(() => Result(client, "run", run));
             ConfirmDialog asked = Question(window, "the question for the agent's run");
             string[] said = Texts(asked);
@@ -364,13 +354,11 @@ public sealed class McpWindowTests : McpRig, IClassFixture<RestoredFolders>
             Assert.Contains("did not allow run", Assert.IsType<TextContentBlock>(Assert.Single(no.Content)).Text, StringComparison.Ordinal);
             Assert.False(window.Runner.IsRunning);
 
-            // Asked again, and allowed: it runs, and the status bar says what the agent is doing.
             using CancellationTokenSource giveUp = CancellationTokenSource.CreateLinkedTokenSource(Cancel);
             Task<CallToolResult> allowed = Task.Run(() => CallGivingUp(client, "run", run, giveUp.Token));
             Press(Question(window, "the question asked again"), "Allow");
             WaitFor(() => window.Runner.IsRunning && window.AgentStatus == "Agent: Run a configuration", "the agent's run in the status bar");
 
-            // The agent gives up on the call: the window stops waiting for it, and the program, the person's now, runs on.
             giveUp.Cancel();
             WaitFor(() => allowed.IsCompleted, "the call given up");
             WaitFor(() => window.AgentStatus == "Agent connected", "the window to stop waiting on the run the agent gave up on");
@@ -378,7 +366,6 @@ public sealed class McpWindowTests : McpRig, IClassFixture<RestoredFolders>
             window.Runner.Stop();
             WaitFor(() => !window.Runner.IsRunning, "the program stopped");
 
-            // Allowed once, run is not asked again; and an agent that goes takes its waits with it.
             Task<CallToolResult> again = Task.Run(() => Result(client, "run", run));
             WaitFor(() => window.Runner.IsRunning || window.OwnedWindows.OfType<ConfirmDialog>().Any(), "the run allowed before");
             Assert.Empty(window.OwnedWindows.OfType<ConfirmDialog>());
@@ -421,19 +408,17 @@ public sealed class McpWindowTests : McpRig, IClassFixture<RestoredFolders>
         Assert.NotEqual(firstSocket, secondSocket);
         Assert.Equal(new[] { firstSocket, secondSocket }.Order(StringComparer.Ordinal), Sockets().Order(StringComparer.Ordinal));
 
-        // Started in the first window's folder (deep in it), the agent reaches that window though the second is newer.
         Assert.Equal(first.Folder, AttachedFolder(Path.Combine(own, "Inner")));
         Assert.Equal(second.Folder, AttachedFolder(other));
 
-        // One window closing takes its own socket, not the other's.
         second.Close();
         Assert.False(File.Exists(secondSocket), "A closed window left its socket");
         Assert.True(File.Exists(firstSocket), "Closing one window took another's socket");
         first.Close();
     }
 
-    /// <summary>vcs_log with a path is Show History's, read by the window's own code: the agent gets the commits the
-    /// person's history tab lists, a file followed through its rename, and a selection's.</summary>
+    /// <summary>vcs_log with a path lists the commits Show History does: a file followed through its rename, and a
+    /// selection's.</summary>
     [AvaloniaFact]
     public void An_agents_vcs_log_with_a_path_lists_the_commits_show_history_does_renames_followed()
     {
@@ -460,7 +445,6 @@ public sealed class McpWindowTests : McpRig, IClassFixture<RestoredFolders>
         {
             JsonElement log = Await(Task.Run(() => Call(client, "vcs_log", new() { ["path"] = Path.Combine("src", "Store.cs") })), "the agent's vcs_log of the file");
             Assert.Equal(history.Rows.Select(r => r.Commit.Short), log.EnumerateArray().Select(c => c.GetProperty("hash").GetString()));
-            // The rename, then the file under its old name.
             Assert.Equal([Path.Combine("src", "Store.cs"), Path.Combine("src", "Shop.cs"), Path.Combine("src", "Shop.cs")],
                 log.EnumerateArray().Select(c => c.GetProperty("changes")[0].GetProperty("path").GetString()));
             Assert.Equal("renamed", log[0].GetProperty("changes")[0].GetProperty("kind").GetString());
@@ -496,8 +480,8 @@ public sealed class McpWindowDebuggingTests : McpRig, IClassFixture<RestoredFold
     {
     }
 
-    /// <summary>An agent's diagnostics for a project file wait for that file's own checks alone: they waited for all of the
-    /// IDE's background work, so a build running meanwhile held the answer for the tool's 30 s.</summary>
+    /// <summary>An agent's diagnostics for a project file wait for that file's own checks alone, never for a build running
+    /// meanwhile.</summary>
     [AvaloniaFact]
     public void An_agents_diagnostics_for_a_project_file_come_from_its_own_checks_while_a_build_runs()
     {
@@ -518,7 +502,6 @@ public sealed class McpWindowDebuggingTests : McpRig, IClassFixture<RestoredFold
             Assert.True(window.Perform(AppActions.Build));
             step = Processes.WrittenId(Path.Combine(Folder, "slow.pid"), "the build's slow step to start");
 
-            // The person types an import that is not there into the project file, unsaved, as the build runs on.
             window.OpenFile(Path.Combine(Folder, "Sum.csproj"));
             window.EditorArea.CodeEditor.GoTo(new Passenger.Text.TextPosition(6, 0));
             window.KeyTextInput("<Import Project=\"Missing.props\" />");
@@ -542,9 +525,8 @@ public sealed class McpWindowDebuggingTests : McpRig, IClassFixture<RestoredFold
     }
 
     /// <summary>On the person's window an agent is asked once, the first time, before it runs a configuration, sets a
-    /// breakpoint (whose condition runs in their later sessions too), debugs, evaluates code in the paused program (setting
-    /// a value there with it unasked after) or types into its input; saving and stopping are never asked about. The configuration uses
-    /// the terminal (DebuggerTests and TerminalTests run and debug one there through the window): run answers with what the
+    /// breakpoint, debugs, evaluates code in the paused program (setting a value there unasked after) or types into its
+    /// input; saving and stopping are never asked about. The configuration uses the terminal: run answers with what the
     /// program's tab shows, debug_start stops at a breakpoint on Main's first line, debug_input types into its tab, and
     /// output reads the tab, the program's end in it.</summary>
     [AvaloniaFact]
@@ -581,7 +563,6 @@ public sealed class McpWindowDebuggingTests : McpRig, IClassFixture<RestoredFold
             set = Unasked(window, client, "debug_evaluate", new() { ["expression"] = "line", ["value"] = "\"again\"" }).GetProperty("value").GetString()!;
             Assert.Contains("again", set, StringComparison.Ordinal);
 
-            // Let go, it asks for a key in its tab, which the agent types there, then a line.
             Await(Task.Run(() => Call(client, "breakpoint_set", new() { ["path"] = "Program.cs", ["line"] = 1, ["remove"] = true })), "the breakpoint's removal");
             Await(Task.Run(() => Call(client, "breakpoint_set", new() { ["path"] = "Program.cs", ["line"] = 24, ["remove"] = true })), "the other breakpoint's removal");
             Await(Task.Run(() => Call(client, "debug_continue", new() { ["waitSeconds"] = 1 })), "the program let go");
@@ -603,8 +584,7 @@ public sealed class McpWindowDebuggingTests : McpRig, IClassFixture<RestoredFold
     [AvaloniaFact]
     public void The_window_takes_keys_while_an_attached_agent_finds_ten_thousand_usages_each_with_its_line()
     {
-        // Four files calling Helper.Twice 2,500 times each, every call under a long comment: a usage's line read from its
-        // file's start every time reads each file 2,500 times over.
+        // Every call under a long comment, so a usage's line read from its file's start reads each file 2,500 times over.
         for (int file = 0; file < 4; file++)
         {
             System.Text.StringBuilder text = new($"static class Uses{file}\n{{\n    public static int All()\n    {{\n        int total = 0;\n");
@@ -627,7 +607,6 @@ public sealed class McpWindowDebuggingTests : McpRig, IClassFixture<RestoredFold
             // The language server has the folder loaded before the window is timed, which is the server's work, not the agent's.
             Await(Task.Run(() => Call(client, "diagnostics", new() { ["path"] = "Helper.cs" })), "the language server");
 
-            // The person types in another file while the agent asks for every usage of Twice.
             Task<JsonElement> usages = Task.Run(() => Call(client, "usages", new() { ["path"] = "Helper.cs", ["line"] = 3, ["column"] = 23 }));
             int typed = 0;
             TimeSpan longest;
@@ -646,7 +625,6 @@ public sealed class McpWindowDebuggingTests : McpRig, IClassFixture<RestoredFold
             JsonElement[] found = [.. usages.GetAwaiter().GetResult().EnumerateArray()];
             Ui.Settle();
 
-            // Every usage comes back, each with its own line, and every key the person typed meanwhile landed at once.
             Assert.Equal(10_002, found.Length);
             Assert.All(found, place => Assert.Contains("Twice(", place.GetProperty("text").GetString(), StringComparison.Ordinal));
             Assert.Contains(found, place => place.GetProperty("path").GetString() == "Uses3.cs" && place.GetProperty("line").GetInt32() == 5005
@@ -655,7 +633,6 @@ public sealed class McpWindowDebuggingTests : McpRig, IClassFixture<RestoredFold
             Assert.True(longest < TimeSpan.FromMilliseconds(250),
                 $"a key waited {longest.TotalMilliseconds:F0} ms for the window while the agent's {found.Length} usages were found");
 
-            // The callers' hierarchy has each caller's line the same way: each file's method at its first call.
             JsonElement callers = Await(Task.Run(() => Call(client, "hierarchy", new() { ["path"] = "Helper.cs", ["line"] = 3, ["column"] = 23 })), "the callers");
             Assert.Equal(["Uses0.cs:7 total += Helper.Twice(0);", "Uses1.cs:7 total += Helper.Twice(0);", "Uses2.cs:7 total += Helper.Twice(0);", "Uses3.cs:7 total += Helper.Twice(0);"],
                 callers.EnumerateArray().Select(c => $"{c.GetProperty("path").GetString()}:{c.GetProperty("line").GetInt32()} {c.GetProperty("text").GetString()}")

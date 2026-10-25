@@ -25,10 +25,9 @@ public sealed record RecentLocation(HistoryPlace Place, string Name, string? Mem
         || Lines.Contains(query, StringComparison.OrdinalIgnoreCase);
 }
 
-/// <summary>Rider's Recent Locations: the places left and edited, the latest first, each with its file, what it is in and
-/// its lines of code. Show edited only (or the action's keys again) keeps the places edited, as Rider's Recently Edited
-/// Locations. Typing narrows them by file, member or code; Up and Down move, Enter or a double-click goes, Delete forgets
-/// a place, Escape leaves.</summary>
+/// <summary>Recent Locations: the places left and edited, the latest first, each with its file, what it is in and its
+/// lines of code. Show edited only (or the action's keys again) keeps the places edited. Typing narrows them by file,
+/// member or code; Up and Down move, Enter or a double-click goes, Delete forgets a place, Escape leaves.</summary>
 public sealed class RecentLocationsPopup : UserControl
 {
     private readonly Func<bool, IReadOnlyList<RecentLocation>> places;
@@ -43,7 +42,7 @@ public sealed class RecentLocationsPopup : UserControl
     {
         this.places = places;
         title = new TextBlock { Classes = { "popupTitle" }, VerticalAlignment = VerticalAlignment.Center };
-        // Not focusable: the keys stay with the query, as they do in Rider's popup.
+        // Not focusable: the keys stay with the query.
         this.editedOnly = new CheckBox { Content = "Show edited only", IsChecked = editedOnly, Focusable = false, FontSize = 12, VerticalAlignment = VerticalAlignment.Center };
         this.editedOnly.IsCheckedChanged += (_, _) => Reload();
         DockPanel heading = new();
@@ -85,7 +84,7 @@ public sealed class RecentLocationsPopup : UserControl
 
     public RecentLocation? Selected => list.SelectedItem as RecentLocation;
 
-    /// <summary>Rider's title for what is listed: every recent place, or only those edited.</summary>
+    /// <summary>The title for what is listed: every recent place, or only those edited.</summary>
     public string Title => title.Text ?? string.Empty;
 
     public bool EditedOnly
@@ -132,7 +131,6 @@ public sealed class RecentLocationsPopup : UserControl
                 Done?.Invoke(this, null);
                 e.Handled = true;
                 break;
-            // Delete with nothing typed to delete forgets the place chosen, as Rider's does.
             case Key.Delete or Key.Back when Query.Length == 0 && Selected is { } chosen:
                 Forget(chosen);
                 e.Handled = true;
@@ -157,8 +155,8 @@ public sealed class RecentLocationsPopup : UserControl
         }
     }
 
-    /// <summary>A place's row as Rider draws it: its file and what it is in over its lines of code, numbered as the
-    /// file numbers them, the place's own line marked as the editor marks the caret's.</summary>
+    /// <summary>A place's row: its file and what it is in over its lines of code, numbered as the file numbers them,
+    /// the place's own line marked.</summary>
     private static Control Row(RecentLocation? row)
     {
         if (row is null)

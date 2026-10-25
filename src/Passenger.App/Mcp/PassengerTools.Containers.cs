@@ -69,8 +69,7 @@ public sealed partial class PassengerTools
         return new ContainerExec(result.ExitCode, result.Output, result.Error.Length > 0 ? result.Error : null);
     });
 
-    // An AppHost resource's commands are this tool's, as the Aspire window's rows are the Containers window's: a parameter
-    // here costs every session's list less than a tool, or a command parameter on the run tools, of its own.
+    // An AppHost resource's commands are this tool's too: a parameter costs every session's tool list less than a tool.
     [McpServerTool(Name = "container_action", Title = "Start, stop, restart or remove a container", Destructive = true), Description(
         "As the Containers window's buttons, action start, stop, restart or remove on a container (its name or id), a Compose " +
         "project (remove takes it down, its volumes kept) or a project/service; never a volume or image. Given an Aspire " +

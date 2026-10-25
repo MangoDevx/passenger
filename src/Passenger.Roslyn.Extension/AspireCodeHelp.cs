@@ -41,16 +41,15 @@ public sealed class AspireParameters : IExtensionDocumentMessageHandler<AspirePa
         AspireSource.ParametersAsync(document, cancellationToken);
 }
 
-/// <summary>Shares semantic AppHost resource identities with configurations and gutter actions.</summary>
+/// <summary>The project resources an AppHost proves, each with where it is declared and that file's fingerprint.</summary>
 public sealed class AspireRunResources : IExtensionWorkspaceMessageHandler<AspireResourcesRequest, AspireRunResourcesResult>
 {
     public Task<AspireRunResourcesResult> ExecuteAsync(AspireResourcesRequest message, ExtensionMessageContext context, CancellationToken cancellationToken) =>
         AspireSource.RunResourcesAsync(context.Solution, message.AppHost, cancellationToken);
 }
 
-/// <summary>The connection strings projects' code reads, by Aspire's one reading of them (<see cref="AspireSource.ConnectionUses"/>):
-/// what a compose file's check asks of a .NET service's project, whose environment should set them; and asked, every
-/// configuration key the code reads or binds (<see cref="ConfigurationSource"/>), from the same walk of its documents.</summary>
+/// <summary>The connection strings projects' code reads (<see cref="AspireSource.ConnectionUses"/>) and, asked, every
+/// configuration key it reads or binds (<see cref="ConfigurationSource"/>), from one walk of its documents.</summary>
 public sealed class ConnectionReads : IExtensionWorkspaceMessageHandler<ConnectionReadsRequest, ConnectionReadsFound>
 {
     public Task<ConnectionReadsFound> ExecuteAsync(ConnectionReadsRequest message, ExtensionMessageContext context, CancellationToken cancellationToken) =>
@@ -170,7 +169,7 @@ internal static class AspireSource
                 if (target is null && use.Connection && !host.Environed.Contains(service.Name)
                     && !host.Resources.Any(r => string.Equals(r.Name, use.Name, StringComparison.OrdinalIgnoreCase)))
                 {
-                    // A name no resource has: the service's own settings may give it, which the IDE reads.
+                    // A name no resource has, which the service's own settings may give.
                     Read? read = use.Expression is LiteralExpressionSyntax written ? ReadOf(written, model, cancel) : null;
                     TextSpan name = read is { Exact: true } ? read.Name : use.Expression.Span;
                     unknown.Add(new AspireUnknownConnection(PlaceAt(text, name.Start), PlaceAt(text, name.End), use.Name, read is { Exact: true },
@@ -524,9 +523,7 @@ internal static class AspireSource
     }
 
     /// <summary>The connection strings a document's code reads, each where its name is written: the constant argument of
-    /// GetConnectionString or of a client integration's connectionName, and a <c>ConnectionStrings:</c> key in a string. The
-    /// one reading of them: Aspire's warning of a reference the AppHost lacks, and a compose file's of a variable a service's
-    /// environment lacks (<see cref="ConnectionReadsAsync"/>).</summary>
+    /// GetConnectionString or of a client integration's connectionName, and a <c>ConnectionStrings:</c> key in a string.</summary>
     private static IEnumerable<Use> ConnectionUses(SyntaxNode root, SemanticModel model, CancellationToken cancel)
     {
         HashSet<ExpressionSyntax> named = [];
@@ -577,9 +574,7 @@ internal static class AspireSource
 
     /// <summary>The connection strings the projects' code reads (<see cref="ConnectionUses"/>), each where its name is
     /// written, and with <see cref="ConnectionReadsRequest.Keys"/> the configuration keys it reads or binds
-    /// (<see cref="ConfigurationSource"/>): every target framework's build of a project, each read once. A compose file's
-    /// check reads the first, and each read of one a service's environment lacks is marked in the code with that file's
-    /// warning; the editor's configuration help (completion, Go to Declaration, a key nothing gives) the second.</summary>
+    /// (<see cref="ConfigurationSource"/>): every target framework's build of a project, each read once.</summary>
     public static async Task<ConnectionReadsFound> ConnectionReadsAsync(Solution solution, IReadOnlyList<string> projects, CancellationToken cancel, bool keys = false)
     {
         List<ConnectionRead> reads = [];

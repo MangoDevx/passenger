@@ -63,14 +63,14 @@ public sealed class VcsController : IDisposable
     /// <summary>What the tree is in the middle of (a merge, a rebase), as the last status found it.</summary>
     public MergeState Merge { get; private set; } = MergeState.Idle;
 
-    /// <summary>The conflicts' two sides in the words Rider gives them, for what the tree is in the middle of.</summary>
+    /// <summary>The conflicts' two sides in their words, for what the tree is in the middle of.</summary>
     public ConflictSides Sides => Merge.Sides(unstashed);
 
     /// <summary>The stash an unstash with conflicts applied, which names the sides until they are resolved.</summary>
     private string? unstashed;
 
-    /// <summary>Raised when an operation (an update, an unstash, a cherry-pick, a rebase continued) stopped for conflicts,
-    /// as Rider then shows its Conflicts dialog.</summary>
+    /// <summary>Raised when an operation (an update, an unstash, a cherry-pick, a rebase continued) stopped for
+    /// conflicts.</summary>
     public event EventHandler? ConflictsFound;
 
     /// <summary>Raised when the branch or the changed files have been read again.</summary>
@@ -116,16 +116,16 @@ public sealed class VcsController : IDisposable
     private TaskCompletionSource? idle;
 
     /// <summary>Saves every open file, run before anything git does to the files (a commit, a checkout, a stash, a
-    /// rollback, an update), as Rider saves first: what is committed is what the editor shows, and nothing unsaved is
-    /// left behind for the next save to write over what git put there.</summary>
+    /// rollback, an update): what is committed is what the editor shows, and nothing unsaved is left behind for the next
+    /// save to write over what git put there.</summary>
     public Action? SaveFirst { get; set; }
 
-    /// <summary>Names what an operation does to the files, for Local History, by Rider's activity names (Git checkout,
+    /// <summary>Names what an operation does to the files, for Local History, by its activity's name (Git checkout,
     /// Rollback, Update from VCS): what it changes is kept under that name until the hold is disposed.</summary>
     public Func<string, IDisposable?>? Activity { get; set; }
 
     /// <summary>Done once the folder last opened is known to be in a working tree or not, so a question asked straight
-    /// after a folder opens (an agent's first call) waits for that rather than hearing there is none.</summary>
+    /// after a folder opens waits for that rather than hearing there is none.</summary>
     public Task Opened => opening?.Task ?? Task.CompletedTask;
 
     /// <summary>Finds the folder's working tree and reads it; a folder in none leaves the window without Git.</summary>
@@ -181,7 +181,7 @@ public sealed class VcsController : IDisposable
         }
     }
 
-    /// <summary>Makes the folder a working tree (Rider's Create Git Repository).</summary>
+    /// <summary>Makes the folder a working tree (Create Git Repository).</summary>
     public async Task<bool> InitAsync(string folder)
     {
         GitResult init = await Git.InitAsync(folder);
@@ -464,7 +464,7 @@ public sealed class VcsController : IDisposable
         return true;
     }
 
-    /// <summary>Each commit's block named at its first line, as Rider draws it; a change not committed yet says so.</summary>
+    /// <summary>Each commit's block named at its first line; a change not committed yet says so.</summary>
     private static List<string?> Labels(IReadOnlyList<BlameLine> lines)
     {
         List<string?> labels = [];
@@ -478,8 +478,8 @@ public sealed class VcsController : IDisposable
         return labels;
     }
 
-    /// <summary>Commits the chosen files with a message, then pushes when asked, as Rider's Commit and Commit and
-    /// Push do: the commit's outcome with the commit made, and the push's once the commit is made and one was asked for.</summary>
+    /// <summary>Commits the chosen files with a message, then pushes when asked (Commit, and Commit and Push): the commit's
+    /// outcome with the commit made, and the push's once the commit is made and one was asked for.</summary>
     public async Task<CommitResult> CommitAsync(IReadOnlyList<FileChange> chosen, string message, bool amend, bool push)
     {
         UiThread.Check();
@@ -550,7 +550,7 @@ public sealed class VcsController : IDisposable
         return Report(pushed.Succeeded, pushed.Succeeded ? $"Pushed {Branch}" : $"Push failed: {pushed.Message}");
     }
 
-    /// <summary>Rider's Update Project: the upstream's commits brought in, then the open files and Git read again.</summary>
+    /// <summary>Update Project: the upstream's commits brought in, then the open files and Git read again.</summary>
     public async Task<VcsOutcome> UpdateAsync()
     {
         UiThread.Check();
@@ -637,7 +637,7 @@ public sealed class VcsController : IDisposable
     public Task<VcsOutcome> CheckoutAsync(string branch) =>
         SwitchAsync(repository => repository.CheckoutAsync(branch), $"Checked out {branch}", "Git checkout");
 
-    /// <summary>The Git log's commit actions, as Rider's: each saves first, and the open files follow what it did.</summary>
+    /// <summary>The Git log's commit actions: each saves first, and the open files follow what it did.</summary>
     public Task<VcsOutcome> CheckoutRevisionAsync(string hash) =>
         SwitchAsync(repository => repository.CheckoutRevisionAsync(hash), $"Checked out {Short(hash)}", "Git checkout");
 
@@ -659,8 +659,8 @@ public sealed class VcsController : IDisposable
     public async Task<(IReadOnlyList<BranchInfo> Branches, IReadOnlyList<string> Remotes)> BranchTreeAsync() =>
         git is { } repository ? await repository.BranchTreeAsync() : ([], []);
 
-    /// <summary>Rider's Checkout from the branches panel: a local branch checked out; a remote's as a local branch of the
-    /// same name tracking it, or that local branch where there is one already; a tag on its own (a detached head).</summary>
+    /// <summary>Checkout from the branches panel: a local branch checked out; a remote's as a local branch of the same name
+    /// tracking it, or that local branch where there is one already; a tag on its own (a detached head).</summary>
     public Task<VcsOutcome> CheckoutRefAsync(BranchInfo branch, IReadOnlyList<BranchInfo> all)
     {
         if (branch.Kind == RefKind.Local)
@@ -677,20 +677,20 @@ public sealed class VcsController : IDisposable
             : SwitchAsync(repository => repository.CheckoutTrackingAsync(branch.Name), $"Checked out new branch {local} from {branch.Name}", "Git checkout");
     }
 
-    /// <summary>Rider's New Branch from: a branch made where another (or a tag) is, checked out.</summary>
+    /// <summary>New Branch from: a branch made where another (or a tag) is, checked out.</summary>
     public Task<VcsOutcome> NewBranchFromAsync(string name, BranchInfo from) =>
         SwitchAsync(repository => repository.NewBranchAtAsync(name, from.Ref.FullName), $"Checked out new branch {name} from {from.Name}", "Git checkout");
 
-    /// <summary>Rider's Merge into Current: another branch merged into the one checked out; one that stops for conflicts
-    /// opens the Conflicts dialog. Named to git by git's own short name, which its message and conflict markers say
-    /// ("Merge branch 'feature'"), where the full name put "Merge branch 'refs/heads/feature'" in the history.</summary>
+    /// <summary>Merge into Current: another branch merged into the one checked out; one that stops for conflicts opens the
+    /// Conflicts dialog. Named to git by git's own short name, which its message and conflict markers say ("Merge branch
+    /// 'feature'"), never the full name's "refs/heads/feature".</summary>
     public Task<VcsOutcome> MergeAsync(BranchInfo branch)
     {
         string into = Branch ?? "HEAD";
         return SwitchAsync(repository => repository.MergeAsync(branch.Ref.GitName ?? branch.Ref.FullName), $"Merged {branch.Name} to {into}", "Git merge", $"{branch.Name} Merged with Conflicts");
     }
 
-    /// <summary>Rider's Rebase Current onto Selected; one that stops for conflicts opens the Conflicts dialog.</summary>
+    /// <summary>Rebase Current onto Selected; one that stops for conflicts opens the Conflicts dialog.</summary>
     public Task<VcsOutcome> RebaseOntoAsync(BranchInfo onto)
     {
         if (Branch is not { } current)
@@ -700,7 +700,7 @@ public sealed class VcsController : IDisposable
         return SwitchAsync(repository => repository.RebaseAsync(onto.Ref.FullName), $"Rebased {current} on {onto.Name}", "Git rebase", "Rebase stopped due to conflicts");
     }
 
-    /// <summary>Rider's Checkout and Rebase onto Current: a local branch checked out and rebased onto the branch that was.</summary>
+    /// <summary>Checkout and Rebase onto Current: a local branch checked out and rebased onto the branch that was.</summary>
     public Task<VcsOutcome> CheckoutAndRebaseAsync(BranchInfo branch)
     {
         if (Branch is not { } current)
@@ -710,14 +710,14 @@ public sealed class VcsController : IDisposable
         return SwitchAsync(repository => repository.RebaseAsync(current, branch.Name), $"Checked out {branch.Name} and rebased it on {current}", "Git rebase", "Rebase stopped due to conflicts");
     }
 
-    /// <summary>Rider's Rename of a local branch.</summary>
+    /// <summary>Rename of a local branch.</summary>
     public Task<VcsOutcome> RenameBranchAsync(BranchInfo branch, string name) =>
         SwitchAsync(repository => repository.RenameBranchAsync(branch.Name, name), $"Branch {branch.Name} was renamed to {name}", "Git branch");
 
     /// <summary>Whether a local branch's commits are all in HEAD's history, so deleting it loses none.</summary>
     public async Task<bool> IsMergedAsync(BranchInfo branch) => git is { } repository && await repository.IsMergedAsync(branch.Ref.FullName);
 
-    /// <summary>Rider's Delete: a local branch (one not merged only when <paramref name="force"/>), a remote's branch on the
+    /// <summary>Delete: a local branch (one not merged only when <paramref name="force"/>), a remote's branch on the
     /// remote, or a tag.</summary>
     public Task<VcsOutcome> DeleteRefAsync(BranchInfo branch, bool force = false, IReadOnlyList<string>? remotes = null)
     {
@@ -734,7 +734,7 @@ public sealed class VcsController : IDisposable
         }
     }
 
-    /// <summary>Rider's Update of a local branch: the one checked out updated as Update Project does, another brought
+    /// <summary>Update of a local branch: the one checked out updated as Update Project does, another brought
     /// forward to the branch it tracks.</summary>
     public Task<VcsOutcome> UpdateBranchAsync(BranchInfo branch)
     {
@@ -749,7 +749,7 @@ public sealed class VcsController : IDisposable
         return SwitchAsync(repository => repository.FetchIntoAsync(remote, tracked, branch.Name), $"Updated {branch.Name}", "Git update");
     }
 
-    /// <summary>Rider's Push of a branch: pushed to the branch it tracks, or to origin, then tracked.</summary>
+    /// <summary>Push of a branch: pushed to the branch it tracks, or to origin, then tracked.</summary>
     public async Task<VcsOutcome> PushBranchAsync(BranchInfo branch)
     {
         UiThread.Check();
@@ -779,14 +779,14 @@ public sealed class VcsController : IDisposable
     public Task<VcsOutcome> NewBranchAsync(string name) =>
         SwitchAsync(repository => repository.NewBranchAsync(name), $"Created and checked out {name}", "Git checkout");
 
-    /// <summary>Rider's Stash Changes: every uncommitted change, new files too, put away under a message; the open files
+    /// <summary>Stash Changes: every uncommitted change, new files too, put away under a message; the open files
     /// take the head's text again.</summary>
     public Task<VcsOutcome> StashAsync(string message) =>
         SwitchAsync(repository => repository.StashAsync(message.Trim()), "Stashed the changes", "Git stash");
 
     public async Task<IReadOnlyList<StashInfo>> StashesAsync() => git is { } repository ? await repository.StashesAsync() : [];
 
-    /// <summary>Rider's Unstash Changes: a stash's changes back in the files, the stash dropped after with
+    /// <summary>Unstash Changes: a stash's changes back in the files, the stash dropped after with
     /// <paramref name="pop"/>.</summary>
     public Task<VcsOutcome> UnstashAsync(StashInfo stash, bool pop)
     {
@@ -981,8 +981,8 @@ public sealed class VcsController : IDisposable
         }, refused => refused);
     }
 
-    /// <summary>Rider's Abort Merge and Abort Rebase (and a cherry-pick's or a revert's): the tree back as it was before
-    /// the operation began.</summary>
+    /// <summary>Abort Merge and Abort Rebase (and a cherry-pick's or a revert's): the tree back as it was before the
+    /// operation began.</summary>
     public Task<VcsOutcome> AbortAsync()
     {
         MergeOperation operation = Merge.Operation;
@@ -998,7 +998,7 @@ public sealed class VcsController : IDisposable
         return SwitchAsync(repository => repository.AbortAsync(operation), $"Abort {name} succeeded", $"Git abort {name}");
     }
 
-    /// <summary>Rider's Continue Rebase, once every conflict is resolved.</summary>
+    /// <summary>Continue Rebase, once every conflict is resolved.</summary>
     public Task<VcsOutcome> ContinueRebaseAsync()
     {
         if (Merge.Operation is not MergeOperation.Rebase)
@@ -1036,8 +1036,8 @@ public sealed class VcsController : IDisposable
     }
 
     /// <summary>A file or folder moved here (a rename, a code fix): until a commit has its files at their new paths,
-    /// their change bars, diff and rollback compare with what the last commit has where they were, as Rider's do. What
-    /// the index has of it moves with it, as git mv moves it, so the status shows a rename; the next read waits for that.</summary>
+    /// their change bars, diff and rollback compare with what the last commit has where they were. What the index has of
+    /// it moves with it, as git mv moves it, so the status shows a rename; the next read waits for that.</summary>
     public void Moved(string from, string to)
     {
         moves.Add((from, to));

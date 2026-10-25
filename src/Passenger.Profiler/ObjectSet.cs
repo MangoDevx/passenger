@@ -5,8 +5,8 @@ namespace Passenger.Profiler;
 /// <summary>An object as an object set lists it: where it is, its type, its own bytes and what it retains.</summary>
 public sealed record HeapObject(ulong Address, string Type, long Bytes, long RetainedBytes);
 
-/// <summary>A step of dotMemory's Shortest Paths to Roots, merged across a set's objects: the set itself at the top, what
-/// holds its objects under it (a field of a type, an array's elements), down to the GC roots, each step counting the set's
+/// <summary>A step of the shortest paths to roots, merged across a set's objects: the set itself at the top, what holds
+/// its objects under it (a field of a type, an array's elements), down to the GC roots, each step counting the set's
 /// objects kept through it and the bytes they retain.</summary>
 public sealed class RetentionNode(string text, GcRoot? root, int objects, long retainedBytes, IReadOnlyList<RetentionNode> children)
 {
@@ -28,14 +28,14 @@ public sealed class RetentionNode(string text, GcRoot? root, int objects, long r
 /// with the bytes they retain.</summary>
 public sealed record RetentionPath(GcRoot Root, IReadOnlyList<string> Steps, int Objects, long RetainedBytes)
 {
-    /// <summary>The path as dotMemory writes one, root first.</summary>
+    /// <summary>The path written out, root first.</summary>
     public string Text => string.Join(" → ", [Root.Text, .. Steps]);
 }
 
-/// <summary>A set of a snapshot's objects, as dotMemory opens one: a type's, a comparison's new or dead objects of a type,
-/// or a single object. It counts them and what they retain together (each object once however many of the set hold it),
-/// lists them, and finds the shortest paths that keep them. Building one, and its paths, takes a while on a large heap:
-/// call them off the UI thread.</summary>
+/// <summary>A set of a snapshot's objects: a type's, a comparison's new or dead objects of a type, or a single object.
+/// It counts them and what they retain together (each object once however many of the set hold it), lists them, and
+/// finds the shortest paths that keep them. Building one, and its paths, takes a while on a large heap: call them off
+/// the UI thread.</summary>
 public sealed class ObjectSet
 {
     /// <summary>How many holders a path shows before it skips to its root: a linked list's would be as long as the list.</summary>
@@ -49,7 +49,6 @@ public sealed class ObjectSet
         Snapshot = snapshot;
         Title = title;
         HeapGraph graph = snapshot.Graph;
-        // By retained size, the most first, as dotMemory lists instances.
         Array.Sort(members, (a, b) => graph.Retained[b].CompareTo(graph.Retained[a]) is var c and not 0 ? c : a.CompareTo(b));
         this.members = members;
         outermost = Outermost(graph, members);
@@ -63,7 +62,7 @@ public sealed class ObjectSet
 
     public MemorySnapshot Snapshot { get; }
 
-    /// <summary>What dotMemory calls it: "New objects of the type Item".</summary>
+    /// <summary>What it is called: "New objects of the type Item".</summary>
     public string Title { get; }
 
     public int Count => members.Length;
@@ -95,8 +94,8 @@ public sealed class ObjectSet
         return outermost;
     }
 
-    /// <summary>dotMemory's Shortest Paths to Roots for the set: each object's shortest path from a root, merged where its
-    /// holders are of one type and field, from the set at the top down to the roots.</summary>
+    /// <summary>The set's shortest paths to roots: each object's shortest path from a root, merged where its holders
+    /// are of one type and field, from the set at the top down to the roots.</summary>
     public RetentionNode ShortestPathsToRoots()
     {
         HeapGraph graph = Snapshot.Graph;
@@ -131,8 +130,8 @@ public sealed class ObjectSet
         return top.Finish(graph);
     }
 
-    /// <summary>dotMemory's Key Retention Paths for the set: the distinct paths from a root that keep its objects, the
-    /// most retained first.</summary>
+    /// <summary>The set's key retention paths: the distinct paths from a root that keep its objects, the most retained
+    /// first.</summary>
     public IReadOnlyList<RetentionPath> KeyRetentionPaths()
     {
         HeapGraph graph = Snapshot.Graph;

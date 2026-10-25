@@ -16,13 +16,12 @@ using Passenger.App.Settings;
 
 namespace Passenger.Tests;
 
-/// <summary>Discord shows Playing Passenger as the JetBrains IDEs' Discord plugins have it: at first Passenger's own words
-/// alone, the solution and the file only as the person chooses, Passenger's icon and button and the time since the
-/// solution opened; nothing once the setting goes off, the solution closes or Passenger quits. An older Passenger's
-/// settings, never turned on, come up naming only Passenger. With no Discord one line says so, and Discord is found when it
-/// starts. A stand-in listens in each test's own place, and the run points <c>PASSENGER_DISCORD_IPC</c> where nothing
-/// listens, so no window reaches the person's Discord. What is held to a time (a Discord that never answers, the person's
-/// idle time) is <see cref="DiscordResponsivenessTests"/>', alone.</summary>
+/// <summary>Discord shows Playing Passenger: at first Passenger's own words alone, the solution and the file only as
+/// the person chooses, Passenger's icon and button and the time since the solution opened; nothing once the setting
+/// goes off, the solution closes or Passenger quits. An older Passenger's settings, never turned on, come up naming
+/// only Passenger. With no Discord one line says so, and Discord is found when it starts. A stand-in listens in each
+/// test's own place, and the run points <c>PASSENGER_DISCORD_IPC</c> where nothing listens, so no window reaches the
+/// person's Discord.</summary>
 public sealed class DiscordTests : DiscordFolders
 {
     [AvaloniaFact]
@@ -33,7 +32,6 @@ public sealed class DiscordTests : DiscordFolders
         MainWindow window = Started();
         DateTimeOffset after = DateTimeOffset.UtcNow;
 
-        // On at first, with Passenger's own words and nothing of the work: not the solution, not the file.
         JsonObject activity = WaitForActivity(a => a is not null, "the activity a fresh Passenger shows");
         Frame handshake = discord.Frames[0];
         Assert.True(handshake.Op == 0 && handshake.Json.ToJsonString() == """{"v":1,"client_id":"1559714715847098468"}""",
@@ -56,7 +54,6 @@ public sealed class DiscordTests : DiscordFolders
         Assert.True(window.Settings is { ShowInDiscord: true, DiscordShows: DiscordShown.PassengerOnly },
             $"A fresh Passenger's Discord settings are {window.Settings.ShowInDiscord}, {window.Settings.DiscordShows}");
 
-        // Off, the activity is cleared and Discord let go of; on again, the time is still the solution's.
         SetShown(window, false);
         Ui.WaitFor(() => discord.Ended == 1, "Discord to be let go of once the setting went off");
         Frame last = discord.Frames.Last();
@@ -79,7 +76,6 @@ public sealed class DiscordTests : DiscordFolders
         Assert.True(Activities().All(a => a is null || !a.ToJsonString().Contains("One.cs", StringComparison.Ordinal)),
             "Discord was told the file open before the person chose to name it");
 
-        // The person's choice: the solution and the file.
         Choose(window, "The solution and the file");
         WaitForActivity(a => (string?)a?["state"] == "Editing One.cs", "the activity to name One.cs, the file open");
         window.OpenFile(Path.Combine(solution, "Two.cs"));
@@ -88,7 +84,6 @@ public sealed class DiscordTests : DiscordFolders
         JsonObject one = WaitForActivity(a => (string?)a?["state"] == "Editing One.cs", "the activity to follow the switch back to One.cs");
         Assert.Equal("Shop", (string?)one["details"]);
 
-        // The solution alone: no file, whichever is shown.
         Choose(window, "The solution");
         WaitForActivity(a => a?["details"] is not null && a["state"] is null, "the activity to name the solution alone");
         int sent = Activities().Count;
@@ -98,7 +93,6 @@ public sealed class DiscordTests : DiscordFolders
         Wait(TimeSpan.FromMilliseconds(500));
         Assert.True(Activities().Skip(sent).All(a => a?["state"] is null), "With the solution alone chosen, switching files still named one in Discord");
 
-        // Passenger only: neither, though the time since the solution opened stays.
         Choose(window, "Passenger only");
         JsonObject only = WaitForActivity(a => (string?)a?["details"] == "An IDE for C# and .NET", "the activity to name nothing but Passenger");
         Assert.True((string?)only["state"] == "Open source · Windows, macOS and Linux" && only["timestamps"] is not null
@@ -116,7 +110,6 @@ public sealed class DiscordTests : DiscordFolders
         Choose(window, "The solution");
         WaitForActivity(a => (string?)a?["details"] == "Shop", "the first window's solution");
 
-        // Another solution in a window of its own, in front: its activity, through the one connection.
         window.ApplySettings(window.Settings with { OpenProjectIn = OpenProjectIn.NewWindow });
         Assert.Null(window.Open(bank));
         Ui.Settle();
@@ -126,7 +119,6 @@ public sealed class DiscordTests : DiscordFolders
         WaitForActivity(a => (string?)a?["details"] == "Shop", "the first window's solution once it is in front again");
         Assert.True(discord.Connections == 1, $"Two windows reached Discord {discord.Connections} times, not once between them");
 
-        // The one in front closing, the other's activity shows, still on the one connection; the last closing clears it.
         window.Close();
         WaitForActivity(a => (string?)a?["details"] == "Bank", "the remaining window's solution once the one in front closed");
         Assert.Equal(0, discord.Ended);
@@ -146,7 +138,6 @@ public sealed class DiscordTests : DiscordFolders
         Ui.WaitFor(() => discord.Ended == 1, "Discord to be let go of once the solution closed");
         Assert.True(Activities().Last() is null, "The solution closed, yet the activity was never cleared");
 
-        // Opened again, it is shown again, timed from then, and quitting clears it before Passenger lets go.
         Wait(TimeSpan.FromMilliseconds(50));
         window.OpenFolder(solution);
         JsonObject again = WaitForActivity(a => (string?)a?["details"] == "Shop", "the activity once the solution opened again", connection: 2);
@@ -170,7 +161,6 @@ public sealed class DiscordTests : DiscordFolders
         discord.Start();
         WaitForActivity(a => (string?)a?["details"] == "Shop", "the activity once Discord started");
 
-        // Discord quits: one line, then it is found again when it comes back, the activity with it.
         int said = Discords().Length;
         discord.Stop();
         Wait(TimeSpan.FromSeconds(2));
@@ -196,7 +186,6 @@ public sealed class DiscordTests : DiscordFolders
         Assert.True(discord.Connections == 0, "A window that is not the person's reached Discord");
         other.Close();
 
-        // The run's windows look where nothing listens, never the system's places, and the person's Discord hears nothing.
         Assert.Equal(TestRun.DiscordNowhere, Environment.GetEnvironmentVariable(DiscordIpc.Variable));
         int before = Ui.IdeLog().Split('\n').Length;
         MainWindow window = new() { Width = 1200, Height = 800, StateFolder = settings };
@@ -233,13 +222,11 @@ public sealed class DiscordTests : DiscordFolders
         Assert.Equal("Passenger only", shows.SelectedItem);
         Assert.True(idle.IsChecked == true && minutes.Value == 5, $"The idle time is not the plugins' 5 minutes, on: {idle.IsChecked}, {minutes.Value}");
         Assert.True(shows.IsEnabled && idle.IsEnabled && minutes.IsEnabled, "Discord's options are greyed while its activity is on");
-        // What each choice names, and who sees it, said beside the choice.
         string[] words = [.. dialog.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text ?? string.Empty)];
         Assert.True(words.Any(w => w.Contains("Passenger only: that you are using Passenger, and nothing of your work", StringComparison.Ordinal)
             && w.Contains("Whoever can see your Discord activity sees these names", StringComparison.Ordinal)),
             $"The Discord page does not say what each choice shows and who sees it:\n{string.Join('\n', words.Where(w => w.Length > 40))}");
 
-        // Off is the opt-out: everything under it greyed.
         Ui.Click(on);
         Assert.False(shows.IsEnabled || idle.IsEnabled || minutes.IsEnabled, "Discord's options can be changed while its activity is off");
         Ui.Click(on);
@@ -299,9 +286,7 @@ public sealed class DiscordResponsivenessTests : DiscordFolders
         discord.Start(answers: false);
         MainWindow window = Started();
         Ui.PumpUntil(() => discord.Connections > 0, "the window to reach the Discord that never answers", TimeSpan.FromSeconds(10));
-        // How long a key waits for the window's thread as the files are switched, each switch's work landed, Discord's
-        // handshakes going unanswered meanwhile: never the switches' whole time, which the IDE's own pause after each (the
-        // path's outline asked again after 400 ms) fills, so that ten took 4 s of the 5 s they were once held to.
+        // How long a key waits for the window's thread as the files are switched, Discord's handshakes unanswered.
         TimeSpan longest;
         using (InputWait waits = new())
         {

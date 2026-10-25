@@ -5,16 +5,16 @@ namespace Passenger.Lsp;
 
 /// <summary>Passenger's own extension to Roslyn's server (Passenger.Roslyn.Extension, carried under roslyn-extension/
 /// beside the app): the server loads it as it starts (its <c>--extension</c>), Passenger activates its message handlers
-/// once the server has answered (<c>server/_vs_activateExtension</c>), and each refactoring that takes options is a message
-/// to one of them about a document (<c>textDocument/_vs_dipatchExtensionMessage</c>, the typo Roslyn's), answered with
-/// what it found or would change.</summary>
+/// once the server has answered (<c>server/_vs_activateExtension</c>), and each question is a message to one of them about
+/// a document (<c>textDocument/_vs_dipatchExtensionMessage</c>, the typo Roslyn's) or the solution
+/// (<c>workspace/_vs_dispatchExtensionMessage</c>), answered with what it found or would change.</summary>
 public static class RoslynExtension
 {
     /// <summary>Where the app carries the extension.</summary>
     public static string Assembly => Path.Combine(AppContext.BaseDirectory, "roslyn-extension", "Passenger.Roslyn.Extension.dll");
 
     /// <summary>Activates the extension's handlers in a server that loaded it; null once every one Passenger sends to is
-    /// there, else why not, which the refactorings then say.</summary>
+    /// there, else why not.</summary>
     internal static async Task<string?> ActivateAsync(LanguageServer server, CancellationToken cancel)
     {
         if (!File.Exists(Assembly))

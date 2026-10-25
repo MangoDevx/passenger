@@ -125,7 +125,7 @@ public sealed class TerminalScreen
     /// <summary>The lines scrolled off the top, oldest first.</summary>
     public IReadOnlyList<TerminalLine> Scrollback => scrollback;
 
-    /// <summary>Rider's Clear Buffer: the scrollback and the screen go, but for the cursor's line (the prompt waiting),
+    /// <summary>Clear Buffer: the scrollback and the screen go, but for the cursor's line (the prompt waiting),
     /// which moves to the top. A full-screen program's alternate screen is its own, and stays.</summary>
     public void ClearBuffer()
     {
@@ -158,7 +158,7 @@ public sealed class TerminalScreen
         return index < scrollback.Count ? scrollback[(int)index] : Lines[(int)(index - scrollback.Count)];
     }
 
-    /// <summary>The screen's text, a row a line, trailing blanks left out: for tests and for a copy of everything.</summary>
+    /// <summary>The screen's text, a row a line, trailing blanks left out.</summary>
     public string ScreenText() => string.Join('\n', Lines.Select(l => l.Text()));
 
     /// <summary>Takes the program's output, as many bytes as arrived; a character split between two calls is kept
@@ -200,10 +200,10 @@ public sealed class TerminalScreen
 
     public void Feed(string text) => Feed(Encoding.UTF8.GetBytes(text));
 
-    /// <summary>A new size. At a new width the main screen and its scrollback reflow, as xterm.js's do: rows the text
-    /// wrapped across join and wrap again, so a line a narrower window cut reads whole once it widens, and the cursor
-    /// stays on its character. A full-screen program draws its own screen again, so the alternate one is only cut or
-    /// padded. Rows given up go to the scrollback (blank ones below the cursor first), rows gained come back from it.</summary>
+    /// <summary>A new size. At a new width the main screen and its scrollback reflow: rows the text wrapped across join
+    /// and wrap again, so a line a narrower window cut reads whole once it widens, and the cursor stays on its
+    /// character. A full-screen program draws its own screen again, so the alternate one is only cut or padded. Rows
+    /// given up go to the scrollback (blank ones below the cursor first), rows gained come back from it.</summary>
     public void Resize(int columns, int rows)
     {
         columns = Math.Max(2, columns);
@@ -718,8 +718,8 @@ public sealed class TerminalScreen
     }
 
     /// <summary>A character with no column of its own (a combining mark, a joiner, a variation selector) joins the
-    /// grapheme in the cell before the cursor, as xterm.js joins it, so é written as e and a combining acute shows and
-    /// copies whole; at a row's start there is nothing to join, and it is dropped.</summary>
+    /// grapheme in the cell before the cursor, so é written as e and a combining acute shows and copies whole; at a
+    /// row's start there is nothing to join, and it is dropped.</summary>
     private void Join(int rune)
     {
         int column = Previous();
@@ -827,7 +827,7 @@ public sealed class TerminalScreen
 
     private void AddScrollback(TerminalLine line) => scrollback.Add(line);
 
-    /// <summary>What erased cells take: the current background, as xterm's erase does, and nothing else.</summary>
+    /// <summary>What erased cells take: the current background, and nothing else.</summary>
     private CellStyle Erasing => new(CellStyle.Default, style.Back, CellFlags.None);
 
     private void Escape(char final)

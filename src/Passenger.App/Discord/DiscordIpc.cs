@@ -2,14 +2,12 @@ namespace Passenger.App.Discord;
 
 /// <summary>Where Passenger looks for the Discord app on this computer and how often: the places Discord's own libraries
 /// look, each with <c>-0</c> to <c>-9</c> after it (a Unix socket's path, or a named pipe's name on Windows), or the one
-/// <c>PASSENGER_DISCORD_IPC</c> names in their stead. The tests' run names one in its own folder, so no test reaches the
-/// person's Discord.</summary>
+/// <c>PASSENGER_DISCORD_IPC</c> names in their stead.</summary>
 public sealed record DiscordIpc(IReadOnlyList<string> Places)
 {
     public const string Variable = "PASSENGER_DISCORD_IPC";
 
-    /// <summary>How long Passenger waits before looking for Discord again: the 20 seconds of pandier's Discord Rich
-    /// Presence plugin's Automatically try to reconnect.</summary>
+    /// <summary>How long Passenger waits before looking for Discord again.</summary>
     public TimeSpan Retry { get; init; } = TimeSpan.FromSeconds(20);
 
     /// <summary>The least time between two updates, so a run of tab switches is one and they stay within the five every
@@ -20,8 +18,7 @@ public sealed record DiscordIpc(IReadOnlyList<string> Places)
     public TimeSpan Timeout { get; init; } = TimeSpan.FromSeconds(3);
 
     /// <summary>The system's places, or the one <c>PASSENGER_DISCORD_IPC</c> names; a value there that is no absolute
-    /// path (a pipe's name with no backslash, on Windows) is fatal, as a malformed flag is (Program checks it before the
-    /// window opens).</summary>
+    /// path (a pipe's name with no backslash, on Windows) is fatal.</summary>
     public static DiscordIpc Default => Environment.GetEnvironmentVariable(Variable) is { Length: > 0 } named
         ? new DiscordIpc([Parse(named)])
         : new DiscordIpc(SystemPlaces());

@@ -3,8 +3,8 @@ using Passenger.Text;
 
 namespace Passenger.App.Vcs;
 
-/// <summary>How a diff marks the differences inside changed lines, as Rider's Highlighting Differences offers: none (the
-/// lines alone), the words or the characters that changed, or no highlighting at all.</summary>
+/// <summary>How a diff marks the differences inside changed lines (Highlighting Differences): none (the lines alone),
+/// the words or the characters that changed, or no highlighting at all.</summary>
 public enum DiffHighlighting
 {
     Lines,
@@ -24,8 +24,7 @@ public sealed record InlineChanges(IReadOnlyList<InlineChange> Left, IReadOnlyLi
 /// and worked out off the window's thread.</summary>
 public sealed class FileDiff
 {
-    /// <summary>After this many changes too big to compare word by word, the rest are shown by their lines alone, as
-    /// IntelliJ stops trying after a few.</summary>
+    /// <summary>After this many changes too big to compare word by word, the rest are shown by their lines alone.</summary>
     private const int MostTooBig = 3;
 
     private readonly string[] headLines;
@@ -51,7 +50,7 @@ public sealed class FileDiff
 
     public IReadOnlyList<DiffHunk> Hunks { get; }
 
-    /// <summary>Rider's change bars for the file's side: lines added, lines modified, and a mark where lines went.</summary>
+    /// <summary>The change bars for the file's side: lines added, lines modified, and a mark where lines went.</summary>
     public IReadOnlyList<ChangeMark> Marks { get; }
 
     public static FileDiff Compare(string head, TextSnapshot text) => Compare(head, LineDiff.Lines(head), Starts(head), text);
@@ -73,10 +72,10 @@ public sealed class FileDiff
         return [.. starts];
     }
 
-    /// <summary>The words (or characters) that differ inside every change with lines on both sides, as Rider's diff
-    /// marks them: on the last commit's side as offsets into <see cref="Head"/>, on the file's into <see cref="Text"/>.
-    /// None for <see cref="DiffHighlighting.Lines"/> and <see cref="DiffHighlighting.None"/>. Worked out off the window's
-    /// thread: its time is bounded by the words compared, never by how much of them differs.</summary>
+    /// <summary>The words (or characters) that differ inside every change with lines on both sides: on the last commit's
+    /// side as offsets into <see cref="Head"/>, on the file's into <see cref="Text"/>. None for
+    /// <see cref="DiffHighlighting.Lines"/> and <see cref="DiffHighlighting.None"/>. Worked out off the window's thread: its
+    /// time is bounded by the words compared, never by how much of them differs.</summary>
     public InlineChanges InnerChanges(DiffHighlighting highlighting)
     {
         List<InlineChange> left = [];
@@ -96,8 +95,8 @@ public sealed class FileDiff
         return new InlineChanges(left, right);
     }
 
-    /// <summary>The words that differ inside one change, as a change bar's popup marks them: on the last commit's side as
-    /// offsets into <see cref="Before"/> of it, on the file's into <see cref="Text"/>.</summary>
+    /// <summary>The words that differ inside one change: on the last commit's side as offsets into <see cref="Before"/> of
+    /// it, on the file's into <see cref="Text"/>.</summary>
     public InlineChanges InnerChanges(DiffHunk hunk, DiffHighlighting highlighting)
     {
         List<InlineChange> left = [];

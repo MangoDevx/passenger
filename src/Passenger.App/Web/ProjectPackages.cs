@@ -5,9 +5,9 @@ using Passenger.Core;
 
 namespace Passenger.App.Web;
 
-/// <summary>A project's own npm packages as Rider finds them for a file (its Automatic ESLint and Prettier configuration):
-/// installed in the node_modules of the file's folder or the nearest folder above it that has the package, as Node.js
-/// resolves it; or listed by the nearest package.json above the file that names it, and not installed.</summary>
+/// <summary>A project's own npm packages for a file (its Automatic ESLint and Prettier configuration): installed in the
+/// node_modules of the file's folder or the nearest folder above it that has the package, as Node.js resolves it; or
+/// listed by the nearest package.json above the file that names it, and not installed.</summary>
 public static class ProjectPackages
 {
     /// <summary>The fields of package.json that list what <c>npm install</c> installs.</summary>
@@ -87,9 +87,9 @@ public static class ProjectPackages
         }
     }
 
-    /// <summary>Whether a glob of Rider's ("Run for files", <c>**/*.{js,ts}</c>) covers a file, by its path from the folder
-    /// open (a file outside it by its name alone), as an .editorconfig's sections match. A package's own file (under a
-    /// node_modules) is a library's, which Rider neither lints nor formats.</summary>
+    /// <summary>Whether a "Run for files" glob (<c>**/*.{js,ts}</c>) covers a file, by its path from the folder open (a
+    /// file outside it by its name alone), as an .editorconfig's sections match. A package's own file (under a
+    /// node_modules) is a library's, neither linted nor formatted.</summary>
     public static bool Covers(string glob, string folder, string file)
     {
         if (file.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).Contains("node_modules"))
@@ -102,8 +102,8 @@ public static class ProjectPackages
     }
 }
 
-/// <summary>npm as Rider runs it for "Run 'npm install'": the npm that comes with the Node.js in use (its npm-cli.js, run on
-/// that Node.js, so a Windows npm.cmd needs no shell), else the one on the PATH, through ChildProcesses.</summary>
+/// <summary>npm for "Run 'npm install'": the npm that comes with the Node.js in use (its npm-cli.js, run on that
+/// Node.js, so a Windows npm.cmd needs no shell), else the one on the PATH, through ChildProcesses.</summary>
 public static class Npm
 {
     /// <summary>npm's own script for a Node.js, null when there is none beside it or on the PATH.</summary>

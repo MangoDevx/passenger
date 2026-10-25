@@ -10,13 +10,13 @@ using Passenger.Text;
 namespace Passenger.App.ToolWindows;
 
 /// <summary>A program's or a build's console: the code editor, read-only, following the end while the output grows, with
-/// Rider's run toolbar down its left side (rerun, stop, clear). Output comes through its <see cref="Sink"/> from any
-/// thread; standard error is drawn in the error colour, and what a person types goes to the program's <see cref="Input"/>
-/// a line at a time, in the input colour, as Rider's console takes it. It keeps Rider's console cycle buffer of text,
-/// the oldest lines dropped past it. Its file locations and web addresses are links (<see cref="Links"/>).</summary>
+/// the run toolbar down its left side (rerun, stop, clear). Output comes through its <see cref="Sink"/> from any thread;
+/// standard error is drawn in the error colour, and what a person types goes to the program's <see cref="Input"/> a line
+/// at a time, in the input colour. It keeps a cycle buffer of text, the oldest lines dropped past it. Its file locations
+/// and web addresses are links (<see cref="Links"/>).</summary>
 public sealed class OutputView : DockPanel
 {
-    /// <summary>Rider's console cycle buffer, <c>idea.cycle.buffer.size</c>: 1024 KB of text.</summary>
+    /// <summary>The cycle buffer a console keeps by default: 1024 KB of text.</summary>
     public const int DefaultLimitKb = 1024;
 
     private readonly Button rerun;
@@ -150,8 +150,7 @@ public sealed class OutputView : DockPanel
     /// <summary>Whether Apply Hot Reload Changes shows.</summary>
     public bool ShowsHotReload => hotReload.IsVisible;
 
-    /// <summary>A program's text as it reached the console, its colour codes gone: what a build's error list reads, a
-    /// batch at a time.</summary>
+    /// <summary>A program's text as it reached the console, its colour codes gone, a batch at a time.</summary>
     public event EventHandler<string>? Written;
 
     public TextDocument Document { get; }
@@ -162,7 +161,7 @@ public sealed class OutputView : DockPanel
     /// <summary>Where programs write to this console, from any thread.</summary>
     public ConsoleSink Sink { get; }
 
-    /// <summary>How much text the console keeps, in characters; past it the oldest lines go, as in Rider's console.</summary>
+    /// <summary>How much text the console keeps, in characters; past it the oldest lines go.</summary>
     public int Limit
     {
         get => limit;
@@ -191,7 +190,7 @@ public sealed class OutputView : DockPanel
         }
     }
 
-    /// <summary>The console's menu, as Rider's: Copy the selection, Select All, and Clear All.</summary>
+    /// <summary>The console's menu: Copy the selection, Select All, and Clear All.</summary>
     private void ShowMenu(Point? at)
     {
         Keymap keymap = AppActions.Keymap();
@@ -264,8 +263,8 @@ public sealed class OutputView : DockPanel
             : string.Concat(batch.Runs.Where(r => r.Stream != ConsoleStream.System).Select(r => batch.Text.Substring(r.Start, r.Length))));
     }
 
-    /// <summary>Whether Rerun stays there while what it reruns runs, as the Run window's does (Rider's stops the program and
-    /// runs it again); the Build window's waits for its build.</summary>
+    /// <summary>Whether Rerun stays there while what it reruns runs (the Run window's stops the program and runs it again);
+    /// the Build window's waits for its build.</summary>
     public bool RerunsWhileRunning { get; init; }
 
     public void SetRunning(bool running)
@@ -417,7 +416,7 @@ public sealed class OutputView : DockPanel
         Editor.Selections = SelectionSet.Single(Document.Snapshot.Length);
     }
 
-    /// <summary>Rider's Send EOF: what was typed goes without a line break, "^D" is shown, and the program's input ends.</summary>
+    /// <summary>Send EOF: what was typed goes without a line break, "^D" is shown, and the program's input ends.</summary>
     private void EndInput()
     {
         if (input is not { } ending)

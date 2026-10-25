@@ -154,8 +154,8 @@
             <SolidColorBrush x:Key="Passenger.File.Folder" Color="#B5AC9F" />
             <SolidColorBrush x:Key="Passenger.File.SolutionFolder" Color="#B59ED9" />
             <SolidColorBrush x:Key="Passenger.File.Plain" Color="#B5AC9F" />
-            <!-- The file icons' colours: this theme's own hues (its red the editor's error, its pink between its
-                 red and purple) through tools/themes.py's file_icons(), as the generated themes take theirs. -->
+            <!-- The file icons' colours: this theme's own hues (its red the editor's error, its pink between its red and
+                 purple) through tools/themes.py's file_icons(). -->
             <SolidColorBrush x:Key="Passenger.FileIcon.Red" Color="#F2747E" />
             <SolidColorBrush x:Key="Passenger.FileIcon.Orange" Color="#EE9A78" />
             <SolidColorBrush x:Key="Passenger.FileIcon.Yellow" Color="#F5C76E" />

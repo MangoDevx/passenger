@@ -119,8 +119,8 @@ public sealed class LiveApp : IDisposable
     private static LiveApp? own;
 
     /// <summary>Passenger's own windows, every one of this process's, inspected as an app is: the same inspector, loaded into
-    /// Passenger the first time an agent asks and kept from then on. The process's, as the inspector's binding log is
-    /// Avalonia's one logger, which it takes over (passing everything on to the IDE's own log) and keeps.</summary>
+    /// Passenger the first time an agent asks and kept from then on, the process's, as it takes over Avalonia's one logger
+    /// and keeps it.</summary>
     public static LiveApp Own()
     {
         UiThread.Check();
@@ -331,7 +331,7 @@ public sealed class LiveApp : IDisposable
     public async Task<InputDone> InputAsync(InputAction input, CancellationToken giveUp = default) =>
         (await AskAsync(new Request(0, Wire.Input) { Input = input }, giveUp)).Done ?? throw new LiveAppException($"{Name} did not say what the input did");
 
-    /// <summary>A request's answer; <paramref name=giveUp/> stops the wait for it (the app paused under the debugger
+    /// <summary>A request's answer; <paramref name="giveUp"/> stops the wait for it (the app paused under the debugger
     /// before it could answer), its answer then forgotten.</summary>
     private async Task<Reply> AskAsync(Request request, CancellationToken giveUp = default)
     {

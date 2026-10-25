@@ -56,8 +56,8 @@ public static class UiFrames
     /// <summary>The frames' median time on the UI thread: of an even count, halfway between the two in the middle.</summary>
     public static double MedianMs(IEnumerable<UiFrame> frames) => Percentile([.. frames.Select(f => f.DurationMs).Order()], 0.5);
 
-    /// <summary>The value a fraction of the way through some sorted values, between the two either side of it in proportion
-    /// (linear interpolation, as NumPy's default), so a small count's percentile is never simply its next value up.</summary>
+    /// <summary>The value a fraction of the way through some sorted values, between the two either side of it in
+    /// proportion (linear interpolation), so a small count's percentile is never simply its next value up.</summary>
     public static double Percentile(IReadOnlyList<double> sorted, double fraction)
     {
         if (sorted.Count == 0)

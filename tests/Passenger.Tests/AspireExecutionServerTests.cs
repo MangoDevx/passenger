@@ -91,10 +91,10 @@ public sealed class AspireExecutionServerTests
         notifications.Abort();
     }
 
-    /// <summary>An AppHost's services start at once (#436): DCP's creates of three services are each under way while the
-    /// others begin (a start that waits for the other two to begin, which one at a time would never see), and a delete of a
-    /// started service is answered while their starts still wait. One service's own creates keep the order DCP sent them,
-    /// the second beginning only once the first has ended.</summary>
+    /// <summary>An AppHost's services start at once: DCP's creates of three services are each under way while the
+    /// others begin (a start that waits for the other two to begin, which one at a time would never see), and a delete
+    /// of a started service is answered while their starts still wait. One service's own creates keep the order DCP
+    /// sent them, the second beginning only once the first has ended.</summary>
     [Fact]
     public async Task Several_services_start_at_once_and_a_delete_waits_only_for_its_own_create()
     {
@@ -321,10 +321,9 @@ public sealed class AspireExecutionServerTests
         notifications.Abort();
     }
 
-    /// <summary>A refusal of a request the server read only in part reaches a client that reads it after the server is done
-    /// with the connection: the server shuts its side once it has answered and drops what is left unread until the client
-    /// closes, where closing with the rest of the request unread reset the connection, and Windows then threw away the
-    /// answer the client had not read yet (CI lost a 414 so).</summary>
+    /// <summary>A refusal of a request the server read only in part reaches a client that reads it after the server is
+    /// done with the connection, on Windows too, where a socket closed with input unread resets the
+    /// connection.</summary>
     [Theory]
     [InlineData(414)]
     [InlineData(401)]

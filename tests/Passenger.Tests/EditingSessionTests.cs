@@ -59,12 +59,11 @@ public sealed class EditingSessionTests
     public void A_long_session_of_keys_with_soft_wrap_on_edits_as_the_model_says_moves_by_rows_and_wraps_as_a_fresh_editor_would(int seed) =>
         Session(seed, wrapped: true);
 
-    /// <summary>The keys the model leaves out, at several carets, in folds and in wrapped rows: selections, word and text
-    /// moves, Tab, the line and comment commands, case, cut, copy and paste (CRLF text into an LF file), folding, Undo and
-    /// Redo. Checked by what holds whatever a key does: no key fails, no caret leaves the text, the line index reads the
-    /// text's lines, an undo or redo gives back a text the session had, the rows are a fresh editor's with the same folds,
-    /// the folds carried in runs as the open file carries them are those carried one by one, and at the end the file undoes
-    /// to itself as opened and redoes to the session's last text.</summary>
+    /// <summary>The keys the model leaves out, at several carets, in folds and in wrapped rows: selections, word and
+    /// text moves, Tab, the line and comment commands, case, cut, copy and paste (CRLF text into an LF file), folding,
+    /// Undo and Redo. Checked by what holds whatever a key does: no key fails, no caret leaves the text, the line index
+    /// reads its lines, an undo or redo gives a text the session had, the rows are a fresh editor's, the folds in runs
+    /// are those carried one by one, and the file undoes to itself and redoes to the last text.</summary>
     [AvaloniaTheory]
     [InlineData(3)]
     [InlineData(8)]

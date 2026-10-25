@@ -22,9 +22,9 @@ namespace Passenger.App;
 public partial class MainWindow : Window
 {
     /// <summary>The window's least width and height (its MinWidth and MinHeight), which a screenshot's <c>--size</c> is
-    /// held to: Avalonia would widen a smaller window to them without a word. Narrow enough to tile beside another on half
-    /// a 1280-wide screen (Windows' snap halves, GNOME's Super+Left), as Rider's window tiles: the toolbar's names give way,
-    /// a stripe puts what it has no room for behind More, and the side tool windows keep the editor its share.</summary>
+    /// held to: Avalonia would widen a smaller window to them without a word. Narrow enough to tile beside another on
+    /// half a 1280-wide screen (Windows' snap halves, GNOME's Super+Left): the toolbar's names give way, a stripe puts
+    /// what it has no room for behind More, and the side tool windows keep the editor its share.</summary>
     public const double SmallestWidth = 640;
 
     public const double SmallestHeight = 500;
@@ -65,8 +65,7 @@ public partial class MainWindow : Window
         status = new StatusBar(StatusMessage, StatusText, StatusIcon, StatusWorking, CaretText, IndentText, LanguageText, LineSeparatorButton, LineEndingText, EncodingButton, EncodingText);
         popups = new PopupHost(Overlay, OverlayHost, Editors, () => session.Debug.Breakpoints);
         navigator = new Navigation.Navigator(new Navigation.NavigatorParts(Editors, () => session, popups, status, path => OpenFile(path), TextOf));
-        // One keymap for the whole window, seen before any control: IDE actions run from anywhere,
-        // editor actions go to the editor when it has the focus.
+        // One keymap for the whole window, seen before any control: editor actions go to the editor with the focus.
         windowKeys = new IdeKeys(this, keys, popups, OnKey, OnActivity, OnLeft);
         windowKeys.Attach(this);
         AddActions();
@@ -112,8 +111,7 @@ public partial class MainWindow : Window
         AddMarkdownPreview();
         Explorer.FileOpened += (_, path) => OpenFile(path);
         Editors.ActiveChanged += (_, _) => FollowInExplorer();
-        // A Structure window not built yet asks for the file shown as it is; a C# file's outline waits out the pause, as the
-        // path's does, and another file's is asked for at once.
+        // An unbuilt Structure window asks for the file itself; a C# file's outline waits out the pause.
         Editors.ActiveChanged += (_, _) =>
         {
             if (Editors.Active is { } shown && session.CSharp?.For(shown) is not null)
@@ -150,7 +148,6 @@ public partial class MainWindow : Window
         Editors.Opened += (_, document) => session.Attach(document);
         Editors.Closed += (_, document) => session.Detach(document);
         Editors.ForEachEditor(editor => editor.ProblemsRequested += (_, _) => ShowToolWindow(ToolWindowIds.Problems));
-        // IntelliJ's words for its caret limit.
         Editors.ForEachEditor(editor => editor.CaretLimitReached += (_, _) =>
             status.Text = string.Create(CultureInfo.InvariantCulture, $"Cannot create more than {SelectionSet.MaxCount:N0} carets"));
         Editors.ForEachEditor(editor => editor.ExecutionPointDragged += (_, line) =>
@@ -168,19 +165,16 @@ public partial class MainWindow : Window
             }
             if (!click.Context && editor.IsInMarkColumn(click.Position) && active.TestMarks.Any(m => m.Line == click.Line))
             {
-                // A test's run icon: Rider's menu of Run and Debug for it.
                 ShowTestMenu(editor, active, click.Line);
                 return;
             }
             if (!click.Context && editor.IsInMarkColumn(click.Position) && active.RouteMarks.Any(m => m.Line == click.Line))
             {
-                // A web route's icon: the menu that sends its request.
                 ShowRouteMarkMenu(editor, active, click.Line);
                 return;
             }
             if (!click.Context && editor.IsInMarkColumn(click.Position) && active.RunMarks.Any(m => m.Line == click.Line))
             {
-                // A compose service's or a Dockerfile's run icon: Run (and Debug) of the configurations that run it.
                 ShowRunMarkMenu(editor, active, click.Line);
                 return;
             }
@@ -200,7 +194,6 @@ public partial class MainWindow : Window
             }
             if (click.Context)
             {
-                // A right-click on a breakpoint opens its properties, as in Rider.
                 if (session.Debug.Breakpoints.In(active.Path).FirstOrDefault(b => b.Line == click.Line) is { } breakpoint)
                 {
                     ShowBreakpointPopup(breakpoint);
@@ -257,17 +250,12 @@ public partial class MainWindow : Window
         assist.DebuggerValue = async (offset, cancel) => Editors.Active is { } shown && Debugging.XamlBreakpoints.Compiled(shown.Path)
             ? bindingValues!.HoverAt(shown, offset)
             : await session.Debug.HoverAt(offset, cancel);
-        // A running app's failed binding is offered its source's nearest members, at the member its XAML names; a compose
-        // file's name Compose finds undeclared, its declaration, removal or a near name; a service's Aspire warning, the
-        // reference its AppHost lacks or the declared name near one no resource has; an AppHost's parameter with no value,
-        // the value set in its configuration; a service's read of a connection string its compose file's environment lacks,
-        // the variable set there; a read of a configuration key nothing gives, the key set in appsettings.json or user secrets; a
-        // localized key a language lacks, its value given in that language's .resx or XLIFF file.
+        // Passenger's own fixes: bindings, compose names, Aspire, configuration and localized keys.
         assist.EditorFixes = (file, offset) => [.. Passenger.App.LiveTree.BindingErrors.Fixes(file, offset, session.FailedBindings.Select(b => b.Failure)),
             .. session.Web?.Checks.Fixes(file, offset) ?? [], .. assist.AspireFixes(file, offset), .. assist.ComposeReadFixes(file, offset), .. MigrationFixes(file, offset),
             .. assist.ConfigurationFixes(file, offset), .. assist.LocalizationFixes(file, offset)];
         assist.AskValue = AskValueAsync;
-        // What a project's configuration is read from, the session's as each call finds it.
+        // The session as each call finds it.
         assist.ConfigurationOf = path => session.ConfigurationOf(path);
         assist.ConfiguredBy = path => session.ConfiguredBy(path);
         assist.AddActions(actions!);
@@ -322,7 +310,6 @@ public partial class MainWindow : Window
         {
             if (file.EndsWith(".nettrace", StringComparison.OrdinalIgnoreCase))
             {
-                // A profiler's trace opens as a snapshot, as a dotTrace snapshot opens in Rider.
                 _ = OpenSnapshotAsync(Path.GetFullPath(file));
                 continue;
             }
@@ -342,8 +329,8 @@ public partial class MainWindow : Window
 
     private string? followed;
 
-    /// <summary>Chooses the file shown in the Explorer as another is shown, a tab switched to as well as a file opened, as
-    /// Rider's Always Select Opened File; a row chosen there meanwhile stays chosen until then.</summary>
+    /// <summary>Chooses the file shown in the Explorer as another is shown, a tab switched to as well as a file opened;
+    /// a row chosen there meanwhile stays chosen until then.</summary>
     private void FollowInExplorer()
     {
         string? shown = Editors.Active?.Path;
@@ -419,7 +406,7 @@ public partial class MainWindow : Window
         }
         else if (own && action == EditorActions.Escape && Editors.FindBar.IsVisible)
         {
-            // Escape with nothing of the editor's own to undo closes what sits over it, as in Rider.
+            // Escape with nothing of the editor's own to undo closes what sits over it.
             Editors.FindBar.Close();
             e.Handled = true;
         }
@@ -529,9 +516,9 @@ public partial class MainWindow : Window
         Bottom.Debug.ShowTab(console: false);
     }
 
-    /// <summary>Stop can be clicked while there is something to stop: a debug session, a program Run or Profile started, or a
-    /// start or build under way. It keeps its place on the toolbar, greyed, while there is not: one that came and went moved
-    /// Run and Debug from under the pointer the moment Run was clicked, so a second click landed on Debug.</summary>
+    /// <summary>Stop can be clicked while there is something to stop: a debug session, a program Run or Profile
+    /// started, or a start or build under way. Otherwise it stays in its place, greyed, so Run and Debug never move
+    /// from under the pointer.</summary>
     private void ShowStop()
     {
         StopButton.IsEnabled = buildRun.WhyNotStop() is null;
@@ -545,7 +532,7 @@ public partial class MainWindow : Window
         ShowHotReloadButtons();
     }
 
-    /// <summary>Opens a tool window in its place (one of <see cref="ToolWindowIds"/>), as its stripe button does.</summary>
+    /// <summary>Opens a tool window in its place (one of <see cref="ToolWindowIds"/>).</summary>
     public void ShowToolWindow(string id) => Dock.Show(id);
 
     /// <summary>Shift+Escape: the tool window open last closes, and the editor has the keys again.</summary>
@@ -555,7 +542,7 @@ public partial class MainWindow : Window
         FocusEditor();
     }
 
-    /// <summary>Rider's Focus Editor: the file shown has the keys again, the tool windows left as they are.</summary>
+    /// <summary>Focus Editor: the file shown has the keys again, the tool windows left as they are.</summary>
     private void FocusEditor()
     {
         if (Editors.Active is not null)
@@ -564,7 +551,7 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>The tool windows, each in the place IntelliJ gives it at first.</summary>
+    /// <summary>The tool windows, each in its first place.</summary>
     private void AddToolWindows()
     {
         Dock.Add(new Docking.ToolWindow(ToolWindowIds.Explorer, "Explorer", "Icon.Explorer", Explorer, Docking.ToolAnchor.LeftTop)
@@ -628,19 +615,18 @@ public partial class MainWindow : Window
         ShowRecent();
     }
 
-    /// <summary>The folder this window keeps its state and its folders' snapshots in: the store's own unless one is named,
-    /// as a test names a fresh one without changing the process's environment, which the programs it starts inherit.</summary>
+    /// <summary>The folder this window keeps its state and its folders' snapshots in: the store's own unless one is
+    /// named, which leaves the environment the programs it starts inherit as it was.</summary>
     public string StateFolder { get; init; } = State.StateStore.DefaultRoot;
 
     /// <summary>Where the window leaves its language server running as it closes, and takes one up from as it opens the
-    /// same solution, rather than end it and start another: a test class's windows on one project share a warm server
-    /// this way. None in the IDE, whose windows end their server with them.</summary>
+    /// same solution, rather than end it and start another. None in the IDE, whose windows end their server with
+    /// them.</summary>
     public WarmServer? WarmServer { get; init; }
 
-    /// <summary>Whether the window starts the C# language server on a folder with a solution or project: always in the IDE.
-    /// A test of what asks nothing of C# (the Explorer's files, the Solution view, Git) turns it off, an <c>--mcp</c>
-    /// Passenger's through <see cref="Mcp.McpHost.LanguageServerVariable"/>, and pays no server's start, load or restore
-    /// of a project never restored.</summary>
+    /// <summary>Whether the window starts the C# language server on a folder with a solution or project: always in the
+    /// IDE; off for a window that asks nothing of C#, an <c>--mcp</c> Passenger's through
+    /// <see cref="Mcp.McpHost.LanguageServerVariable"/>.</summary>
     public bool StartsLanguageServer { get; init; } = true;
 
     /// <summary>The store of the window a person uses, the process's for its state folder, taken the first time it keeps
@@ -768,7 +754,7 @@ public partial class MainWindow : Window
         return structure;
     }
 
-    /// <summary>The tool windows' host, for the layout and the tests.</summary>
+    /// <summary>The tool windows' host.</summary>
     public Docking.DockHost DockHost => Dock;
 
     /// <summary>Goes to a file and position (go to definition, a usage), remembering where it came from for Back.</summary>
@@ -803,8 +789,8 @@ public partial class MainWindow : Window
         popups.Show(popup);
     }
 
-    /// <summary>Rider's Unload Project: the project shows dimmed with nothing under it, and leaves the run configurations,
-    /// the solution's builds and the test runner until it is reloaded; the folder keeps the choice.</summary>
+    /// <summary>Unload Project: the project shows dimmed with nothing under it, and leaves the run configurations, the
+    /// solution's builds and the test runner until it is reloaded; the folder keeps the choice.</summary>
     public void SetUnloaded(string project, bool unloaded)
     {
         if (unloaded ? !session.Unloaded.Add(project) : !session.Unloaded.Remove(project))
@@ -879,8 +865,8 @@ public partial class MainWindow : Window
         ShowTitle();
     }
 
-    /// <summary>The window's title, as Rider's: the solution (or the project opened alone, or the folder) and the file its
-    /// own editors show, an editor window in front or not; with nothing open, the Welcome window's.</summary>
+    /// <summary>The window's title: the solution (or the project opened alone, or the folder) and the file its own
+    /// editors show, an editor window in front or not; with nothing open, the Welcome window's.</summary>
     private void ShowTitle()
     {
         string? named = Folder is not { } folder ? null : session.Workspace?.Name ?? Path.GetFileName(folder);
@@ -912,8 +898,8 @@ public partial class MainWindow : Window
 
     private void OnProjectClicked(object? sender, RoutedEventArgs e) => ShowProjectMenu();
 
-    /// <summary>The project badge's two letters, as Rider draws them: the first two words' initials,
-    /// or a lone word's first two letters.</summary>
+    /// <summary>The project badge's two letters: the first two words' initials, or a lone word's first two
+    /// letters.</summary>
     internal static string Initials(string name)
     {
         string[] words = name.Split([' ', '-', '_', '.'], StringSplitOptions.RemoveEmptyEntries);

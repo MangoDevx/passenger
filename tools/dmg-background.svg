@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
-  <!-- The macOS disk image's window background (#188), drawn by sips at 1x and 2x and joined into one TIFF by
-       tools/package-mac.sh. Its size is dmg-layout.py's BACKGROUND_SIZE: the window's width, and taller than any title
-       bar leaves of its height. The places are dmg-layout.py's: the app's icon centred at 160,165 and Applications'
-       at 440,165, each 128 across with its name under it. Light whatever the appearance, since the picture does not
-       follow it and Finder writes the names black over a light one in Dark too; the colours are the app icon's. -->
+  <!-- The macOS disk image's window background. Its size and the icons' places are dmg-layout.py's: BACKGROUND_SIZE,
+       the window's width and taller than any title bar leaves of its height; the app's icon centred at 160,165 and
+       Applications' at 440,165, each 128 across with its name under it. Light whatever the appearance, since the
+       picture does not follow it and Finder writes the names black over a light one in Dark too; the colours are the
+       app icon's. -->
   <defs>
     <radialGradient id="blue" cx="60" cy="0" r="420" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#2F6BF2" stop-opacity="0.10"/>

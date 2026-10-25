@@ -14,11 +14,11 @@ using VsResult = Microsoft.VisualStudio.TestPlatform.ObjectModel.TestResult;
 
 namespace Passenger.App.Testing;
 
-/// <summary>Tests found and run through VSTest, as Rider and Visual Studio run them: the vstest.console of the SDK
-/// the folder builds with (its global.json's), driven through VSTest's own translation layer, so every framework
-/// with a VSTest adapter (xUnit, NUnit, MSTest) is found and run with its source locations and results. VSTest's test
-/// cases stay in here, each told as the IDE's own test and its results as outcomes. What VSTest warns of or fails with is
-/// in the logs folder's vstest.log, and with Trace protocol messages on every message it sends.</summary>
+/// <summary>Tests found and run through VSTest: the vstest.console of the SDK the folder builds with (its global.json's),
+/// driven through VSTest's own translation layer, so every framework with a VSTest adapter (xUnit, NUnit, MSTest) is
+/// found and run with its source locations and results. VSTest's test cases stay in here, each told as the IDE's own
+/// test and its results as outcomes. What VSTest warns of or fails with is in the logs folder's vstest.log, and with
+/// Trace protocol messages on every message it sends.</summary>
 public sealed class VsTestRunner : ITestRunner
 {
     private const string RunSettings = "<RunSettings><RunConfiguration><DesignMode>true</DesignMode></RunConfiguration></RunSettings>";
@@ -26,7 +26,7 @@ public sealed class VsTestRunner : ITestRunner
     /// <summary>The translation layer's constructor that names the dotnet running vstest.console.dll: the public ones run
     /// the .dll under this process's own executable, which is right inside dotnet and wrong under Passenger's apphost (it
     /// would start Passenger again). It is internal to the package version pinned, so a version without it fails every
-    /// run with this message, which the Unit Tests window's tests show.</summary>
+    /// run with this message.</summary>
     private static readonly ConstructorInfo? NamesHost = typeof(VsTestConsoleWrapper).GetConstructor(
         BindingFlags.Instance | BindingFlags.NonPublic, [typeof(string), typeof(string), typeof(ConsoleParameters)]);
 
@@ -67,8 +67,7 @@ public sealed class VsTestRunner : ITestRunner
         VsTestConsoleWrapper wrapper = NamesHost?.Invoke([console, host, parameters]) as VsTestConsoleWrapper
             ?? throw new InvalidOperationException(
                 $"VSTest's translation layer {typeof(VsTestConsoleWrapper).Assembly.GetName().Version} cannot be told which dotnet runs vstest.console: VsTestRunner must follow its constructors");
-        // The translation layer's async calls wait for vstest.console's handshake before they start it (and so for
-        // ever); its blocking calls start it and wait for the connection, so they run on a worker thread.
+        // Its async calls wait for the handshake before starting vstest.console, so for ever: the blocking one, on a worker.
         await Told(BackgroundWork.Run(wrapper.StartSession));
         IdeLog.Write(IdeLog.Tests, $"vstest.console of the SDK {sdk} started for {folder}");
         VsTestRunner runner = new(wrapper);
@@ -137,7 +136,7 @@ public sealed class VsTestRunner : ITestRunner
         Run handler = new(running, outcomes, log);
         using (cancel.Register(() => Task.Run(console.CancelTestRun)))
         {
-            // Not held: a debugged run waits here while stopped at a breakpoint, which TestController lets screenshots past.
+            // Not held: a debugged run waits here while stopped at a breakpoint.
             await Told(Task.Run(() =>
             {
                 if (debugger is null)

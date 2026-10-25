@@ -4,9 +4,9 @@ using Passenger.App.Docking;
 
 namespace Passenger.App.Editors;
 
-/// <summary>Editor tabs in a window of their own, as Rider's Open Tab in New Window or a tab dragged out of the editors
-/// makes one: its own tabs and splits over the folder's open files, which every window shows alike (one text, saved
-/// once). Its last tab closed, it goes; closed, its tabs close.</summary>
+/// <summary>Editor tabs in a window of their own, made by Open Tab in New Window or a tab dragged out of the editors:
+/// its own tabs and splits over the folder's open files, which every window shows alike (one text, saved once). Its
+/// last tab closed, it goes; closed, its tabs close.</summary>
 public sealed class EditorWindow
 {
     private readonly EditorFrame frame;

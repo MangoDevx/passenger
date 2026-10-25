@@ -7,12 +7,12 @@ using Passenger.Host;
 
 namespace Passenger.App.Workspace;
 
-/// <summary>A window's projects as MSBuild evaluates them, in the project host (<see cref="ProjectHosts"/>): the folder's
-/// cache of its last evaluations first (<see cref="ProjectModelCache"/>, kept by a window that keeps state, read off the UI
-/// thread), then each project whose inputs changed since, or that was never evaluated, evaluated again, the active file's
-/// first, each landing on the UI thread as it comes (<see cref="Changed"/>), as background work a screenshot or a test
-/// waits for. One round of checks and evaluations runs at a time; one asked for meanwhile follows it, and finds by the
-/// stamps whatever changed while the first ran. A UI-thread object.</summary>
+/// <summary>A window's projects as MSBuild evaluates them, in the project host (<see cref="ProjectHosts"/>): the
+/// folder's cache of its last evaluations first (<see cref="ProjectModelCache"/>, kept by a window that keeps state,
+/// read off the UI thread), then each project whose inputs changed since, or that was never evaluated, evaluated again,
+/// the active file's first, each landing on the UI thread as it comes (<see cref="Changed"/>), as background work. One
+/// round of checks and evaluations runs at a time; one asked for meanwhile follows it, and finds by the stamps whatever
+/// changed while the first ran. A UI-thread object.</summary>
 public sealed class ProjectModels
 {
     private readonly Dictionary<string, EvaluatedProject> known = new(StringComparer.Ordinal);
@@ -185,7 +185,6 @@ public sealed class ProjectModels
         _ = RoundAsync(generation, folder, projects, before, Properties(next.Workspace), ending.Token);
     }
 
-    /// <summary>The workspace's projects, the active file's first.</summary>
     /// <summary>The workspace's projects, the active file's first and then those it references as last evaluated, through
     /// their references: what the language server loads first.</summary>
     private IEnumerable<string> Ordered(WorkspaceModel workspace, string? active)

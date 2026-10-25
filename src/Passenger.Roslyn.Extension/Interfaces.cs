@@ -7,9 +7,9 @@ using Microsoft.CodeAnalysis.Simplification;
 
 namespace Passenger.Roslyn.Extension;
 
-/// <summary>Rider's Extract Interface: an interface of the members chosen from a class, struct or record, written by
-/// Roslyn's syntax generator in a file of its own beside the type's, in the type's namespace, its types simplified and
-/// imported by Roslyn's simplifier and import adder, and the type made to implement it.</summary>
+/// <summary>Extract Interface: an interface of the members chosen from a class, struct or record, in a file of its own
+/// beside the type's, in the type's namespace, its types simplified and imported, and the type made to implement
+/// it.</summary>
 internal static class Interfaces
 {
     public static async Task<InterfaceSource> DescribeAsync(Document document, Place at, CancellationToken cancel)
@@ -120,7 +120,7 @@ internal static class Interfaces
         return await Changes.BetweenAsync(document.Project.Solution, implementing.Project.Solution, cancel).ConfigureAwait(false);
     }
 
-    /// <summary>Why a new file of a name cannot be made beside a document, in ReSharper's words; null when it can.</summary>
+    /// <summary>Why a new file of a name cannot be made beside a document; null when it can.</summary>
     public static string? FileProblem(Document document, string fileName, string what)
     {
         if (fileName.Length == 0)
@@ -162,8 +162,8 @@ internal static class Interfaces
         return (type, null);
     }
 
-    /// <summary>The members an interface of a type can have, as Roslyn's Extract Interface finds them: its public instance
-    /// methods, properties, indexers and events, in their order.</summary>
+    /// <summary>The members an interface of a type can have: its public instance methods, properties, indexers and events,
+    /// in their order.</summary>
     private static IEnumerable<ISymbol> Candidates(INamedTypeSymbol type) => type.GetMembers().Where(m =>
         m.DeclaredAccessibility == Accessibility.Public && !m.IsStatic && !m.IsImplicitlyDeclared && m.CanBeReferencedByName
         && m switch
@@ -182,7 +182,7 @@ internal static class Interfaces
         _ => "member",
     });
 
-    /// <summary>A member as Rider's member lists show it: its name and parameter types, then its type.</summary>
+    /// <summary>A member as a list of members shows it: its name and parameter types, then its type.</summary>
     public static string Text(ISymbol member)
     {
         string Type(ITypeSymbol type) => type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);

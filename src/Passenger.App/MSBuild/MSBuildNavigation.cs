@@ -247,7 +247,6 @@ public static class MSBuildNavigation
                 {
                     return [];
                 }
-                // From where it is set, the places that set it before; from a reference, every place, the last first.
                 (int line, int column) = symbol.Element is { } own ? PlaceOf(context.Tree.Text, own.Start) : (0, 0);
                 return [.. property.Set.Select(insight.Place)
                     .Where(p => !(p.Line == line && p.Column == column && Core.PathNames.Same(p.Path, context.Path)))

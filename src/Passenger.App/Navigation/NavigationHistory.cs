@@ -6,17 +6,18 @@ namespace Passenger.App.Navigation;
 /// <summary>A place the caret was: its file, its offset in the text and that offset's line.</summary>
 public sealed record HistoryPlace(string Path, int Offset, int Line);
 
-/// <summary>Rider's Back and Forward, Last and Next Edit Location, and the places Recent Locations lists. A navigation
-/// (go to definition, a usage, a bookmark) puts the place it left behind and forgets what was ahead; Back puts the caret's
-/// place ahead. The caret moved by a key or a click changes neither, so Forward still goes where Back came from. An edit
-/// keeps its place among the places edited, which Last Edit Location steps back through and Next Edit Location forward.
-/// Each list keeps at most <see cref="Limit"/> places, and the places in an open file move with its text.</summary>
+/// <summary>Back and Forward, Last and Next Edit Location, and the places Recent Locations lists. A navigation (go to
+/// definition, a usage, a bookmark) puts the place it left behind and forgets what was ahead; Back puts the caret's
+/// place ahead. The caret moved by a key or a click changes neither, so Forward still goes where Back came from. An
+/// edit keeps its place among the places edited, which Last Edit Location steps back through and Next Edit Location
+/// forward. Each list keeps at most <see cref="Limit"/> places, and the places in an open file move with its
+/// text.</summary>
 public sealed class NavigationHistory
 {
-    /// <summary>How many places each way, IntelliJ's own limit (editor.navigation.history.stack.size).</summary>
+    /// <summary>How many places each way.</summary>
     public const int Limit = 150;
 
-    /// <summary>Two places in a file fewer lines apart than this are one, as IntelliJ's TextEditorState merges them.</summary>
+    /// <summary>Two places in a file fewer lines apart than this are one.</summary>
     private const int NearLines = 4;
 
     private readonly List<HistoryPlace> behind = [];
@@ -27,7 +28,7 @@ public sealed class NavigationHistory
     private readonly List<Kept> edited = [];
 
     /// <summary>Where Last and Next Edit Location stand among the places edited: past the last until they are used, and
-    /// put back there by the next edit, as IntelliJ's change places are.</summary>
+    /// put back there by the next edit.</summary>
     private int editStep;
     private long count;
 
@@ -86,7 +87,7 @@ public sealed class NavigationHistory
     /// <summary>The files edited, the latest first.</summary>
     public IReadOnlyList<string> EditedFiles => [.. edited.OrderByDescending(p => p.When).Select(p => p.Place.Path).Distinct()];
 
-    /// <summary>Forgets a place Recent Locations listed, as its Delete does, with those near it.</summary>
+    /// <summary>Forgets a place Recent Locations listed (its Delete), with those near it.</summary>
     public void Forget(HistoryPlace place)
     {
         visited.RemoveAll(p => Near(p.Place, place));
@@ -114,7 +115,7 @@ public sealed class NavigationHistory
     }
 
     /// <summary>Where Forward goes from the caret's place, which goes behind; null with nothing ahead. A place near the
-    /// caret's is passed over while there is another, as IntelliJ's is.</summary>
+    /// caret's is passed over while there is another.</summary>
     public HistoryPlace? Forward(HistoryPlace? here, Func<string, bool> exists)
     {
         HistoryPlace? target = Take(ahead, exists);
@@ -133,9 +134,9 @@ public sealed class NavigationHistory
         return target;
     }
 
-    /// <summary>Carries a file's places through an edit to it. Text typed at a place goes before it, so a place stays on
-    /// the text it was at, as a bookmark stays on its line. Only a place that moved is made anew: every key comes here, and
-    /// most places are in other files or before the key.</summary>
+    /// <summary>Carries a file's places through an edit to it. Text typed at a place goes before it, so a place stays
+    /// on the text it was at. Only a place that moved is made anew: every key comes here, and most places are in other
+    /// files or before the key.</summary>
     public void Follow(string path, DocumentChangedEventArgs change)
     {
         Carry(behind);
@@ -206,7 +207,7 @@ public sealed class NavigationHistory
         editStep = 0;
     }
 
-    /// <summary>Keeps a place as the latest of its list, in place of the last when near it, as IntelliJ merges them.</summary>
+    /// <summary>Keeps a place as the latest of its list, in place of the last when near it.</summary>
     private void Merge(List<Kept> places, HistoryPlace place)
     {
         if (places.Count > 0 && Near(places[^1].Place, place))

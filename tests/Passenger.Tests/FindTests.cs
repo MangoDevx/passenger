@@ -69,7 +69,7 @@ public sealed class FindTests : IDisposable
         Selection found = editor.Selections.Primary;
         Assert.Equal((2, "foo"), (editor.CaretPosition.Line, editor.Document.Snapshot.GetText(found.Start, found.Length)));
 
-        // Rider's everyday trailing-whitespace strip takes the spaces and tabs, never half of a line break.
+        // The everyday trailing-whitespace strip takes the spaces and tabs, never half of a line break.
         bar.FindControl<TextBox>("Query")!.Text = @"\s+$";
         bar.FindControl<TextBox>("ReplaceWith")!.Text = string.Empty;
         Ui.Settle();
@@ -134,12 +134,11 @@ public sealed class FindTests : IDisposable
         bar.FindControl<ToggleButton>("UseRegex")!.IsChecked = true;
         window.KeyTextInput("^");
         Ui.Settle();
-        // Each line's start, the empty one's too, but not the end after the last break, as in Rider.
+        // Each line's start, the empty one's too, but not the end after the last break.
         Assert.Equal(("1/3", new Selection(0, 0)), (bar.CountText, editor.Selections.Primary));
         Ui.Press(window, "ENTER");
         Assert.Equal(("2/3", new Selection(4, 4)), (bar.CountText, editor.Selections.Primary));
 
-        // Replace puts the prefix at the line's start and goes on to the next line's.
         bar.FindControl<TextBox>("ReplaceWith")!.Text = "// ";
         Ui.Click(bar.FindControl<Button>("ReplaceButton")!);
         Assert.Equal("one\n// \ntwo\n", editor.Document.Snapshot.ToString());
@@ -151,9 +150,8 @@ public sealed class FindTests : IDisposable
         window.Close();
     }
 
-    /// <summary>Keys typed at the top of a file of 20,000 lines with the find bar open allocate on the UI thread under twice
-    /// what they do in one of 200, the match at the end moving with them and still counted: the whole file was searched
-    /// again on the UI thread at every key, read into one string to be.</summary>
+    /// <summary>Keys typed at the top of a file of 20,000 lines with the find bar open allocate on the UI thread under
+    /// twice what they do in one of 200, the match at the end moving with them and still counted.</summary>
     [AvaloniaFact]
     public void Typing_with_the_find_bar_open_costs_a_key_in_twenty_thousand_lines_about_what_it_does_in_two_hundred()
     {

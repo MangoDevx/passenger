@@ -7,10 +7,9 @@ using System.Text.Json.Nodes;
 
 namespace Passenger.App.Discord;
 
-/// <summary>One connection to the Discord app's local IPC. A frame is an op code and a length, each 32 bits
-/// little-endian, then that many bytes of JSON: the handshake names the version and Passenger's application, and Discord
-/// answers READY before it takes commands. What Discord sends after is read as it comes (an answer, an error, a ping it
-/// wants a pong for, its close), so its side never fills. No UI: its callbacks come on any thread.</summary>
+/// <summary>One connection to the Discord app's local IPC: the handshake, then commands once Discord answers READY.
+/// Every frame Discord sends is read as it comes, so its side never fills. No UI: its callbacks come on any
+/// thread.</summary>
 internal sealed class DiscordConnection : IAsyncDisposable
 {
     private const int Handshake = 0;
@@ -75,7 +74,7 @@ internal sealed class DiscordConnection : IAsyncDisposable
             }
             finally
             {
-                // Refused, timed out or cancelled as Passenger closes: this connection is let go of here.
+                // Still set when cancelled, so every connection that failed is let go of here.
                 if (refused is not null)
                 {
                     await connection.DisposeAsync().ConfigureAwait(false);
@@ -168,7 +167,6 @@ internal sealed class DiscordConnection : IAsyncDisposable
         }
         catch (Exception error)
         {
-            // Whatever ends the reading ends the connection, which the presence then finds lost.
             why = $"the connection to {Where} failed: {error.Message}";
         }
         ready.TrySetResult(why);

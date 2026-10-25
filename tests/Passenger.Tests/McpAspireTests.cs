@@ -59,9 +59,9 @@ public sealed class McpAspireTests : McpRig, IClassFixture<RestoredFolders>
     }
 
     /// <summary>An agent's run of an AppHost whose launch profile serves HTTPS, the development certificate not trusted, asks
-    /// the person nothing (their answer could keep the call waiting for good), as a container run's does: it runs over HTTP,
-    /// its answer and the status bar saying so. The AppHost is AspireStandInTests' stand-in, which needs no Aspire, and
-    /// dev-certs <see cref="DevCerts"/>' stand-in, which trusts nothing on this machine.</summary>
+    /// the person nothing (their answer could keep the call waiting for good): it runs over HTTP, its answer and the status
+    /// bar saying so. The AppHost is AspireStandInTests' stand-in, which needs no Aspire, and dev-certs
+    /// <see cref="DevCerts"/>' stand-in, which trusts nothing on this machine.</summary>
     [AvaloniaFact]
     public void An_agents_run_of_an_AppHost_that_serves_HTTPS_with_no_trusted_certificate_runs_it_over_HTTP_asking_no_one()
     {
@@ -102,9 +102,8 @@ public sealed class McpAspireTests : McpRig, IClassFixture<RestoredFolders>
         }
     }
 
-    /// <summary>An agent's workspace says a service its run configuration says not to start is Not started, as the window
-    /// does, never the FailedToStart DCP calls the start the IDE refused. The AppHost is AspireStandInTests' stand-in, its
-    /// service's start asked of the IDE as DCP asks it.</summary>
+    /// <summary>An agent's workspace says a service its run configuration says not to start is Not started, never
+    /// FailedToStart. The AppHost is AspireStandInTests' stand-in, its service's start asked of the IDE as DCP asks it.</summary>
     [AvaloniaFact]
     public void An_agents_workspace_says_a_service_marked_Dont_start_is_Not_started()
     {
@@ -278,8 +277,7 @@ public sealed class McpAspireTests : McpRig, IClassFixture<RestoredFolders>
             string host = Path.Combine(starter, AspireApp.Name + ".AppHost", "AppHost.cs");
             string text = File.ReadAllText(host);
             File.WriteAllText(host, $"File.WriteAllText({JsonSerializer.Serialize(endpointFile)}, Environment.GetEnvironmentVariable(\"DEBUG_SESSION_PORT\") ?? string.Empty);\n" + text);
-            // By its real path, as the AppHost names its projects: through /var and /private/var at once the restore wrote one
-            // project's files twice.
+            // By its real path, as the AppHost names its projects: two spellings of one project restored at once collide.
             Restore.Run(PathNames.Canonical(starter));
         }, starter);
 
@@ -291,7 +289,7 @@ public sealed class McpAspireTests : McpRig, IClassFixture<RestoredFolders>
         Assert.True(await Waiting.UntilAsync(async () =>
             (await Call(client, "workspace")).GetProperty("runConfigurations").EnumerateArray().Any(item => item.GetString() == configuration),
             TimeSpan.FromMinutes(2), Cancel), $"The official starter's HTTP configuration was not discovered.{Said()}");
-        // The run answers once the resource is up, as a container run answers once its services are: no waiting after it.
+        // The run answers once the resource is up: no waiting after it.
         string up = (await Call(client, "run", new() { ["configuration"] = configuration, ["resource"] = "apiservice" })).GetProperty("status").GetString()!;
         Assert.True(up.StartsWith("apiservice", StringComparison.Ordinal) && up.Contains(" is up\n", StringComparison.Ordinal),
             $"The agent's run answered before its resource was up: {up}");
@@ -406,10 +404,9 @@ public sealed class McpAspireTests : McpRig, IClassFixture<RestoredFolders>
     }
 
     /// <summary>An AppHost's session container, which its orchestrator makes with none of Passenger's labels, is known as it
-    /// is made though no Aspire window shows it (an agent's windowless Passenger has none), so when that Passenger ends as a
-    /// crash ends it (it, its watchdog, its children and the orchestrator killed at once, as Windows' job ends them, where no
-    /// watchdog runs), the next Passenger of its state removes the container as it starts, and leaves the Persistent one,
-    /// which is the person's to keep.</summary>
+    /// is made though no Aspire window shows it, so when that Passenger ends as a crash ends it (it, its watchdog, its
+    /// children and the orchestrator killed at once), the next Passenger of its state removes the container as it starts,
+    /// and leaves the Persistent one, which is the person's to keep.</summary>
     [Fact(Skip = AspireApp.AppHostSkipped, SkipType = typeof(AspireApp), SkipWhen = nameof(AspireApp.IsUnavailable))]
     public async Task An_AppHosts_session_container_a_crashed_Passenger_left_is_removed_as_the_next_one_starts_and_a_persistent_one_stays()
     {
@@ -436,19 +433,17 @@ public sealed class McpAspireTests : McpRig, IClassFixture<RestoredFolders>
             await Call(client, "run", new() { ["configuration"] = configuration });
             string session = await AspireContainersTests.RunningAsync(AspireContainersTests.Session);
             string kept = await AspireContainersTests.RunningAsync(AspireContainersTests.Kept);
-            // Known as the orchestrator made it: what the next start reads of what this one made.
+            // What the next start reads of the containers this one made.
             string record = Path.Combine(OwnState, "aspire-containers", "ownership.json");
             await Until(() => File.Exists(record) && Ui.Shared(record).Contains(session, StringComparison.Ordinal), "the session container recorded as it was made");
             Assert.DoesNotContain(kept, Ui.Shared(record), StringComparison.Ordinal);
 
-            // Its end as a crash's: Passenger and all it started, and the orchestrator its AppHost started apart, killed at once.
             Process passenger = LastPassenger();
             int host = Assert.Single((await Call(client, "workspace")).GetProperty("aspireApps").EnumerateArray()).GetProperty("processId").GetInt32();
             int[] orchestrator = [.. Processes.Listed().Where(process => process.Value.Contains("dcp start-apiserver", StringComparison.Ordinal)
                 && process.Value.Contains($"--monitor {host.ToString(CultureInfo.InvariantCulture)} ", StringComparison.Ordinal)).Select(process => process.Key)];
             Assert.NotEmpty(orchestrator);
-            // The orchestrator first, which would take its containers down once its AppHost goes, and Passenger last, whose end its
-            // watchdog (among its children) would answer with its own.
+            // The orchestrator first, which would take its containers down as its AppHost goes, and Passenger last.
             int[] killed = [.. orchestrator, .. orchestrator.SelectMany(Processes.Descendants), .. Processes.Descendants(passenger.Id), passenger.Id];
             foreach (int id in killed.Distinct())
             {
@@ -464,7 +459,6 @@ public sealed class McpAspireTests : McpRig, IClassFixture<RestoredFolders>
             await Until(() => killed.All(id => !Processes.IsRunning(id)), "Passenger, its children and the orchestrator killed");
             Assert.Equal("running", Docker.State(session));
 
-            // The next Passenger of the state removes it as it starts, and leaves the Persistent one.
             await using McpClient next = await Start(["--mcp", starter], languageServer: false);
             await Until(() => Docker.State(session) is null, "the next Passenger to remove the session container the crashed one's AppHost left");
             Assert.Equal("running", Docker.State(kept));
@@ -475,10 +469,9 @@ public sealed class McpAspireTests : McpRig, IClassFixture<RestoredFolders>
         }
     }
 
-    /// <summary>On macOS and Linux a Passenger killed alone leaves its watchdog, which ends what it started and then runs
-    /// its last command: that removes the AppHost's session container Passenger recorded as its orchestrator made it,
-    /// though it carries none of Passenger's labels, and leaves the Persistent one, the person's to keep. The orchestrator
-    /// is held stopped meanwhile, so the removal is the watchdog's, not the orchestrator's as its AppHost goes.</summary>
+    /// <summary>On macOS and Linux a Passenger killed alone leaves its watchdog, whose last command removes the AppHost's
+    /// session container Passenger recorded, though it carries none of Passenger's labels, and leaves the Persistent one. The
+    /// orchestrator is held stopped meanwhile, so the removal is the watchdog's, not the orchestrator's.</summary>
     [Fact(Skip = AspireApp.AppHostSkipped, SkipType = typeof(AspireApp), SkipWhen = nameof(AspireApp.IsUnavailable))]
     public async Task An_AppHosts_session_container_goes_with_a_Passenger_killed_alone_by_its_watchdogs_last_command_and_a_persistent_one_stays()
     {
@@ -510,8 +503,6 @@ public sealed class McpAspireTests : McpRig, IClassFixture<RestoredFolders>
             string record = Path.Combine(OwnState, "aspire-containers", "ownership.json");
             await Until(() => File.Exists(record) && Ui.Shared(record).Contains(session, StringComparison.Ordinal), "the session container recorded as it was made");
 
-            // The orchestrator held where it stands, which would take its containers down once its AppHost goes; then
-            // Passenger alone killed, its watchdog left to end the AppHost it started and run its last command.
             Process passenger = LastPassenger();
             int host = Assert.Single((await Call(client, "workspace")).GetProperty("aspireApps").EnumerateArray()).GetProperty("processId").GetInt32();
             int[] orchestrator = [.. Processes.Listed().Where(process => process.Value.Contains("dcp start-apiserver", StringComparison.Ordinal)

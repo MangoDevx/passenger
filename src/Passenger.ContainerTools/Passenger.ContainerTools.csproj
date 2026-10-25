@@ -1,25 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Passenger's container tools: what runs inside a Linux container for the IDE outside it, over docker exec's standard
-       input and output. One executable with modes: dap (the IDE's own debug adapter, the same engine, compiled in from
-       Passenger.DebugAdapter), processes (the container's .NET programs as JSON), and the profiler's trace, heap and
-       sources (Passenger.Profiler's InContainer, ClrMD reading a heap with the container's own DAC). Published
-       self-contained for linux-x64, linux-arm64, linux-musl-x64 and linux-musl-arm64 (just container-tools, the release's
-       Passenger-container-tools-<rid>.tar.gz), so it needs nothing of the image but the C library. The IDE never carries
-       it: a dev build finds artifacts/container-tools/<rid>/, a release downloads its own version's. -->
+  <!-- Passenger's container tools: what runs inside a Linux container for the IDE outside it, over docker exec's
+       standard input and output, one executable with modes (dap, processes, and the profiler's trace, heap and
+       sources). Published self-contained for linux-x64, linux-arm64, linux-musl-x64 and linux-musl-arm64, so it needs
+       nothing of the image but the C library. -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <AssemblyName>passenger-tools</AssemblyName>
     <RootNamespace>Passenger.ContainerTools</RootNamespace>
-    <!-- No ICU in a container's image is needed: the debugger formats nothing by culture (the program's own ToString runs
-         in the program), and Alpine's .NET images carry none. -->
+    <!-- The tools format nothing by culture, so they need no ICU, which Alpine's .NET images lack. -->
     <InvariantGlobalization>true</InvariantGlobalization>
     <!-- Its own runtime goes with it into the container: the program's may be another version, or none (self-contained). -->
     <SelfContained Condition="'$(RuntimeIdentifier)' != ''">true</SelfContained>
   </PropertyGroup>
 
-  <!-- Microsoft.Diagnostics.DbgShim brings one package a system, and for a musl system both its own and the glibc one's
-       libdbgshim.so match (musl's systems derive from linux's), the glibc one winning the publish's conflict: it needs
-       ld-linux, which Alpine lacks. A musl publish keeps its own. -->
+  <!-- A musl publish keeps its own libdbgshim.so: the glibc one, which also matches a musl RID and would win the
+       publish's conflict, needs ld-linux, which Alpine lacks. -->
   <Target Name="KeepMuslDbgShim" AfterTargets="ResolvePackageAssets" Condition="$(RuntimeIdentifier.StartsWith('linux-musl-'))">
     <PropertyGroup>
       <GlibcDbgShim>Microsoft.Diagnostics.DbgShim.$(RuntimeIdentifier.Replace('-musl', ''))</GlibcDbgShim>
@@ -29,13 +24,9 @@
     </ItemGroup>
   </Target>
 
-  <!-- LICENSE.txt and THIRD-PARTY-NOTICES.txt go with the tools in every build and publish, as with the app, the notices
-       written by tools/Passenger.Notices from what the tools' .deps.json names, as the runtime loads it: the runtime pack a
-       publish carries, the debugger's and the profiler's packages (ClrMD and its Azure ones, TraceEvent, Roslyn's
-       expression compiler, ILSpy's decompiler) and dbgshim for the tools' system (musl's own, KeepMuslDbgShim), each with
-       its copyright, licence text and own notices, then THIRD_PARTY_NOTICES.md's sections of the debugger's copied source.
-       A package whose licence it cannot write fails the build. The deps file is written just before the output is copied,
-       so the notices are written after it, straight into the output, and a publish takes them from there. -->
+  <!-- LICENSE.txt and THIRD-PARTY-NOTICES.txt go with the tools in every build and publish, the notices written from
+       what the tools' .deps.json names. The deps file is written just before the output is copied, so the notices are
+       written after it, straight into the output, and a publish takes them from there. -->
   <ItemGroup>
     <ProjectReference Include="../../tools/Passenger.Notices/Passenger.Notices.csproj" ReferenceOutputAssembly="false" Private="false"
                       GlobalPropertiesToRemove="RuntimeIdentifier;SelfContained;PublishReadyToRun" />

@@ -72,8 +72,8 @@ public sealed class FileIndex
     }
 
     /// <summary>The best matches for a query, best first (the highest score, then the shortest path, then by name), as
-    /// relative paths. Only the best <paramref name="limit"/> are kept as the files are scored, the worst of them first in
-    /// line to go: a first letter matches most of a large folder, whose tens of thousands of matches were all sorted.</summary>
+    /// relative paths. Only the best <paramref name="limit"/> are kept as the files are scored, the worst of them first
+    /// in line to go, since a first letter matches most of a large folder.</summary>
     public IReadOnlyList<string> Search(string query, int limit = 60)
     {
         string trimmed = query.Trim();

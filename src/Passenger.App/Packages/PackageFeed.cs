@@ -85,7 +85,7 @@ public sealed record FeedSearch(IReadOnlyList<PackageSummary> Packages, IReadOnl
 /// not offered from it, since restore would never take it from there.</summary>
 public sealed class FeedSet(string name, IReadOnlyList<IPackageFeed> feeds, Func<string, string, bool> allows) : IPackageFeed
 {
-    /// <summary>Rider's name for the chooser's every-feed choice.</summary>
+    /// <summary>The chooser's every-feed choice.</summary>
     public const string All = "All Feeds";
 
     public string Name => name;
@@ -197,7 +197,7 @@ public sealed class FeedSet(string name, IReadOnlyList<IPackageFeed> feeds, Func
 
 /// <summary>A feed's HTTP: its requests, with its credentials sent to its own host alone (those of its nuget.config, else
 /// what a credential provider gives when it answers 401 without any), the certificate check its configuration may turn
-/// off, and HTTP refused unless the feed allows insecure connections, as restore refuses it. Credentials are never logged.</summary>
+/// off, and HTTP refused unless the feed allows insecure connections. Credentials are never logged.</summary>
 public sealed class FeedClient
 {
     private static readonly HttpClient Shared = new(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) }) { Timeout = TimeSpan.FromSeconds(30) };
@@ -314,9 +314,8 @@ public sealed class FeedClient
     }
 }
 
-/// <summary>A feed through NuGet's v3 protocol, as the NuGet client finds its way around one: the service index names
-/// the search, the registrations (which say of each version whether it is listed), the flat container (which lists
-/// unlisted versions too, and is what a feed without registrations offers) and the known vulnerabilities.</summary>
+/// <summary>A feed through NuGet's v3 protocol, by what its service index names: the search, the registrations (whether
+/// each version is listed), the flat container (for a feed without registrations) and the known vulnerabilities.</summary>
 public sealed class V3Feed(FeedClient client) : IPackageFeed
 {
     /// <summary>nuget.org's service index.</summary>
@@ -407,9 +406,8 @@ public sealed class V3Feed(FeedClient client) : IPackageFeed
         }
     }
 
-    /// <summary>The advisories the feed's VulnerabilityInfo resource gives, by package, as restore's audit reads them: an
-    /// index of pages (a base and the updates since), each a map of lower-case ids to advisories. None from a feed
-    /// without the resource.</summary>
+    /// <summary>The advisories the feed's VulnerabilityInfo resource gives, by package; none from a feed without the
+    /// resource.</summary>
     public async Task<IReadOnlyDictionary<string, IReadOnlyList<Advisory>>> VulnerabilitiesAsync(CancellationToken cancel)
     {
         if ((await ServicesAsync(cancel)).Vulnerabilities is not { } index)
@@ -476,8 +474,8 @@ public sealed class V3Feed(FeedClient client) : IPackageFeed
     private sealed record FlatVersions(IReadOnlyList<string>? Versions);
 }
 
-/// <summary>A feed through NuGet's v2 protocol (OData, as older servers speak it): Search() for the latest of each
-/// package, FindPackagesById() for a package's versions, page by page; one published in 1900 or not listed is unlisted.</summary>
+/// <summary>A feed through NuGet's v2 protocol (OData), page by page; a version published in 1900 or not listed is
+/// unlisted.</summary>
 public sealed class V2Feed(FeedClient client) : IPackageFeed
 {
     private static readonly XNamespace Atom = "http://www.w3.org/2005/Atom";

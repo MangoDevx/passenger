@@ -143,9 +143,7 @@ public sealed class LiveRequestsTests
             Assert.DoesNotContain("ada-secret", window.Requests.Rows.OfType<RequestsView.CommandRow>().Select(r => r.Command.Text + r.Command.Parameters).Aggregate(string.Empty, string.Concat), StringComparison.Ordinal);
             Assert.False(one.HasRepeats, "A request that ran one command was marked as an N+1");
 
-            // EF names an INSERT's and an UPDATE's parameters @p0, @p1…, which say nothing of their columns: a value written
-            // to the Password column, or compared with it, is masked by the column its command's text has it fill or meet,
-            // in the row's tooltip, while the name written beside it shows as logged.
+            // EF's @p0, @p1… name no column: a value is masked by the column its command's text has it fill or meet.
             LiveRequest signUp = window.RequestLog.Requests.Single(r => r.Path == "/sign-up/ada");
             Assert.Equal(["INSERT", "UPDATE", "SELECT"], signUp.Commands.Select(c => c.Text.Split((char[]?)null, 2, StringSplitOptions.RemoveEmptyEntries)[0]));
             Ui.WaitFor(() => signUp.Commands.All(c => c.Parameters is not null), () => $"the sign-up's parameters, from EF Core's logs of its commands: "
@@ -167,14 +165,12 @@ public sealed class LiveRequestsTests
             Assert.True(all.HasRepeats, "The request that ran one command for each order was not marked as an N+1");
             Assert.Equal([false, true, true, true], all.Commands.Select(c => c.Repeated));
             Assert.Equal(3, all.Commands[1].Runs);
-            // Listed newest first, each request followed by its commands.
             Assert.Equal(["/boom", "/sign-up/ada", "/sign-in/ada", "/orders", "/orders/2"], window.Requests.Rows.OfType<LiveRequest>().Select(r => r.Path));
 
             LiveRequest boom = window.RequestLog.Requests.Single(r => r.Path == "/boom");
             Assert.Equal(500, boom.Status);
             Assert.Contains("No orders today", boom.Error, StringComparison.Ordinal);
 
-            // A request opens at its handler; one that failed where its exception was thrown; a command's text in a tab.
             window.Requests.Open(one);
             Ui.WaitFor(() => window.EditorArea.Active?.Path.EndsWith("Program.cs", StringComparison.Ordinal) == true
                 && window.EditorArea.CodeEditor.CaretPosition.Line == LineOf("app.MapGet(\"/orders/{id:int}\""), "the order's handler, opened");
@@ -184,7 +180,6 @@ public sealed class LiveRequestsTests
             Ui.WaitFor(() => window.EditorArea.Active?.Path.EndsWith(".sql", StringComparison.Ordinal) == true, "the command's text, opened in a tab");
             Assert.Equal($"-- {read.Parameters}\n{read.Text}", window.EditorArea.CodeEditor.Document.Snapshot.ToString());
             Assert.True(window.EditorArea.CodeEditor.IsReadOnly, "A command's text opened as something to edit");
-            // The sign-up's INSERT opens with the Password column's value as dots in the comment over it.
             LiveCommand insert = signUp.Commands[0];
             window.Requests.Open(window.Requests.Rows.OfType<RequestsView.CommandRow>().Single(r => r.Command == insert));
             Ui.WaitFor(() => window.EditorArea.CodeEditor.Document.Snapshot.ToString().StartsWith("-- ", StringComparison.Ordinal)
@@ -201,10 +196,10 @@ public sealed class LiveRequestsTests
         }
     }
 
-    /// <summary>A request heard with the list full costs the window what one costs with a few listed: its rows go in at the
-    /// top, the oldest's come out, and every other row keeps its control, where the whole list was made again at each batch.
-    /// The app's diagnostic events are stood in for by the events the profiler's reader gives the window; an N+1 of many
-    /// commands is counted by its text.</summary>
+    /// <summary>A request heard with the list full costs the window what one costs with a few listed: its rows go in at
+    /// the top, the oldest's come out, and every other row keeps its control. The app's diagnostic events are stood in
+    /// for by the events the profiler's reader gives the window; an N+1 of many commands is counted by its
+    /// text.</summary>
     [AvaloniaFact]
     public void A_request_heard_costs_the_window_what_it_changed_however_many_are_listed()
     {
@@ -220,7 +215,6 @@ public sealed class LiveRequestsTests
             Assert.True(many < few + 64 * 1024,
                 $"A request heard with {RequestLog.Most} listed allocated {many / 1024} KB on the UI thread, with 5 listed {few / 1024} KB: the list is made again at each batch");
 
-            // Still listed newest first, each request followed by its commands, the oldest gone past the most kept.
             IReadOnlyList<object> rows = window.Requests.Rows;
             Assert.Equal(RequestLog.Most * 4, rows.Count);
             Assert.Equal($"/orders/{heard - 1}", Assert.IsType<LiveRequest>(rows[0]).Path);
@@ -228,7 +222,6 @@ public sealed class LiveRequestsTests
             Assert.Equal($"/orders/{heard - RequestLog.Most}", Assert.IsType<LiveRequest>(rows[^4]).Path);
             Assert.Equal(RequestLog.Most, window.RequestLog.Requests.Count);
 
-            // An N+1 of a thousand commands: each counted as run a thousand times, listed under its request.
             window.RequestLog.Clear();
             Hear(commands: 1000, ended: true);
             Ui.Settle();
@@ -236,7 +229,6 @@ public sealed class LiveRequestsTests
             Assert.True(repeated.HasRepeats && repeated.Commands.All(c => c.Runs == 1000), "The request's thousand like commands were not counted as run a thousand times");
             Assert.Equal(1001, window.Requests.Rows.Count);
 
-            // A request's end heard later draws its row again where it is, its commands kept.
             window.RequestLog.Clear();
             string trace = Hear(commands: 2, ended: false);
             Ui.Settle();

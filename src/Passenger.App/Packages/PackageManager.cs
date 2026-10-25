@@ -3,17 +3,15 @@ using Passenger.Core;
 
 namespace Passenger.App.Packages;
 
-/// <summary>What a package change came to, whoever asked for it (the NuGet window, an agent): whether dotnet did it, the
-/// files it changed (the project, the nearest Directory.Packages.props), what dotnet said, and, for one never begun, why
-/// (another change under way).</summary>
+/// <summary>What a package change came to: whether dotnet did it, the files it changed (the project, the nearest
+/// Directory.Packages.props), what dotnet said, and, for one never begun, why (another change under way).</summary>
 public sealed record PackageOutcome(bool Done, IReadOnlyList<string> Changed, IReadOnlyList<string> Said)
 {
     public string? Refused { get; init; }
 }
 
-/// <summary>Adds, updates and removes a project's packages through the .NET command line (dotnet add and remove
-/// package), as the SDK means them to be changed: it restores to check the package fits, and under central package
-/// management it writes the version into Directory.Packages.props. What the command says goes to the log.</summary>
+/// <summary>Adds, updates and removes a project's packages through dotnet add and remove package, so the SDK checks the
+/// package fits and writes a central version where it belongs. What the command says goes to the log.</summary>
 public sealed class PackageManager
 {
     /// <summary>How many times a command is run that found its project file in another program's hands.</summary>
@@ -52,7 +50,7 @@ public sealed class PackageManager
         return await RunAsync(["restore", project]);
     }
 
-    /// <summary>Ends a change still under way, its whole process tree, as the IDE closes.</summary>
+    /// <summary>Ends a change still under way, its whole process tree.</summary>
     public void Stop()
     {
         UiThread.Check();
@@ -107,9 +105,8 @@ public sealed class PackageManager
     }
 
     /// <summary>Runs the command once, what it says to the log: whether it succeeded, and whether it failed only because
-    /// a file it writes was open in another program at that moment (the language server reading the project the last
-    /// change made, a virus scanner), which Windows refuses where macOS never does, and which leaves the project as it
-    /// was, so the command can be run again.</summary>
+    /// another program had a file it writes open (Windows refuses that), which leaves the project as it was, so the command
+    /// can be run again.</summary>
     private async Task<(bool Succeeded, bool FileInUse)> RunOnceAsync(ProcessStartInfo start)
     {
         Process process;

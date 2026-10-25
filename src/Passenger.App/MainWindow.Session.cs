@@ -52,7 +52,7 @@ public partial class MainWindow
         StartsLanguageServer = StartsLanguageServer,
     };
 
-    /// <summary>Where this window's Dockerfile server asks for image tags in Docker Hub's place: a test's stand-in; null for
+    /// <summary>Where this window's Dockerfile server asks for image tags in Docker Hub's place: the one given, else
     /// the place <c>PASSENGER_DOCKER_HUB</c> names, else Docker Hub's own.</summary>
     public Uri? DockerHub { get; init; }
 
@@ -74,12 +74,11 @@ public partial class MainWindow
         ShowFolder = ShowInFileManager,
     };
 
-    /// <summary>Opens a folder, or a solution (.sln, .slnx) or C# project (.csproj) over its folder, as the workspace; what
-    /// a person chooses goes through <see cref="Open"/>, which refuses anything else. The workspace already open is only
-    /// read again: its language server and open files are kept. Another folder's session is left first, and the new one
-    /// made once what it ran has ended: the task is done once the folder is open (at once when nothing had to end), or
-    /// once a later open has taken its place. <paramref name="opener"/> is the agent whose own open it is, which stays let in;
-    /// <paramref name="opened"/> runs once the folder's session has begun (or been read again), never for an open given up.</summary>
+    /// <summary>Opens a folder, or a solution (.sln, .slnx) or C# project (.csproj) over its folder, as the workspace (a
+    /// person's choice through <see cref="Open"/>). The workspace already open is only read again, its server and files
+    /// kept; another folder's session is left first, the new one made once what it ran has ended. Done once the folder is
+    /// open or a later open took its place. <paramref name="opener"/>, the agent whose own open it is, stays let in;
+    /// <paramref name="opened"/> runs once the folder's session has begun (or been read again), never for one given up.</summary>
     public Task OpenFolder(string path, Mcp.AgentConnection? opener = null, Action? opened = null)
     {
         UiThread.Check();
@@ -92,7 +91,7 @@ public partial class MainWindow
             opened?.Invoke();
             return Task.CompletedTask;
         }
-        // Another folder's files are its own: this one's are kept with it and close, saved, as Rider's do.
+        // Another folder's files are its own: this one's are kept with it and close, saved.
         if (session.Folder is not null)
         {
             if (!LeaveFolder())
@@ -103,8 +102,7 @@ public partial class MainWindow
         }
         AgentsGoTo(opening, opener);
         Autosave();
-        // The session with no folder ends too, what it ran with it (a program attached to with no folder open); the files
-        // open in it stay, the new session's.
+        // The session with no folder ends too, with what it ran; its open files stay, the new session's.
         Task none = session.LeaveAsync();
         ending = ending.IsCompleted ? none : Task.WhenAll(ending, none);
         // The folder's documents read off the window's thread meanwhile, so its restore takes them in with no read.
@@ -469,8 +467,8 @@ public partial class MainWindow
     /// configuration chosen when it is still there and the Explorer's rows open.</summary>
     public void ReloadSolution() => session.ReadAgain();
 
-    /// <summary>Rider names the window's project widget and its title after the solution (or the project opened alone), the
-    /// folder only without one.</summary>
+    /// <summary>The window's project widget and its title name the solution (or the project opened alone), the folder
+    /// only without one.</summary>
     private void ShowWorkspaceName()
     {
         if (session.Workspace is not { } workspace)

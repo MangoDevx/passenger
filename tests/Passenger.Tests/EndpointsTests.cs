@@ -13,9 +13,9 @@ using Passenger.App.Endpoints;
 
 namespace Passenger.Tests;
 
-/// <summary>The Endpoints window, as Rider's HTTP Client: the requests of a folder's .http files listed with their
-/// methods, Test sending one as written and holding its answer to the file's criteria, Interactive Test sending it as
-/// changed in its dialog, and every test on a client of its own that is gone once the test is done.</summary>
+/// <summary>The Endpoints window, an HTTP client: the requests of a folder's .http files listed with their methods,
+/// Test sending one as written and holding its answer to the file's criteria, Interactive Test sending it as changed in
+/// its dialog, and every test on a client of its own that is gone once the test is done.</summary>
 public sealed class EndpointsTests : IDisposable
 {
     private readonly StandInApi api = new();
@@ -50,12 +50,10 @@ public sealed class EndpointsTests : IDisposable
         Assert.Equal(3, window.Endpoints.Response.Results.Count);
         Assert.Contains("\"name\": \"Ada\"", window.Endpoints.Response.Shown);
         Assert.True(window.Endpoints.Outcome(all));
-        // The environment's variable and the file's header both reached the server.
         StandInApi.Request received = Assert.Single(api.Received);
         Assert.Equal("GET /items", received.Line);
         Assert.Equal("application/json", received.Header("Accept"));
 
-        // A request answered with an error fails, with no criteria of its own.
         Ui.Click(RowButton(window, window.Endpoints.Requests[2], "endpointTest"));
         Ui.WaitFor(() => window.Endpoints.Response.Response is not null, "the second answer");
         Assert.False(window.Endpoints.Response.Passed, "A 404 passed a test that expects an answer below 400");
@@ -97,7 +95,6 @@ public sealed class EndpointsTests : IDisposable
         Assert.Equal([(true, "Content-Type", "application/json")], dialog.Headers.Pairs);
 
         dialog.Method.SelectedItem = "PUT";
-        // A header typed into the table's empty last row becomes a row of its own, with another empty one after it.
         KeyValueGrid.Row trace = dialog.Headers.Rows[^1];
         trace.Key.Text = "X-Trace";
         Ui.Settle();
@@ -116,7 +113,6 @@ public sealed class EndpointsTests : IDisposable
         Assert.Equal("t-42", received.Header("X-Trace"));
         Assert.Equal("""{ "name": "Grace" }""", received.Body);
 
-        // A criterion the answer misses fails and says what the answer had; the file is never changed.
         dialog.Criteria.Text = "status 200";
         Ui.Click(dialog.Send);
         Ui.WaitFor(() => dialog.Response.Response is not null, "the second answer");
@@ -125,7 +121,6 @@ public sealed class EndpointsTests : IDisposable
         Assert.Equal("201", failed.Actual);
         Assert.Contains("POST {{base}}/items", File.ReadAllText(add.File));
 
-        // Text that is no criterion is refused before anything is sent.
         int sent = api.Received.Count;
         dialog.Criteria.Text = "colour blue";
         Ui.Click(dialog.Send);
@@ -147,7 +142,6 @@ public sealed class EndpointsTests : IDisposable
         Assert.Equal(0, dialog.PageShown);
         Assert.Empty(dialog.Params.Pairs);
 
-        // Rows typed into the table write the URL's query, {{variables}} as written.
         KeyValueGrid.Row page = dialog.Params.Rows[^1];
         page.Key.Text = "page";
         Ui.Settle();
@@ -161,13 +155,11 @@ public sealed class EndpointsTests : IDisposable
         Assert.Equal("{{base}}/items?page=2&q={{trace}}", dialog.Url.Text);
         Assert.Equal("Params (2)", dialog.TabTitles[0]);
 
-        // A row turned off leaves the URL and stays in the table.
         dialog.Params.Rows[0].On.IsChecked = false;
         Ui.Settle();
         Assert.Equal("{{base}}/items?q={{trace}}", dialog.Url.Text);
         Assert.Equal([(false, "page", "2"), (true, "q", "{{trace}}")], dialog.Params.Pairs);
 
-        // The URL typed: the table takes its query, the row turned off kept after it.
         dialog.Url.Text = "{{base}}/items?limit=5&q=x";
         Ui.Settle();
         Assert.Equal([(true, "limit", "5"), (true, "q", "x"), (false, "page", "2")], dialog.Params.Pairs);
@@ -206,7 +198,6 @@ public sealed class EndpointsTests : IDisposable
         Ui.WaitFor(() => window.Endpoints.Requests.Count == 4, "the new file's request");
         Assert.Contains(window.Endpoints.Requests, r => r.Method == "DELETE");
 
-        // A file written while the window is closed is there as it is shown again.
         window.DockHost.Hide("endpoints");
         Ui.Settle();
         File.WriteAllText(Path.Combine(folder, "later.http"), "PATCH {{base}}/items/1\n");
@@ -279,7 +270,6 @@ public sealed class EndpointsTests : IDisposable
         Assert.StartsWith("Not sent", window.Endpoints.Response.Summary, StringComparison.Ordinal);
         Assert.Null(window.Endpoints.Outcome(whoami));
 
-        // Not allowed is never kept: the next Test asks again, and once allowed, the variables go.
         Ui.Click(RowButton(window, whoami, "endpointTest"));
         question = window.Endpoints.Question ?? throw new Xunit.Sdk.XunitException("A Don't allow was kept, where the next send should ask again");
         Ui.Click(question.AllowButton);
@@ -287,12 +277,10 @@ public sealed class EndpointsTests : IDisposable
         Assert.Equal(set, received.Header("X-Token"));
         Assert.Equal(string.Empty, received.Header("X-Missing"));
 
-        // Asked once: the folder allows it while it is open.
         Ui.Click(RowButton(window, whoami, "endpointTest"));
         Assert.Null(window.Endpoints.Question);
         Assert.Equal(2, api.Received.Count);
 
-        // A request that reads none of the person's computer never asks.
         Ui.Click(RowButton(window, window.Endpoints.Requests[0], "endpointTest"));
         Assert.Null(window.Endpoints.Question);
         Assert.Equal(3, api.Received.Count);
@@ -324,7 +312,6 @@ public sealed class EndpointsTests : IDisposable
         Assert.True(again.Endpoints.Question is null, "Always for this folder was not kept: the next window asked again");
         Assert.Equal(2, api.Received.Count);
 
-        // A variable the folder never allowed asks again, naming it.
         // The env files are read as a request is sent.
         File.WriteAllText(Path.Combine(folder, "http-client.env.json"),
             $$$"""{ "dev": { "base": "{{{api.Root}}}", "token": "{{$processEnv PASSENGER_SETTINGS}}{{$env.PASSENGER_ENDPOINTS_OTHER}}" } }""");
@@ -383,7 +370,6 @@ public sealed class EndpointsTests : IDisposable
 
         if (links)
         {
-            // A link inside the folder to a file outside it is that file.
             Ui.Click(RowButton(window, window.Endpoints.Requests.Single(r => r.Name == "Linked"), "endpointTest"));
             question = window.Endpoints.Question ?? throw new Xunit.Sdk.XunitException("A link to a file outside the folder was sent unasked");
             Assert.Equal([new EndpointRead(true, Passenger.Core.PathNames.Canonical(outside))], question.Reads);
@@ -618,10 +604,10 @@ public sealed class EndpointsTests : IDisposable
     }
 
     /// <summary>A small JSON API on a loopback port: GET /items lists one item, POST and PUT /items answer 201 with the
-    /// body sent, GET /moved redirects to /items and GET /elsewhere to it under the name localhost, GET and POST /other-port
-    /// to <see cref="RedirectRoot"/>'s /items (a 302 and a 307), GET /slow answers
-    /// only as the test ends, anything else 404. It keeps every request with the connection it came on, and counts
-    /// connections made and still open, so a test sees whether a client was kept.</summary>
+    /// body sent, GET /moved redirects to /items and GET /elsewhere to it under the name localhost, GET and POST
+    /// /other-port to <see cref="RedirectRoot"/>'s /items (a 302 and a 307), GET /slow answers only as the test ends,
+    /// anything else 404. It keeps every request with the connection it came on, and counts connections made and still
+    /// open, so a test sees whether a client was kept.</summary>
     private sealed class StandInApi : IDisposable
     {
         public sealed record Request(int Connection, string Line, IReadOnlyDictionary<string, string> Headers, string Body)

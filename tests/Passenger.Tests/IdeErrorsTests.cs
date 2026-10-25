@@ -11,8 +11,8 @@ using Passenger.App.ToolWindows;
 namespace Passenger.Tests;
 
 /// <summary>An error inside the IDE is caught, written to the log and shown, never the end of it; a language server
-/// that ends on its own, or stops answering, is started again with the open files, as Rider restarts its backend, and one
-/// still starting when its folder closes is ended, as is one a window test that failed left loading.</summary>
+/// that ends on its own, or stops answering, is started again with the open files, and one still starting when its
+/// folder closes is ended, as is one a window test that failed left loading.</summary>
 public sealed class IdeErrorsTests : IDisposable
 {
     private readonly string folder = TestFolders.Create("errors-");
@@ -66,7 +66,6 @@ public sealed class IdeErrorsTests : IDisposable
         Assert.True(posted.Count == 1, $"One exception reported twice (the dispatcher's, then its task's) was counted {posted.Count} times");
         Assert.Equal("IDE error: A posted job went wrong", window.Status);
 
-        // The window still works: the next key does what it says.
         Assert.Equal("One.cs", window.EditorArea.Active!.Name);
         Ui.Run(window, AppActions.NextTab);
         Assert.Equal("Two.cs", window.EditorArea.Active!.Name);
@@ -115,7 +114,7 @@ public sealed class IdeErrorsTests : IDisposable
             string[] logs = Directory.GetFiles(IdeErrors.LogFolder, "passenger*.log");
             Assert.All(logs, log => Assert.True(new FileInfo(log).Length <= IdeErrors.LogLimit,
                 $"{Path.GetFileName(log)} grew to {new FileInfo(log).Length} bytes, past the log's limit of {IdeErrors.LogLimit}"));
-            // Rider's idea.log rotation: twelve kept beside the current one, the oldest gone.
+            // Twelve kept beside the current one, the oldest gone.
             Assert.Equal(
                 Enumerable.Range(1, IdeErrors.Rotations).Select(n => $"passenger.{n}.log").Append("passenger.log").Order(StringComparer.Ordinal),
                 logs.Select(log => Path.GetFileName(log)).Order(StringComparer.Ordinal));
@@ -187,7 +186,6 @@ public sealed class IdeErrorsTests : IDisposable
             ended.Add(server);
         }
 
-        // Each server's log is its own, in the folder Help, Show Log opens, and let go once the server is gone.
         foreach (int server in ended)
         {
             string[] logs = [.. ServerLogs().Where(log => ServerOf(log) == server)];
@@ -294,7 +292,6 @@ public sealed class IdeErrorsTests : IDisposable
                 End(first);
             }
         }
-        // Said as the server is replaced, then by Find Usages, which it never answered, once its connection is gone.
         Assert.Equal("Find Usages failed: the language server stopped responding, so it was ended", window.Status);
         string[] said = [.. Ui.IdeLog().Split('\n').Where(l => l.Contains($"process {first})", StringComparison.Ordinal))];
         Assert.True(said.Any(l => l.Contains($"process {first}) is not responding: textDocument/references waited", StringComparison.Ordinal)),
@@ -397,7 +394,6 @@ public sealed class IdeErrorsTests : IDisposable
         Assert.Contains("Helper", caller.Node.Item.Name, StringComparison.Ordinal);
         int first = window.CSharpService!.Session!.Server.ProcessId;
 
-        // Asked of a server that stops before it answers, as one that crashes or is ended for hanging does.
         Processes.Suspend(first, "The language server");
         Task<string?> asked;
         try
@@ -413,7 +409,6 @@ public sealed class IdeErrorsTests : IDisposable
         Ui.PumpUntil(() => asked.IsCompleted, "Call Hierarchy to give up on the server that ended");
         Assert.Equal("Call Hierarchy failed: the language server stopped before it answered", asked.Result);
 
-        // Asked while the next one starts: there is no server to ask.
         Ui.PumpUntil(() => window.CSharpService.Session is null, "the ended server to be let go");
         Task<string?> starting = window.ShowCallHierarchyAsync();
         Assert.True(starting.IsCompleted, "Call Hierarchy waited for a server that is not there");
@@ -421,7 +416,6 @@ public sealed class IdeErrorsTests : IDisposable
         Assert.Equal(starting.Result, window.Status);
         Ui.WaitFor(() => window.CSharpService.Session is { IsLoaded: true }, $"the language server to be started again ({window.CSharpService.State})");
 
-        // The row shown before: its callers are asked of the server running now, the one the window was shown with gone.
         Task opening = window.Hierarchy.ExpandAsync(caller);
         Ui.WaitFor(() => opening.IsCompleted, "the caller's row to open");
         Assert.True(opening.IsCompletedSuccessfully, $"Opening a row of the Hierarchy window after the language server started again failed: {opening.Exception?.InnerException}");

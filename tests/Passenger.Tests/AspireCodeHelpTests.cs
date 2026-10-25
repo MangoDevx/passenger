@@ -42,9 +42,9 @@ public sealed class AspireCodeHelpTests : IClassFixture<AspireCodeHelpTests.Proj
         window.Close();
     }
 
-    /// <summary>A connection string a service reads, by GetConnectionString or a ConnectionStrings: key, and a service it
-    /// discovers, by an https+http:// address or a services: key, go to the AppHost line that declares the resource, at its
-    /// name, as compose's names go to their declarations.</summary>
+    /// <summary>A connection string a service reads, by GetConnectionString or a ConnectionStrings: key, and a service
+    /// it discovers, by an https+http:// address or a services: key, go to the AppHost line that declares the resource,
+    /// at its name.</summary>
     [AvaloniaFact]
     public void A_service_s_connection_string_or_discovered_service_goes_to_the_AppHost_line_declaring_it()
     {
@@ -115,7 +115,6 @@ public sealed class AspireCodeHelpTests : IClassFixture<AspireCodeHelpTests.Proj
                 Assert.True(File.ReadAllText(project.PathOf(file)) == before[file], $"Undo of the rename left {file} changed:\n{File.ReadAllText(project.PathOf(file))}");
             }
 
-            // From where the AppHost declares it: the worker's address follows.
             window.OpenFile(project.PathOf("Host/Program.cs"));
             Ui.Settle();
             Rename(window, "AddProject<Projects.Api>(\"a", "api", "backend");
@@ -216,7 +215,6 @@ public sealed class AspireCodeHelpTests : IClassFixture<AspireCodeHelpTests.Proj
         window.Confirm = (_, _, _) => Task.FromResult(true);
         WaitForMissing(window, "api", "db");
 
-        // Completion of a connection's name offers only the resources the AppHost connects the service to.
         Ui.PlaceAfter(window.EditorArea.CodeEditor, "GetConnectionString(\"");
         Ui.Run(window, AppActions.Complete);
         Ui.WaitFor(() => window.Assist.CompletionLabels.Contains("connected"), "the connected database name to be offered");
@@ -227,10 +225,9 @@ public sealed class AspireCodeHelpTests : IClassFixture<AspireCodeHelpTests.Proj
         Ui.PlaceAfter(window.EditorArea.CodeEditor, "GetConnectionString(\"d");
         Ui.Run(window, AppActions.QuickFix);
         Ui.WaitFor(() => window.Assist.Offered.Contains("Add WithReference(db) to api"), "the native reference fix to be offered");
-        // First, as Passenger's own fixes are, and beside the server's actions there, not in their place.
         Assert.Equal("Add WithReference(db) to api", window.Assist.Offered[0]);
         Assert.True(window.Assist.Offered.Count > 1, $"Only the Aspire fix was offered, without the language server's actions: {string.Join("; ", window.Assist.Offered)}");
-        // Another file of the solution changed while the fix is offered, which the server says by asking for diagnostics again.
+        // Another file of the solution changes while the fix is offered.
         TaskCompletionSource refreshed = new(TaskCreationOptions.RunContinuationsAsynchronously);
         EventHandler heard = (_, _) => refreshed.TrySetResult();
         Passenger.Lsp.LanguageServer server = window.CSharpService!.Session!.Server;
@@ -368,7 +365,6 @@ public sealed class AspireCodeHelpTests : IClassFixture<AspireCodeHelpTests.Proj
             Assert.Equal(["api", "worker"], dialog.AspireTable.Rows.Select(row => row.Service).Order(StringComparer.Ordinal));
             Assert.Contains(dialog.AspireTable.Rows, row => Equals(row.Project.SelectedItem, "Api"));
             Assert.Contains(dialog.AspireTable.Rows, row => Equals(row.Project.SelectedItem, "Worker"));
-            // The services table a Compose configuration's is: each project its AppHost names, Run, Debug or Don't start.
             DialogButtonsTests.Check(dialog);
             Assert.True(dialog.AspireTable.Classes.Contains("framed"), "The Aspire resources are not the framed services table Compose's are");
             ComboBox worker = dialog.AspireTable.Rows.Single(row => row.Service == "worker").Action;
@@ -390,11 +386,10 @@ public sealed class AspireCodeHelpTests : IClassFixture<AspireCodeHelpTests.Proj
         }
     }
 
-    /// <summary>A file no AppHost involves pays nothing for the AppHost in the folder: a key typed in it and its pause allocate
-    /// on the UI thread under 8 bytes a line more with the open AppHost 5,000 lines longer, where each pause asked the server
-    /// for every AppHost's resources, hashed every open file's text and pulled every open file's diagnostics again; the
-    /// AppHost's run icons stand through it, read again only as its own text changes; and the file's completion, context
-    /// actions and declarations are the server's, Passenger's extension never asked.</summary>
+    /// <summary>A file no AppHost involves pays nothing for the AppHost in the folder: a key typed in it and its pause
+    /// allocate on the UI thread under 8 bytes a line more with the open AppHost 5,000 lines longer; the AppHost's run
+    /// icons stand through it, read again only as its own text changes; and the file's completion, context actions and
+    /// declarations are the server's, Passenger's extension never asked.</summary>
     [AvaloniaFact]
     public void A_typing_pause_in_a_file_no_AppHost_involves_costs_nothing_of_Aspire()
     {
@@ -412,7 +407,6 @@ public sealed class AspireCodeHelpTests : IClassFixture<AspireCodeHelpTests.Proj
             long few = UiBytesPerPause(window);
             Assert.True(ReferenceEquals(marks, host.RunMarks), "Keys in a file no AppHost involves made the AppHost's run icons again");
 
-            // The AppHost made long, its icons read again for its own text.
             window.OpenFile(project.PathOf("Host/Program.cs"));
             CodeEditor editor = window.EditorArea.CodeEditor;
             editor.Selections = SelectionSet.Single(editor.Document.Snapshot.Length);
@@ -431,7 +425,6 @@ public sealed class AspireCodeHelpTests : IClassFixture<AspireCodeHelpTests.Proj
                 $"A typing pause in a plain file allocated {many:N0} bytes on the UI thread with the open AppHost {Notes:N0} lines longer, {few:N0} without: {each} bytes a line.");
             Assert.True(each < 8, $"A typing pause in a file no AppHost involves allocated {many / 1024:N0} KB on the UI thread with the open AppHost {Notes:N0} lines longer, {few / 1024:N0} KB without: {each} bytes for each of its lines, which the pause read");
 
-            // The server's own completion, fixes and declarations, with no word to Passenger's extension.
             editor = window.EditorArea.CodeEditor;
             Passenger.Lsp.LanguageServer server = window.CSharpService!.Session!.Server;
             Task asked = server.RefuseNext(ExtensionMessage, 1);

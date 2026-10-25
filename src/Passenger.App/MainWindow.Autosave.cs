@@ -5,11 +5,11 @@ using Passenger.Editor;
 
 namespace Passenger.App;
 
-/// <summary>Rider's autosave: an edit is never lost and closing never asks. Every changed file is saved before the
-/// window closes (quitting included) or another folder opens, and, each as Settings says, when the focus goes to
-/// another program or to the terminal and once the IDE has been idle a while. Nor is a character the file's encoding
-/// cannot hold: the file is saved as UTF-8 instead, and the status bar says so. A file whose folder another program moved
-/// or deleted is never written back there but by the person's Save, which the status bar says.</summary>
+/// <summary>Autosave: an edit is never lost and closing never asks. Every changed file is saved before the window
+/// closes (quitting included) or another folder opens, and, each as Settings says, when the focus goes to another
+/// program or to the terminal and once the IDE has been idle a while. Nor is a character the file's encoding cannot
+/// hold: the file is saved as UTF-8 instead, and the status bar says so. A file whose folder another program moved or
+/// deleted is never written back there but by the person's Save, which the status bar says.</summary>
 public partial class MainWindow
 {
     private readonly DispatcherTimer idleSave = new();
@@ -27,9 +27,7 @@ public partial class MainWindow
                 Autosave();
             }
         };
-        // Leaving Passenger from any of its windows saves (OnLeft), and so does going to its terminal (MakeTerminal); going to
-        // one of its own (a dialog, Settings, a diff) does not, as in Rider. Any key or click in them is activity, which the
-        // idle wait starts again from (OnActivity).
+        // Leaving Passenger saves (OnLeft), as does going to its terminal; going to one of its own windows does not.
         Editors.Opened += (_, document) => document.Text.Changed += (_, _) => RestartIdleSave();
         Editors.Opened += (_, document) =>
         {
@@ -80,9 +78,9 @@ public partial class MainWindow
         base.OnClosing(e);
     }
 
-    /// <summary>File, Save (the file shown as it is pressed) or Save All: each changed file first gets what Settings ask of
-    /// a save, Rider's actions on save (Run eslint --fix on save, then Prettier's Run on save), which Rider runs on an
-    /// explicit save and never on autosave, each one undoable edit. The files are saved whatever came of those.</summary>
+    /// <summary>File, Save (the file shown as it is pressed) or Save All: each changed file first gets what Settings
+    /// ask of a save (Run eslint --fix on save, then Prettier's Run on save), which an explicit save runs and autosave
+    /// never does, each one undoable edit. The files are saved whatever came of those.</summary>
     private async Task SaveExplicitly(bool all)
     {
         OpenDocument? pressed = all ? null : Editors.Active;

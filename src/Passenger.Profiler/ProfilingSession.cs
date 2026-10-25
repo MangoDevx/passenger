@@ -20,15 +20,15 @@ public sealed record ProfileTarget(string Program, IReadOnlyList<string> Argumen
 /// given; done once the stream has ended, on any thread.</summary>
 public delegate Task ProgramPump(TextReader reader, bool error, Action<string>? lines);
 
-/// <summary>A profiling run, as dotTrace's sampling mode makes one: the program is started held at a diagnostic port of
-/// its own (DOTNET_DiagnosticPorts, as dotnet-trace's --diagnostic-port does), so the run begins at its first
-/// instruction; the port is cleared in the program before it goes on, so a .NET program it starts is not held too. Or a
-/// program already running (one being debugged) is attached to at its own diagnostic port, as dotnet-trace's --process-id
-/// does, and goes on as it was after. Its EventPipe stream (the sampler, the runtime's method loads to name the frames, and
-/// an Avalonia app's frames from Passenger's inspector in it) is written to a .nettrace file until <see cref="StopAsync"/>
-/// or the program's end, then read into a <see cref="Snapshot"/>. A program elsewhere (a container's, <see cref="Place"/>)
-/// is recorded there by Passenger's tools, the same session streamed out over their standard output into the same file,
-/// and its memory snapshots are taken there too (<see cref="ContainerHeap"/>).</summary>
+/// <summary>A sampling profiler's run: the program is started held at a diagnostic port of its own
+/// (DOTNET_DiagnosticPorts), so the run begins at its first instruction; the port is cleared in the program before it
+/// goes on, so a .NET program it starts is not held too. Or a program already running is attached to at its own
+/// diagnostic port, and goes on as it was after. Its EventPipe stream (the sampler, the runtime's method loads to name
+/// the frames, and an Avalonia app's frames from Passenger's inspector in it) is written to a .nettrace file until
+/// <see cref="StopAsync"/> or the program's end, then read into a <see cref="Snapshot"/>. A program elsewhere (a
+/// container's, <see cref="Place"/>) is recorded there by Passenger's tools, the same session streamed out over their
+/// standard output into the same file, and its memory snapshots are taken there too
+/// (<see cref="ContainerHeap"/>).</summary>
 public sealed class ProfilingSession : IAsyncDisposable
 {
     /// <summary>The runtime's events dotnet-trace's cpu-sampling profile asks for: what names the frames (loader, JIT,
@@ -135,7 +135,7 @@ public sealed class ProfilingSession : IAsyncDisposable
         ProcessStartInfo start = ChildProcesses.Command(target.Program, target.Arguments, target.WorkingDirectory);
         start.RedirectStandardOutput = true;
         start.RedirectStandardError = true;
-        // An input of its own that stays open, as a console's does, for a program that waits on a read.
+        // An input of its own that stays open, for a program that waits on a read.
         start.RedirectStandardInput = true;
         foreach ((string key, string value) in target.Environment)
         {
@@ -239,12 +239,11 @@ public sealed class ProfilingSession : IAsyncDisposable
         }
     }
 
-    /// <summary>Profiles a .NET program already running, from now until <see cref="StopAsync"/> or its end, at the diagnostic
-    /// port its runtime opens for itself: one being debugged, say, whose Avalonia frames its inspector records while the
-    /// session lasts. Nothing is started and the program is left as it was. With <paramref name="resume"/> a program held at
-    /// its start (DOTNET_DefaultDiagnosticPortSuspend=1, its port waited for as its runtime opens it) is let go once
-    /// recording, so the run begins at its first instruction, as a container's is. A program gone, with no port to reach, or
-    /// whose snapshot cannot be written, is a <see cref="ProfilingException"/> saying why, the program left recording nothing.</summary>
+    /// <summary>Profiles a .NET program already running, from now until <see cref="StopAsync"/> or its end, at the
+    /// diagnostic port its runtime opens for itself, leaving it as it was. With <paramref name="resume"/> a program
+    /// held at its start (DOTNET_DefaultDiagnosticPortSuspend=1, its port waited for as its runtime opens it) is let go
+    /// once recording. A program gone, with no port to reach, or whose snapshot cannot be written, is a
+    /// <see cref="ProfilingException"/> saying why, the program left recording nothing.</summary>
     public static async Task<ProfilingSession> AttachAsync(int processId, string name, string folder, CancellationToken cancellation = default, bool resume = false)
     {
         Process process;
@@ -266,7 +265,7 @@ public sealed class ProfilingSession : IAsyncDisposable
             process.Dispose();
             throw new ProfilingException($"Could not profile {name}: no snapshot can be written in {folder}: {error.Message}", error);
         }
-        // As a start's: the session goes with any failure, or the program goes on recording for no one.
+        // The session goes with any failure, or the program goes on recording for no one.
         EventPipeSession? session = null;
         try
         {
@@ -289,7 +288,7 @@ public sealed class ProfilingSession : IAsyncDisposable
             {
                 try
                 {
-                    // What it starts runs freely, as a program the profiler starts on this machine leaves its children.
+                    // What it starts runs freely, not held at its start.
                     client.SetEnvironmentVariable(RuntimeVariables.DefaultDiagnosticPortSuspend, "0");
                 }
                 catch (Exception error) when (error is DiagnosticsClientException or IOException)
@@ -325,13 +324,11 @@ public sealed class ProfilingSession : IAsyncDisposable
         }
     }
 
-    /// <summary>Profiles a .NET program running elsewhere (in a container) from now, as <see cref="AttachAsync(int, string,
-    /// string, CancellationToken)"/> does one here: Passenger's tools there (<c>trace</c>) start the same session at the
-    /// program's own diagnostic port and stream it out, which is written to the trace here as it comes; Get Snapshot closes
-    /// their input, which stops the session with its rundown. With <paramref name="resume"/> a program held at its start
-    /// (DOTNET_DefaultDiagnosticPortSuspend=1) is let go once recording, so the run begins at its first instruction. The
-    /// program is left as it was. One the tools cannot reach, or whose snapshot cannot be written, is a
-    /// <see cref="ProfilingException"/> saying why, nothing left recording it: its file is made before the tools start.</summary>
+    /// <summary>Profiles a .NET program running elsewhere (in a container) from now, leaving it as it was: Passenger's
+    /// tools there (<c>trace</c>) start the session at its own diagnostic port and stream it out, written to the trace
+    /// here as it comes. With <paramref name="resume"/> a program held at its start is let go once recording. One the
+    /// tools cannot reach, or whose snapshot cannot be written, is a <see cref="ProfilingException"/> saying why,
+    /// nothing left recording it: its file is made before the tools start.</summary>
     public static async Task<ProfilingSession> AttachAsync(int processId, string name, string folder, ProfilePlace place, bool resume = false,
         CancellationToken cancellation = default)
     {
@@ -572,8 +569,8 @@ public sealed class ProfilingSession : IAsyncDisposable
         return await Task.Run(Read, cancellation);
     }
 
-    /// <summary>What the program's heap holds now, as dotMemory's Get Snapshot, comparable object by object with the
-    /// run's earlier ones; the run goes on.</summary>
+    /// <summary>What the program's heap holds now, comparable object by object with the run's earlier ones; the run
+    /// goes on.</summary>
     public Task<MemorySnapshot> TakeMemorySnapshotAsync(CancellationToken cancellation = default)
     {
         if (process.HasExited)
@@ -606,9 +603,9 @@ public sealed class ProfilingSession : IAsyncDisposable
         }
     }
 
-    /// <summary>Lets go of the run as it is, unread, as its folder's end does: what was written stays, and nothing of the
-    /// profiler's is left listening for the program (its session, the port and the port's socket, the heap's history),
-    /// which goes on or ends as it would. Once is enough; again does nothing.</summary>
+    /// <summary>Lets go of the run as it is, unread: what was written stays, and nothing of the profiler's is left
+    /// listening for the program (its session, the port and the port's socket, the heap's history), which goes on or
+    /// ends as it would. Once is enough; again does nothing.</summary>
     public async ValueTask LetGoAsync()
     {
         if (Interlocked.Exchange(ref letGo, 1) != 0)
@@ -645,10 +642,8 @@ public sealed class ProfilingSession : IAsyncDisposable
         RemovePort(port);
     }
 
-    /// <summary>Closes the pipe the diagnostics library's Windows listener can leave listening once it is let go of. It
-    /// makes its next pipe instance as each connection comes in, after its own end too when the two cross, and never closes
-    /// that one; a runtime connects again as each request is answered (the session's stop among them), so letting go of
-    /// the port then left it listed and listening, the program connected to it, for as long as the program ran.</summary>
+    /// <summary>Closes the pipe instance the diagnostics library's Windows listener can leave listening once it is let
+    /// go of, which would otherwise keep the program connected to the port for as long as it ran.</summary>
     private static void CloseLeftListener(DiagnosticsClientConnector connector)
     {
         if (!OperatingSystem.IsWindows())

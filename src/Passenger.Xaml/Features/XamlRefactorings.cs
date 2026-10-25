@@ -11,7 +11,7 @@ namespace Passenger.Xaml.Features;
 /// (none when that text is no longer what it was made for), or the text of a file it makes.</summary>
 public sealed record XamlFileChange(string Path, Func<string, IReadOnlyList<TextEdit>>? Edits, string? Made = null);
 
-/// <summary>Where a resource or a style can go: a file and, as Rider's list says it, the element it goes in
+/// <summary>Where a resource or a style can go: a file and, as a list says it, the element it goes in
 /// ("MainWindow.axaml &lt;Window.Resources&gt;").</summary>
 public sealed record ResourcePlace(string Path, string Title);
 
@@ -35,10 +35,10 @@ public sealed record StyleSource(string ElementName, int ElementStart, IReadOnly
 /// a binding, and where and how it is written whole.</summary>
 public sealed record StyleProperty(string Name, string Written, bool IsBinding, int Start, int End, string Original);
 
-/// <summary>Rider's XAML refactorings, Passenger's own: Extract Resource (a value to a keyed resource in this file, the
-/// application's or a resource dictionary it reaches, its uses in the file replaced by <c>{StaticResource}</c>), Extract
-/// Style (an element's properties to a style: WPF's keyed <c>Style</c> its element names, Avalonia's <c>Style</c> by a
-/// class its element takes), and Surround With's elements. Each describes what is at the caret and makes its changes as
+/// <summary>XAML's refactorings: Extract Resource (a value to a keyed resource in this file, the application's or a
+/// resource dictionary it reaches, its uses in the file replaced by <c>{StaticResource}</c>), Extract Style (an element's
+/// properties to a style: WPF's keyed <c>Style</c> its element names, Avalonia's <c>Style</c> by a class its element
+/// takes), and Surround With's elements. Each describes what is at the caret and makes its changes as
 /// <see cref="XamlFileChange"/>s, each file's edits made from its text when applied.</summary>
 public static partial class XamlRefactorings
 {
@@ -368,7 +368,7 @@ public static partial class XamlRefactorings
         Styles,
     }
 
-    /// <summary>What Rider's list calls the place a file's resources (or styles) go.</summary>
+    /// <summary>What a list calls the place a file's resources (or styles) go.</summary>
     private static string ContainerTitle(XmlElement root, bool styles) =>
         styles ? (root.LocalName == "Styles" ? "Styles" : $"{root.LocalName}.Styles")
         : root.LocalName == "ResourceDictionary" ? "ResourceDictionary" : $"{root.LocalName}.Resources";

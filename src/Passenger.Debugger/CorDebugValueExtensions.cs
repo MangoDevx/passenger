@@ -63,7 +63,6 @@ public static class CorDebugValueExtensions
         ICorDebugClass? foundClass = null;
         IMetaDataImport? foundMetadata = null;
 
-        // Find field on base type if necessary
         while (currentType is not null)
         {
             ICorDebugClass cls = currentType.Class;
@@ -120,7 +119,6 @@ public static class CorDebugValueExtensions
         ICorDebugClass? foundClass = null;
         IMetaDataImport? foundMetadata = null;
 
-        // Find property on base type if necessary
         while (currentType is not null)
         {
             ICorDebugClass cls = currentType.Class;
@@ -142,14 +140,12 @@ public static class CorDebugValueExtensions
         }
 
         (string szProperty, mdTypeDef pClass, CorPropertyAttr pdwPropFlags, nint ppvSig, int pbSig, CorElementType pdwCPlusTypeFlag, nint ppDefaultValue, int pcchDefaultValue, mdMethodDef pmdSetter, mdMethodDef pmdGetter, mdMethodDef rmdOtherMethod, int pcOtherMethod) propertyProps = foundMetadata.GetPropertyProps(foundPropertyDef);
-        // Get the get method for the property
         mdMethodDef getMethodDef = propertyProps.pmdGetter;
         if (getMethodDef == mdMethodDef.Nil)
         {
-            return null; // No get method
+            return null;
         }
 
-        // Get method attributes to check if it's static
         (string szMethod, mdTypeDef pClass, CorMethodAttr pdwAttr, nint ppvSigBlob, int pcbSigBlob, int pulCodeRVA, int pdwImplFlags) getterMethodProps = foundMetadata.GetMethodProps(getMethodDef);
         CorMethodAttr getterAttr = getterMethodProps.pdwAttr;
 
@@ -160,12 +156,11 @@ public static class CorDebugValueExtensions
         ICorDebugFunction? setterFunction = setMethodDef == mdMethodDef.Nil ? null : foundClass.Module.GetFunctionFromToken(setMethodDef);
         ICorDebugEval eval = ilFrame.Chain.Thread.CreateEval();
 
-        // May not be correct, will need further testing
         ICorDebugType parameterizedContainingType = objectValue.ExactType;
 
         ICorDebugType[] typeParameterTypes = parameterizedContainingType.TypeParameters;
 
-        // For instance properties, pass the object; for static, pass nothing. Must pass the original CorDebugReferenceValue, not the dereferenced one.
+        // An instance property is given the original reference value, never the dereferenced one.
         ICorDebugValue[] corDebugValues = isStatic ? [] : [objectValue];
 
         ICorDebugValue? returnValue = await eval.CallParameterizedFunctionAsync(processEventsUntilEvalEventFunc, evalStatus, getMethod, typeParameterTypes.Length, typeParameterTypes, corDebugValues.Length, corDebugValues);
@@ -203,8 +198,7 @@ public static class CorDebugValueExtensions
         ICorDebugClass corClass = threadObject.Class;
         IMetaDataImport metadataImport = corClass.Module.GetMetaDataInterface<IMetaDataImport>();
 
-        // Only the name the program gave it: which thread is Main's the debugger knows from the runtime's
-        // first thread-created callback, not from managed id 1, which may be a runtime thread's (upstream #59).
+        // Only the name the program gave it: Main's thread is known from the runtime's first thread-created callback.
         string? name = GetThreadNameField(threadObject, corClass, metadataImport);
         return string.IsNullOrEmpty(name) ? null : name;
     }

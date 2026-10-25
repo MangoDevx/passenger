@@ -12,11 +12,12 @@ using Passenger.Editor;
 
 namespace Passenger.Tests;
 
-/// <summary>Rider's file nesting in the Solution view: a file's dependents shown under it by Rider's own rules (a Razor
+/// <summary>File nesting in the Solution view: a file's dependents shown under it by Rider's own rules (a Razor
 /// component's code-behind and styles, a Razor Page's model, a form's designer and resources, a resource file's code)
 /// and by what the project says depends on what, the settings for an environment under appsettings.json; File Nesting's
-/// "Show files with the same names as nested" lays the rules' out flat, DependentUpon's staying; and a parent renamed or
-/// moved in the Explorer takes its dependents with it, renamed with it, its project's DependentUpon following.</summary>
+/// "Show files with the same names as nested" lays the rules' out flat, DependentUpon's staying; and a parent renamed
+/// or moved in the Explorer takes its dependents with it, renamed with it, its project's DependentUpon
+/// following.</summary>
 public sealed class FileNestingTests : IDisposable
 {
     private const string Project = $"<Project Sdk=\"Microsoft.NET.Sdk.Web\">\n  <PropertyGroup>\n    <TargetFramework>{TestProjects.Framework}</TargetFramework>\n  </PropertyGroup>\n\n"
@@ -77,13 +78,11 @@ public sealed class FileNestingTests : IDisposable
             Assert.Equal(At(parent), Holder(window, At(child)).Path);
         }
         Assert.Equal(At("Shapes.cs"), Holder(window, At("Shapes.Circle.cs")).Path);
-        // Collapsed, a parent hides its dependents, which its folder does not list beside it.
         ExplorerNode counter = Show(window, At("Components/Counter.razor"));
         window.ExplorerView.Tree.Collapse(counter);
         Assert.True(counter.HasChildren, "Counter.razor shows no chevron for the files nested under it");
         Assert.Equal(["Counter.razor"], Under(window, Show(window, At("Components"))).Select(r => r.Name));
 
-        // File Nesting's check box cleared, the rules' dependents stand beside their parents; the project's stay nested.
         FileNestingDialog dialog = OpenFileNesting(window);
         Assert.True(dialog.NestBox.IsChecked, "File Nesting's Show files with the same names as nested is off at first");
         Ui.Click(dialog.NestBox);
@@ -92,14 +91,12 @@ public sealed class FileNestingTests : IDisposable
         Ui.WaitFor(() => !dialog.IsVisible, "the File Nesting dialog to close");
         foreach ((string child, string parent) in byRule)
         {
-            // Beside the parent: in its folder, or at the project's top, under the project.
             string beside = Path.GetDirectoryName(At(parent))!;
             Assert.Equal(beside == Path.Combine(folder, "Shop") ? At("Shop.csproj") : beside, Holder(window, At(child)).Path);
         }
         Assert.Equal(At("Shapes.cs"), Holder(window, At("Shapes.Circle.cs")).Path);
         Assert.Equal(["Counter.razor", "Counter.razor.cs", "Counter.razor.css"], Under(window, Show(window, At("Components"))).Select(r => r.Name));
 
-        // Checked again, they nest again.
         dialog = OpenFileNesting(window);
         Ui.Click(dialog.NestBox);
         Ui.Click(dialog.OkButton);
@@ -114,7 +111,6 @@ public sealed class FileNestingTests : IDisposable
         MainWindow window = Open();
         List<string> asked = Answer(window);
 
-        // Rename's keys on a Razor component: its code-behind and its styles take its new name.
         Choose(window, At("Components/Counter.razor"));
         Ui.Run(window, AppActions.Rename);
         NamePopup popup = Assert.IsType<NamePopup>(window.Popup);
@@ -125,7 +121,6 @@ public sealed class FileNestingTests : IDisposable
         Assert.Equal(["Clicker.razor", "Clicker.razor.cs", "Clicker.razor.css"], Directory.GetFiles(At("Components")).Select(Path.GetFileName).Order(StringComparer.Ordinal));
         Assert.Equal(At("Components/Clicker.razor"), Holder(window, At("Components/Clicker.razor.cs")).Path);
 
-        // A file the project says depends on another goes with it, the project naming it and its parent by their new names.
         Choose(window, At("Shapes.cs"));
         Ui.Run(window, AppActions.Rename);
         popup = Assert.IsType<NamePopup>(window.Popup);
@@ -140,7 +135,6 @@ public sealed class FileNestingTests : IDisposable
         Ui.WaitFor(() => Shows(window, At("Figures.Circle.cs")) && Holder(window, At("Figures.Circle.cs")).Path == At("Figures.cs"),
             "Figures.Circle.cs nested under Figures.cs once the project is read again");
 
-        // Undo takes the files and the project back together, asked first.
         Choose(window, At("Figures.cs"));
         Ui.Run(window, EditorActions.Undo);
         Assert.Single(asked);
@@ -148,7 +142,6 @@ public sealed class FileNestingTests : IDisposable
         Assert.True(File.Exists(At("Shapes.cs")), $"Undo did not rename Figures.cs back: {window.Status}");
         Assert.Equal(Project, File.ReadAllText(At("Shop.csproj")));
 
-        // Cut and pasted into another folder, a form takes its designer and its resources along.
         Choose(window, At("Forms/Form1.cs"));
         Ui.Run(window, EditorActions.Cut);
         Assert.True(Show(window, At("Forms/Form1.resx")).IsCut, "Form1.resx, nested under the form cut, is not dimmed with it");

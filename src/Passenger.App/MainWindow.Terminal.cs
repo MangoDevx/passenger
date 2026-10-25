@@ -3,8 +3,8 @@ using Passenger.Editor;
 
 namespace Passenger.App;
 
-/// <summary>The window's terminal: its tool window, the action that opens and leaves it, and the keys it takes ahead
-/// of the IDE's, as Rider's terminal overrides the IDE's shortcuts.</summary>
+/// <summary>The window's terminal: its tool window, the action that opens and leaves it, and the keys it takes ahead of
+/// the IDE's.</summary>
 public partial class MainWindow
 {
     private ToolWindows.TerminalPanel? terminal;
@@ -57,7 +57,8 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>Rider's Open In, Terminal from the Explorer: a new tab of the Terminal window, its shell started in a folder.</summary>
+    /// <summary>Open In, Terminal from the Explorer: a new tab of the Terminal window, its shell started in a
+    /// folder.</summary>
     public Task<Terminal.TerminalSession> OpenTerminalAt(string at)
     {
         // The tab is made before the window shows, so showing it starts no shell of its own in the open folder.
@@ -82,8 +83,8 @@ public partial class MainWindow
         TerminalPanel.FocusView();
     }
 
-    /// <summary>The actions whose keys a program a run configuration runs in the terminal leaves the IDE: Run, Debug, Rerun,
-    /// Stop and the debugger's, as its own console would in Rider, where a person runs it again, steps and stops with them.</summary>
+    /// <summary>The actions whose keys a program a run configuration runs in the terminal leaves the IDE: Run, Debug,
+    /// Rerun, Stop and the debugger's, so a person runs it again, steps and stops with them.</summary>
     private static readonly HashSet<string> ProgramLeaves =
     [
         AppActions.RunProgram, AppActions.Debug, AppActions.Rerun, AppActions.Stop,

@@ -53,8 +53,7 @@ public partial class ModuleMetadataReader
             }
         }
 
-        // Metadata-only fallback. Match the generated type referenced by the
-        // kickoff method's state-machine attribute so overloads remain unambiguous.
+        // From metadata alone: the type the kickoff method's state machine attribute names, so overloads stay apart.
         MethodDefinition moveNext = _peMetadataReader.GetMethodDefinition(moveNextHandle);
         TypeDefinitionHandle stateMachineHandle = moveNext.GetDeclaringType();
         TypeDefinition stateMachineType = _peMetadataReader.GetTypeDefinition(stateMachineHandle);

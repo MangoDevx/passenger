@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
 """Fails, naming each one, when a package Passenger restores or carries is missing from THIRD_PARTY_NOTICES.md.
 
-The packages are every one the solution's projects use, transitive ones included (`dotnet list package
---include-transitive`, so the solution must be restored first), every one Roslyn's language server carries under
-roslyn/ (the .deps.json files in its restored package), every one the container tools carry on one of their systems
-(their restore's files for it, and its runtime pack), every npm package the web language servers' lock file pins
-(src/Passenger.Lsp/WebServers/package-lock.json, carried under web/) and the tests' own does
-(tests/Passenger.Tests/NodePackages/package-lock.json), and every tool the repository's tool manifest pins
-(dotnet-tools.json). A package is named in the notices by its id in backticks. CI runs this after its restore;
-`just notices` runs it here.
+The packages are every one the solution's projects use, transitive ones included (so the solution must be restored
+first), every one Roslyn's language server carries under roslyn/, every one the container tools carry on one of their
+systems with its runtime pack, every npm package the web language servers' lock file and the tests' own pin, and every
+tool dotnet-tools.json pins. A package is named in the notices by its id in backticks.
 """
 import glob
 import json
@@ -20,8 +16,7 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NOTICES = os.path.join(ROOT, "THIRD_PARTY_NOTICES.md")
 
-# Restored with the packages that use them, but in no app Passenger is published as (macOS, Windows, and Linux on x64
-# and Arm64, whose natives the notices name) nor in the container tools (glibc and musl Linux on x64 and Arm64): their
+# Restored with the packages that use them, but in no app Passenger is published as nor in the container tools: their
 # natives are for the browser, 32-bit Arm Linux and 32-bit Windows. A system Passenger comes to ship for takes its own
 # out of here and into the notices; one the container tools carry is checked whatever this says.
 NOT_SHIPPED = {
@@ -32,8 +27,7 @@ NOT_SHIPPED = {
     "Microsoft.Diagnostics.DbgShim.win-x86",
 }
 
-# The container tools' project and the systems they are published for (tools/container-tools.sh), each of which every
-# lock file holds.
+# The container tools' project and the systems they are published for.
 CONTAINER_TOOLS = os.path.join("src", "Passenger.ContainerTools", "Passenger.ContainerTools.csproj")
 CONTAINER_TOOLS_RIDS = ["linux-x64", "linux-arm64", "linux-musl-x64", "linux-musl-arm64"]
 

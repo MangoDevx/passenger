@@ -14,9 +14,9 @@ using Passenger.Text;
 
 namespace Passenger.Tests;
 
-/// <summary>Find in Files as Rider's: every text file of the folder but build output, an open file's unsaved text
-/// included, narrowed by Match case, Words and Regex as the Find bar narrows; choosing a match goes to it and selects
-/// it; Replace All changes an open file as an edit that undoes, and writes a closed one.</summary>
+/// <summary>Find in Files: every text file of the folder but build output, an open file's unsaved text included,
+/// narrowed by Match case, Words and Regex; choosing a match goes to it and selects it; Replace All changes an open
+/// file as an edit that undoes, and writes a closed one.</summary>
 public sealed class FindInFilesTests : IDisposable
 {
     private readonly string folder = TestFolders.Create("find-");
@@ -52,7 +52,6 @@ public sealed class FindInFilesTests : IDisposable
         popup.Regex = true;
         Search(popup, @"c\w+t\(");
         Assert.Single(popup.Matches);
-        // A regex that does not read says why, and finds nothing.
         Search(popup, "count(");
         Assert.Empty(popup.Matches);
         string? why = FileSearch.Problem(popup.Query);
@@ -72,7 +71,6 @@ public sealed class FindInFilesTests : IDisposable
         Search(popup, "count");
         Assert.Equal(3, popup.Matches.Count);
 
-        // Replace All: the closed Alpha.cs is written, the open Beta.cs changes in the editor and undoes.
         window.Confirm = (_, _, _) => Task.FromResult(true);
         popup.Replacement = "total";
         popup.RequestReplace();
@@ -85,7 +83,6 @@ public sealed class FindInFilesTests : IDisposable
         window.EditorArea.CodeEditor.TryExecute(Passenger.Editor.EditorActions.Undo);
         Assert.Contains("// the count of things", beta.Text.Snapshot.ToString(), StringComparison.Ordinal);
 
-        // Choosing a match goes to its file and selects it.
         popup = window.ShowFindInFiles(replace: false)!;
         Search(popup, "int total");
         Assert.Single(popup.Matches);
@@ -171,7 +168,6 @@ public sealed class FindInFilesTests : IDisposable
         Assert.Equal("class Alpha\n{\n    int total;\n}\n", File.ReadAllText(Path.Combine(folder, "Alpha.cs")));
         Assert.Contains("void total()", window.EditorArea.Active!.Text.Snapshot.ToString(), StringComparison.Ordinal);
 
-        // An agent's replace_in_files hears the same, and the open file it changed is saved.
         Task<string> replacing = new Passenger.App.Mcp.PassengerTools(window).ReplaceInFiles("count|total", "sum", wholeWords: true, regex: true);
         Ui.WaitFor(() => replacing.IsCompleted, "replace_in_files' answer");
         Assert.Contains(replacing.Result, new[] { "Alpha.cs, Beta.cs", "Beta.cs, Alpha.cs" }.Select(files => $"Replaced 3 matches in 2 files: {files}; not replaced: Aardvark.cs (read-only)"));
@@ -219,7 +215,6 @@ public sealed class FindInFilesTests : IDisposable
         FoldRegion folded = Assert.Single(editor.FoldRegions, r => r.Folded);
         Assert.Equal(text.IndexOf("void Other()", StringComparison.Ordinal) + "void Other()".Length, folded.Start);
 
-        // Undo puts the text back and leaves the caret where the person had it.
         editor.Focus();
         editor.TryExecute(Passenger.Editor.EditorActions.Undo);
         Assert.Equal(Source, gamma.Text.Snapshot.ToString());
@@ -242,7 +237,6 @@ public sealed class FindInFilesTests : IDisposable
         Search(popup, @"(\w+)(?=\()");
         Assert.Equal(2, popup.Matches.Count);
 
-        // The closed Calls.cs is written and the open Beta.cs edited, each group filled in from the match its lookahead found.
         popup.Replacement = "$1_";
         popup.RequestReplace();
         Ui.WaitFor(() => File.ReadAllText(calls) != "// catalog cat hotdog dog\nfoo(1); bar (2);\n", "Calls.cs to be written");
@@ -272,7 +266,7 @@ public sealed class FindInFilesTests : IDisposable
         FindInFilesPopup popup = window.ShowFindInFiles(replace: true)!;
         popup.Regex = true;
         Search(popup, "^");
-        // Every line's start, an empty line's too, but not the end after a file's last break, as in Rider.
+        // Every line's start, an empty line's too, but not the end after a file's last break.
         Assert.Equal((4, 5, 4), (popup.Matches.Count(m => m.Name == "Alpha.cs"), popup.Matches.Count(m => m.Name == "Beta.cs"), popup.Matches.Count(m => m.Name == "Gamma.cs")));
 
         popup.Replacement = "// ";
@@ -316,7 +310,6 @@ public sealed class FindInFilesTests : IDisposable
         Assert.Equal([2], alpha.Bookmarks);
         Assert.Equal([2], editor.Bookmarks);
 
-        // A line added above takes the bookmark down with its line.
         editor.ApplyEdits([new TextEdit(0, 0, "// top\n")]);
         Assert.Equal([3], alpha.Bookmarks);
 
@@ -324,19 +317,16 @@ public sealed class FindInFilesTests : IDisposable
         Ui.Settle();
         editor.GoTo(new TextPosition(3, 0));
         Ui.Run(window, AppActions.ToggleBookmark);
-        // Next from Beta's goes round to Alpha's, and Previous comes back.
         Ui.Run(window, AppActions.NextBookmark);
         Assert.Equal(("Alpha.cs", 3), (window.EditorArea.Active!.Name, editor.CaretPosition.Line));
         Ui.Run(window, AppActions.PreviousBookmark);
         Assert.Equal(("Beta.cs", 3), (window.EditorArea.Active!.Name, editor.CaretPosition.Line));
 
-        // The window lists both; Toggle on a marked line takes it away.
         Assert.Equal(2, window.Bookmarks.All.Count);
         Ui.Run(window, AppActions.ToggleBookmark);
         Assert.Equal(["Alpha.cs"], window.Bookmarks.All.Select(b => b.Name));
         Assert.Empty(window.EditorArea.Active!.Bookmarks);
 
-        // The Bookmarks window's menu takes the last one away.
         Ui.Run(window, AppActions.ShowBookmarks);
         Avalonia.Controls.ListBox listed = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window.DockHost)
             .OfType<Avalonia.Controls.ListBox>().First(l => l.Items.OfType<Passenger.App.Navigation.Bookmark>().Any());
@@ -365,10 +355,10 @@ public sealed class FindInFilesTests : IDisposable
         window.Close();
     }
 
-    /// <summary>The Explorer dims what Find in Files, Go to File and the watcher pass over, one list for both (#474): each
-    /// of its names, and a packages folder NuGet restored into, in packages.config's layout or the global folder's; Git's
-    /// store is not listed at all. A JavaScript monorepo's packages of source are searched, offered and shown as code. The
-    /// Explorer had a list of its own, which left TestResults, .hg and .svn undimmed though no search looked in them.</summary>
+    /// <summary>The Explorer dims what Find in Files, Go to File and the watcher pass over, by one list: each of its
+    /// names, and a packages folder NuGet restored into, in packages.config's layout or the global folder's; Git's
+    /// store is not listed at all. A JavaScript monorepo's packages of source are searched, offered and shown as
+    /// code.</summary>
     [AvaloniaFact]
     public void The_explorer_dims_what_find_in_files_and_go_to_file_pass_over_and_a_monorepos_packages_of_source_are_searched_and_shown_as_code()
     {
@@ -419,7 +409,6 @@ public sealed class FindInFilesTests : IDisposable
             Assert.True(offered.SequenceEqual([source]), $"Go to File offers [{string.Join(", ", offered)}] for needle, where the monorepo's packages alone are the person's code");
             Ui.Press(window, "ESCAPE");
 
-            // The watcher follows the monorepo's packages as the walk does.
             TestFolders.Write(folder, "web/packages/ui/src/later.ts", "// later\n");
             Ui.WaitFor(() => window.FileIndex.Files.Contains(Path.Combine("web", "packages", "ui", "src", "later.ts")), "the file made in the monorepo's packages in Go to File");
         }

@@ -104,8 +104,7 @@ public sealed partial class BuildRunController
             ? previous.StartedLater : [];
         if (session.ContainerRun is { } before)
         {
-            // Another configuration's run (or this one's, its backing services kept) goes first, wholly down before this one
-            // comes, whoever stopped it: one log at a time.
+            // Another run (or this one's, its backing services kept) is wholly down before this one comes: one log at a time.
             if (!before.IsStopped)
             {
                 _ = session.StopContainersAsync();
@@ -315,8 +314,7 @@ public sealed partial class BuildRunController
                 // The folder's end takes down what came, once its up has ended; the window's views are another folder's now.
                 return Left;
             }
-            // Whatever came up goes: a run that did not start leaves nothing running. Its own run alone: another start
-            // that replaced it meanwhile has its own.
+            // A run that did not start leaves nothing running, its own alone: a start that replaced it has its own.
             IdeLog.Write(IdeLog.Ide, $"Containers: {chosen.Name} did not start ({failed}): what came up is taken down");
             await session.StopContainersAsync(run);
             if (session.ContainerRun == run && !session.IsEnded)
@@ -422,8 +420,8 @@ public sealed partial class BuildRunController
     private ContainerRun? followingAgain;
 
     /// <summary>A container run's log that ended while the run was not stopped (Compose's <c>logs --follow</c> can, as a service
-    /// is made anew: on Podman's own docker it crashes there) is followed again from its end, saying so in the Run console,
-    /// once its containers are known to run, a restart under way waited out; else it is the run's end, as before.</summary>
+    /// is made anew) is followed again from its end, saying so in the Run console, once its containers are known to run, a
+    /// restart under way waited out; else it is the run's end.</summary>
     private async Task FollowContainersAgainAsync(ContainerRun run, int code)
     {
         string since = DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'", System.Globalization.CultureInfo.InvariantCulture);
@@ -445,7 +443,7 @@ public sealed partial class BuildRunController
         {
             return;
         }
-        // A log followed again that ends at once is not followed for good: the run is said to have ended, as before.
+        // A log followed again that ends at once is not followed for good: the run is said to have ended.
         bool atOnce = followedAgainAt is { } at && DateTime.UtcNow - at < TimeSpan.FromSeconds(2);
         if (!up || atOnce || run.IsStopped || session.ContainerRun != run || run.Engine.Cli is not { } cli)
         {
@@ -543,7 +541,7 @@ public sealed partial class BuildRunController
         }
     }
 
-    /// <summary>The host's build of projects one after another, as the build before launch is.</summary>
+    /// <summary>The host's build of projects one after another.</summary>
     private Task<BuildOutcome> BuildProjectsAsync(IReadOnlyList<string> projects)
     {
         TaskCompletionSource<BuildOutcome> built = new(TaskCreationOptions.RunContinuationsAsynchronously);

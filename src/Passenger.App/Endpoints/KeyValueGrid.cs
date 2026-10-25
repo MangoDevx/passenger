@@ -4,9 +4,9 @@ using Avalonia.Layout;
 
 namespace Passenger.App.Endpoints;
 
-/// <summary>A table of keys and values, as Postman's Params and Headers: each row turned on or off by its check box,
-/// removed by its ×, and an empty row last that becomes a new one as soon as something is typed in it. Changing a row
-/// raises <see cref="Changed"/>; <see cref="Set"/> replaces the rows without raising it.</summary>
+/// <summary>A table of keys and values: each row turned on or off by its check box, removed by its ×, and an empty row
+/// last that becomes a new one as soon as something is typed in it. Changing a row raises <see cref="Changed"/>;
+/// <see cref="Set"/> replaces the rows without raising it.</summary>
 public sealed class KeyValueGrid : Border
 {
     /// <summary>One row's controls.</summary>
@@ -87,7 +87,6 @@ public sealed class KeyValueGrid : Border
         TextBox valueBox = new() { Classes = { "cell" }, Text = value, FontFamily = CSharp.Fonts.Mono, FontSize = 12 };
         Button remove = ToolButtons.Of("Icon.Close", "Remove");
         remove.VerticalAlignment = VerticalAlignment.Center;
-        // A row's own ×, small as an editor tab's, not a toolbar's button.
         ((PathIcon)remove.Content!).Classes.Add("small");
         Grid cells = new() { ColumnDefinitions = new ColumnDefinitions(Columns) };
         Control[] parts = [check, keyBox, valueBox, remove];

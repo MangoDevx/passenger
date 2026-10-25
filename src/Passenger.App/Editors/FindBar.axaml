@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Passenger.App.Editors.FindBar">
-    <!-- Rider's find bar: across the top of the editor, the query with its toggles inside the field,
+    <!-- The find bar: across the top of the editor, the query with its toggles inside the field,
          the count and the arrows beside it, the replace row under it when replacing. On a tool window's ground, told
          from the editor under it by shade. -->
     <Border Background="{DynamicResource Passenger.Panel}" Padding="8,6">

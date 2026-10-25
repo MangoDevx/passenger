@@ -4,9 +4,8 @@ namespace Passenger.App.Run;
 
 /// <summary>How a run's HTTPS is served, as its start worked it out before anything of it started: with the certificate
 /// exported for its containers (<see cref="Certificate"/>), with this machine's own (neither that nor <see cref="OverHttp"/>),
-/// or over HTTP for this run, <see cref="OverHttp"/> saying what and why (which the run's notes, the status bar and an
-/// agent's answer carry); <see cref="Failed"/> when a step of dev-certs failed, and <see cref="Said"/> what it said worth
-/// reading, for the run's console.</summary>
+/// or over HTTP for this run, <see cref="OverHttp"/> saying what and why; <see cref="Failed"/> when a step of dev-certs
+/// failed, and <see cref="Said"/> what it said worth reading, for the run's console.</summary>
 public sealed record HttpsChoice(DevelopmentCertificate.Exported? Certificate, string? OverHttp, bool Failed, IReadOnlyList<string> Said)
 {
     /// <summary>A run that serves no HTTPS, of which nothing was asked.</summary>
@@ -25,13 +24,10 @@ public sealed partial class BuildRunController
         : parts.AsksNoOne ? "nobody is at this IDE to ask (an agent's own)" : null;
 
     /// <summary>The development certificate a run's HTTPS takes, <paramref name="serving"/> naming what of it serves HTTPS
-    /// (none: nothing is asked): how it stands checked first (<c>dotnet dev-certs https --check --trust</c>) in
-    /// <paramref name="folder"/>, and, missing or not trusted, the person asked once whether to make and trust it or run over
-    /// HTTP; then, for a run in containers (<paramref name="export"/>), exported into the folder's container state
-    /// (<paramref name="state"/>, whose copy a certificate made here lets go of), again once dev-certs has another. With none
-    /// (the person's choice, nobody to ask, or a step that failed), what serves HTTPS serves HTTP for this run, which the
-    /// choice says. The caller holds background work, let go while the person answers. Stopped, it throws
-    /// <see cref="OperationCanceledException"/>, the question closed.</summary>
+    /// (none: nothing is asked): checked in <paramref name="folder"/>, and, missing or not trusted, the person asked once whether
+    /// to make and trust it or run over HTTP; for a run in containers (<paramref name="export"/>), exported into
+    /// <paramref name="state"/>. With none, what serves HTTPS serves HTTP for this run, which the choice says. Background work
+    /// is let go while the person answers; stopped, it throws <see cref="OperationCanceledException"/>.</summary>
     private async Task<HttpsChoice> CertificateAsync(string configuration, IReadOnlyList<string> serving, string folder, string state, bool export, Working work)
     {
         if (serving.Count == 0)

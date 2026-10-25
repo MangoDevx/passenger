@@ -3,8 +3,8 @@ using Passenger.Tests.Debugging.Helpers;
 
 namespace Passenger.Tests.Debugging;
 
-/// <summary>The debugger's own names, as Rider and Visual Studio give them: what each call a step ran returned, listed at
-/// the top of the frame's values and named $ReturnValue in an expression, and the exception stopped at, $exception.</summary>
+/// <summary>The debugger's own names: what each call a step ran returned, listed at the top of the frame's values and
+/// named $ReturnValue in an expression, and the exception stopped at, $exception.</summary>
 [Collection(DebugSession.Collection)]
 public class SyntheticVariablesTests(ITestOutputHelper testOutputHelper)
 {
@@ -43,7 +43,7 @@ public class SyntheticVariablesTests(ITestOutputHelper testOutputHelper)
         frame = host.GetTopStackFrame(stop.ThreadId!.Value).Id;
         Assert.Equal("3", Evaluate(host, frame, "$ReturnValue * 4").Result);
 
-        // A struct is a value the runtime does not give back (ICorDebugCode3 refuses it): nothing is listed for it.
+        // The runtime does not give back a returned struct, so nothing is listed for it.
         stop = await host.WithStepOverRequest(stop.ThreadId!.Value).WaitForStoppedEvent();
         Assert.DoesNotContain(host.Locals(stop), v => v.Name.EndsWith(" returned", StringComparison.Ordinal));
     }

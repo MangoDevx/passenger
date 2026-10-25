@@ -3,11 +3,10 @@ using System.Runtime.InteropServices;
 
 namespace Passenger.Debugger;
 
-/// <summary>On macOS dbgshim hears a runtime start over FIFOs it makes as it registers (dotnet/runtime#116545), opening the
-/// one it answers on for writing without blocking: that fails until a reader has it open, and is tried again only after
-/// 500 ms, so every launch and attach to a held start waited out half a second for a runtime up in 30 ms. This opens that
-/// FIFO for reading the moment it exists, so dbgshim's first try finds a reader; it never reads, and closes once the
-/// runtime has answered (the runtime's own end open by then) or never will.</summary>
+/// <summary>On macOS dbgshim opens the FIFO it answers a runtime's start on for writing without blocking, which fails
+/// until a reader has it open and is tried again only after 500 ms. This opens that FIFO for reading the moment it
+/// exists, so dbgshim's first try finds a reader; it never reads, and closes once the runtime has answered (the
+/// runtime's own end open by then) or never will.</summary>
 internal sealed partial class StartupPipe : IDisposable
 {
     private const int ReadOnly = 0x0000;

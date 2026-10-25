@@ -304,9 +304,7 @@ public sealed partial class AspireInteractions : IDisposable, IAsyncDisposable
                 }
                 return true;
             }).WaitAsync(token).ConfigureAwait(false);
-            // With no supplied arguments, the AppHost creates the argument interaction. Its real interaction ID
-            // is required for uploads and its validation callbacks supply dynamic options and per-field errors.
-            // This call may wait for user input; holding BackgroundWork here would prevent drawing that prompt.
+            // It may wait for the person at the AppHost's prompt, which holding BackgroundWork would keep from drawing.
             token.ThrowIfCancellationRequested();
             return await client.ExecuteResourceCommandAsync(new ResourceCommandRequest
             {

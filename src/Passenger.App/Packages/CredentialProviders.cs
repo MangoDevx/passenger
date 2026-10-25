@@ -6,11 +6,8 @@ using Passenger.Core;
 
 namespace Passenger.App.Packages;
 
-/// <summary>NuGet's credential providers (Azure Artifacts' and the rest), found where the NuGet client finds them and
-/// asked through its plugin protocol, each run through <see cref="ChildProcesses"/>: the paths NUGET_NETCORE_PLUGIN_PATHS
-/// (else NUGET_PLUGIN_PATHS) names, or else each folder's assembly under ~/.nuget/plugins/netcore and the nuget-plugin-*
-/// programs on PATH. A provider is asked without a dialog, as restore asks it in the background; what it gives is kept in
-/// memory for the session, never written or logged.</summary>
+/// <summary>NuGet's credential providers (Azure Artifacts' and the rest), found where NuGet finds them and asked through
+/// its plugin protocol without a dialog; what one gives is kept in memory for the session, never written or logged.</summary>
 public sealed class CredentialProviders
 {
     private static readonly TimeSpan Step = TimeSpan.FromSeconds(20);
@@ -46,7 +43,8 @@ public sealed class CredentialProviders
         return null;
     }
 
-    /// <summary>The providers, as NuGet finds them: the variable's paths alone when it is set.</summary>
+    /// <summary>The providers: the paths NUGET_NETCORE_PLUGIN_PATHS (else NUGET_PLUGIN_PATHS) names, or else each folder's
+    /// assembly under ~/.nuget/plugins/netcore and the nuget-plugin-* programs on PATH.</summary>
     public static IReadOnlyList<string> Find()
     {
         string? named = Environment.GetEnvironmentVariable("NUGET_NETCORE_PLUGIN_PATHS") is { Length: > 0 } netcore ? netcore : Environment.GetEnvironmentVariable("NUGET_PLUGIN_PATHS");
@@ -106,9 +104,8 @@ public sealed class CredentialProviders
             : null;
     }
 
-    /// <summary>NuGet's plugin protocol over a provider's standard input and output: a JSON message a line, each request
-    /// answered by a response of its id. The provider's own requests (its handshake, its log lines) are answered as NuGet
-    /// answers them; what it writes to its errors is read and dropped.</summary>
+    /// <summary>NuGet's plugin protocol over a provider's standard input and output. The provider's own requests (its
+    /// handshake, its log lines) are answered; what it writes to its errors is read and dropped.</summary>
     private sealed class PluginConnection : IAsyncDisposable
     {
         private readonly Process process;
@@ -231,7 +228,7 @@ public sealed class CredentialProviders
             }
         }
 
-        /// <summary>Answers the provider's own request as NuGet does: its handshake, and its log lines, which are dropped.</summary>
+        /// <summary>Answers the provider's own request: its handshake, and its log lines, which are dropped.</summary>
         private Task AnswerAsync(string id, string method) => SendAsync(new
         {
             RequestId = id,

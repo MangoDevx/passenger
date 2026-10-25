@@ -136,7 +136,7 @@ public static class RunRows
 
     /// <summary>A list's rows: each item drawn by <paramref name="draw"/> as a <see cref="RunRowView"/>, shown anew in place
     /// as its item changes; <paramref name="toggle"/> runs on a chevron's press and <paramref name="browse"/> on a link's
-    /// click, each link named <paramref name="linkName"/>, as a test finds it.</summary>
+    /// click, each link named <paramref name="linkName"/>.</summary>
     public static FuncDataTemplate<RunItem<T>> Template<T>(Func<T, RunRow> draw, Action<T> toggle, Action<Uri> browse, string linkName)
         where T : class =>
         new((item, _) =>
@@ -159,7 +159,7 @@ public static class RunRows
             return view;
         }, supportsRecycling: false);
 
-    /// <summary>A list of such rows opens and closes a row by a double click and by Enter, as both windows' lists do.</summary>
+    /// <summary>A list of such rows opens and closes a row by a double click and by Enter.</summary>
     public static void Toggles(ListBox list, Func<bool> expands, Action toggle)
     {
         list.DoubleTapped += (_, _) => toggle();
@@ -230,8 +230,7 @@ public sealed class RunRowView : DockPanel
         chevron.Bind(PathIcon.ForegroundProperty, chevron.GetResourceObservable("Passenger.TextMuted"));
         chevron.PointerPressed += (_, e) =>
         {
-            // The press's capture let go first: rows put in or taken out under the pointer as it toggles, a capture kept on
-            // what they moved would take the next press, which then reached no chevron.
+            // The press's capture let go first, or rows moved under the pointer would take the next press from the chevron.
             e.Pointer.Capture(null);
             toggle();
             e.Handled = true;

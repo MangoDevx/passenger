@@ -39,7 +39,7 @@ public sealed class FoldScan : IFoldFinder, IDisposable
     public event EventHandler? FoldsChanged;
 
     /// <summary>What the scans allocated on their worker, how many there were and how long they took: what typing costs off
-    /// the UI thread, for a test to count.</summary>
+    /// the UI thread.</summary>
     public (long Bytes, int Scans, TimeSpan Time) Worked =>
         (Interlocked.Read(ref scanBytes), Volatile.Read(ref scans), System.Diagnostics.Stopwatch.GetElapsedTime(0, Interlocked.Read(ref scanTicks)));
 
@@ -58,10 +58,9 @@ public sealed class FoldScan : IFoldFinder, IDisposable
         }
     }
 
-    /// <summary>Scans until a scan's text is still the document's, then tells of its regions. Never inside the change that
-    /// started it, even when a small file's scan is done before it is awaited: the document's later listeners (the open
-    /// file, which moves its regions with the change) have yet to hear of the change, and the first scan's listener of
-    /// being added.</summary>
+    /// <summary>Scans until a scan's text is still the document's, then tells of its regions. Never inside the change
+    /// that started it, even when a small file's scan is done before it is awaited: the document's later listeners have
+    /// yet to hear of the change, and the first scan's listener of being added.</summary>
     private async Task ScanAsync()
     {
         scanning = true;
@@ -100,7 +99,7 @@ public sealed class FoldScan : IFoldFinder, IDisposable
         long allocated = GC.GetAllocatedBytesForCurrentThread();
         long started = System.Diagnostics.Stopwatch.GetTimestamp();
         List<FoldRegion> regions = find(text, count + 16);
-        // In order of where they start, the widest first of those starting on one line, as the C# parse gives them.
+        // In order of where they start, the widest first of those starting on one line.
         regions.Sort(static (a, b) => a.Start != b.Start ? a.Start.CompareTo(b.Start) : b.End.CompareTo(a.End));
         Interlocked.Add(ref scanTicks, System.Diagnostics.Stopwatch.GetTimestamp() - started);
         Interlocked.Add(ref scanBytes, GC.GetAllocatedBytesForCurrentThread() - allocated);

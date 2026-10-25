@@ -22,7 +22,7 @@ public sealed record ProjectTarget(string Solution, string? Folder, IReadOnlyLis
 /// <summary>What Create made, canonical: New Solution's solution (null for Add New Project's) and the projects.</summary>
 public sealed record CreatedProjects(string? Solution, IReadOnlyList<string> Projects);
 
-/// <summary>Rider's New Project dialog, for New Solution and Add, New Project: the template families read ahead down the
+/// <summary>The New Project dialog, for New Solution and Add, New Project: the template families read ahead down the
 /// left (<see cref="TemplateFamilies"/>) under a search; on the right the names, where it goes, the family's Type, the
 /// framework, the language and the Type's options (a value set kept by a Type that has it), or a Type's package to
 /// install. A later read fills in, the choice kept. Create refuses a name taken or a folder not empty, saying why; else
@@ -242,8 +242,7 @@ public sealed class NewProjectDialog : Window
     /// <summary>The read of the folder's templates, done once they are listed or the dialog says why they could not be.</summary>
     public Task TemplatesRead { get; }
 
-    /// <summary>Every family the dialog offers, in Rider's order, whatever the search; a solution template in New Solution
-    /// only.</summary>
+    /// <summary>Every family the dialog offers, whatever the search; a solution template in New Solution only.</summary>
     public IReadOnlyList<TemplateFamily> Families => families;
 
     /// <summary>The families listed, those the search finds.</summary>
@@ -332,8 +331,8 @@ public sealed class NewProjectDialog : Window
     /// <summary>The command line Create runs for the project, as the dialog shows it.</summary>
     public string Command => command.Text ?? string.Empty;
 
-    /// <summary>What the dialog offers for a template not installed (Rider's words for its package, and the command
-    /// Install runs); null when the template chosen is installed.</summary>
+    /// <summary>What the dialog offers for a template not installed (the words for its package, and the command Install
+    /// runs); null when the template chosen is installed.</summary>
     public string? Offer => offer.IsVisible ? $"{offerText.Text}\n{offerCommand.Text}" : null;
 
     /// <summary>The Install button, for a click on it.</summary>
@@ -567,7 +566,7 @@ public sealed class NewProjectDialog : Window
             .OrderBy(f => Path.GetFileNameWithoutExtension(f).Equals(SolutionName, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
             .ThenBy(f => f, StringComparer.Ordinal).FirstOrDefault();
 
-    /// <summary>Why Create would make nothing, or null: Rider's reasons for a name, then where it goes, then the options.</summary>
+    /// <summary>Why Create would make nothing, or null: the names first, then where it goes, then the options.</summary>
     private string? WhyNot()
     {
         if (template is null)
@@ -627,7 +626,7 @@ public sealed class NewProjectDialog : Window
         return null;
     }
 
-    /// <summary>Rider's reasons a solution or project name cannot be one: none, or characters no file name takes.</summary>
+    /// <summary>Why a solution or project name cannot be one: none, or characters no file name takes.</summary>
     private static string? NameProblem(string name, string what) =>
         name.Length == 0 ? $"{what} name cannot be empty"
         : name is "." or ".." || name.IndexOfAny([.. Path.GetInvalidFileNameChars(), '/', '\\', ':', '*', '?', '"', '<', '>', '|']) >= 0 ? $"{what} name contains invalid characters"
@@ -919,7 +918,7 @@ public sealed class NewProjectDialog : Window
         ShowWhere();
     }
 
-    /// <summary>The template's options, each as Rider shows one: a checkbox, a list of its choices, or a box for text.</summary>
+    /// <summary>The template's options, each a checkbox, a list of its choices, or a box for text.</summary>
     private void ShowOptions(TemplateVariant variant)
     {
         options.Children.Clear();
@@ -998,7 +997,7 @@ public sealed class NewProjectDialog : Window
         ShowWhere();
     }
 
-    /// <summary>Where Create puts it, as Rider says it under the directory.</summary>
+    /// <summary>Where Create puts it, said under the directory.</summary>
     private void ShowWhere()
     {
         string? root = Folder.Length > 0 && Path.IsPathFullyQualified(Folder) && (target is not null || SolutionName.Length > 0)
@@ -1096,8 +1095,8 @@ public sealed class NewProjectDialog : Window
         }
     }
 
-    /// <summary>Up and Down in the search choose among the families found, as in the Welcome screen's; Escape clears a
-    /// search before it cancels.</summary>
+    /// <summary>Up and Down in the search choose among the families found; Escape clears a search before it
+    /// cancels.</summary>
     private void OnSearchKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.KeyModifiers != KeyModifiers.None)
@@ -1116,7 +1115,7 @@ public sealed class NewProjectDialog : Window
         }
     }
 
-    /// <summary>A family's row: its name, its Types on hover, and Rider's word for one none of whose Types is installed.</summary>
+    /// <summary>A family's row: its name, its Types on hover, and "Not installed" for one none of whose Types is.</summary>
     private static Control Item(TemplateFamily row)
     {
         Border item = new() { Padding = new Thickness(5, 6) };
@@ -1126,7 +1125,7 @@ public sealed class NewProjectDialog : Window
         return item;
     }
 
-    /// <summary>A Type in the chooser: its name, and Rider's word for one not installed.</summary>
+    /// <summary>A Type in the chooser: its name, and "Not installed" for one not installed.</summary>
     private static Control TypeItem(ProjectTemplate type) => Named(type.TypeName, type.Pack is not null);
 
     /// <summary>A name cut short where it must be, with "Not installed" after it for what dotnet new has not got.</summary>

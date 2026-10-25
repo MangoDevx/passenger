@@ -7,8 +7,8 @@ namespace Passenger.Debugger;
 /// <summary>The x64 debug registers of the program's threads, as its data breakpoints set them: Dr0 to Dr3 hold the
 /// addresses watched, Dr7 has each on, for a write, and how many bytes it covers, and Dr6 says which one a write hit.
 /// Each thread is set twice: in the context the runtime resumes it with when it is stopped in managed code
-/// (ICorDebugProcess.SetThreadContext, as Rider sets them), and on the thread itself (Windows' SetThreadContext), which a
-/// thread stopped outside managed code, or one the runtime resumes without its saved debug registers, runs on with.</summary>
+/// (ICorDebugProcess.SetThreadContext), and on the thread itself (Windows' SetThreadContext), which a thread stopped
+/// outside managed code, or one the runtime resumes without its saved debug registers, runs on with.</summary>
 [SupportedOSPlatform("windows")]
 internal static unsafe partial class DebugRegisters
 {

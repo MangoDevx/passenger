@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Writes src/Passenger.App/Theme/Icons.axaml from Microsoft's Fluent UI System Icons (MIT).
 
-Each icon is fetched once into artifacts/icons/ and kept there; the list below is the only place an
-icon is named, so adding one is a line here and `just icons`. THIRD_PARTY_NOTICES.md credits the set.
+Each icon is fetched once into artifacts/icons/ and kept there; the list below is the only place an icon is named.
 """
 import os
 import re
@@ -10,8 +9,7 @@ import sys
 import urllib.parse
 import urllib.request
 
-# The repository's commit the icons come from, so every run draws the same ones: a newer set is a new commit here and
-# `just icons`, its changes to Icons.axaml then seen in review.
+# The repository's commit the icons come from, so every run draws the same ones.
 COMMIT = "463d58b8186f874ab2f51cf0a08b4ff5097c912f"
 BASE = f"https://raw.githubusercontent.com/microsoft/fluentui-system-icons/{COMMIT}/assets"
 
@@ -55,7 +53,7 @@ ICONS = [
     ("StepInto", "Arrow Step In", "20_regular"),
     ("StepOut", "Arrow Step Out", "20_regular"),
     ("RunToCursor", "Arrow Step In Right", "20_regular"),
-    # Rider's Detach, after Stop: the debugger unplugged, the program left running.
+    # Detach, after Stop: the debugger unplugged, the program left running.
     ("Detach", "Plug Disconnected", "20_regular"),
     # Smart Step Into: a call of the line chosen to step into, a target.
     ("SmartStepInto", "Target Arrow", "20_regular"),
@@ -81,23 +79,21 @@ ICONS = [
     ("TestSkipped", "Subtract", "16_filled"),
     ("TestNotRun", "Circle", "16_regular"),
     ("TestRunning", "Circle", "16_filled"),
-    # The Unit Tests window's toolbar, as Rider's: every outcome's filter, Expand All, Collapse All and Group By.
+    # The Unit Tests window's toolbar: every outcome's filter, Expand All, Collapse All and Group By.
     ("TestAll", "Circle Half Fill", "16_regular"),
     ("ExpandAll", "Arrow Expand All", "20_regular"),
     ("CollapseAll", "Arrow Collapse All", "20_regular"),
     ("GroupBy", "Group List", "20_regular"),
     ("Pin", "Pin", "16_regular"),
-    # The merge window's Apply All Non-Conflicting Changes (turned on its side, the two arrows meeting in the result) and
-    # Resolve Simple Conflicts, Rider's magic wand.
+    # The merge window's Apply All Non-Conflicting Changes (arrows meeting in the result) and Resolve Simple Conflicts.
     ("ApplyNonConflicts", "Arrow Minimize Vertical", "20_regular"),
     ("Wand", "Wand", "20_regular"),
     # Local History's tool window and its labels.
     ("History", "History", "20_regular"),
     ("Label", "Tag", "16_regular"),
-    # A change bar's popup's Highlight Words, Rider's highlighter pen.
+    # A change bar's popup's Highlight Words: a highlighter pen.
     ("Highlight", "Highlight", "16_regular"),
-    # The Git log's branches: a favourite's star (filled once marked), Update Selected and Navigate Log to Selected
-    # Branch Head; a tag is Local History's Label.
+    # Git log branches: a favourite's star (filled once marked), Update Selected, Navigate Log to Selected Branch Head.
     ("Star", "Star", "16_regular"),
     ("StarFilled", "Star", "16_filled"),
     ("Update", "Arrow Download", "16_regular"),
@@ -105,19 +101,19 @@ ICONS = [
     # The NuGet window's Sources tab: a feed's Edit, and the lock of one whose nuget.config holds its credentials.
     ("Edit", "Edit", "16_regular"),
     ("Lock", "Lock Closed", "16_regular"),
-    # Settings' Keymap: Find Actions by Shortcut, Rider's keyboard with a magnifier over it (Search drawn on it).
+    # Settings' Keymap: Find Actions by Shortcut, a keyboard with a magnifier over it (Search drawn on it).
     ("Keyboard", "Keyboard", "20_regular"),
     # The Live Visual Tree: its window's tree of controls, and Select Element, a control picked in the app.
     ("LiveTree", "Organization", "20_regular"),
     ("SelectElement", "Select Object", "20_regular"),
-    # A test frame's viewer, as Rider's image editor: Zoom In, Zoom Out, Actual Size and Fit Zoom to Window.
+    # A test frame's viewer: Zoom In, Zoom Out, Actual Size and Fit Zoom to Window.
     ("ZoomIn", "Zoom In", "20_regular"),
     ("ZoomOut", "Zoom Out", "20_regular"),
     ("ActualSize", "Ratio One To One", "20_regular"),
     ("ZoomFit", "Zoom Fit", "20_regular"),
     # The Run and Debug windows' Avalonia debug overlays: layers drawn over the app's window.
     ("Overlays", "Layer", "20_regular"),
-    # Apply Hot Reload Changes on the toolbar and the Run and Debug windows: Rider's flame.
+    # Apply Hot Reload Changes on the toolbar and the Run and Debug windows: a flame.
     ("HotReload", "Fire", "20_regular"),
     # The Hierarchy window's stripe button: a type over the types it derives from or that derive from it.
     ("Hierarchy", "Diagram", "20_regular"),

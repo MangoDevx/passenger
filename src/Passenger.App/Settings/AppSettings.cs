@@ -21,7 +21,7 @@ public sealed record AppSettings : IStateDocument<AppSettings>
     public const int MinConsoleBufferKb = 16;
     public const int MaxConsoleBufferKb = 102_400;
 
-    /// <summary>Rider's own soft wrap masks.</summary>
+    /// <summary>The names that soft-wrap at first.</summary>
     public const string DefaultSoftWrapFiles = "*.md; *.txt; *.rst; *.adoc";
 
     /// <summary>Dark or light, or as the system is.</summary>
@@ -30,17 +30,18 @@ public sealed record AppSettings : IStateDocument<AppSettings>
     /// <summary>The theme, Passenger's own or another of <see cref="Look"/>'s, each in the dark or light <see cref="Theme"/> says.</summary>
     public Look Look { get; init; } = Look.Passenger;
 
-    /// <summary>The code's colours: the theme's own scheme, or Rider's for a person who keeps Rider's colours under either
-    /// theme (its Dark or Light as the theme is; the editor keeps the theme's ground, so the areas stay told apart).</summary>
+    /// <summary>The code's colours: the theme's own scheme, or Rider's colours in its Dark or Light as the theme is
+    /// (over the theme's ground, so the areas stay told apart).</summary>
     public ColourScheme ColourScheme { get; init; } = ColourScheme.Theme;
 
-    /// <summary>Rider's "Merge main menu with window title", which Linux alone offers: the toolbar is the window's title bar
-    /// (its window buttons at its right) rather than a strip under the system's. On at first, as Rider's is: its frame,
-    /// Avalonia's drawn decorations for X11, moves, resizes and maximizes as the window manager's own does on GNOME.</summary>
+    /// <summary>"Merge main menu with window title", which Linux alone offers: the toolbar is the window's title bar
+    /// (its window buttons at its right) rather than a strip under the system's. On at first, since the frame Passenger
+    /// draws moves, resizes and maximizes as the window manager's own does on GNOME.</summary>
     public bool MergeMainMenuWithWindowTitle { get; init; } = true;
 
-    /// <summary>Rider's Main menu as a bar of its menus on the toolbar (File, Edit, View…) rather than behind its button,
-    /// where the system has no menu bar of its own; those the toolbar has no room for behind the button after them.</summary>
+    /// <summary>The main menu as a bar of its menus on the toolbar (File, Edit, View…) rather than behind its button,
+    /// where the system has no menu bar of its own; those the toolbar has no room for behind the button after
+    /// them.</summary>
     public bool MainMenuBar { get; init; }
 
     public double EditorFontSize { get; init; } = 13;
@@ -48,38 +49,39 @@ public sealed record AppSettings : IStateDocument<AppSettings>
     public bool Ligatures { get; init; }
     public bool ShowLineNumbers { get; init; } = true;
 
-    /// <summary>Rider's rainbow braces: brackets coloured by how deeply they nest.</summary>
+    /// <summary>Rainbow braces: brackets coloured by how deeply they nest.</summary>
     public bool RainbowBraces { get; init; } = true;
 
-    /// <summary>Rider's parameter name hints: an argument's parameter shown before it where the call does not say it.</summary>
+    /// <summary>Parameter name hints: an argument's parameter shown before it where the call does not say it.</summary>
     public bool ParameterHints { get; init; } = true;
 
-    /// <summary>Rider's type name hints: the type of a <c>var</c>, a lambda's parameter or a target-typed <c>new</c> shown
+    /// <summary>Type name hints: the type of a <c>var</c>, a lambda's parameter or a target-typed <c>new</c> shown
     /// after it where the code does not say it.</summary>
     public bool TypeHints { get; init; } = true;
 
-    /// <summary>Rider's "Soft-wrap these files": a file whose name matches <see cref="SoftWrapFiles"/> opens with its lines
+    /// <summary>"Soft-wrap these files": a file whose name matches <see cref="SoftWrapFiles"/> opens with its lines
     /// wrapped at the editor's width (View, Active Editor, Soft-Wrap turns it on and off for one file).</summary>
     public bool SoftWrap { get; init; } = true;
 
-    /// <summary>The names that soft-wrap, Rider's masks: <c>*</c> and <c>?</c> as wildcards, <c>;</c> between them.</summary>
+    /// <summary>The names that soft-wrap, as masks: <c>*</c> and <c>?</c> as wildcards, <c>;</c> between
+    /// them.</summary>
     public string SoftWrapFiles { get; init; } = DefaultSoftWrapFiles;
 
-    /// <summary>Rider's "Use the original line's indent for wrapped fragments": a wrapped line's rows after its first start
+    /// <summary>"Use the original line's indent for wrapped fragments": a wrapped line's rows after its first start
     /// where its text does.</summary>
     public bool SoftWrapIndent { get; init; } = true;
 
-    /// <summary>Rider's Show whitespaces: spaces drawn as dots and tabs as arrows (View, Active Editor, Show Whitespaces
-    /// turns it on and off for one file).</summary>
+    /// <summary>Show whitespaces: spaces drawn as dots and tabs as arrows (View, Active Editor, Show Whitespaces turns
+    /// it on and off for one file).</summary>
     public bool ShowWhitespaces { get; init; }
 
-    /// <summary>Rider's "Change font size with Ctrl+Mouse Wheel" (Command on macOS): off, as in Rider, so the wheel only
+    /// <summary>"Change font size with Ctrl+Mouse Wheel" (Command on macOS): off at first, so the wheel only
     /// scrolls.</summary>
     public bool WheelZoom { get; init; }
     public double TerminalFontSize { get; init; } = 13;
 
-    /// <summary>Rider's Code Folding, Fold by default: the comments a file begins with fold as it opens (a file keeps the
-    /// folds it closed with instead, once it has some).</summary>
+    /// <summary>Code Folding, Fold by default: the comments a file begins with fold as it opens (a file keeps the folds
+    /// it closed with instead, once it has some).</summary>
     public bool FoldFileHeader { get; init; } = true;
 
     /// <summary>Fold by default: the usings.</summary>
@@ -91,7 +93,7 @@ public sealed record AppSettings : IStateDocument<AppSettings>
     /// <summary>Fold by default: the members' bodies.</summary>
     public bool FoldMethodBodies { get; init; }
 
-    /// <summary>Fold by default: #region to #endregion, Rider's Preprocessor regions, on as in Rider.</summary>
+    /// <summary>Fold by default: #region to #endregion (Preprocessor regions).</summary>
     public bool FoldPreprocessorRegions { get; init; } = true;
 
     /// <summary>Fold by default: block comments over several lines.</summary>
@@ -104,65 +106,64 @@ public sealed record AppSettings : IStateDocument<AppSettings>
     /// and an edit that cannot be applied restarts it.</summary>
     public bool HotReload { get; init; }
 
-    /// <summary>Rider's Hot Reload when debugging (Edit and Continue): Debug launches the program so its code can change as it
-    /// runs, Apply Hot Reload Changes applies the edits, and edits made while it is paused are applied as it goes on. On,
-    /// as in Rider and Visual Studio.</summary>
+    /// <summary>Hot Reload when debugging (Edit and Continue): Debug launches the program so its code can change as it
+    /// runs, Apply Hot Reload Changes applies the edits, and edits made while it is paused are applied as it goes
+    /// on.</summary>
     public bool HotReloadWhileDebugging { get; init; } = true;
 
-    /// <summary>Visual Studio's Hot Reload on file save: a C# file saved while the program is debugged applies its edits.</summary>
+    /// <summary>Hot Reload on file save: a C# file saved while the program is debugged applies its edits.</summary>
     public bool HotReloadOnSave { get; init; }
 
     /// <summary>An edit Hot Reload cannot apply (a rude edit) restarts the debugged program, built again with the same
-    /// configuration and breakpoints, without asking: dotnet watch's "Always" (its DOTNET_WATCH_RESTART_ON_RUDE_EDIT), on by
-    /// default here. Off, the restart is asked as dotnet watch asks it.</summary>
+    /// configuration and breakpoints, without asking; off, the restart is asked first.</summary>
     public bool RestartOnRudeEdit { get; init; } = true;
 
-    /// <summary>Rider's "Tool Window: when build is explicitly invoked, open the build progress view in a tool window": the
+    /// <summary>"Tool Window: when build is explicitly invoked, open the build progress view in a tool window": the
     /// Build menu's builds, rebuilds and cleans open the Build window as they start.</summary>
     public bool OpenBuildWindowOnBuild { get; init; } = true;
 
-    /// <summary>Rider's "Tool Window: open the build progress view even when the build is invoked implicitly (i.e.
-    /// Run/Debug)": the build before Run, Debug or Profile opens it too, while the setting above is on. Off, as in Rider,
-    /// so a run's build leaves the bottom panel as it was. A test run's build never opens it, as in Rider.</summary>
+    /// <summary>"Tool Window: open the build progress view even when the build is invoked implicitly (i.e. Run/Debug)":
+    /// the build before Run, Debug or Profile opens it too, while the setting above is on. Off at first, so a run's
+    /// build leaves the bottom panel as it was. A test run's build never opens it.</summary>
     public bool OpenBuildWindowOnImplicitBuild { get; init; }
 
-    /// <summary>Rider's "Showing build results after build completed": which builds bring the Build window forward as
-    /// they end, whatever started them.</summary>
+    /// <summary>"Showing build results after build completed": which builds bring the Build window forward as they end,
+    /// whatever started them.</summary>
     public BuildResultsMode ShowBuildResults { get; init; } = BuildResultsMode.ForErrors;
 
-    /// <summary>Rider's solution-wide analysis: every file's errors in Problems as code changes, without a build. Off by
-    /// default, as in Rider, since it analyses the whole solution; the status bar turns it on and off.</summary>
+    /// <summary>Solution-wide analysis: every file's errors in Problems as code changes, without a build. Off at first,
+    /// since it analyses the whole solution; the status bar turns it on and off.</summary>
     public bool SolutionWideAnalysis { get; init; }
 
-    /// <summary>Rider's autosave on frame deactivation: every changed file saved when the focus goes to another program
-    /// or to the terminal.</summary>
+    /// <summary>Autosave on frame deactivation: every changed file saved when the focus goes to another program or to
+    /// the terminal.</summary>
     public bool SaveOnDeactivation { get; init; } = true;
 
-    /// <summary>Rider's "Save files if the IDE is idle": every changed file saved once no key or click has come for
-    /// <see cref="IdleSeconds"/>.</summary>
+    /// <summary>"Save files if the IDE is idle": every changed file saved once no key or click has come for <see
+    /// cref="IdleSeconds"/>.</summary>
     public bool SaveWhenIdle { get; init; }
 
     public int IdleSeconds { get; init; } = 15;
 
-    /// <summary>Rider's "Reopen projects on startup": started with nothing named, the window opens the folder or solution
+    /// <summary>"Reopen projects on startup": started with nothing named, the window opens the folder or solution
     /// opened last, rather than the Welcome screen.</summary>
     public bool ReopenProjectsOnStartup { get; init; } = true;
 
-    /// <summary>Rider's "Open project in": where a solution or folder opened from a window that has one goes, a window of
-    /// its own, that window's place, or asked each time (Open Solution's This Window and New Window), as Rider's default.</summary>
+    /// <summary>"Open project in": where a solution or folder opened from a window that has one goes, a window of its
+    /// own, that window's place, or asked each time (Open Solution's This Window and New Window).</summary>
     public OpenProjectIn OpenProjectIn { get; init; } = OpenProjectIn.Ask;
 
-    /// <summary>Rider's Check IDE updates: the person's window asks GitHub for Passenger's latest release as it starts and
-    /// once a day, and an installed Passenger downloads a newer one to install as it restarts. Off, nothing is asked unless
+    /// <summary>Check IDE updates: the person's window asks GitHub for Passenger's latest release as it starts and once
+    /// a day, and an installed Passenger downloads a newer one to install as it restarts. Off, nothing is asked unless
     /// Help, Check for Updates is chosen, and nothing is downloaded at all.</summary>
     public bool CheckForUpdates { get; init; } = true;
 
-    /// <summary>Rider's console cycle buffer size (<c>idea.cycle.buffer.size</c>): how much of a Run, Build or Debug
-    /// console's text is kept, in KB, the oldest lines dropped past it.</summary>
+    /// <summary>How much of a Run, Build or Debug console's text is kept, in KB, the oldest lines dropped past
+    /// it.</summary>
     public int ConsoleBufferKb { get; init; } = ToolWindows.OutputView.DefaultLimitKb;
 
-    /// <summary>The keymap the person's keys follow, Settings' Keymap: Visual Studio's at first, as before there was a
-    /// choice, so a settings.json without one keeps the keys it had.</summary>
+    /// <summary>The keymap the person's keys follow, Settings' Keymap: Visual Studio's at first, so a settings.json
+    /// without one keeps the keys it had.</summary>
     public Passenger.Editor.KeymapPreset Keymap { get; init; } = Passenger.Editor.KeymapPreset.VisualStudio;
 
     /// <summary>The person's shortcuts over the Visual Studio keymap's, by action, in keymap notation ("meta shift K"); an
@@ -180,36 +181,36 @@ public sealed record AppSettings : IStateDocument<AppSettings>
     public AppSettings WithOwnShortcuts(Dictionary<string, string[]> shortcuts) =>
         Keymap == Passenger.Editor.KeymapPreset.VSCode ? this with { VSCodeShortcuts = shortcuts } : this with { Shortcuts = shortcuts };
 
-    /// <summary>Rider's Live Templates as the person left them, by template: a built-in one's changes (its key the
-    /// shortcut it ships with), and the whole of each they added (<see cref="TemplateChange"/>).</summary>
+    /// <summary>The live templates as the person left them, by template: a built-in one's changes (its key the shortcut
+    /// it ships with), and the whole of each they added (<see cref="TemplateChange"/>).</summary>
     public Dictionary<string, TemplateChange> LiveTemplates { get; init; } = [];
 
-    /// <summary>Rider's Postfix Completion: the postfix templates turned off (false), by name; one not named is on.</summary>
+    /// <summary>Postfix Completion: the postfix templates turned off (false), by name; one not named is on.</summary>
     public Dictionary<string, bool> PostfixTemplates { get; init; } = [];
 
-    /// <summary>Rider's Enable postfix completion: off, no postfix template is offered or expanded.</summary>
+    /// <summary>Enable postfix completion: off, no postfix template is offered or expanded.</summary>
     public bool PostfixCompletion { get; init; } = true;
 
-    /// <summary>Rider's Show postfix templates in completion autopopup: the list after a dot offers them, which Tab after
-    /// one's name expands either way.</summary>
+    /// <summary>Show postfix templates in completion autopopup: the list after a dot offers them, which Tab after one's
+    /// name expands either way.</summary>
     public bool PostfixInCompletion { get; init; } = true;
 
     /// <summary>The terminal's shell, or null for the user's own login shell.</summary>
     public string? TerminalShell { get; init; }
 
-    /// <summary>Rider's Languages &amp; Frameworks, Node.js, Node interpreter: the Node.js the JavaScript, TypeScript, HTML,
-    /// CSS and JSON language servers run on, or null for the first on the PATH as the login shell finds it.</summary>
+    /// <summary>The Node.js the JavaScript, TypeScript, HTML, CSS and JSON language servers run on, or null for the
+    /// first on the PATH as the login shell finds it.</summary>
     public string? NodeInterpreter { get; init; }
 
-    /// <summary>Rider's ESLint "Run for files" at its default.</summary>
+    /// <summary>ESLint's "Run for files" at first.</summary>
     public const string DefaultEslintFiles = "**/*.{js,ts,jsx,tsx,cjs,cts,mjs,mts,html,vue}";
 
-    /// <summary>Rider's Prettier "Run for files" at its default.</summary>
+    /// <summary>Prettier's "Run for files" at first.</summary>
     public const string DefaultPrettierFiles = "**/*.{js,ts,jsx,tsx,cjs,cts,mjs,mts,json,vue,astro}";
 
-    /// <summary>Rider's Languages &amp; Frameworks, JavaScript, Code Quality Tools, ESLint: Automatic (the project's own
-    /// eslint package, found from the file's folder up, and its configuration), Manual (<see cref="EslintPackage"/>) or
-    /// Disabled. Its problems are shown as a file is typed, through VS Code's ESLint language server.</summary>
+    /// <summary>ESLint: Automatic (the project's own eslint package, found from the file's folder up, and its
+    /// configuration), Manual (<see cref="EslintPackage"/>) or Disabled. Its problems are shown as a file is
+    /// typed.</summary>
     public ToolConfiguration Eslint { get; init; } = ToolConfiguration.Automatic;
 
     /// <summary>Manual ESLint configuration's package: the eslint package's folder (…/node_modules/eslint).</summary>
@@ -221,8 +222,8 @@ public sealed record AppSettings : IStateDocument<AppSettings>
     /// <summary>"Run eslint --fix on save": a save (File, Save All) first fixes what ESLint can fix in each file it checks.</summary>
     public bool EslintFixOnSave { get; init; }
 
-    /// <summary>Rider's Languages &amp; Frameworks, JavaScript, Prettier: Automatic (the project's own prettier package, found
-    /// from the file's folder up), Manual (<see cref="PrettierPackage"/>) or Disabled.</summary>
+    /// <summary>Prettier: Automatic (the project's own prettier package, found from the file's folder up), Manual (<see
+    /// cref="PrettierPackage"/>) or Disabled.</summary>
     public ToolConfiguration Prettier { get; init; } = ToolConfiguration.Automatic;
 
     /// <summary>Manual Prettier configuration's package: the prettier package's folder (…/node_modules/prettier).</summary>
@@ -239,7 +240,7 @@ public sealed record AppSettings : IStateDocument<AppSettings>
     /// <summary>"Run on save": a save (File, Save All) formats each file <see cref="PrettierFiles"/> covers with Prettier first.</summary>
     public bool PrettierOnSave { get; init; }
 
-    /// <summary>Rider's Remote JSON Schemas, "Allow downloading JSON Schemas from remote sources": a JSON file's own
+    /// <summary>Remote JSON Schemas, "Allow downloading JSON Schemas from remote sources": a JSON file's own
     /// <c>$schema</c> on the web is downloaded to check and complete it. Those Passenger carries never are.</summary>
     public bool DownloadJsonSchemas { get; init; } = true;
 
@@ -247,15 +248,14 @@ public sealed record AppSettings : IStateDocument<AppSettings>
     /// image, as <c>FROM image:</c> is completed. Off, it asks Docker Hub nothing and offers no tags.</summary>
     public bool DockerHubTags { get; init; } = true;
 
-    /// <summary>"Check Dockerfiles with BuildKit": as a Dockerfile opens and is saved, the engine's BuildKit runs its build
-    /// checks on it with its own Dockerfile frontend (never a <c># syntax=</c> line's), reading each base image's metadata
-    /// from its registry. Off, none runs (a compose file's hints and
-    /// errors, which Compose works out on this computer, stay). On unless <c>PASSENGER_BUILDKIT_CHECKS</c> is off, as the
-    /// tests' run has it (<see cref="Containers.BuildKitChecks"/>).</summary>
+    /// <summary>"Check Dockerfiles with BuildKit": as a Dockerfile opens and is saved, the engine's BuildKit runs its
+    /// build checks on it with its own Dockerfile frontend (never a <c># syntax=</c> line's), reading each base image's
+    /// metadata from its registry. Off, none runs (a compose file's hints and errors stay). On unless
+    /// <c>PASSENGER_BUILDKIT_CHECKS</c> is off (<see cref="Containers.BuildKitChecks"/>).</summary>
     public bool BuildKitChecks { get; init; } = Containers.BuildKitChecks.ByDefault;
 
-    /// <summary>Rider's Enable MCP Server: agents reaching the window through its socket (<c>passenger --mcp-attach</c>)
-    /// are let in without asking. Off until the person turns it on, since any program running as them could then act with
+    /// <summary>Enable MCP Server: agents reaching the window through its socket (<c>passenger --mcp-attach</c>) are
+    /// let in without asking. Off until the person turns it on, since any program running as them could then act with
     /// the IDE's permissions; off, the window asks the person before each agent's first call goes on.</summary>
     public bool McpServer { get; init; }
 
@@ -264,45 +264,44 @@ public sealed record AppSettings : IStateDocument<AppSettings>
     /// settings_set refuses it, as it refuses <see cref="McpServer"/>.</summary>
     public IReadOnlyList<string> AgentFolders { get; init; } = [];
 
-    /// <summary>Show activity in Discord: the Discord app on this computer shows "Playing Passenger" with Passenger's icon
-    /// and what <see cref="DiscordShows"/> names to whoever can see the person's activity, as the JetBrains IDEs' Discord
-    /// plugins do. On at first, naming nothing of the work; off, Discord is told nothing at all.</summary>
+    /// <summary>Show activity in Discord: the Discord app on this computer shows "Playing Passenger" with Passenger's
+    /// icon and what <see cref="DiscordShows"/> names to whoever can see the person's activity. On at first, naming
+    /// nothing of the work; off, Discord is told nothing at all.</summary>
     public bool ShowInDiscord { get; init; } = true;
 
     /// <summary>What the activity names beyond Passenger: nothing at first (Passenger's own words and how long the solution
     /// has been open); the solution, or the solution and the file, only as the person chooses.</summary>
     public DiscordShown DiscordShows { get; init; } = DiscordShown.PassengerOnly;
 
-    /// <summary>Whether the activity names only Passenger once no key, click or scroll has come for
-    /// <see cref="DiscordIdleMinutes"/>, as the plugins' idle time does.</summary>
+    /// <summary>Whether the activity names only Passenger once no key, click or scroll has come for <see
+    /// cref="DiscordIdleMinutes"/>.</summary>
     public bool DiscordIdle { get; init; } = true;
 
-    /// <summary>Almighty Alpaca's Discord Integration's "Time required before considered idle": 5 minutes, up to a day.</summary>
+    /// <summary>How long without a key, click or scroll counts as idle: 5 minutes at first, up to a day.</summary>
     public int DiscordIdleMinutes { get; init; } = 5;
 
     /// <summary>A client's verbose protocol trace: every message to and from the C# language servers, the debugger and
     /// VSTest written to lsp.log, dap.log and vstest.log in the logs folder (<see cref="IdeLog.Traces"/>).</summary>
     public bool TraceProtocols { get; init; }
 
-    /// <summary>Rider's debug log of its processes: every program the IDE runs in passenger.log with its exit code and
-    /// time, not only those that fail or take a while (<see cref="IdeLog.Programs"/>).</summary>
+    /// <summary>Every program the IDE runs logged in passenger.log with its exit code and time, not only those that
+    /// fail or take a while (<see cref="IdeLog.Programs"/>).</summary>
     public bool LogEveryProgram { get; init; }
 
-    /// <summary>Rider's diff Highlighting Differences: the words that changed inside changed lines marked, at first; the
+    /// <summary>The diff's Highlighting Differences: the words that changed inside changed lines marked, at first; the
     /// diff's Settings changes it for every diff after.</summary>
     public Vcs.DiffHighlighting DiffHighlighting { get; init; } = Vcs.DiffHighlighting.Words;
 
-    /// <summary>Rider's Highlight Words in a change bar's popup: the words that changed marked in what the lines were and
-    /// in the file while the popup is open; the popup's toggle changes it.</summary>
+    /// <summary>Highlight Words in a change bar's popup: the words that changed marked in what the lines were and in
+    /// the file while the popup is open; the popup's toggle changes it.</summary>
     public bool ChangePopupWords { get; init; } = true;
 
-    /// <summary>Rider's "Show files with the same names as nested" (its application's Rider.UseFileNestingRules): the
-    /// Solution view nests files by Rider's rules (Counter.razor.cs under Counter.razor), on until the Explorer's File
-    /// Nesting... turns it off.</summary>
+    /// <summary>"Show files with the same names as nested": the Solution view nests files by their nesting rules
+    /// (Counter.razor.cs under Counter.razor), on until the Explorer's File Nesting... turns it off.</summary>
     public bool NestFiles { get; init; } = true;
 
-    /// <summary>Rider's Code Style for XAML (its XML formatter's options, with XAML Styler's attribute order and empty-element
-    /// style), which Reformat Code lays out Avalonia's and WPF's XAML by, a file's .editorconfig over it.</summary>
+    /// <summary>The code style for XAML (the XML formatter's options, with an attribute order and empty-element style),
+    /// which Reformat Code lays out Avalonia's and WPF's XAML by, a file's .editorconfig over it.</summary>
     public Passenger.Xaml.Features.XamlFormatSettings XamlFormat { get; init; } = new();
 
     public static IReadOnlyList<Action<JsonObject>> Upgrades { get; } = [StateStore.Unversioned, DiscordOnNamingNothing];
@@ -427,8 +426,7 @@ public sealed record AppSettings : IStateDocument<AppSettings>
     }
 }
 
-/// <summary>Rider's choices for "Showing build results after build completed" (its <c>ShowBuildResultsMode</c>), in the
-/// order its list gives them.</summary>
+/// <summary>The choices for "Showing build results after build completed", in the order Settings lists them.</summary>
 public enum BuildResultsMode
 {
     Always,
@@ -437,7 +435,7 @@ public enum BuildResultsMode
     Never,
 }
 
-/// <summary>Rider's choices for how ESLint and Prettier are configured (their ConfigurationMode), in its order.</summary>
+/// <summary>How ESLint and Prettier are configured, in the order Settings lists them.</summary>
 public enum ToolConfiguration
 {
     /// <summary>Not run.</summary>
@@ -450,8 +448,7 @@ public enum ToolConfiguration
     Manual,
 }
 
-/// <summary>Rider's choices for "Open project in" (its GeneralSettings' confirmOpenNewProject), in the order its System
-/// Settings lists them.</summary>
+/// <summary>The choices for "Open project in", in the order Settings lists them.</summary>
 public enum OpenProjectIn
 {
     NewWindow,
@@ -459,8 +456,7 @@ public enum OpenProjectIn
     Ask,
 }
 
-/// <summary>What Discord's activity names beyond Passenger, as the plugins' Application, Project and Project and Files
-/// visibilities do, in the order Settings lists them.</summary>
+/// <summary>What Discord's activity names beyond Passenger, in the order Settings lists them.</summary>
 public enum DiscordShown
 {
     PassengerOnly,

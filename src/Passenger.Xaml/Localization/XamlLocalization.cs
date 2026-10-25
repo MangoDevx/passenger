@@ -16,8 +16,8 @@ public sealed record LocalizedStatic(TextRange Range, string Key, ClrType Type, 
 
 /// <summary>Localized strings in XAML, Avalonia's and WPF's usual way: a neutral <c>Resources.resx</c>, its satellites and the class
 /// generated over it (ResXFileCodeGenerator's Designer class, Arcade's), read as <c>{x:Static p:Resources.Key}</c>. A class is one a
-/// .resx generates as C#'s help takes one: it has a static ResourceManager property of that type; its property reads the key its
-/// getter gives ResourceManager.GetString (else its own name). The files are <see cref="ResourceFiles"/>' reading, shared with C#'s.</summary>
+/// .resx generates when it has a static ResourceManager property of that type; its property reads the key its getter gives
+/// ResourceManager.GetString (else its own name). The files are read by <see cref="ResourceFiles"/>.</summary>
 public static class XamlLocalization
 {
     private const string ResourceManager = "System.Resources.ResourceManager";
@@ -54,7 +54,7 @@ public static class XamlLocalization
     public static LocalizedStatic? At(XamlFile file, int offset) => Reads(file).FirstOrDefault(r => r.Range.Start <= offset && offset <= r.Range.End);
 
     /// <summary>A warning where a read's key a language of its files lacks (no entry, or an XLIFF unit still new), one a language,
-    /// in C#'s words, each carrying the gap its fix gives; the files read with an open one's text as the editor has it.</summary>
+    /// each carrying the gap its fix gives; the files read with an open one's text as the editor has it.</summary>
     public static IReadOnlyList<XamlDiagnostic> Findings(IReadOnlyList<LocalizedStatic> reads, Func<string, TextSnapshot?>? open)
     {
         List<XamlDiagnostic> found = [];
@@ -73,8 +73,8 @@ public static class XamlLocalization
         return found;
     }
 
-    /// <summary>For completion's detail, the text of the key each property of a class a .resx generates reads: its neutral
-    /// file's, else a language's; null for another member or class.</summary>
+    /// <summary>The text of the key each property of a class a .resx generates reads: its neutral file's, else a language's;
+    /// null for another member or class.</summary>
     internal static Func<ClrMember, string?> TextsOf(XamlFile file, ClrType type)
     {
         if (Class(file, type) is not { } generated || ResourceFiles.Find(generated.Beside, generated.ProjectFolder, generated.RootNamespace, generated.Manager) is not { } set)
@@ -127,8 +127,8 @@ public static class XamlLocalization
         return new LocalizedStatic(new TextRange(start + dot + 1, name.Length), key, type, generated.Beside, generated.Manager, generated.ProjectFolder, generated.RootNamespace);
     }
 
-    /// <summary>A class a .resx generates, as C#'s help takes one (a static ResourceManager property of that type), with how its
-    /// files are found; null for any other class.</summary>
+    /// <summary>A class a .resx generates (one with a static ResourceManager property of that type), with how its files are
+    /// found; null for any other class.</summary>
     private static LocalizedClass? Class(XamlFile file, ClrType type)
     {
         if (type.Members.FirstOrDefault(m => m.Kind == MemberKind.Property && m.IsStatic && m.Name == "ResourceManager"

@@ -1,10 +1,9 @@
 namespace Passenger.App.Web;
 
-/// <summary>Whether and where the Dockerfile server asks for an image's tags as it completes <c>FROM image:</c>: Docker Hub
-/// only while Settings' Complete image tags from Docker Hub is on. The server runs with Passenger's preload
+/// <summary>Whether and where the Dockerfile server asks for an image's tags as it completes <c>FROM image:</c>: Docker
+/// Hub only while Settings' Complete image tags from Docker Hub is on. The server runs with Passenger's preload
 /// (<c>web/passenger/docker-hub.cjs</c>), told through <c>PASSENGER_DOCKER_HUB</c> to ask nothing, or to ask another
-/// place: a window's stand-in, else the one the IDE's own <c>PASSENGER_DOCKER_HUB</c> names (the tests' run names a dead
-/// address, so no test reaches Docker Hub).</summary>
+/// place: a window's stand-in, else the one the IDE's own <c>PASSENGER_DOCKER_HUB</c> names.</summary>
 public static class DockerHubTags
 {
     public const string Variable = "PASSENGER_DOCKER_HUB";

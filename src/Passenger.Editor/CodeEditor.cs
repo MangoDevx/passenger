@@ -103,7 +103,7 @@ public sealed partial class CodeEditor : Control
         annotationRuns = (ItalicRunWith(palette.InlineValue), ItalicRunWith(palette.Error));
     }
 
-    /// <summary>Raised when the view scrolls, so a diff's other side can follow.</summary>
+    /// <summary>Raised when the view scrolls.</summary>
     public event EventHandler? ScrollChanged;
 
     /// <summary>Raised when any caret or selection changes, by an edit or a move.</summary>
@@ -184,8 +184,8 @@ public sealed partial class CodeEditor : Control
         InvalidateVisual();
     }
 
-    /// <summary>The words that changed inside changed lines (sorted), drawn over the lines' tint in a stronger colour, as a
-    /// diff's sides and the change popup's file mark them; they move with edits until the host sets them again.</summary>
+    /// <summary>The words that changed inside changed lines (sorted), drawn over the lines' tint in a stronger colour; they
+    /// move with edits until the host sets them again.</summary>
     public IReadOnlyList<InlineChange> InlineChanges { get; private set; } = [];
 
     public void SetInlineChanges(IReadOnlyList<InlineChange> changes)
@@ -233,8 +233,8 @@ public sealed partial class CodeEditor : Control
     /// <summary>Whether a point (in this control) is on the annotation column.</summary>
     public bool IsInAnnotationColumn(Point at) => annotationWidth > 0 && at.X < annotationWidth;
 
-    /// <summary>Whether the change marks tint whole lines, as a diff's two sides show them, rather than draw bars in
-    /// the gutter; a mark with no lines is then a rule between two.</summary>
+    /// <summary>Whether the change marks tint whole lines rather than draw bars in the gutter; a mark with no lines is then
+    /// a rule between two.</summary>
     public bool ChangeBackgrounds { get; set; }
 
     /// <summary>Whether a point (in this control) is on the change bars' strip at the gutter's edge.</summary>
@@ -280,12 +280,12 @@ public sealed partial class CodeEditor : Control
         InvalidateVisual();
     }
 
-    /// <summary>A click on a line's number (from zero): the host's breakpoint toggle. With a handler,
-    /// a click there no longer selects the line, as in Rider with breakpoints over line numbers.</summary>
+    /// <summary>A click on a line's number (from zero): the host's breakpoint toggle. With a handler, a click there no
+    /// longer selects the line.</summary>
     public event EventHandler<GutterClick>? GutterClicked;
 
-    /// <summary>The execution arrow was dragged to another line (from zero), Rider's way to Set Next Statement.
-    /// With a handler, a press on the arrow drags it; let go where it was, it is the gutter click it began as.</summary>
+    /// <summary>The execution arrow was dragged to another line (from zero), to Set Next Statement there. With a
+    /// handler, a press on the arrow drags it; let go where it was, it is the gutter click it began as.</summary>
     public event EventHandler<int>? ExecutionPointDragged;
 
     /// <summary>Where a line's number is drawn, in the editor's coordinates: what a popup about its breakpoint
@@ -347,9 +347,7 @@ public sealed partial class CodeEditor : Control
     /// code blocks, plain text).</summary>
     public bool ReindentsPaste { get; set; } = true;
 
-    /// <summary>Whether the font may join characters into ligatures (=> drawn as one arrow). Off, as
-    /// in Rider, so every character stays the one typed.</summary>
-    /// <summary>Whether brackets take a colour by their depth (Rider's rainbow braces), or the text's.</summary>
+    /// <summary>Whether brackets take a colour by their depth (rainbow braces), or the text's.</summary>
     public bool RainbowBraces
     {
         get => rainbowBraces;
@@ -363,6 +361,8 @@ public sealed partial class CodeEditor : Control
         }
     }
 
+    /// <summary>Whether the font may join characters into ligatures (=> drawn as one arrow); off by default, so every
+    /// character stays the one typed.</summary>
     public bool Ligatures
     {
         get => ligatures;
@@ -390,8 +390,8 @@ public sealed partial class CodeEditor : Control
     /// <summary>Whether the gutter shows line numbers; a console's output goes without.</summary>
     public bool ShowLineNumbers { get; set; } = true;
 
-    /// <summary>Whether the scroll bars show when there is more to see; a few lines shown as a picture of a place (Recent
-    /// Locations') go without, a long line cut at the edge.</summary>
+    /// <summary>Whether the scroll bars show when there is more to see; a few lines shown as a picture of a place go
+    /// without, a long line cut at the edge.</summary>
     public bool ShowScrollBars { get; set; } = true;
 
     /// <summary>Scrolls so the last line sits at the bottom of the view, as output follows its end; not yet laid out (a
@@ -403,8 +403,7 @@ public sealed partial class CodeEditor : Control
             pendingEnd = true;
             return;
         }
-        // Output that fits stays at its top, its first line whole under the pane's header; longer output ends clear of
-        // the sideways bar drawn over the view's foot.
+        // Output that fits stays at its top; longer output ends clear of the sideways bar drawn over the view's foot.
         double height = RowCount * metrics.LineHeight;
         double bottom = height <= Viewport.Height ? 0 : height - Viewport.Height + horizontal.DesiredSize.Height;
         ScrollTo(new Vector(0, bottom));
@@ -502,8 +501,8 @@ public sealed partial class CodeEditor : Control
     private Size Viewport => new(Math.Max(0, Bounds.Width - GutterWidth), Bounds.Height);
 
     /// <summary>Puts the primary caret at a line and column (from zero) and scrolls it into the middle
-    /// of the view, as opening a file at a position does; never past where the last line stands at the view's foot, as
-    /// IntelliJ's centring stops there, so a file that fits the view shows from its first line.</summary>
+    /// of the view, as opening a file at a position does; never past where the last line stands at the view's foot, so a
+    /// file that fits the view shows from its first line.</summary>
     public void GoTo(TextPosition position)
     {
         int offset = document.Snapshot.GetOffset(position);
@@ -667,7 +666,7 @@ public sealed partial class CodeEditor : Control
         base.OnPropertyChanged(change);
         if (change.Property == FontSizeProperty || change.Property == LineSpacingProperty || change.Property == FontFamilyProperty)
         {
-            // A zoom keeps the line at the top of the view there, as IntelliJ's does.
+            // A zoom keeps the line at the top of the view there.
             KeepTopLine(() =>
             {
                 metrics = Metrics.Measure(Typeface, FontSize, LineSpacing);
@@ -698,7 +697,7 @@ public sealed partial class CodeEditor : Control
     }
 
     /// <summary>A command would have made more carets than <see cref="SelectionSet.MaxCount"/> and made that many at most,
-    /// or none: the host says so, as IntelliJ does.</summary>
+    /// or none: the host says so.</summary>
     public event EventHandler? CaretLimitReached;
 
     private void SetSelections(SelectionSet value, bool reveal)
@@ -843,8 +842,7 @@ public sealed partial class CodeEditor : Control
         vertical.LargeChange = viewport.Height;
         vertical.SmallChange = metrics.LineHeight;
         vertical.Value = scroll.Y;
-        // The error stripe is its track, so it stays when there is nothing to scroll; soft wrap keeps it so the width the
-        // text wraps at never depends on how many rows the wraps make.
+        // The stripe is its track, so it stays with nothing to scroll; with soft wrap too, so the wrap width never shifts.
         vertical.IsVisible = ShowScrollBars && (showErrorStripe || softWrap || RowCount * metrics.LineHeight > viewport.Height);
         double maxX = MaxScrollX;
         horizontal.Maximum = maxX;

@@ -3,10 +3,10 @@ using Passenger.App.Workspace;
 
 namespace Passenger.App;
 
-/// <summary>Rider's Clear Read-Only Status: a file marked read-only (a Perforce or TFVC file not checked out, one made
-/// a-w) is never written by a save, on any system (<see cref="ReadOnlyFileException"/>). Its first edit asks whether to
-/// make it writable, as Rider asks before one; Save and Save All ask again of one still read-only; and closing the window
-/// with changes it cannot save asks once whether to make them writable or close without them, rather than stay open.</summary>
+/// <summary>Clear Read-Only Status: a file marked read-only (a Perforce or TFVC file not checked out, one made a-w) is
+/// never written by a save, on any system (<see cref="ReadOnlyFileException"/>). Its first edit asks whether to make it
+/// writable; Save and Save All ask again of one still read-only; and closing the window with changes it cannot save
+/// asks once whether to make them writable or close without them, rather than stay open.</summary>
 public partial class MainWindow
 {
     /// <summary>Files the person chose to close the window without saving.</summary>

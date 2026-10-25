@@ -4,8 +4,8 @@ using A = Passenger.App.AppActions;
 
 namespace Passenger.App;
 
-/// <summary>Rider's View, Active Editor: Soft-Wrap and Show Whitespaces for the file the editor shows, and Increase,
-/// Decrease and Reset Font Size, which Ctrl+wheel (Cmd+wheel on macOS) also does while Settings allows it. A file opens
+/// <summary>View, Active Editor: Soft-Wrap and Show Whitespaces for the file the editor shows, and Increase, Decrease
+/// and Reset Font Size, which Ctrl+wheel (Cmd+wheel on macOS) also does while Settings allows it. A file opens
 /// soft-wrapped when Settings' masks match its name and with whitespace shown when Settings shows it; the font size is
 /// Settings' own, so a zoom reaches every editor and is kept as Settings keeps it.</summary>
 public partial class MainWindow

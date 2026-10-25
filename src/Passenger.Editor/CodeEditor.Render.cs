@@ -21,7 +21,7 @@ public sealed partial class CodeEditor
     private double measuredWidth;
     private bool showWhitespaces;
 
-    /// <summary>Whether spaces are drawn as dots and tabs as arrows (Rider's View, Active Editor, Show Whitespaces).</summary>
+    /// <summary>Whether spaces are drawn as dots and tabs as arrows (Show Whitespaces).</summary>
     public bool ShowWhitespaces
     {
         get => showWhitespaces;
@@ -126,7 +126,6 @@ public sealed partial class CodeEditor
                 DrawMarkers(context, view, gaps, from, y, gutter, size.Width);
                 if (!span.IsLast)
                 {
-                    // Rider shows the sign only on the caret's line by default.
                     if (caretLines.Contains(line))
                     {
                         DrawWrapSign(context, from + XWith(view, gaps, span.Length, afterHints: false), y);
@@ -259,7 +258,7 @@ public sealed partial class CodeEditor
             int from = Math.Max(s.Start, span.Start) - span.Start;
             int to = Math.Min(s.End, span.End) - span.Start;
             double x1 = left + XWith(view, gaps, from);
-            // A selection that runs on through the line break fills to the edge, as Rider draws it.
+            // A selection that runs on through the line break fills to the edge.
             double x2 = s.End > span.End ? width : left + XWith(view, gaps, to, afterHints: false);
             if (x2 > x1)
             {
@@ -308,8 +307,8 @@ public sealed partial class CodeEditor
         }
     }
 
-    /// <summary>A row's whitespace, as Rider shows it: a dot in the middle of each space and an arrow across each tab, in
-    /// their own colour. Only the columns on screen of a long line are read.</summary>
+    /// <summary>A row's whitespace: a dot in the middle of each space and an arrow across each tab, in their own
+    /// colour. Only the columns on screen of a long line are read.</summary>
     private void DrawWhitespace(DrawingContext context, TextSnapshot text, LineView view, Gap[] gaps, double left, double y)
     {
         RowSpan span = view.Span;
@@ -372,7 +371,7 @@ public sealed partial class CodeEditor
         }
     }
 
-    /// <summary>IntelliJ's soft-wrap sign after a row its line goes on from: a small return arrow, in its own colour.</summary>
+    /// <summary>The soft-wrap sign after a row its line goes on from: a small return arrow, in its own colour.</summary>
     private void DrawWrapSign(DrawingContext context, double x, double y)
     {
         double size = Math.Max(4, Math.Round(metrics.CharWidth * 0.7));
@@ -453,8 +452,8 @@ public sealed partial class CodeEditor
         }
     }
 
-    /// <summary>A line's annotations after its code, a few spaces on, as Rider spaces inline values; an
-    /// exception's on a tinted ground so it reads as the stop's reason.</summary>
+    /// <summary>A line's annotations after its code, a few spaces on; an exception's on a tinted ground so it reads as the
+    /// stop's reason.</summary>
     private void DrawAnnotations(DrawingContext context, List<LineAnnotation> annotations, double x, double y)
     {
         x += metrics.CharWidth * 3;
@@ -504,8 +503,8 @@ public sealed partial class CodeEditor
         context.DrawGeometry(null, new Pen(brush, 1), wave);
     }
 
-    /// <summary>The gutter beside the rows shown: a line's number and marks beside its first row only, as Rider's gutter
-    /// leaves a wrapped line's other rows bare.</summary>
+    /// <summary>The gutter beside the rows shown: a line's number and marks beside its first row only, a wrapped line's
+    /// other rows left bare.</summary>
     private void DrawGutter(DrawingContext context, List<RowSpan> shown, int row, HashSet<int> caretLines, VisibleMarks marks, double gutter, double height)
     {
         context.FillRectangle(palette.Gutter, new Rect(0, 0, gutter, height));
@@ -575,7 +574,7 @@ public sealed partial class CodeEditor
             }
             else if (runs.Contains(line))
             {
-                // A run configuration's service or image: the run icon a test not yet run has, Rider's green triangle.
+                // A run configuration's service or image: the run icon a test not yet run has.
                 DrawTestMark(context, TestMarkKind.NotRun, right, top);
             }
             else if (colours.TryGetValue(line, out Color colour))
@@ -584,7 +583,7 @@ public sealed partial class CodeEditor
             }
             if (marks.Breakpoints.TryGetValue(line, out LineMark mark))
             {
-                // Over the number, as Rider draws breakpoints by default: the number gives way.
+                // Over the number, which gives way.
                 DrawBreakpoint(context, mark, right - metrics.CharWidth, top + metrics.LineHeight / 2);
                 continue;
             }
@@ -606,7 +605,7 @@ public sealed partial class CodeEditor
         : marks.Breakpoints.TryGetValue(line, out LineMark mark) && mark.Range is null && Tinted(mark) ? palette.BreakpointLine
         : null;
 
-    /// <summary>Whether a breakpoint tints what it is on: one that stops and can, Rider's red.</summary>
+    /// <summary>Whether a breakpoint tints what it is on: one that stops and can.</summary>
     private static bool Tinted(LineMark mark) => !mark.Tracepoint && !mark.Muted && mark.Kind is LineMarkKind.Breakpoint or LineMarkKind.BreakpointBound;
 
     /// <summary>The marks on the lines a frame draws, looked up once per frame.</summary>
@@ -803,8 +802,8 @@ public sealed partial class CodeEditor
         }
     }
 
-    /// <summary>The change bars against the code, as Rider draws them: green for lines added, blue for lines changed,
-    /// a grey wedge where lines were deleted.</summary>
+    /// <summary>The change bars against the code: green for lines added, blue for lines changed, a grey wedge where
+    /// lines were deleted.</summary>
     private void DrawChanges(DrawingContext context, int first, int last, double gutter)
     {
         double x = gutter - FoldWidth - 5;
@@ -839,8 +838,7 @@ public sealed partial class CodeEditor
         }
     }
 
-    /// <summary>A test's run icon right of the line numbers: Rider's green triangle, in its last result's colour, a
-    /// dot for one running.</summary>
+    /// <summary>A test's run icon right of the line numbers, in its last result's colour; a dot while it runs.</summary>
     private void DrawTestMark(DrawingContext context, TestMarkKind kind, double right, double top)
     {
         IBrush brush = kind switch
@@ -869,7 +867,7 @@ public sealed partial class CodeEditor
         context.DrawGeometry(brush, null, triangle);
         if (kind == TestMarkKind.Failed)
         {
-            // Rider's failed test: the run icon with a red mark on it.
+            // A failed test: the run icon with a red mark on it.
             context.DrawEllipse(palette.Error, new Pen(palette.Gutter, 1.2), new Point(x + size, y + size - 1), 2.6, 2.6);
         }
     }
@@ -950,9 +948,9 @@ public sealed partial class CodeEditor
 
 
     /// <summary>Every brush the editor paints with, from the look in force's <c>Passenger.Editor.*</c>,
-    /// <c>Passenger.Syntax.*</c> and other tokens, never a colour of its own, so the look always draws the editor (a token
-    /// the theme left out draws nothing, and UiRulesTests fails on it); and the problem counts' icons, the theme's
-    /// <c>Icon.*</c> geometries, or none. Read again as the editor joins a window.</summary>
+    /// <c>Passenger.Syntax.*</c> and other tokens, never a colour of its own, so the look always draws the editor (a
+    /// token the theme left out draws nothing); and the problem counts' icons, the theme's <c>Icon.*</c> geometries, or
+    /// none. Read again as the editor joins a window.</summary>
     private sealed class Palette
     {
         private static readonly IBrush None = Brushes.Transparent;

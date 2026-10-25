@@ -6,7 +6,7 @@ using Passenger.App.Vcs;
 
 namespace Passenger.App.ToolWindows;
 
-/// <summary>Rider's Git tool window: the Log, and a tab beside it for each history Show History opens (a file's, a
+/// <summary>The Git tool window: the Log, and a tab beside it for each history Show History opens (a file's, a
 /// folder's, some lines') and each comparison Compare with Current opens, its tabs in the window's header. Show History
 /// (or Compare) again for the same thing goes back to its tab; a tab's × closes it.</summary>
 public sealed class GitView : DockPanel
@@ -60,7 +60,7 @@ public sealed class GitView : DockPanel
 
     public void ShowLog() => Show(Log);
 
-    /// <summary>Rider's Compare with Current: a tab of the commits each of two branches has that the other lacks, one
+    /// <summary>Compare with Current: a tab of the commits each of two branches has that the other lacks, one
     /// above the other, the one open for the same two if any. <see cref="Shown"/> is then its upper list.</summary>
     public GitLogView ShowCompare(LogRange missing, LogRange extra)
     {

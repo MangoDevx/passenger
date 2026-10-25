@@ -111,9 +111,10 @@ public sealed partial class CodeAssist
         };
     }
 
-    /// <summary>Change to a resource the AppHost declares near the name a service reads a connection string by, which no resource
-    /// has (Compose's Change to, <see cref="Passenger.Core.Spelling.Near"/>): one edit of the name in its string, worked out again
-    /// as it is chosen at its warning as it then stands, and refused once the name is no longer written there.</summary>
+    /// <summary>Change to a resource the AppHost declares near the name a service reads a connection string by, which
+    /// no resource has (<see cref="Passenger.Core.Spelling.Near"/>): one edit of the name in its string, worked out
+    /// again as it is chosen at its warning as it then stands, and refused once the name is no longer written
+    /// there.</summary>
     private EditorFix ConnectionFix(OpenDocument file, TextRange range, string name, string near) =>
         new($"Change to {near}", "a resource the AppHost declares", range, near)
         {

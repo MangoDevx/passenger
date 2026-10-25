@@ -4,11 +4,10 @@ using Passenger.Text;
 
 namespace Passenger.Languages.CSharp;
 
-/// <summary>Roslyn's view of a rope snapshot: read in place (the lexer copies it out in chunks), and
-/// linked to the snapshot before it with the range that edit changed, so an incremental parse knows
-/// what moved without diffing. Roslyn's own <c>WithChanges</c> would do instead, but it keeps a chain
-/// of composite texts that it flattens by copying the whole file once the chain grows, and that copy
-/// is what a keystroke in a large file would wait on.</summary>
+/// <summary>Roslyn's view of a rope snapshot: read in place (the lexer copies it out in chunks), and linked to the
+/// snapshot before it with the range that edit changed, so an incremental parse knows what moved without diffing.
+/// Roslyn's own <c>WithChanges</c> would do instead, but in time it copies the whole file, which a keystroke in a large
+/// file would wait on.</summary>
 internal sealed class SnapshotText : SourceText
 {
     private readonly TextSnapshot snapshot;

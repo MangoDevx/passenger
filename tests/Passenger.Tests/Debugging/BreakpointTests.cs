@@ -218,7 +218,6 @@ public class BreakpointTests(ITestOutputHelper testOutputHelper)
             .WithOptionalResumeRuntime(p2.Id, startSuspended);
 
         StoppedEvent stoppedEvent = await debugProtocolHost.WaitForStoppedEvent();
-        // The stop names the file as the breakpoint was given; it is the root's MyClass.cs.
         Assert.Equal(Debuggees.Source("DebuggableConsoleApp", "MyClass.cs"), Path.GetFullPath(stoppedEvent.ReadStopInfo().filePath));
         Assert.Equal(22, stoppedEvent.ReadStopInfo().line);
         Assert.Equal([right.Breakpoints.Single().Id!.Value], stoppedEvent.HitBreakpointIds);

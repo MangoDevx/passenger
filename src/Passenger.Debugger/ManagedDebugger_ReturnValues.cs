@@ -6,12 +6,12 @@ using Passenger.Debugger.PresentationHintModels;
 
 namespace Passenger.Debugger;
 
-/// <summary>What the calls a step ran returned, as Rider lists them at the top of Variables ("Count() returned") and as
-/// Visual Studio names them for an expression: $ReturnValue the last, $ReturnValue1 on in the order they returned. ICorDebug
-/// reads a call's value only at the instruction after the call (ICorDebugCode3.GetReturnValueLiveOffset,
-/// ICorDebugILFrame3.GetReturnValueForILOffset), so a step over puts a breakpoint there for each call of its statement, and
-/// a step that returns to a caller reads the call it lands after. Each value is kept by a strong handle, a value type boxed
-/// first, as the registers it is read from are the program's again once it runs.</summary>
+/// <summary>What the calls a step ran returned, listed at the top of Variables ("Count() returned") and named for an
+/// expression: $ReturnValue the last, $ReturnValue1 on in the order they returned. ICorDebug reads a call's value only
+/// at the instruction after the call (ICorDebugCode3.GetReturnValueLiveOffset,
+/// ICorDebugILFrame3.GetReturnValueForILOffset), so a step over puts a breakpoint there for each call of its statement,
+/// and a step that returns to a caller reads the call it lands after. Each value is kept by a strong handle, a value
+/// type boxed first, as the registers it is read from are the program's again once it runs.</summary>
 public partial class ManagedDebugger
 {
     /// <summary>A value a call returned: the label of the method, a handle to the value (none for null, or for one that could

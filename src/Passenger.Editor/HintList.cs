@@ -3,11 +3,11 @@ using Passenger.Text;
 
 namespace Passenger.Editor;
 
-/// <summary>A document's inlay hints in the order the editor draws them (by offset, at one offset a hint that ends the text
-/// before it ahead of one that begins the text after), kept in runs that the lists carried through later edits share, as
-/// <see cref="FoldList"/>'s regions are: an edit moves hint by hint only the runs it reaches, and a run wholly after it by
-/// one shift, so a key moves the hints near it rather than every hint of the file. Never changed once made; the arrays it
-/// is made from are shared, never copied.</summary>
+/// <summary>A document's inlay hints in the order the editor draws them (by offset, at one offset a hint that ends the
+/// text before it ahead of one that begins the text after), kept in runs that the lists carried through later edits
+/// share: an edit moves hint by hint only the runs it reaches, and a run wholly after it by one shift, so a key moves
+/// the hints near it rather than every hint of the file. Never changed once made; the arrays it is made from are
+/// shared, never copied.</summary>
 public sealed class HintList : IReadOnlyList<InlayHint>
 {
     private const int RunLength = 64;
@@ -76,8 +76,7 @@ public sealed class HintList : IReadOnlyList<InlayHint>
         {
             shift += edit.Text.Length - edit.Length;
         }
-        // The runs the edits reach lie side by side: the hints are in order, so every run before them ends before the
-        // first edit and every run after them starts past the last.
+        // The hints are in order, so the runs the edits reach lie side by side, those before and after them untouched.
         int first = -1;
         int last = -1;
         for (int k = 0; k < runs.Length; k++)

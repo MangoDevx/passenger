@@ -1,11 +1,11 @@
 <Project>
-  <!-- The language servers for JavaScript, TypeScript, HTML, CSS, JSON, Dockerfiles and YAML (Web/ in the app), carried under web/ beside the
-       app as Roslyn's server is under roslyn/: npm packages, pure JavaScript, so one copy serves every system, run on the
-       machine's Node.js. WebServers/package.json pins them and WebServers/package-lock.json every package they bring,
-       each with its tarball's sha512; tools/Passenger.NodePackages puts them in place at build with no Node.js, each
-       tarball checked against that hash, so a build is the same anywhere and nothing is fetched as the app runs. To move
-       a pin, change package.json, have npm write the lock file again in WebServers/ (npm install with its
-       package-lock-only and ignore-scripts options), and bring THIRD_PARTY_NOTICES.md's "Inside web/" table along. -->
+  <!-- The language servers for JavaScript, TypeScript, HTML, CSS, JSON, Dockerfiles and YAML, carried under web/ beside
+       the app: npm packages, pure JavaScript, so one copy serves every system, run on the machine's Node.js.
+       WebServers/package.json pins them and WebServers/package-lock.json every package they bring, each with its
+       tarball's sha512; tools/Passenger.NodePackages puts them in place at build with no Node.js, each tarball checked
+       against that hash, so a build is the same anywhere and nothing is fetched as the app runs. To move a pin, change
+       package.json, have npm write the lock file again in WebServers/ (npm install with its package-lock-only and
+       ignore-scripts options), and bring THIRD_PARTY_NOTICES.md's "Inside web/" table along. -->
   <PropertyGroup>
     <WebServersLock>$(MSBuildThisFileDirectory)WebServers/package-lock.json</WebServersLock>
     <WebServersRoot>$([MSBuild]::EnsureTrailingSlash('$(ArtifactsPath)'))node/</WebServersRoot>
@@ -20,12 +20,12 @@
          package's size. The build fails when one of these is no longer there to leave out. -->
     <WebServersLeftOut Include="node_modules/vscode-langservers-extracted/node_modules/typescript/lib/tsc.js;node_modules/vscode-langservers-extracted/node_modules/typescript/lib/tsserver.js;node_modules/vscode-langservers-extracted/node_modules/typescript/lib/tsserverlibrary.%2A;node_modules/vscode-langservers-extracted/node_modules/typescript/lib/typescriptServices.%2A;node_modules/vscode-langservers-extracted/node_modules/typescript/lib/typingsInstaller.js;node_modules/vscode-langservers-extracted/node_modules/typescript/lib/%2A/diagnosticMessages.generated.json;node_modules/vscode-langservers-extracted/node_modules/typescript/bin/%2A" />
     <!-- That TypeScript's lib .d.ts files (a script's ES2020 and the DOM) go where the HTML server reads them: its own
-         folder's ../../node_modules/typescript/lib, VS Code's layout, which under node_modules is node_modules/node_modules;
+         folder's ../../node_modules/typescript/lib, which under node_modules is node_modules/node_modules;
          nothing else reads them. -->
     <WebServersMoved Include="node_modules/vscode-langservers-extracted/node_modules/typescript/lib/lib%2A.d.ts|node_modules/node_modules/typescript/lib" />
     <!-- JSON schemas the JSON server is given for the files that name none (package.json, tsconfig.json, appsettings.json,
          launchSettings.json, global.json) and those they refer to, as SchemaStore publishes them, and the YAML server the Compose
-         specification's for compose files (Web/JsonSchemas.cs). -->
+         specification's for compose files. -->
     <WebServersSchema Include="$(MSBuildThisFileDirectory)WebServers/schemas/*.json" />
   </ItemGroup>
 
@@ -64,9 +64,9 @@
     </ItemGroup>
   </Target>
 
-  <!-- The servers become this project's output under web/, so every project that references this one (the app, the
-       tests) carries them beside its own binaries, as roslyn/ comes. Not in a design-time build, which copies nothing and
-       would run Passenger.NodePackages before anything has built it (a fresh clone opened in an IDE failed to load). -->
+  <!-- The servers become this project's output under web/, so every project that references this one carries them
+       beside its own binaries. Not in a design-time build, which copies nothing and would run Passenger.NodePackages
+       before anything has built it. -->
   <Target Name="IncludeWebServers" BeforeTargets="AssignTargetPaths" DependsOnTargets="FetchWebServers" Condition="'$(DesignTimeBuild)' != 'true'">
     <ItemGroup>
       <WebServersFile Include="$(WebServersFolder)node_modules/**/*" />

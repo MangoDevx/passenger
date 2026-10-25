@@ -3,8 +3,8 @@ using Microsoft.CodeAnalysis.Extensions;
 
 namespace Passenger.Roslyn.Extension;
 
-// The server finds these by their interfaces and names each by its type's full name (Handlers in Messages.cs). Each reads
-// the solution the server has open, with the open files as the editor has them, and answers with what it would change.
+// Each reads the solution the server has open, with the open files as the editor has them, and answers with what it
+// would change; the server names each by its type's full name (Handlers in Messages.cs).
 
 public sealed class DescribeSignature : IExtensionDocumentMessageHandler<Caret, Signature>
 {

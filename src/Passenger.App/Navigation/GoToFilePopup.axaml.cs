@@ -8,9 +8,8 @@ using Passenger.App.Workspace;
 
 namespace Passenger.App.Navigation;
 
-/// <summary>Rider's Go to File: a query over every file in the folder, ranked as it is typed, the
-/// recent files when it is empty. Up and Down move through the results, Enter opens one, Escape
-/// leaves.</summary>
+/// <summary>Go to File: a query over every file in the folder, ranked as it is typed, the recent files when it is
+/// empty. Up and Down move through the results, Enter opens one, Escape leaves.</summary>
 public partial class GoToFilePopup : UserControl
 {
     private readonly FileIndex index;
@@ -34,7 +33,7 @@ public partial class GoToFilePopup : UserControl
     /// stack trace writes it), from the start of its line when no column is given; null for the file alone.</summary>
     public Passenger.Text.TextPosition? At { get; private set; }
 
-    /// <summary>A query's name and the line and column after it, Rider's "name:line[:column]".</summary>
+    /// <summary>A query's name and the line and column after it: "name:line[:column]".</summary>
     [System.Text.RegularExpressions.GeneratedRegex(@"^(?<name>.*?):(?<line>\d+)(?::(?<column>\d+))?\s*$")]
     private static partial System.Text.RegularExpressions.Regex Place();
 

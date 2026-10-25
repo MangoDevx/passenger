@@ -6,9 +6,8 @@ using Avalonia.Media;
 
 namespace Passenger.Editor;
 
-/// <summary>Rider's code insight context switcher: beside the problem counts over the stripe, the context the file is
-/// analysed in when it has several (a target framework of a multi-targeted project), which a click asks the host to
-/// offer the others of.</summary>
+/// <summary>The context switcher: beside the problem counts over the stripe, the context the file is analysed in when
+/// it has several (a target framework of a multi-targeted project); a click asks the host to offer the others.</summary>
 public sealed partial class CodeEditor
 {
     private ContextSwitcher? switcher;

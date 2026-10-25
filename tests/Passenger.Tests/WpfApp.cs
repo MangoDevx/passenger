@@ -8,7 +8,7 @@ namespace Passenger.Tests;
 /// <c>EnableWindowsTargeting</c>, so their restore takes WindowsDesktop's reference pack (WPF's and Windows Forms' both),
 /// which the test project downloads at the version Directory.Packages.props pins, from that feed, and MarkupCompile still
 /// runs in a WPF app's build. The app's folder says it for the tests that restore it themselves; as dotnet new makes it,
-/// it does not, and Passenger gives it (WindowsOnlyProjectsTests).</summary>
+/// it does not, and Passenger gives it.</summary>
 internal static class WpfApp
 {
     private static readonly Lazy<string> Hive = new(() => Directory.CreateDirectory(Path.Combine(TestRun.Root, "wpf-templates")).FullName,

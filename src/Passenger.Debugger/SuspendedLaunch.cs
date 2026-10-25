@@ -8,11 +8,11 @@ using Passenger.Debugger.Interop;
 
 namespace Passenger.Debugger;
 
-/// <summary>A program started suspended, held before its first instruction until <see cref="Resume"/> with no environment
-/// variable to hold it, so a .NET program it starts in turn (a build, a language server) runs as it would undebugged. On
-/// macOS and Linux dbgshim starts it (<c>CreateProcessForLaunch</c>), as netcoredbg does, handing it the adapter's own
-/// descriptors 0, 1 and 2 (<see cref="DetachProtocol"/>); on Windows, where dbgshim's start inherits no handles and so no
-/// pipes of ours, .NET's own suspended start does.</summary>
+/// <summary>A program started suspended, held before its first instruction until <see cref="Resume"/> with no
+/// environment variable to hold it, so a .NET program it starts in turn (a build, a language server) runs as it would
+/// undebugged. On macOS and Linux dbgshim starts it (<c>CreateProcessForLaunch</c>), handing it the adapter's own
+/// descriptors 0, 1 and 2 (<see cref="DetachProtocol"/>); on Windows, where dbgshim's start inherits no handles and so
+/// no pipes of ours, .NET's own suspended start does.</summary>
 public sealed partial class SuspendedLaunch : IDisposable
 {
     private static readonly Lock Swap = new();

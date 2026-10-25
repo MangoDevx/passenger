@@ -5,8 +5,8 @@ using Passenger.App.CSharp;
 
 namespace Passenger.App.Settings;
 
-/// <summary>Rider's Availability configuration: under its C# caption, a check box for each place a template may be
-/// offered, by Rider's long names; a place that has no meaning for what the template is used in (a shortcut typed at a
+/// <summary>A template's Availability configuration: under its C# caption, a check box for each place it may be
+/// offered, by its long name; a place that has no meaning for what the template is used in (a shortcut typed at a
 /// line's start, Surround With in a type member) is greyed. OK hands the places back.</summary>
 public sealed class AvailabilityDialog : Window
 {

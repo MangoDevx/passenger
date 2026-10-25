@@ -52,8 +52,7 @@ public sealed class RoslynSession : IAsyncDisposable, IDocumentHost
 
     public bool IsLoaded { get; private set; }
 
-    /// <summary>Done once the server has first given a document its colours, the last of the phases a folder's opening
-    /// is timed by.</summary>
+    /// <summary>Done once the server has first given a document its colours.</summary>
     public Task FirstColours => coloured.Task;
 
     internal void Coloured() => coloured.TrySetResult();
@@ -67,19 +66,11 @@ public sealed class RoslynSession : IAsyncDisposable, IDocumentHost
 
     PushPace IDocumentHost.Pushes => PushPace.Latest;
 
-    /// <summary>Starts a server on a folder and has it open the solution or projects. Cancelled or failed, it ends the
-    /// server it started: one given up (another folder opened) never goes on loading this folder unseen.</summary>
-    /// <param name="solution">The solution to open; with none, <paramref name="projects"/> are opened. The caller decides
-    /// both (the IDE's workspace model), so the server opens what the Explorer and the build see.</param>
-    /// <param name="options">Server options to start with, over Passenger's own (the solution-wide analysis' scope).</param>
-    /// <param name="started">Given the server once it has answered, before it is asked to open anything, so what it says
-    /// of the load (a project that did not load, its progress) is heard from the start.</param>
-    /// <param name="first">Asked as the server is ready to open them: the projects to open before the rest (the active
-    /// file's and those it references), which the server loads alone, so the file being worked on is answered for first.</param>
-    /// <param name="feed">The client's design-time builds of the projects: with one, a server that has Passenger's project
-    /// loader loads the projects from them rather than building each itself.</param>
-    /// <param name="stateCache">The IDE's state's cache folder, where the server runs from a copy of its own when it may not
-    /// write beside its assemblies (<see cref="RoslynServerFolder"/>); with none it runs where the app carries it.</param>
+    /// <summary>Starts a server on a folder and has it open the solution, else the projects, those <paramref name="first"/>
+    /// names loaded alone before the rest. <paramref name="started"/> is given the server before it opens anything, so
+    /// what it says of the load is heard from the start; with <paramref name="feed"/>, a server that has Passenger's
+    /// project loader loads the projects from its design-time builds. Cancelled or failed, it ends the server it started,
+    /// so one given up (another folder opened) never goes on loading this folder unseen.</summary>
     public static async Task<RoslynSession> StartAsync(string folder, string? solution, IReadOnlyList<string> projects, string logFolder,
         CancellationToken cancel = default, IReadOnlyDictionary<string, object?>? options = null, Action<LanguageServer>? started = null,
         Func<Task<IReadOnlyList<string>>>? first = null, IProjectFeed? feed = null, string? stateCache = null)
@@ -198,8 +189,6 @@ public sealed class RoslynSession : IAsyncDisposable, IDocumentHost
 
     internal void Forget(LspDocument document) => documents.Remove(document.Uri);
 
-    /// <summary>Symbols across the workspace whose names match a query, as Go to Symbol finds them
-    /// (Roslyn matches by pattern: initials and camel humps as well as substrings).</summary>
     /// <summary>A message to Passenger's extension in the server about the whole solution, and its answer
     /// (<see cref="RoslynExtension"/>).</summary>
     public Task<T> ExtensionAsync<T>(string handler, object message, CancellationToken cancel = default) =>
@@ -213,6 +202,8 @@ public sealed class RoslynSession : IAsyncDisposable, IDocumentHost
     /// <summary>A message to Passenger's extension about the solution that nothing waits on, as a debugging session ends.</summary>
     public void TellExtension(string handler, object message) => RoslynExtension.TellWorkspace(Server, handler, message);
 
+    /// <summary>Symbols across the workspace whose names match a query (Roslyn matches by pattern: initials and camel
+    /// humps as well as substrings).</summary>
     public async Task<IReadOnlyList<SymbolInformation>> SymbolsAsync(string query, CancellationToken cancel = default) =>
         await Server.RequestAsync<List<SymbolInformation>>("workspace/symbol", new WorkspaceSymbolParams(query), cancel) ?? [];
 
@@ -354,7 +345,7 @@ public sealed class LspDocument : IDisposable
 
     /// <summary>When the latest colours the server gave the document (the whole file's or a range's) were asked for and
     /// when they came, as Stopwatch timestamps (zeros before any came), an answer to an earlier question never taking
-    /// the place of a later one's: a start's timing reads them, so it asks the server nothing of its own.</summary>
+    /// the place of a later one's.</summary>
     public (long Asked, long Came) Coloured
     {
         get
@@ -433,7 +424,7 @@ public sealed class LspDocument : IDisposable
             Server.Notify("textDocument/didClose", new DidCloseTextDocumentParams(new TextDocumentIdentifier(Uri)));
             if (IsRazor)
             {
-                // Razor's own word that the file closed, as VS Code says it, so Razor lets go of its HTML too.
+                // Razor's own word that the file closed, so it lets go of its HTML too.
                 Server.Tell("razor/documentClosed", new TextDocumentIdentifier(Uri));
             }
         }
@@ -449,8 +440,7 @@ public sealed class LspDocument : IDisposable
     {
         int version = Text.Version;
         CompletionContext context = incomplete ? new CompletionContext(3) : trigger is null ? new CompletionContext(1) : new CompletionContext(2, trigger);
-        // Sent now, in order with the changes before it; read on the thread pool, never on the caller's thread: a statement's
-        // list is every type in reach, each with the server's data.
+        // Sent now, after the changes before it; read off the caller's thread: a list may hold every type in reach.
         JsonElement result = await Read(Server.RequestAsync<JsonElement>("textDocument/completion",
             new CompletionParams(Identifier, PositionOf(offset), context), cancel));
         return (Shapes.CompletionList(result), version);
@@ -481,7 +471,7 @@ public sealed class LspDocument : IDisposable
     /// <summary>Every place the symbol at an offset is used, its declaration included, each once: Roslyn names a place
     /// once for each symbol declared there (a type and its primary constructor, a record's positional property and its
     /// parameter), so such a declaration came twice. Told apart by the server's own URI text, never a path made
-    /// canonical, which asks the disk once a place and held the UI thread through ten thousand usages.</summary>
+    /// canonical, which asks the disk once a place.</summary>
     public async Task<IReadOnlyList<LspLocation>> ReferencesAsync(int offset, CancellationToken cancel = default) =>
         [.. Shapes.Locations(await Read(Server.RequestAsync<JsonElement>("textDocument/references",
                 new ReferenceParams(Identifier, PositionOf(offset), new ReferenceContext(true)), cancel)))
@@ -527,8 +517,7 @@ public sealed class LspDocument : IDisposable
         return start == end ? range : TextRange.FromBounds(start, end);
     }
 
-    /// <summary>The actions of one kind the server has for the whole document (ESLint's <c>source.fixAll.eslint</c>),
-    /// asked for as a save asks for them.</summary>
+    /// <summary>The actions of one kind the server has for the whole document (ESLint's <c>source.fixAll.eslint</c>).</summary>
     public async Task<IReadOnlyList<CodeAction>> SourceActionsAsync(string kind, CancellationToken cancel = default)
     {
         LspRange whole = new(new LspPosition(0, 0), PositionOf(Text.Snapshot.Length));
@@ -670,8 +659,7 @@ public sealed class LspDocument : IDisposable
         long asked = System.Diagnostics.Stopwatch.GetTimestamp();
         List<Diagnostic> all = [];
         IReadOnlyList<string?> sources = IsRazor || session is not RoslynSession ? [null] : Server.DiagnosticSources;
-        // Gathered and told apart on the thread pool, from the text and project asked for: a file's thousands of warnings
-        // reach the caller as one list.
+        // Gathered on the thread pool, so a file's thousands of warnings reach the caller as one list.
         foreach (string? source in sources)
         {
             DocumentDiagnosticReport? report = await Read(Server.RequestAsync<DocumentDiagnosticReport>("textDocument/diagnostic",

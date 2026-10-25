@@ -50,7 +50,6 @@ public sealed class WpfPreviewTests : IClassFixture<WpfPreviewTests.Gallery>
         XamlPreviewPane pane = window.PreviewPaneOf(document)!;
         Color At(Point point) => Ui.Pixel(window, pane.Frame.TranslatePoint(point, window) ?? throw new InvalidOperationException("The preview's frame is not on the window"));
 
-        // The window's button style draws the button's background, App.xaml's merged Accent: its resources are the app's.
         PreviewElement button = ElementOf(preview, editor, "<Button x:Name=\"Go\"");
         Assert.True(button.Box.Width > 100, $"The button is drawn {button.Box.Width} wide, not across the window");
         Assert.Equal(Accent, At(new Point(button.Box.X + 24, button.Box.Center.Y)));
@@ -64,8 +63,7 @@ public sealed class WpfPreviewTests : IClassFixture<WpfPreviewTests.Gallery>
         window.KeyTextInput(" Background=\"#E2A33F\"");
         Ui.WaitFor(() => At(below) == orange, "the preview drawing the panel's new background once typing paused", TimeSpan.FromSeconds(30));
 
-        // XAML that does not load leaves the last frame up, the previewer's reason over it with its line, the editor's: the
-        // previewer's XML reader ends a line at the lone '\r' in the window's tag, which the editor reads inside its line.
+        // XAML that does not load: the previewer's XML reader ends a line at the lone '\r' the editor reads inside its line.
         Replace(editor, "Title=\"Gallery\" Height", "Title=\"Gallery\"\r Height");
         Replace(editor, "</StackPanel>", "</StackPane>");
         int line = editor.Document.Snapshot.GetLineFromOffset(editor.Document.Snapshot.ToString().IndexOf("</StackPane>", StringComparison.Ordinal)) + 1;
@@ -96,13 +94,11 @@ public sealed class WpfPreviewTests : IClassFixture<WpfPreviewTests.Gallery>
         XamlPreviewPane pane = window.PreviewPaneOf(document)!;
         Assert.Equal(Accent, Ui.Pixel(window, pane.Frame.TranslatePoint(new Point(310, 110), window)!.Value));
 
-        // A design-time creatable instance is the view model itself, its values shown.
         PreviewElement greeting = ElementOf(preview, editor, "<TextBlock Text=\"{Binding Greeting}\"");
         PreviewElement owner = ElementOf(preview, editor, "<TextBlock Text=\"{Binding Owner.Name}\"");
         Assert.True(greeting.Box.Width > 10, $"The greeting is drawn {greeting.Box.Width} wide: the view model's \"Hello\" is not shown");
         Assert.True(owner.Box.Width > 10, $"The owner's name is drawn {owner.Box.Width} wide: the view model's \"Ada\" is not shown");
 
-        // One that is not is a stand-in of its shape, its values the defaults: the bindings resolve, and show nothing.
         Replace(editor, "IsDesignTimeCreatable=True", "IsDesignTimeCreatable=False");
         Ui.WaitFor(() => preview.Elements.Any(e => TagOf(editor, e).Contains("{Binding Greeting}", StringComparison.Ordinal) && e.Box.Width == 0),
             "the greeting drawn empty from the stand-in", TimeSpan.FromSeconds(30));
@@ -125,14 +121,12 @@ public sealed class WpfPreviewTests : IClassFixture<WpfPreviewTests.Gallery>
         Assert.Null(preview.Error);
         XamlPreviewPane pane = window.PreviewPaneOf(document)!;
 
-        // The tile's constructor loads its own XAML from the build, as the app's does: its cream border and its text.
         PreviewElement tile = ElementOf(preview, editor, "<local:Tile");
         Assert.True(tile.Box.Height > 20, $"The tile is drawn {tile.Box.Height} high: its own XAML did not load");
         Point inside = pane.Frame.TranslatePoint(new Point(tile.Box.Right - 6, tile.Box.Bottom - 4), window)!.Value;
         Assert.Equal(Color.Parse("#FFF4E0"), Ui.Pixel(window, inside));
 
-        // Nothing calls a XAML-only control's InitializeComponent (MarkupCompile makes no constructor), so the app draws it
-        // empty, and so does its preview.
+        // Nothing calls a XAML-only control's InitializeComponent, so the app draws it empty, and so does its preview.
         PreviewElement badge = ElementOf(preview, editor, "<local:Badge");
         Assert.Equal(0, badge.Box.Height);
         window.Close();
@@ -150,15 +144,13 @@ public sealed class WpfPreviewTests : IClassFixture<WpfPreviewTests.Gallery>
         XamlPreviewPane pane = window.PreviewPaneOf(document)!;
         Point OnWindow(Point inFrame) => pane.Frame.TranslatePoint(inFrame, window) ?? throw new InvalidOperationException("The preview's frame is not on the window");
 
-        // The caret was in the button's tag before the frame came: the first frame outlines it, around its box, so the
-        // outline shows beside a button of the accent's own colour.
+        // The caret was in the button's tag before the frame came, so the first frame outlines it.
         PreviewElement button = ElementOf(preview, editor, "<Button x:Name=\"Go\"");
         Assert.Equal(button.Box, pane.Outlined);
         OutlineAround(window, pane, button);
         Point beside = OnWindow(new Point(button.Box.X - (XamlPreviewPane.OutlineWidth / 2), button.Box.Center.Y));
         Color outlined = Ui.Pixel(window, beside);
 
-        // A click on the heading selects its start tag, the caret at its start, and outlines it.
         PreviewElement heading = ElementOf(preview, editor, "<TextBlock Style=\"{StaticResource Heading}\"");
         Point at = OnWindow(new Point(heading.Box.X + 24, heading.Box.Center.Y));
         window.MouseDown(at, MouseButton.Left);
@@ -172,8 +164,6 @@ public sealed class WpfPreviewTests : IClassFixture<WpfPreviewTests.Gallery>
         OutlineAround(window, pane, heading);
         Assert.NotEqual(outlined, Ui.Pixel(window, beside));
 
-        // The caret in another element's tag outlines that one; in the window's resources, which draw nothing of their
-        // own, the window itself.
         Ui.PlaceAfter(editor, "<ListBox ItemsSource");
         Ui.Settle();
         PreviewElement list = ElementOf(preview, editor, "<ListBox ItemsSource");
@@ -186,7 +176,7 @@ public sealed class WpfPreviewTests : IClassFixture<WpfPreviewTests.Gallery>
     }
 
     /// <summary>The window is drawn as itself, never shown, so what its content finds of it as the app runs is found in the
-    /// preview too, where its content was drawn outside any window and found nothing.</summary>
+    /// preview too.</summary>
     [AvaloniaFact]
     public void Content_previewed_in_a_window_finds_the_window_its_binding_shows_the_title_and_window_get_window_answers()
     {
@@ -224,10 +214,10 @@ public sealed class WpfPreviewTests : IClassFixture<WpfPreviewTests.Gallery>
         window.Close();
     }
 
-    /// <summary>The preview runs the project's code in design mode, as Visual Studio's designer does, so a control that
-    /// asks as it is made shows what it shows at design time; the app run is not in design mode, and the same control
-    /// shows it is running. The window's WindowChrome, which WPF leaves to a designer in design mode, still makes the
-    /// whole window its content's, as the app draws it, with no title bar drawn above.</summary>
+    /// <summary>The preview runs the project's code in design mode, so a control that asks as it is made shows what it shows
+    /// at design time; the app run is not in design mode, and the same control shows it is running. The window's
+    /// WindowChrome, which WPF leaves to a designer in design mode, still makes the whole window its content's, as the app
+    /// draws it, with no title bar drawn above.</summary>
     [AvaloniaFact]
     public void A_window_previews_its_controls_in_design_mode_its_window_chrome_kept_and_the_app_run_shows_them_running()
     {
@@ -243,7 +233,6 @@ public sealed class WpfPreviewTests : IClassFixture<WpfPreviewTests.Gallery>
         Assert.Null(preview.Error);
         XamlPreviewPane pane = window.PreviewPaneOf(document)!;
 
-        // The chrome makes the whole window the client area: the frame is the window's size, no title bar above it.
         Assert.True(Math.Abs(preview.FrameSize.Width - 400) <= 1 && Math.Abs(preview.FrameSize.Height - 300) <= 1,
             $"The window with a WindowChrome is drawn {preview.FrameSize}, not 400 × 300: its chrome was left out and the system's frame drawn");
 
@@ -259,7 +248,6 @@ public sealed class WpfPreviewTests : IClassFixture<WpfPreviewTests.Gallery>
             ? "LicenseManager.UsageMode said Runtime to the control previewed, not Designtime"
             : $"The control that says LicenseManager's usage mode is drawn {licence}, neither the colour of design time nor of run time");
 
-        // The app itself, run, is not in design mode: the same control in the same window says it is running.
         Ui.Launched(window, window.RunAsync(), "the app to build and start", TimeSpan.FromMinutes(4));
         Ui.WaitFor(() => window.Session.RunApp is { State: LiveAppState.Connected }, $"the app's inspector to say hello ({window.Status})", TimeSpan.FromMinutes(2));
         Assert.Equal("running", TextOf(window.Session.RunApp!, "Said"));

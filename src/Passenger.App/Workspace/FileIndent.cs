@@ -2,8 +2,8 @@ using Passenger.Text;
 
 namespace Passenger.App.Workspace;
 
-/// <summary>Where a file's indentation comes from, the first of these that says: an .editorconfig, the file's own lines
-/// (Rider's Detect and use existing file indents), the language's default.</summary>
+/// <summary>Where a file's indentation comes from, the first of these that says: an .editorconfig, the file's own
+/// lines, the language's default.</summary>
 public enum IndentSource
 {
     EditorConfig,
@@ -28,7 +28,7 @@ public sealed record FileIndent(IndentOptions Options, IndentSource Source, stri
         return Choose(Workspace.EditorConfig.For(path), of.Detect(text), of.Indent).Options;
     }
 
-    /// <summary>Rider's widget's words for the indentation: "Tab", "4 spaces".</summary>
+    /// <summary>The widget's words for the indentation: "Tab", "4 spaces".</summary>
     public string Name => Options.UseTabs ? "Tab" : Core.Plural.Of(Options.Size, "space");
 
     /// <summary>The widget's text: the indentation and where it comes from.</summary>

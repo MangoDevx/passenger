@@ -1,8 +1,8 @@
 namespace Passenger.App.Endpoints;
 
-/// <summary>A request written in an .http or .rest file, as Rider's HTTP Client reads one: its method, URL, headers and
-/// body as written, <c>{{variables}}</c> still in them (<see cref="HttpVariables"/> resolves them when it is sent), and
-/// the criteria its response is held to (<c># @expect</c> lines). <see cref="Line"/> is its request line's, from 0.</summary>
+/// <summary>A request written in an .http or .rest file: its method, URL, headers and body as written,
+/// <c>{{variables}}</c> still in them (<see cref="HttpVariables"/> resolves them when it is sent), and the criteria its
+/// response is held to (<c># @expect</c> lines). <see cref="Line"/> is its request line's, from 0.</summary>
 public sealed record EndpointRequest(
     string File,
     int Line,
@@ -18,10 +18,10 @@ public sealed record EndpointRequest(
 }
 
 /// <summary>An .http or .rest file read: its requests in order and the variables it sets (<c>@host = localhost</c>).
-/// What the file cannot mean (a block with no request line) is passed over, as Rider's client passes it over.</summary>
+/// What the file cannot mean (a block with no request line) is passed over.</summary>
 public sealed record HttpFile(string Path, IReadOnlyDictionary<string, string> Variables, IReadOnlyList<EndpointRequest> Requests)
 {
-    /// <summary>The extensions Rider's HTTP Client and Visual Studio's open.</summary>
+    /// <summary>Whether a file is one of HTTP requests, by its extension.</summary>
     public static bool Is(string path) =>
         System.IO.Path.GetExtension(path) is { } extension
         && (extension.Equals(".http", StringComparison.OrdinalIgnoreCase) || extension.Equals(".rest", StringComparison.OrdinalIgnoreCase));
@@ -56,7 +56,7 @@ public sealed record HttpFile(string Path, IReadOnlyDictionary<string, string> V
     }
 
     /// <summary>One block between separators: comments, variables and criteria, the request line and the URL's
-    /// continuation lines, headers up to a blank line, then the body, less the response handler Rider runs after it.</summary>
+    /// continuation lines, headers up to a blank line, then the body, less any response handler after it.</summary>
     private static EndpointRequest? Block(string path, string[] lines, int from, int to, string name, Dictionary<string, string> variables)
     {
         List<Expectation> expectations = [];
@@ -124,7 +124,7 @@ public sealed record HttpFile(string Path, IReadOnlyDictionary<string, string> V
                 script = !trimmed.EndsWith("%}", StringComparison.Ordinal);
                 continue;
             }
-            // Rider's response handler (> {% … %} or > file.js) and response reference (<> file) are no part of the body.
+            // A response handler (> {% … %} or > file.js) and a response reference (<> file) are no part of the body.
             if (trimmed.StartsWith("> ", StringComparison.Ordinal) || trimmed.StartsWith(">{%", StringComparison.Ordinal) || trimmed.StartsWith("<> ", StringComparison.Ordinal))
             {
                 script = trimmed.Contains("{%", StringComparison.Ordinal) && !trimmed.EndsWith("%}", StringComparison.Ordinal);

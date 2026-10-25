@@ -17,8 +17,8 @@ public sealed partial class CSharpDocument : IServerDocument, IDisposable
     /// <summary>How long typing must pause before diagnostics are asked for again.</summary>
     private static readonly TimeSpan Settle = TimeSpan.FromMilliseconds(600);
 
-    /// <summary>Parameter names that say nothing an argument does not (Console.WriteLine's value, a list's item),
-    /// whose hints Rider leaves off too.</summary>
+    /// <summary>Parameter names that say nothing an argument does not (Console.WriteLine's value, a list's item), whose
+    /// hints are left off.</summary>
     private static readonly HashSet<string> Generic = new(StringComparer.Ordinal) { "value:", "obj:", "item:", "o:", "arg:" };
 
     private readonly CSharpService service;
@@ -61,7 +61,7 @@ public sealed partial class CSharpDocument : IServerDocument, IDisposable
     /// the project; null before. A start's timing reads it.</summary>
     internal (long Asked, long At, string Project)? Placed { get; private set; }
 
-    /// <summary>Asks the server which projects it has the file in, as background work a screenshot waits for.</summary>
+    /// <summary>Asks the server which projects it has the file in, as background work.</summary>
     public void FindContexts()
     {
         if (Lsp is { IsRazor: false } lsp)
@@ -110,7 +110,7 @@ public sealed partial class CSharpDocument : IServerDocument, IDisposable
         }
     }
 
-    /// <summary>Has the server answer for the file in another of its projects (Rider's target framework switcher): its
+    /// <summary>Has the server answer for the file in another of its projects (the target framework switcher): its
     /// colours and diagnostics are asked for again in it.</summary>
     public void Choose(ProjectContext context)
     {
@@ -287,8 +287,8 @@ public sealed partial class CSharpDocument : IServerDocument, IDisposable
         }
     }
 
-    /// <summary>The hints Rider would show of those the server gave for a text: parameter names but those that say nothing,
-    /// and types where Rider puts them (<see cref="TypeHints"/>, by the text's <paramref name="syntax"/>), each kept with the
+    /// <summary>The hints shown of those the server gave for a text: parameter names but those that say nothing, and
+    /// types where <see cref="TypeHints"/> puts them (by the text's <paramref name="syntax"/>), each kept with the
     /// server's own for its hover card. Reads nothing but what it is given, so it runs off the UI thread.</summary>
     private static HintList Shown(TextSnapshot text, ParsedText? syntax, bool razor, IReadOnlyList<LspInlayHint> hints)
     {
@@ -313,8 +313,8 @@ public sealed partial class CSharpDocument : IServerDocument, IDisposable
         return HintList.Of(shown);
     }
 
-    /// <summary>Whether a place is on a Razor directive's line (<c>@page "/counter"</c>), whose value Razor's generated C#
-    /// passes to an attribute: the server names the attribute's parameter there, which Rider never shows.</summary>
+    /// <summary>Whether a place is on a Razor directive's line (<c>@page "/counter"</c>), whose value Razor's generated
+    /// C# passes to an attribute: the server names the attribute's parameter there, which says nothing.</summary>
     private static bool OnDirective(TextSnapshot text, int offset) =>
         Directive.IsMatch(text.GetLineText(text.GetLineFromOffset(Math.Min(offset, text.Length))));
 

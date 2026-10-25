@@ -8,13 +8,12 @@ namespace Passenger.Xaml.Features;
 /// attribute order and an empty element's end tag when those options ask), or why it was left as it is.</summary>
 public sealed record XamlFormatted(IReadOnlyList<TextEdit> Edits, string? Problem = null);
 
-/// <summary>Rider's Reformat Code on XAML, by its XML formatter's rules: every element's line indented from its parent's,
-/// a start tag's attributes laid out as Attributes format and Attributes indenting say (wrapped at the right margin),
-/// line breaks inside an element with children, blank lines kept up to the most allowed; and, when asked, attributes in
-/// XAML Styler's order and an empty element closed in its start tag. Only whitespace changes otherwise: names, values
-/// with their quotes and character references, comments, CDATA and text are kept as written, text in an element with
-/// child elements is not touched, nor anything under <c>xml:space="preserve"</c>. Markup that is not well-formed is
-/// left alone, saying where.</summary>
+/// <summary>Reformat Code on XAML: every element's line indented from its parent's, a start tag's attributes laid out as
+/// Attributes format and Attributes indenting say (wrapped at the right margin), line breaks inside an element with
+/// children, blank lines kept up to the most allowed; and, when asked, attributes in XAML Styler's order and an empty
+/// element closed in its start tag. Only whitespace changes otherwise: names, values with their quotes and character
+/// references, comments, CDATA and text are kept as written, text in an element with child elements is not touched, nor
+/// anything under <c>xml:space="preserve"</c>. Markup that is not well-formed is left alone, saying where.</summary>
 public static class XamlFormatter
 {
     public static XamlFormatted Format(string text, XamlFormatSettings settings, IndentOptions indent, string eol, TextRange? within = null)
@@ -309,7 +308,6 @@ public static class XamlFormatter
                     ? (breaks > 0 && settings.KeepLineBreaks) || (hasElements && settings.BreaksInsideElementsWithChildren) || (multiline && settings.BreaksInsideMultilineElements)
                     : (breaks > 0 && settings.KeepLineBreaks) || (itemMultiline ? settings.MultilineElementsOnNewLine : settings.SinglelineElementsOnNewLine)
                         || (previousMultiline && settings.MultilineElementsOnNewLine);
-                // Wrap before and after elements: one that would run past the right margin starts a line of its own.
                 if (!broken && settings.WrapAroundElements && settings.RightMargin > 0 && at + 1 + Width(item) > settings.RightMargin)
                 {
                     broken = true;

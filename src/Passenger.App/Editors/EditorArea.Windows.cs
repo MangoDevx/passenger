@@ -5,10 +5,10 @@ using Passenger.App.Workspace;
 
 namespace Passenger.App.Editors;
 
-/// <summary>The editor windows: tabs taken out of the editors into windows of their own, as Rider's Open Tab in New
-/// Window (Shift+F4) or a tab let go outside every window's editors makes one. Each is a frame of the area's, its groups
-/// over the same open files; the window in front is the one whose group last worked in is active, so the IDE's actions
-/// act there. They close with the main window, and a folder keeps them, where they stood, with its editors.</summary>
+/// <summary>The editor windows: tabs taken out of the editors into windows of their own, by Open Tab in New Window or a
+/// tab let go outside every window's editors. Each is a frame of the area's, its groups over the same open files; the
+/// window in front is the one whose group last worked in is active, so the IDE's actions act there. They close with the
+/// main window, and a folder keeps them, where they stood, with its editors.</summary>
 public sealed partial class EditorArea
 {
     /// <summary>Where a window made by Open Tab in New Window stands from the group the tab left, down and right.</summary>
@@ -34,8 +34,8 @@ public sealed partial class EditorArea
     /// <summary>The editor window the person works in, the active group's, or null while it is the main window.</summary>
     public EditorWindow? InFront => ActiveFrame.Window;
 
-    /// <summary>Rider's Open Tab in New Window: the tab leaves its group for a window of its own standing just off it,
-    /// the group's size, its carets with it.</summary>
+    /// <summary>Open Tab in New Window: the tab leaves its group for a window of its own standing just off it, the
+    /// group's size, its carets with it.</summary>
     public void OpenInNewWindow(EditorGroup from, OpenDocument document)
     {
         if (TopLevel.GetTopLevel(from) is not null)

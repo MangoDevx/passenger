@@ -7,9 +7,9 @@ namespace Passenger.Debugger;
 
 public partial class ManagedDebugger
 {
-    /// <summary>Whether a breakpoint's condition holds, or why it could not be told: a condition that
-    /// does not evaluate (an unknown name, a throw) or is not a bool. Such a breakpoint stops, with the
-    /// reason, as Visual Studio's and netcoredbg's do, rather than going missing unseen (upstream #54).</summary>
+    /// <summary>Whether a breakpoint's condition holds, or why it could not be told: a condition that does not evaluate
+    /// (an unknown name, a throw) or is not a bool. Such a breakpoint stops, with the reason, rather than going missing
+    /// unseen.</summary>
     private async Task<(bool Holds, string? Error)> EvaluateBreakpointCondition(ICorDebugThread corThread, string condition)
     {
         try

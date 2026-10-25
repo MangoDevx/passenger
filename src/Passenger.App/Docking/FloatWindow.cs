@@ -62,8 +62,8 @@ internal sealed class FloatWindow : Window
         Close();
     }
 
-    /// <summary>Where a kept window opens again: moved and shrunk into the working area of the screen it stood on
-    /// most, as IntelliJ fits a window to its screen; null when none of it stood on a screen there is now.</summary>
+    /// <summary>Where a kept window opens again: moved and shrunk into the working area of the screen it stood on most;
+    /// null when none of it stood on a screen there is now.</summary>
     private (PixelPoint Position, Size Size)? OnScreen(PixelRect kept)
     {
         Screen? on = null;

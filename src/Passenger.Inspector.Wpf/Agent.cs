@@ -202,7 +202,7 @@ public static class Agent
             bool input = request.Method == Wire.Input;
             if (input)
             {
-                // What changed since is laid out first (a popup just opened), as a person sees it before acting.
+                // What changed since is laid out first (a popup just opened).
                 await dispatcher.InvokeAsync(inspector.Settle, DispatcherPriority.Loaded);
             }
             reply = await dispatcher.InvokeAsync(() => inspector.Handle(request));

@@ -12,8 +12,8 @@ public sealed record WorkspaceModel(string Folder, SolutionModel? Solution, IRea
     /// <summary>The most folders searched for them, so a folder that is really a disk is not walked for minutes.</summary>
     private const int FolderLimit = 5_000;
 
-    /// <summary>The C# project the workspace was opened as, as Rider opens a project file: its one project, with no
-    /// solution, whatever else its folder holds. Null for a folder or a solution.</summary>
+    /// <summary>The C# project the workspace was opened as: its one project, with no solution, whatever else its folder
+    /// holds. Null for a folder or a solution.</summary>
     public string? ProjectFile { get; init; }
 
     /// <summary>What it was opened as, which Recent Solutions keeps and reopens: the solution, the project, else the
@@ -24,8 +24,8 @@ public sealed record WorkspaceModel(string Folder, SolutionModel? Solution, IRea
     /// else the folder's.</summary>
     public string Name => Solution?.Name ?? (ProjectFile is { } project ? Path.GetFileNameWithoutExtension(project) : Path.GetFileName(Folder));
 
-    /// <summary>Whether a file opens as the workspace rather than in an editor, as Rider opens it: a solution (.sln,
-    /// .slnx) or a C# project (.csproj).</summary>
+    /// <summary>Whether a file opens as the workspace rather than in an editor: a solution (.sln, .slnx) or a C#
+    /// project (.csproj).</summary>
     public static bool Opens(string path) => IsSolution(path) || IsProject(path);
 
     public static bool IsSolution(string path) => Path.GetExtension(path).ToLowerInvariant() is ".sln" or ".slnx";
@@ -47,8 +47,7 @@ public sealed record WorkspaceModel(string Folder, SolutionModel? Solution, IRea
             return new WorkspaceModel(folder, null, [ProjectModel.Unevaluated(named)]) { ProjectFile = named };
         }
         string? path = named is not null && IsSolution(named) && File.Exists(named) ? named : SolutionModel.Find(folder);
-        // A Docker Compose project (.dcproj) is Visual Studio's alone (its SDK is not .NET's): read as XML for its run
-        // configurations, never loaded, built or evaluated as a project.
+        // A Docker Compose project (.dcproj) is read as XML for its run configurations, never loaded as a project.
         return path is not null && SolutionModel.Load(path) is { } solution
             ? new WorkspaceModel(folder, solution, [.. solution.Projects.Where(p => !Containers.ContainerConfigurations.IsComposeProject(p.Path))])
             : null;

@@ -1,22 +1,18 @@
 #!/usr/bin/env bash
 # The site's pictures, site/images/<scene>-<dark|light>.webp, retaken from the sample solutions beside this script:
-# just site-shots [SCENE...] (every scene when none is named). Build first (just build): it runs the Debug build's
-# --screenshot. The sample is copied to a folder of its own under TMPDIR and given a git history there; its restore and
-# its builds' NuGet stay under artifacts/site-shots and Passenger's state beside the copy, never the person's.
-# SITE_SHOTS_FLAGS (--window-buttons by default, so macOS's are in every main-window picture) is added to every
-# capture's command line; SITE_SHOTS_REUSE=1 takes the pictures in
-# the copy the last run made, without making it again, and SITE_SHOTS_THEMES=dark (or light) takes one theme's.
-# A step's point is in the window's logical units: half the picture's pixels. The agent scene's agent is agent.py, run
-# by python3 through --agent; the themes scene's twelve captures, one per look, are the frames of one animated picture
-# (img2webp, every frame whole), with a still of Passenger's own look for those who ask for less motion.
+# just site-shots [SCENE...] (every scene when none is named), after just build, on macOS with libwebp's cwebp and
+# img2webp. The sample is copied to a folder of its own under TMPDIR and given a git history there; its tools' state
+# stays under artifacts/site-shots and Passenger's beside the copy, never the person's. SITE_SHOTS_FLAGS
+# (--window-buttons by default, so macOS's are in every main-window picture) is added to every capture's command line;
+# SITE_SHOTS_REUSE=1 takes the pictures in the last run's copy without making it again; SITE_SHOTS_THEMES=dark (or
+# light) takes one theme's. A step's point is in the window's logical units: half the picture's pixels.
 set -euo pipefail
 
 repo=$(cd "$(dirname "$0")/../.." && pwd -P)
 passenger="$repo/artifacts/bin/Passenger.App/debug/Passenger"
 work="$repo/artifacts/site-shots"
 images="$repo/site/images"
-# Each picture at about the size of the ones it replaces (100–150 KB at 2400x1500): at this quality, or at the most
-# bytes when a busy one would take more.
+# About 100–150 KB a picture at 2400x1500: this quality, or the most bytes when a busy one would take more.
 quality=82
 most=150000
 read -r -a extra <<< "${SITE_SHOTS_FLAGS---window-buttons}"
@@ -39,9 +35,7 @@ for scene in "${scenes[@]}"; do
     fi
 done
 
-# Everything the sample's tools write goes under artifacts/site-shots: NuGet's packages, caches and user settings
-# (DOTNET_CLI_HOME is the home NuGet reads its own config from), npm's, and an empty git configuration in place of the
-# person's, which Passenger's git inherits too.
+# Everything the sample's tools write goes under artifacts/site-shots, and git's configuration is an empty one.
 mkdir -p "$work/home" "$work/nuget" "$work/npm" "$work/png"
 : > "$work/gitconfig"
 : > "$work/npm/npmrc"
@@ -112,14 +106,14 @@ if [[ -z ${SITE_SHOTS_REUSE:-} || ! -d "$folder/.git" ]]; then
     prepare
 fi
 
-# The aspire and requests scenes' solution, services/ beside this script: an Aspire AppHost over a web API on EF Core and
-# SQLite and a worker that calls it each second, copied beside the sample's copy with a history of its own and built
-# once, when a scene first asks for it. Its AppHost runs in a home of its own (DCP's state, the dashboard's keys), short
-# as macOS's socket paths ask, since its record of itself is a socket there, and asks the window nothing
-# (ASPIRE_INTERACTIVITY_ENABLED), where it would say in a dialog that no development certificate is trusted there.
+# The aspire and requests scenes' solution, services/ beside this script, copied beside the sample's copy.
 services="$tmp/passenger-site-shots/GreenhouseServices"
+# The AppHost's home of its own, short as macOS's socket paths ask, since its record of itself is a socket there.
 aspire_home=/private/tmp/passenger-site-shots-aspire
 services_prepared=
+# The services (an Aspire AppHost over a web API on EF Core and SQLite and a worker that calls it each second) with a
+# history of their own, built once, when a scene first asks; the AppHost asks the window nothing
+# (ASPIRE_INTERACTIVITY_ENABLED), where a dialog would say no development certificate is trusted there.
 services_ready() {
     if [[ -n $services_prepared ]] || [[ -n ${SITE_SHOTS_REUSE:-} && -d "$services/.git" ]]; then
         services_prepared=1
@@ -163,8 +157,7 @@ shot() {
         # The window's agent socket is in its state's mcp/, and macOS keeps a socket's path to 103 bytes.
         state="$tmp/pss-$name-$theme"
     elif [[ $name == profiler ]]; then
-        # The status bar names a profile's snapshot by its folder, so it is kept in a folder named for the sample at a fixed
-        # place, never the machine's TMPDIR or the repository; one theme's at a time.
+        # The status bar names a profile's snapshot by its folder, so this is one named for the sample at a fixed place.
         state=/private/tmp/Greenhouse
     fi
     rm -rf "$state"
@@ -185,10 +178,11 @@ encode() {
     echo "site-shots: $webp ($(($(wc -c < "$webp") / 1024)) KB)"
 }
 
-# The themes scene: the same window in every look, Themes.cs' Look in its order, each over a copy of the solution file
-# named after its look, so its title bar and Solution view name it; then one window changing look, Passenger's own first,
-# each held a moment, every frame a key frame so each is whole wherever a viewer joins; and Passenger's own look still.
+# Every look, in Themes.cs' order.
 looks=(Passenger Harbour Sorbet Nocturne Saffron Bonbon Ledger Slate Orbit Nightjar Moss Phosphor)
+# The themes scene: the same window in every look, each over a copy of the solution file named after its look, so its
+# title bar and Solution view name it; then those frames as one animated picture, Passenger's own first, every frame a
+# key frame so each is whole wherever a viewer joins; and Passenger's own look still, for those who ask for less motion.
 themes() {
     local theme=$1 look lower state
     mkdir -p "$work/png/themes"
@@ -225,13 +219,11 @@ scene() {
             shot "$name" "$theme" --file src/Greenhouse.Cli/Program.cs --caret 14:2 --key enter --key enter \
                 --type "plan" --type "." --wait 1500 ;;
         debugger)
-            # Stopped at a breakpoint in the library, called from the command line's program: Resume twice, to day 3's
-            # round. The pointer rests off the toolbar last, where Debug's button has become Hot Reload's, with its tip.
+            # At a breakpoint in the library called from the command line's program, resumed twice to day 3's round.
             shot "$name" "$theme" --file src/Greenhouse.Core/WateringPlan.cs --caret 27:9 --key F9 \
                 --click-name DebugButton --wait 6000 --key F5 --wait 1500 --key F5 --wait 1500 --hover 180,400 ;;
         git)
-            # The Commit window from its stripe button, then the Git window's log, widened past its dates (its splitter
-            # dragged right), with a commit on the merged branch chosen and its details.
+            # The Commit window, then the Git window's log widened past its dates, a commit on the merged branch chosen.
             shot "$name" "$theme" --file src/Greenhouse.Core/WateringPlan.cs --caret 26:9 --click 20,95 --key "meta+9" \
                 --drag 808,600,975,600 --click 414,602 --hover 700,200 ;;
         find-in-files)
@@ -242,8 +234,7 @@ scene() {
             # The command-line program profiled to its end (about 2 s): its timeline and call tree.
             shot "$name" "$theme" --file src/Greenhouse.Core/Forecast.cs --click-name ProfileButton --wait 15000 ;;
         xaml)
-            # XAML Preview beside the file (the tool windows hidden for room), then completion asked for after a binding
-            # path's first letter, from its x:DataType's view model: nothing typed, so the preview stays live.
+            # XAML Preview, then completion from its x:DataType, with nothing typed so the preview stays live.
             shot "$name" "$theme" --file src/Greenhouse.App/MainWindow.axaml --caret 16:40 --key "meta+shift+F12" \
                 --key "meta+shift+A" --type "XAML Preview" --key enter --wait 8000 --key "control+SPACE" --wait 1500 ;;
         project-files)
@@ -254,17 +245,13 @@ scene() {
             shot "$name" "$theme" --file web/src/dashboard.ts --caret 12:20 --key enter --type "plant" --type "." \
                 --wait 1500 ;;
         live-tree)
-            # The app chosen in the toolbar's menu and debugged (headless, GREENHOUSE_HEADLESS), the tool windows hidden
-            # for the Live Visual Tree, the summary's TextBlock chosen in it, its binding values after the XAML's lines.
+            # The app debugged, its summary's TextBlock chosen in the Live Visual Tree and its bindings' values inline.
             shot "$name" "$theme" --file src/Greenhouse.App/MainWindow.axaml --caret 16:1 \
                 --click-name RunConfigButton --click 890,74 --click-name DebugButton --wait 10000 \
                 --key "meta+shift+F12" --key "meta+shift+A" --type "Live Visual Tree" --key enter --wait 3000 \
                 --click 994,363 --wait 2000 --hover 600,600 ;;
         agent)
-            # An agent (agent.py, run in the Terminal window's Agent tab) debugs the app, finds its button, clicks it and
-            # reads the plants' moisture, all through Passenger's MCP server. Then the tool windows are hidden for the Live
-            # Visual Tree, the button chosen in it (its details say it has the focus), the Terminal shown again and
-            # heightened for the agent's every line, and the tree scrolled (its scrollbar's thumb dragged) to the button.
+            # agent.py in the Terminal's Agent tab debugs the app and clicks its button; the Live Visual Tree shows it.
             shot "$name" "$theme" --file src/Greenhouse.App/MainWindow.axaml --caret 16:1 \
                 --agent "python3 -I \"$repo/tools/site-shots/agent.py\"" --key "meta+shift+F12" \
                 --key "meta+shift+A" --type "Live Visual Tree" --key enter --wait 3000 --click 1020,387 --wait 2000 \
@@ -272,17 +259,14 @@ scene() {
         themes)
             themes "$theme" ;;
         aspire)
-            # The AppHost debugged (the toolbar's configuration at first), stopped at a breakpoint in the API's handler
-            # while the sensors run on: a Debug tab for each service, and beside them the Aspire window (its stripe button
-            # dragged to the bottom right), its list narrowed and the API's Details chosen.
+            # The AppHost debugged, stopped in the API's handler while the sensors run on, beside the Aspire window.
             services_ready
             solution="$services/GreenhouseServices.slnx" shot "$name" "$theme" --file src/Greenhouse.Api/Program.cs \
                 --caret 32:9 --key F9 --click 16,50 --drag 20,329,900,640 --click-name DebugButton --wait 30000 \
                 --drag 600,600,585,600 --wait 500 --drag 815,640,778,640 --wait 500 --click 870,531 --wait 1500 \
                 --hover 900,120 ;;
         requests)
-            # The AppHost run, the sensors asking the API each second: the Requests window shown, the Aspire window
-            # minimized and the editor shortened for its room, each thirsty-plants request marked N+1 with its six queries.
+            # The AppHost run, the sensors asking the API each second: the Requests window, thirsty-plants marked N+1.
             services_ready
             solution="$services/GreenhouseServices.slnx" shot "$name" "$theme" --file src/Greenhouse.Api/Program.cs \
                 --caret 31:9 --click 16,50 --click-name RunButton --wait 25000 --key "meta+shift+A" --type "Requests" \

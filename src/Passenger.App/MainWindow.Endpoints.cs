@@ -13,7 +13,7 @@ public partial class MainWindow
     /// <summary>The Endpoints tool window, built as it is first shown or asked for.</summary>
     public EndpointsView Endpoints => endpoints ?? (EndpointsView)Dock[ToolWindowIds.Endpoints]!.Content;
 
-    /// <summary>The Interactive Test dialog open last, for the tests.</summary>
+    /// <summary>The Interactive Test dialog open last.</summary>
     public InteractiveTestDialog? InteractiveTest { get; private set; }
 
     private void AddEndpoints()

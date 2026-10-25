@@ -10,14 +10,12 @@ using Passenger.Core;
 namespace Passenger.App.Containers;
 
 /// <summary>The labels on everything Passenger has an engine make (containers, networks): the state folder it keeps state
-/// in, by a hash of it, the machine and the process that made it. No child holds a container, so <see cref="ChildProcesses"/>'
-/// lifeline cannot end one: Passenger ends them by these labels instead, with the folder that started them
-/// (<see cref="FolderContainers"/>), on macOS and Linux as the process ends however it ends (the watchdog's last command,
-/// <see cref="ChildProcesses.AtIdeEnd"/>), and at the next start, which removes those of this state and machine whose
-/// process is gone (<see cref="RemoveLeftoversAsync"/>): an engine others share has their machines' too. What an engine
-/// makes for Passenger that carries none of its labels (an Aspire AppHost's session containers, which its orchestrator
-/// makes) is recorded with the same three (<see cref="Aspire.AspireContainerOwnership"/>) and ended by the same rules and
-/// the same commands (<see cref="IsLeftover"/>, <see cref="MadeUnlabelled"/>).</summary>
+/// in, by a hash of it, the machine and the process that made it. No child holds a container, so Passenger ends them by
+/// these labels: with the folder that started them (<see cref="FolderContainers"/>), on macOS and Linux as the process ends
+/// however it ends (the watchdog's last command, <see cref="ChildProcesses.AtIdeEnd"/>), and at the next start, which
+/// removes those of this state and machine whose process is gone (<see cref="RemoveLeftoversAsync"/>). What is made for
+/// Passenger without its labels is recorded with the same three and ended by the same rules (<see cref="IsLeftover"/>,
+/// <see cref="MadeUnlabelled"/>).</summary>
 public static partial class ContainerLabels
 {
     public const string State = "net.passenger-ide.state";
@@ -58,8 +56,8 @@ public static partial class ContainerLabels
 
     private static readonly object Watchdog = new();
 
-    /// <summary>The state folder's <c>containers.json</c>, the process's: whether anything was ever labelled for it, which
-    /// a headless IDE's labelling sets as a person's window's does.</summary>
+    /// <summary>The state folder's <c>containers.json</c>, the process's: whether anything was ever labelled for
+    /// it.</summary>
     private static readonly Lazy<global::Passenger.App.State.StateDocument<ContainersState>> Kept =
         new(() => new(Path.Combine(global::Passenger.App.State.StateStore.DefaultRoot, "containers.json")));
 

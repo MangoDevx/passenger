@@ -4,9 +4,9 @@ using System.Text.RegularExpressions;
 namespace Passenger.App.Templates;
 
 /// <summary>Takes Avalonia Accelerate's developer tools out of what a template made, as Passenger leads no one into
-/// Accelerate's paid tools (its own Live Visual Tree is there instead): Avalonia 12's templates reference
-/// AvaloniaUI.DiagnosticsSupport and call WithDeveloperTools or AttachDeveloperTools in Debug builds. Only those lines go,
-/// with the #if DEBUG around a call when it held nothing else; the rest of each file stays byte for byte.</summary>
+/// Accelerate's paid tools: the AvaloniaUI.DiagnosticsSupport reference and the WithDeveloperTools or
+/// AttachDeveloperTools calls of Debug builds. Only those lines go, with the #if DEBUG around a call when it held nothing
+/// else; the rest of each file stays byte for byte.</summary>
 public static partial class DeveloperTools
 {
     private static readonly UTF8Encoding Utf8 = new(encoderShouldEmitUTF8Identifier: false);

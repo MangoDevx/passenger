@@ -6,12 +6,12 @@ using E = Passenger.Editor.EditorActions;
 
 namespace Passenger.App;
 
-/// <summary>The Explorer's Cut, Copy and Paste, and its drags, as Rider's Solution view has them: files and folders cut
-/// or copied are pasted into a folder or a project's (a cut once, dimmed until then), or dragged onto one to move them
-/// (copied with the platform's copy key held). A copy into its own folder asks the copy's name, as Rider's Duplicate does,
-/// and a name already taken there asks whether to replace what has it. A move carries its open files' tabs, undo and
-/// carets, saved first as Rider's paste saves them, and what knows a file by its path follows it, its project's items too.
-/// A file's dependents, nested under it in the Solution view, go where it goes.</summary>
+/// <summary>The Explorer's Cut, Copy and Paste, and its drags: files and folders cut or copied are pasted into a folder
+/// or a project's (a cut once, dimmed until then), or dragged onto one to move them (copied with the platform's copy
+/// key held). A copy into its own folder asks the copy's name, and a name already taken there asks whether to replace
+/// what has it. A move carries its open files' tabs, undo and carets, saved first, and what knows a file by its path
+/// follows it, its project's items too. A file's dependents, nested under it in the Solution view, go where it
+/// goes.</summary>
 public partial class MainWindow
 {
     /// <summary>What Cut or Copy last put on the clipboard, whose text is their paths: a Paste finds them only while the
@@ -56,7 +56,7 @@ public partial class MainWindow
         }
         if (what.Cut)
         {
-            // A cut is pasted once, as Rider's is.
+            // A cut is pasted once.
             Forget();
         }
         await PutAsync(what.Paths, into, copy: !what.Cut);
@@ -156,7 +156,7 @@ public partial class MainWindow
         {
             FilesChanged();
             Explorer.Reveal(put[^1]);
-            // Read again, the rows lost the keys; they keep them, as Rider's do, for the next Paste.
+            // Read again, the rows lost the keys; they take them back for the next Paste.
             Explorer.FocusRows();
             refused.Insert(0, $"{(copy ? "Copied" : "Moved")} {Together([.. put.Select(Path.GetFileName).OfType<string>()])} to {Path.GetFileName(into)}");
         }
@@ -183,7 +183,7 @@ public partial class MainWindow
     }
 
     /// <summary>The files nested under one in the Solution view, by its project's DependentUpon and, while nesting by
-    /// name is on, by Rider's rules: what goes where it goes. None for a file in no project.</summary>
+    /// name is on, by the nesting rules: what goes where it goes. None for a file in no project.</summary>
     private IReadOnlyList<string> DependentsOf(string path) => DependentsOf([path]).GetValueOrDefault(path) ?? [];
 
     /// <summary>The files nested under each of several, by the path given (none for one in no project), each folder read once.</summary>
@@ -203,10 +203,10 @@ public partial class MainWindow
         return canonical.ToDictionary(p => p.Key, p => found.GetValueOrDefault(p.Value) ?? [], StringComparer.Ordinal);
     }
 
-    /// <summary>What names the files moved follows them, as Rider's project model does: the solution's projects and files,
-    /// and every project's items naming one (an Update or Remove, a DependentUpon, a reference to a project moved), each
-    /// file watched first when a command is recording, for its undo. A project moved is read again at its new path. Null
-    /// once they follow, else why one could not.</summary>
+    /// <summary>What names the files moved follows them: the solution's projects and files, and every project's items
+    /// naming one (an Update or Remove, a DependentUpon, a reference to a project moved), each file watched first when
+    /// a command is recording, for its undo. A project moved is read again at its new path. Null once they follow, else
+    /// why one could not.</summary>
     private string? FollowMoved(IReadOnlyList<(string From, string To)> moved, CommandHistory.Recording? recording = null)
     {
         string Now(string path) => moved.FirstOrDefault(m => PathNames.Within(path, m.From)) is { From: not null } move ? PathNames.Moved(path, move.From, move.To) : path;
@@ -319,9 +319,9 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>Whether the editor's Cut, Copy, Paste, Delete (Backspace too), Undo or Redo is the Explorer's here, as
-    /// Rider's $Cut, $Delete and the rest are its Project view's: its row's menu asked, or its rows have the keys (the Edit
-    /// menu of the Mac's menu bar runs them where the keys are, as Rider's does).</summary>
+    /// <summary>Whether the editor's Cut, Copy, Paste, Delete (Backspace too), Undo or Redo is the Explorer's here: its
+    /// row's menu asked, or its rows have the keys (the Edit menu of the Mac's menu bar runs them where the keys
+    /// are).</summary>
     private bool ExplorerEdits(string action, ActionContext context) =>
         action is E.Undo or E.Redo ? ExplorerHasKeys(context)
         : action is E.Cut or E.Copy or E.Paste or E.Delete or E.Backspace && RowOf(context) is not null;
@@ -336,7 +336,8 @@ public partial class MainWindow
         _ => null,
     };
 
-    /// <summary>The editor's Delete as the Explorer's menu names it: Remove for what only leaves the solution, as Rider's.</summary>
+    /// <summary>The editor's Delete as the Explorer's menu names it: Remove for what only leaves the
+    /// solution.</summary>
     private string? DeleteTitle(ActionContext context) =>
         ExplorerEdits(E.Delete, context) && RowOf(context) is { } row ? row.LeavesFilesBehind ? "Remove…" : "Delete…" : null;
 
@@ -363,8 +364,8 @@ public partial class MainWindow
     }
 
     /// <summary>Undo or Redo that reaches a command of several files or of a file moved (a rename) takes all of it back
-    /// or makes all of it again, once the person agrees, as Rider asks "Undo Rename?" of a change beyond the one file;
-    /// in an editor, only when that command is its file's next step. False when Undo there is the file's own.</summary>
+    /// or makes all of it again, once the person agrees; in an editor, only when that command is its file's next step.
+    /// False when Undo there is the file's own.</summary>
     private bool UndoCommand(bool redo, OpenDocument? document)
     {
         if ((redo ? Editors.Commands.ToRedo(document) : Editors.Commands.ToUndo(document)) is not { } command)

@@ -5,11 +5,11 @@ using ICSharpCode.Decompiler.TypeSystem;
 
 namespace Passenger.Debugger.Decompilation;
 
-/// <summary>Symbols decompiled for assemblies that ship none, kept in the folder the client names (Passenger's is
-/// <c>cache/symbols</c> in its state folder): a portable PDB per assembly version at <c>NAME/MVID/NAME.STAMP.pdb</c>,
-/// STAMP the decompiler's version and <see cref="PortablePdbWriter2"/>'s, either of which moves the lines. Written through
-/// a temporary file beside it, then renamed into place, so an adapter killed mid-write leaves no entry; one that does not
-/// load is deleted. Pruned as the adapter starts.</summary>
+/// <summary>Symbols decompiled for assemblies that ship none, kept in the folder the client names: a portable PDB per
+/// assembly version at <c>NAME/MVID/NAME.STAMP.pdb</c>, STAMP the decompiler's version and
+/// <see cref="PortablePdbWriter2"/>'s, either of which moves the lines. Written through a temporary file beside it,
+/// then renamed into place, so an adapter killed mid-write leaves no entry; one that does not load is deleted. Pruned
+/// as the adapter starts.</summary>
 public sealed class SymbolCache
 {
     /// <summary>An entry unused this long is deleted: .NET's patches come monthly, each runtime's a new CoreLib, so the

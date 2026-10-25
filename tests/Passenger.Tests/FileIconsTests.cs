@@ -81,7 +81,6 @@ public sealed class FileIconsTests : IDisposable
             Assert.True(Icons(window.EditorArea).Any(i => ReferenceEquals(i.Data, Resource("FileIcon.CSharp")) && ReferenceEquals(i.Foreground, Resource("Passenger.FileIcon.Blue"))),
                 "The open C# file's tab is not drawn with the C# icon");
 
-            // The Commit window shares the Explorer's place, and lists its files with the same icons.
             Ui.Landed(() => window.Vcs is { } vcs && vcs.Changes.Any(c => c.Name == "package.json"), "package.json listed as changed");
             window.DockHost.Show(ToolWindowIds.Commit);
             Ui.Landed(() => Icons(window.CommitView).Any(i => ReferenceEquals(i.Data, Resource("FileIcon.Npm")) && ReferenceEquals(i.Foreground, Resource("Passenger.FileIcon.Red"))),

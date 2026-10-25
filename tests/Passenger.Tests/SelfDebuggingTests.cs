@@ -37,8 +37,7 @@ public sealed class SelfDebuggingTests : IDisposable
     public void Passenger_opened_on_its_repository_debugs_itself_on_a_state_of_its_own_stopping_stepping_and_evaluating_in_its_ui_code()
     {
         string repository = Debugging.Helpers.Debuggees.Root;
-        // Debugging asks nothing of the outer window's C# language server, whose load of Passenger's whole solution (and the
-        // design-time builds it asks for) took longer than the rest of the test; the inner Passenger starts its own.
+        // Debugging asks nothing of the outer window's C# language server; the inner Passenger starts its own.
         MainWindow window = new() { Width = 1400, Height = 900, StateFolder = state, StartsLanguageServer = false };
         window.Show();
         window.OpenFolder(repository);
@@ -67,28 +66,25 @@ public sealed class SelfDebuggingTests : IDisposable
         DapStackFrame top = window.BottomPanel.Debug.Frames[0];
         Assert.True(top.Source?.Path == actions && top.Line == line + 1, $"The inner Passenger stopped at {top.Source?.Path}:{top.Line}, not at the breakpoint");
         Assert.Contains(new LineMark(line, LineMarkKind.ExecutionPoint), editor.LineMarks);
-        // A Debug build's locals, as its code has them.
         Assert.Equal("\"app.debug.stepOver\"", Value(window, "action"));
         Assert.Equal("\"Nothing is being debugged\"", Value(window, "why"));
 
         Ui.Run(window, AppActions.StepOver);
         Ui.WaitFor(() => session.State == DebugState.Paused && editor.LineMarks.Contains(new LineMark(line + 1, LineMarkKind.ExecutionPoint)), "the step to the next line");
 
-        // A UI object's property, read on the inner window's own thread, where the stop holds it.
         Ui.Run(window, AppActions.Evaluate);
         window.KeyTextInput("StatusText.Text");
         Ui.Press(window, "Enter");
         Ui.WaitFor(() => Value(window, "StatusText.Text") is { Length: > 0 }, "the inner window's status bar text evaluated");
         Assert.Equal("\"Nothing is being debugged\"", Value(window, "StatusText.Text"));
 
-        // Let go, the inner window takes its next key, whose action stops it at the breakpoint again.
         int stops = 0;
         session.StateChanged += (_, _) => stops += session.State == DebugState.Paused ? 1 : 0;
         Ui.Run(window, AppActions.Resume);
         Ui.WaitFor(() => stops > 0 || !window.Debugger.IsDebugging, "the inner Passenger to take its next key", TimeSpan.FromMinutes(2));
         Assert.True(session.State == DebugState.Paused, $"The inner Passenger did not stop at its next key: {window.Status}\n{Console(window)}");
 
-        // Its state is its own, in the sandbox under the outer's: its log, and its language server's, which runs under it.
+        // Its state is its own, in the sandbox under the outer's.
         string sandbox = Path.Combine(state, "sandbox");
         string opened = $"Opened {PathNames.Canonical(folder)}";
         Assert.Contains(opened, Ui.Shared(Path.Combine(sandbox, "logs", "passenger.log")), StringComparison.Ordinal);
@@ -99,7 +95,6 @@ public sealed class SelfDebuggingTests : IDisposable
         Assert.True(servers.Length > 0 && servers.All(children.Contains),
             $"The inner Passenger's language servers ({string.Join(", ", servers)}) are not among what it started ({string.Join(", ", children)})");
 
-        // Stop ends it with what it started.
         Ui.Run(window, AppActions.Stop);
         Ui.WaitFor(() => !window.Debugger.IsDebugging, "the session to end");
         Assert.True(Processes.Gone(inner), $"Stop left the inner Passenger running: {Processes.Describe(inner)}");

@@ -5,7 +5,7 @@ using Passenger.App.Run;
 namespace Passenger.App.ToolWindows;
 
 /// <summary>Which of Problems' tabs: the current file's, the solution's (with solution-wide analysis on), the projects'
-/// load problems (Rider's Toolset, Environment), the last build's, or the bindings that failed in the Avalonia apps run and
+/// load problems (Toolset, Environment), the last build's, or the bindings that failed in the Avalonia apps run and
 /// debugged last.</summary>
 public enum ProblemsTab
 {
@@ -48,12 +48,12 @@ public sealed class ProblemRow(int depth, string label, string? detail, Problem?
     }
 }
 
-/// <summary>What Rider's Problems window lists, kept whether or not its view is built (#441): the current file's problems
-/// as they are typed, the whole solution's with solution-wide analysis on (by project, then file), the warnings and errors
-/// the projects loaded with (Rider's Toolset, Environment, by project), the last build's apart from them, the bindings that
-/// failed in a running Avalonia app (by XAML file, each once with its control, property, path and count), Hot Reload's
-/// edits and the container engine's problems, each a tab with its count, the shown tab's rows and the one chosen. Builds,
-/// servers, bindings and containers write here; <see cref="ProblemsView"/> shows it once the window is first shown.</summary>
+/// <summary>What the Problems window lists, kept whether or not its view is built: the current file's problems as they
+/// are typed, the whole solution's with solution-wide analysis on (by project, then file), the warnings and errors the
+/// projects loaded with (Toolset, Environment, by project), the last build's apart from them, the bindings that failed in
+/// a running Avalonia app (by XAML file, each once with its control, property, path and count), Hot Reload's edits and
+/// the container engine's problems, each a tab with its count, the shown tab's rows and the one chosen. Builds, servers,
+/// bindings and containers write here; <see cref="ProblemsView"/> shows it once the window is first shown.</summary>
 public sealed class ProblemsModel
 {
     private readonly ObservableCollection<ProblemRow> rows = [];
@@ -78,7 +78,7 @@ public sealed class ProblemsModel
 
     public ProblemsModel() => Refresh();
 
-    /// <summary>A problem's fixes asked for (Rider's Alt+Enter on it): the editor goes there and offers them.</summary>
+    /// <summary>A problem's fixes asked for (Alt+Enter on it): the editor goes there and offers them.</summary>
     public event EventHandler<Problem>? FixRequested;
 
     /// <summary>A problem chosen to go to.</summary>
@@ -592,7 +592,7 @@ public sealed class ProblemsModel
 
     private static string Count(int count) => Core.Plural.Of(count, "problem");
 
-    /// <summary>Problems under their projects and files, as Rider groups the solution's.</summary>
+    /// <summary>Problems under their projects and files.</summary>
     private void Grouped(IEnumerable<Problem> problems)
     {
         foreach (IGrouping<string, Problem> project in problems.GroupBy(p => p.Project ?? "Solution").OrderBy(g => g.Key, StringComparer.Ordinal))

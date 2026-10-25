@@ -2,9 +2,8 @@ using Passenger.Text;
 
 namespace Passenger.Editor;
 
-/// <summary>What the gutter shows at a line, and how the line behind it is tinted: a breakpoint as
-/// Rider draws one (set, bound to code while debugging, failing to bind, or disabled), and the
-/// debugger's execution point.</summary>
+/// <summary>What the gutter shows at a line, and how the line behind it is tinted: a breakpoint (set, bound to code while
+/// debugging, failing to bind, or disabled), and the debugger's execution point.</summary>
 public enum LineMarkKind
 {
     /// <summary>A breakpoint, not yet known to bind or not: a red dot over the line number.</summary>
@@ -23,11 +22,10 @@ public enum LineMarkKind
     ExecutionPoint,
 }
 
-/// <summary>A mark on a line (from zero) of the document the editor shows. A breakpoint with a condition or
-/// hit count shows a question mark on its dot, one that does not stop (a tracepoint) is amber, and a muted one is grey,
-/// as Rider draws breakpoints while Mute Breakpoints is on. A breakpoint on part of its line (an XAML attribute, as Rider's
-/// inline breakpoints) has that <see cref="Range"/> tinted rather than the whole line, and its dot only where the line has
-/// no breakpoint of its own.</summary>
+/// <summary>A mark on a line (from zero) of the document the editor shows. A breakpoint with a condition or hit count
+/// shows a question mark on its dot, one that does not stop (a tracepoint) is amber, and a muted one (Mute Breakpoints)
+/// is grey. A breakpoint on part of its line (an XAML attribute) has that <see cref="Range"/> tinted rather than the
+/// whole line, and its dot only where the line has no breakpoint of its own.</summary>
 public readonly record struct LineMark(int Line, LineMarkKind Kind, bool Conditional = false, bool Tracepoint = false, bool Muted = false,
     TextRange? Range = null);
 
@@ -38,7 +36,7 @@ public readonly record struct GutterClick(int Line, Avalonia.Input.KeyModifiers 
 /// <summary>What a line-end annotation says, and so how it is drawn.</summary>
 public enum LineAnnotationKind
 {
-    /// <summary>A value the debugger read, as Rider shows them after the code that uses them: grey italic.</summary>
+    /// <summary>A value the debugger read, after the code that uses it: grey italic.</summary>
     InlineValue,
 
     /// <summary>The exception the debugger stopped on, at the line that threw it: in the error colour.</summary>
@@ -67,42 +65,42 @@ public enum GutterColumn
 
 /// <summary>A stretch that folds: from <see cref="Start"/>, the end of its first line's code where its placeholder
 /// stands while folded, to <see cref="End"/>; folded, the lines after the first are hidden. Its kind says whether it
-/// starts folded and which of Rider's folding actions fold it.</summary>
+/// starts folded and which folding actions fold it.</summary>
 public readonly record struct FoldRegion(int Start, int End, string Placeholder, bool Folded = false, FoldKind Kind = FoldKind.Code);
 
-/// <summary>What a region folds, as Rider's Code Folding settings name them: which fold as a file opens (Fold by
-/// default), and which Collapse to Definitions and the doc comments' actions fold.</summary>
+/// <summary>What a region folds: which fold as a file opens (Fold by default), and which Collapse to Definitions and
+/// the doc comments' actions fold.</summary>
 public enum FoldKind : byte
 {
     /// <summary>Braces that hold code (a namespace's, a type's, a lambda's), a JSON object or array.</summary>
     Code,
 
-    /// <summary>An XML element, Rider's XML tags.</summary>
+    /// <summary>An XML element.</summary>
     Tag,
 
     /// <summary>A member's body: a method's, a local function's, an accessor's, a property's accessors. Collapse to
     /// Definitions folds these (and the doc comments), Method bodies folds them by default.</summary>
     Body,
 
-    /// <summary>The usings, Rider's Imports.</summary>
+    /// <summary>The usings.</summary>
     Imports,
 
-    /// <summary>The comments a file begins with, Rider's File header.</summary>
+    /// <summary>The comments a file begins with (its header).</summary>
     FileHeader,
 
     /// <summary>A documentation comment over several lines.</summary>
     DocComment,
 
-    /// <summary>A block comment over several lines, Rider's Line and block comments.</summary>
+    /// <summary>A block comment over several lines.</summary>
     Comment,
 
-    /// <summary>#region to #endregion, Rider's Preprocessor regions.</summary>
+    /// <summary>#region to #endregion.</summary>
     Region,
 }
 
 /// <summary>A word drawn inside a line at an offset, part of no document: a parameter's name before its argument or a
-/// type after the name it types, as Rider's parameter and type name hints. Padding leaves a space on that side of its
-/// chip; <see cref="Data"/> is what the host knows it by, for its hover card.</summary>
+/// type after the name it types. Padding leaves a space on that side of its chip; <see cref="Data"/> is what the host
+/// knows it by, for its hover card.</summary>
 public readonly record struct InlayHint(int Offset, string Label, bool PadLeft = false, bool PadRight = false,
     InlayHintKind Kind = InlayHintKind.Parameter, object? Data = null);
 
@@ -120,7 +118,7 @@ public enum InlayHintKind
     Value,
 }
 
-/// <summary>A test's mark in the gutter, as Rider's run icons beside a test method or class: how it last ran.</summary>
+/// <summary>A test's mark in the gutter beside a test method or class: how it last ran.</summary>
 public enum TestMarkKind
 {
     NotRun,
@@ -136,8 +134,8 @@ public readonly record struct TestMark(int Line, TestMarkKind Kind);
 /// configuration runs (a compose file's service, a Dockerfile's image); a click on it asks the host for its menu.</summary>
 public readonly record struct RunMark(int Line);
 
-/// <summary>A colour a line (from zero) writes or names, shown as a swatch right of the line numbers, as Rider's gutter
-/// shows one; a click on it asks the host for its picker. <see cref="Data"/> is what the host knows it by.</summary>
+/// <summary>A colour a line (from zero) writes or names, shown as a swatch right of the line numbers; a click on it asks
+/// the host for its picker. <see cref="Data"/> is what the host knows it by.</summary>
 public readonly record struct ColourMark(int Line, Avalonia.Media.Color Colour, object? Data = null);
 
 /// <summary>How lines differ from the last commit, as the gutter's change bar shows it; a conflict is a merge's change

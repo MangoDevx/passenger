@@ -36,7 +36,7 @@ public sealed partial class BuildRunController
         }
         if (project is { IsEvaluated: false, Problem: null })
         {
-            // An agent's publish as its folder opens: the project is read first, as Publish... waits to be offered.
+            // An agent's publish as its folder opens: the project is read first.
             await session.Models.Idle;
             project = session.Projects.FirstOrDefault(p => PathNames.Same(p.Path, request.Project)) ?? project;
         }

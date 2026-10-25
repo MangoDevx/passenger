@@ -21,8 +21,7 @@ public static class Program
     [STAThread]
     public static int Main(string[] args)
     {
-        // Read once, as WPF's diagnostics start: set before anything of WPF's runs, so each element knows its place in the
-        // XAML (VisualDiagnostics.GetXamlSourceInfo), which is how a box knows its element.
+        // Before anything of WPF's, which reads it once: each element then knows its place in the XAML, for its box.
         Environment.SetEnvironmentVariable(RuntimeVariables.XamlDiagnosticsSourceInfo, "1");
         DesignMode();
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
@@ -65,10 +64,9 @@ public static class Program
         return 0;
     }
 
-    /// <summary>Design mode, set as Visual Studio's and Blend's designers set it as they start, before anything of the
-    /// project's loads: IsInDesignMode's default made true for every DependencyObject, so GetIsInDesignMode answers
-    /// true for whatever the preview makes (in its constructor too, before it has a parent, and for a new
-    /// DependencyObject), and LicenseManager given the designers' design-time context, so its UsageMode says
+    /// <summary>Design mode, set before anything of the project's loads: IsInDesignMode's default made true for every
+    /// DependencyObject, so GetIsInDesignMode answers true for whatever the preview makes (in its constructor too,
+    /// before it has a parent), and LicenseManager given a design-time context, so its UsageMode says
     /// Designtime.</summary>
     private static void DesignMode()
     {

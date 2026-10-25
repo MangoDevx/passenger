@@ -14,7 +14,7 @@ public abstract class Table
     /// <summary>A cell's text as shown, empty for none.</summary>
     public abstract string Cell(int row, int column);
 
-    /// <summary>Whether a cell holds a number, which is drawn against its column's right edge as a spreadsheet does.</summary>
+    /// <summary>Whether a cell holds a number, which is drawn against its column's right edge.</summary>
     public abstract bool IsNumber(int row, int column);
 
     /// <summary>A column's header: a spreadsheet's letters unless the table has a header row of its own.</summary>

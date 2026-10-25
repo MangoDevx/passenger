@@ -14,19 +14,19 @@ using Passenger.Text;
 
 namespace Passenger.App.ToolWindows;
 
-/// <summary>Rider's Unit Tests window: the tests grouped as its Group By chooses (by project and namespace at first), then
-/// by class and method, a theory's data rows under it, each marked with how it last ran and how long it took; the chosen
-/// one's message, stack trace (its frames links to their lines), output and attachments beside the tree, the pictures among
-/// them (a failing headless test's windows) as thumbnails over it; above it Rider's toolbar
-/// (Expand All, Collapse All, Group By, a filter for each outcome with how many tests have it, the search) and the run's
-/// tally; and while there are none, why. Double-click or F4 goes to a test's source.</summary>
+/// <summary>The Unit Tests window: the tests grouped as its Group By chooses (by project and namespace at first), then by
+/// class and method, a theory's data rows under it, each marked with how it last ran and how long it took; the chosen
+/// one's message, stack trace (its frames links to their lines), output and attachments beside the tree, the pictures
+/// among them (a failing headless test's windows) as thumbnails over it; above it the toolbar (Expand All, Collapse All,
+/// Group By, a filter for each outcome with how many tests have it, the search) and the run's tally; and while there are
+/// none, why. Double-click or F4 goes to a test's source.</summary>
 public sealed class TestsView : DockPanel
 {
     /// <summary>The most failed tests a group's details show, so choosing a project of thousands shows at once.</summary>
     private const int GroupDetailsLimit = 100;
 
-    /// <summary>Rider's outcome filters after All, in its toolbar's order: the outcome, Rider's name for its tests, and its
-    /// mark as the tree draws it.</summary>
+    /// <summary>The outcome filters after All: the outcome, the name for its tests, and its mark as the tree draws
+    /// it.</summary>
     private static readonly (TestState State, string Name, string Icon, string Brush)[] Filters =
     [
         (TestState.Passed, "Passed Tests", "Icon.TestPassed", "Passenger.Test.Passed"),
@@ -90,8 +90,7 @@ public sealed class TestsView : DockPanel
             new Separator(),
             ListMenus.Item("Go to Source", "F4", () => GoToRequested?.Invoke(this, chosen), chosen.Path is not null),
         ]);
-        // Results come by the thousand: the chosen row's details and the filters' counts are written again once they
-        // have, not once each.
+        // Results come by the thousand: the details and the filters' counts are written again once they have, not once each.
         model.ResultApplied += (_, _) =>
         {
             QueueDetails();
@@ -118,7 +117,7 @@ public sealed class TestsView : DockPanel
         split.Children.Add(divider);
         split.Children.Add(result);
 
-        // Rider's toolbar above the tree: what changes the tree, then a filter for each outcome; its search on the right.
+        // Above the tree: what changes it, then a filter for each outcome; the search on the right.
         PathIcon magnifier = new() { Width = 14, Height = 14, Margin = new Thickness(8, 0, 0, 0) };
         magnifier.Bind(PathIcon.DataProperty, magnifier.GetResourceObservable("Icon.Search"));
         search = new TextBox
@@ -269,7 +268,7 @@ public sealed class TestsView : DockPanel
         set => status.Text = value;
     }
 
-    /// <summary>Tests are being found or run: Stop has something to end, and is disabled while it has not, as Rider's is.</summary>
+    /// <summary>Tests are being found or run: Stop has something to end, and is disabled while it has not.</summary>
     public bool IsRunning
     {
         get => stop.IsEnabled;
@@ -374,7 +373,7 @@ public sealed class TestsView : DockPanel
     }
 
     /// <summary>An outcome's filter: its mark and how many tests have it. A click with Ctrl, ⌘ or Shift held adds it to
-    /// those chosen, as Rider's does.</summary>
+    /// those chosen.</summary>
     private ToggleButton Filter(string icon, string brush, string name, out TextBlock count)
     {
         PathIcon mark = new();
@@ -424,7 +423,7 @@ public sealed class TestsView : DockPanel
     }
 
     /// <summary>The filters as chosen, each with how many tests have its outcome; one no test has hidden unless it is
-    /// chosen, as Rider hides empty filters.</summary>
+    /// chosen.</summary>
     private void ShowFilters()
     {
         int[] counts = Model.Counts();
@@ -459,7 +458,7 @@ public sealed class TestsView : DockPanel
         placeholder.Text = Model.Roots.Count > 0 ? "No matching tests" : Model.EmptyText;
     }
 
-    /// <summary>Rider's Group By: its predefined groupings, the one in use ticked, then each level, ticked while it is on.</summary>
+    /// <summary>Group By: the predefined groupings, the one in use ticked, then each level, ticked while it is on.</summary>
     private void ShowGroupBy()
     {
         List<Control> items = [];

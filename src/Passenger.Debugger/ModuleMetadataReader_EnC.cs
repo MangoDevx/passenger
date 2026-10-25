@@ -4,11 +4,12 @@ using System.Reflection.Metadata.Ecma335;
 
 namespace Passenger.Debugger;
 
-/// <summary>A module's code as Hot Reload has changed it: each update applied (a generation) brings the debug information
-/// of the methods it changed (its PDB delta, whose debug tables name a method by its row among the delta's own, Roslyn
-/// #16286), their new IL, and the lines that moved in methods it did not change. A method's code at a version (the
+/// <summary>A module's code as Hot Reload has changed it: each update applied (a generation) brings the debug
+/// information of the methods it changed (its PDB delta, whose debug tables name a method by its row among the delta's
+/// own), their new IL, and the lines that moved in methods it did not change. A method's code at a version (the
 /// runtime's EnC version, 1 for the build's) is that of the last generation before it that changed the method; its
-/// sequence points' lines are carried through each later generation's moves, so they are where its code now is.</summary>
+/// sequence points' lines are carried through each later generation's moves, so they are where its code now
+/// is.</summary>
 public partial class ModuleMetadataReader
 {
     /// <summary>A sequence point of a method's code as the program now has it, lines and columns from one as the PDB has

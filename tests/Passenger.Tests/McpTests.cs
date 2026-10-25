@@ -14,9 +14,7 @@ using Passenger.Editor;
 namespace Passenger.Tests;
 
 /// <summary>Passenger as an agent's IDE with no window (<c>--mcp</c>), over the Model Context Protocol with the SDK's own
-/// client: a project worked through it (its tests, packages, actions, publish, Git and the terminal); the tools an agent
-/// reads as its session starts and the project's debugging are McpDebuggingTests', which run alone. <see cref="McpRig"/>'s
-/// other classes join a person's window (McpWindowTests, McpAttachTests) or drive what Passenger runs (McpAvaloniaAppTests).</summary>
+/// client: a project worked through it (its tests, packages, actions, publish, Git and the terminal).</summary>
 public sealed class McpTests : McpRig, IClassFixture<RestoredFolders>
 {
     public McpTests(RestoredFolders folders)
@@ -38,13 +36,11 @@ public sealed class McpTests : McpRig, IClassFixture<RestoredFolders>
             + "    [Fact]\n    public void Three_and_three_make_six() => Assert.Equal(6, 3 + 3);\n}\n");
         await using McpClient client = await Start(["--mcp", tests], languageServer: false);
         Assert.Equal(2, (await Call(client, "tests_list")).GetArrayLength());
-        // A solution's thousands of tests narrowed as tests_run narrows them, by part of the name, and by the last run's state.
         JsonElement test = Assert.Single((await Call(client, "tests_list", new() { ["filter"] = "two_make_four" })).EnumerateArray());
         Assert.Equal(("Sums.SumTests.Two_and_two_make_four", "notRun", "SumTests.cs:8"),
             (test.GetProperty("test").GetString(), test.GetProperty("state").GetString(), test.GetProperty("location").GetString()));
         Assert.Equal(1, (await Call(client, "tests_list", new() { ["limit"] = 1 })).GetArrayLength());
         Assert.Equal(0, (await Call(client, "tests_list", new() { ["state"] = "failed" })).GetArrayLength());
-        // A state is asked for in the words each test's is said in, as the description names them.
         JsonElement notRun = await Call(client, "tests_list", new() { ["state"] = test.GetProperty("state").GetString() });
         Assert.True(notRun.GetArrayLength() == 2 && notRun.EnumerateArray().All(t => t.GetProperty("state").GetString() == "notRun"),
             $"tests_list asked for the state it says the tests are in answered: {notRun}");
@@ -52,9 +48,9 @@ public sealed class McpTests : McpRig, IClassFixture<RestoredFolders>
         Assert.True(wrong.IsError == true && Text(wrong).Contains("there are passed, failed, skipped and notRun", StringComparison.Ordinal), $"tests_list in no state answered: {Text(wrong)}");
     }
 
-    /// <summary>A run refused for a reason of its own is answered with that reason alone, though the last build's errors are
-    /// still in Problems: they were added to any refusal whose words held "failed" (here a launch profile's command named
-    /// RetryFailed, which Passenger does not run), and still follow a run refused for the build it ran failing.</summary>
+    /// <summary>A run refused for a reason of its own (here a launch profile's command named RetryFailed, which Passenger does
+    /// not run) is answered with that reason alone, though the last build's errors are still in Problems; a run refused for
+    /// the build it ran failing still names them.</summary>
     [Fact]
     public async Task An_agents_run_refused_for_anything_but_its_own_failed_build_names_no_build_errors()
     {
@@ -101,11 +97,9 @@ public sealed class McpTests : McpRig, IClassFixture<RestoredFolders>
         Dictionary<string, object?> versions = new() { ["path"] = "Directory.Packages.props" };
         Assert.DoesNotContain("Passenger.Sample", (await Call(client, "editor_text", project)).GetString(), StringComparison.Ordinal);
         Assert.DoesNotContain("Passenger.Sample", (await Call(client, "editor_text", versions)).GetString(), StringComparison.Ordinal);
-        // Found on the folder's own feed, as the NuGet window's search finds it.
         JsonElement found = Assert.Single((await Call(client, "nuget_search", new() { ["query"] = "Passenger" })).EnumerateArray());
         Assert.Equal(("Passenger.Sample", "1.0.0"), (found.GetProperty("id").GetString(), found.GetProperty("version").GetString()));
 
-        // No version asked for: the newest on the feed, which the answer names with each file it changed.
         JsonElement install = await Call(client, "nuget_install", new() { ["project"] = "Lib", ["id"] = "Passenger.Sample" });
         Assert.Equal(("Passenger.Sample", "1.0.0", "Lib"), (install.GetProperty("package").GetString(), install.GetProperty("version").GetString(), install.GetProperty("project").GetString()));
         Assert.Equal(["Directory.Packages.props", "Lib.csproj"], install.GetProperty("changed").EnumerateArray().Select(f => f.GetString()!).Order(StringComparer.Ordinal));
@@ -123,9 +117,9 @@ public sealed class McpTests : McpRig, IClassFixture<RestoredFolders>
         Assert.False(removed.Contains("Passenger.Sample", StringComparison.Ordinal), $"nuget_install with remove answered with the open project file still holding the package:\n{removed}");
     }
 
-    /// <summary>Git's tools on a repository, a merge stopped for a conflict among them: the agent finds it in vcs_status as
-    /// the Conflicts dialog lists it (what is under way, each side's branch, what each did to the file; ConflictsTests resolve
-    /// it in the window), resolves it with theirs, and its commit finishes the merge; and a command in the IDE's terminal.</summary>
+    /// <summary>Git's tools on a repository, a merge stopped for a conflict among them: the agent finds it in vcs_status (what
+    /// is under way, each side's branch, what each did to the file), resolves it with theirs, and its commit finishes the
+    /// merge; and a command in the IDE's terminal.</summary>
     [Fact]
     public async Task An_agent_reads_and_commits_changes_resolves_a_merges_conflict_and_runs_a_command_in_the_ides_terminal()
     {
@@ -145,13 +139,12 @@ public sealed class McpTests : McpRig, IClassFixture<RestoredFolders>
             string diff = (await Call(client, "vcs_diff", new() { ["path"] = "Notes.txt" })).GetString()!;
             Assert.Contains("-two\n+2\n", diff, StringComparison.Ordinal);
 
-            // With no paths, every change but the new file goes in, as the Commit window has them chosen.
+            // With no paths, every change but the new file goes in.
             Assert.EndsWith(" Two as a number", (await Call(client, "vcs_commit", new() { ["message"] = "Two as a number" })).GetString(), StringComparison.Ordinal);
             JsonElement log = await Call(client, "vcs_log", new() { ["count"] = 5 });
             Assert.Equal(["Two as a number", "First"], log.EnumerateArray().Select(c => c.GetProperty("subject").GetString()));
             Assert.Equal(["New.txt"], (await Call(client, "vcs_status")).GetProperty("changes").EnumerateArray().Select(c => c.GetProperty("path").GetString()));
 
-            // Stash Changes takes the new file away, and Unstash Changes brings it back.
             JsonElement stashed = Assert.Single((await Call(client, "vcs_stash", new() { ["action"] = "push", ["message"] = "the new file" })).EnumerateArray());
             Assert.EndsWith("the new file", stashed.GetProperty("message").GetString(), StringComparison.Ordinal);
             Assert.False(File.Exists(Path.Combine(repository, "New.txt")), "Stash Changes left the new file in place");
@@ -164,7 +157,6 @@ public sealed class McpTests : McpRig, IClassFixture<RestoredFolders>
             Assert.True(File.Exists(Path.Combine(repository, "Notes.txt")), "Checking out the branch --orphan=x emptied the working tree");
             Assert.Equal("main", (await Call(client, "vcs_status")).GetProperty("branch").GetString());
 
-            // A merge stopped for its conflict: listed, a commit refused while it stands, resolved with theirs, then committed.
             string notes = Path.Combine(repository, "Notes.txt");
             TestGit.Run(repository, "switch", "-q", "-c", "feature");
             File.WriteAllText(notes, "one\nTWO\nthree\n");
@@ -189,7 +181,6 @@ public sealed class McpTests : McpRig, IClassFixture<RestoredFolders>
             Assert.Equal(3, TestGit.Run(repository, "rev-list", "--parents", "-n", "1", "HEAD").Split(' ', StringSplitOptions.RemoveEmptyEntries).Length);
             Assert.Equal("one\nTWO\nthree\n", TestGit.Run(repository, "show", "HEAD:Notes.txt"));
 
-            // The IDE's own terminal runs it in the folder, and its answer comes back.
             // Windows' own PowerShell (5.1, where pwsh is not installed) has no &&, and sh has no PowerShell subexpressions.
             string command = OperatingSystem.IsWindows() ? "echo (6*7); ls" : "echo $((6*7)) && ls";
             string answer = (await Call(client, "terminal_run", new() { ["command"] = command })).GetString()!;
@@ -199,14 +190,14 @@ public sealed class McpTests : McpRig, IClassFixture<RestoredFolders>
             Assert.True(screen.Contains("42", StringComparison.Ordinal), $"terminal_screen did not show what the command printed:\n{screen}");
             if (OperatingSystem.IsWindows())
             {
-                // PowerShell's history is the run's (HISTFILE), as sh's is: never the person's, which PSReadLine keeps.
+                // The shells' history is the run's (HISTFILE), never the person's.
                 string history = Path.Combine(TestRun.Root, "history");
                 Assert.True(File.Exists(history) && File.ReadAllText(history).Contains(command, StringComparison.Ordinal),
                     $"PowerShell kept the command typed into the terminal, {command}, elsewhere than the run's history ({history}): in the person's own");
             }
             else
             {
-                // Past the scrollback's limit, where each line printed drops the oldest, a command's answer is still its own.
+                // Past the scrollback's limit, where each line printed drops the oldest.
                 int beyond = global::Passenger.Terminal.TerminalScreen.ScrollbackLimit + 100;
                 await Call(client, "terminal_run", new() { ["command"] = $"seq 1 {beyond}" });
                 string past = (await Call(client, "terminal_run", new() { ["command"] = "echo one; echo two" })).GetString()!;
@@ -220,7 +211,7 @@ public sealed class McpTests : McpRig, IClassFixture<RestoredFolders>
     }
 
     /// <summary>Commit and Push to a remote that refuses every push: the agent hears the refusal, in git's words, as the
-    /// tool's error, and the commit stays made, as the Commit window's Commit and Push leaves it.</summary>
+    /// tool's error, and the commit stays made.</summary>
     [Fact]
     public async Task An_agents_push_the_remote_refuses_is_an_error_naming_the_refusal_and_the_commit_stays_made()
     {
@@ -286,13 +277,11 @@ public sealed class McpTests : McpRig, IClassFixture<RestoredFolders>
         await using McpClient client = await Start(["--mcp", Folder], languageServer: false);
         string[] listed = [.. (await Call(client, "ide_actions")).EnumerateArray().Select(a => a.GetString()!)];
         HashSet<string> ids = [.. listed.Select(line => line[..line.IndexOf(": ", StringComparison.Ordinal)])];
-        // Every id the IDE declares, the MVP's newest among them (Hot Reload, the Live Visual Tree's, the overlays, XAML's).
         string[] declared = [.. typeof(AppActions).GetFields(BindingFlags.Public | BindingFlags.Static)
             .Where(f => f.IsLiteral && f.FieldType == typeof(string)).Select(f => (string)f.GetRawConstantValue()!)];
         string[] missing = [.. declared.Where(id => !ids.Contains(id))];
         Assert.True(missing.Length == 0, $"ide_actions leaves out {string.Join(", ", missing)}");
 
-        // One that cannot run here says why, there and when it is run.
         string hotReload = Assert.Single(listed, l => l.StartsWith($"{AppActions.ApplyHotReloadChanges}: ", StringComparison.Ordinal));
         Assert.Contains(" - cannot run: Nothing runs", hotReload, StringComparison.Ordinal);
         CallToolResult refused = await Result(client, "ide_action", new() { ["action"] = AppActions.ApplyHotReloadChanges });
@@ -301,12 +290,11 @@ public sealed class McpTests : McpRig, IClassFixture<RestoredFolders>
         string selectElement = Assert.Single(listed, l => l.StartsWith($"{AppActions.SelectElement}: ", StringComparison.Ordinal));
         Assert.Contains("cannot run: No Avalonia or WPF app is being debugged", selectElement, StringComparison.Ordinal);
 
-        // One that can, runs: the Live Visual Tree shown, as its action shows it.
         Assert.Equal($"Ran {AppActions.ShowLiveTree}", (await Call(client, "ide_action", new() { ["action"] = AppActions.ShowLiveTree })).GetString());
     }
 
-    /// <summary>An agent's publish, build's with a project to publish: the project to a folder, as Publish does, answered with
-    /// where it landed or why it did not.</summary>
+    /// <summary>An agent's publish, build's with a project to publish: the project to a folder, answered with where it landed
+    /// or why it did not.</summary>
     [Fact]
     public async Task An_agent_publishes_a_project_and_is_told_the_folder_it_landed_in_or_why_not()
     {
@@ -317,7 +305,6 @@ public sealed class McpTests : McpRig, IClassFixture<RestoredFolders>
         Assert.True(File.Exists(Path.Combine(landed, "Sum.dll")), $"The publish says it landed in {landed}, which holds no Sum.dll");
         Assert.StartsWith("Published Sum to ", published.GetProperty("outcome").GetString(), StringComparison.Ordinal);
 
-        // A profile the project does not have publishes nothing and says so, never what MSBuild would make of no profile.
         JsonElement missing = await Call(client, "build", new() { ["publish"] = "Sum", ["profile"] = "Nightly" });
         Assert.False(missing.GetProperty("succeeded").GetBoolean(), $"A publish with no such profile ended: {missing}");
         Assert.Contains("has no publish profile Nightly", missing.GetProperty("outcome").GetString(), StringComparison.Ordinal);

@@ -5,9 +5,9 @@ using Avalonia.Layout;
 
 namespace Passenger.App.ToolWindows;
 
-/// <summary>A tool window's tab, in the one look every tool window's tabs have (Shell.axaml's <c>ToggleButton.panelTab</c>,
-/// Rider's header tab: its name, the open one underlined in the accent), and Rider's × on one that closes (a search's, a
-/// shell's, a history's), shown on the open tab and the one under the pointer.</summary>
+/// <summary>A tool window's tab, in the one look every tool window's tabs have (Shell.axaml's <c>ToggleButton.panelTab</c>:
+/// its name, the open one underlined in the accent), and a × on one that closes (a search's, a shell's, a history's),
+/// shown on the open tab and the one under the pointer.</summary>
 public static class ToolTabs
 {
     public static ToggleButton Tab(object title, bool open, Action? close = null, string closeTip = "Close")
@@ -30,8 +30,7 @@ public static class ToolTabs
         {
             Classes = { "panelTab" },
             IsChecked = open,
-            // Its name gives way before its ×, ending in an ellipsis (Shell.axaml's panelTab), when its strip narrows, down to
-            // a few letters, so every tab of a narrow strip is still there to choose.
+            // Its name gives way before its ×, ending in an ellipsis, down to a few letters, so every tab stays to choose.
             [ShrinkingRow.LeastProperty] = 88,
             Content = new DockPanel { Children = { button, name } },
         };

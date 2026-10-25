@@ -5,13 +5,11 @@ using System.Text;
 
 namespace Passenger.Profiler;
 
-/// <summary>A memory snapshot as Passenger's container tools send it out of a container (<see cref="InContainer.HeapAsync"/>)
-/// and the IDE reads it back (<see cref="ContainerHeap"/>): the heap graph whole as the container read it (its objects,
-/// references, roots, shortest paths and retained sizes) and how each earlier snapshot's objects are found in it, so the
-/// Memory page shows it, compares it and opens its objects as it does a snapshot of this machine's. A frame is a kind (a
-/// snapshot, or why there is none), the wire's version, the body's length and the body; a snapshot's body is deflated,
-/// each array a column of 7-bit numbers (addresses as the steps between them, in their order), which deflate shrinks
-/// well.</summary>
+/// <summary>A memory snapshot as it comes out of a container: the heap graph whole as the container read it (its
+/// objects, references, roots, shortest paths and retained sizes) and how each earlier snapshot's objects are found in
+/// it. A frame is a kind (a snapshot, or why there is none), the wire's version, the body's length and the body; a
+/// snapshot's body is deflated, each array a column of 7-bit numbers (addresses as the steps between them, in their
+/// order), which deflate shrinks well.</summary>
 internal static class HeapWire
 {
     /// <summary>Raised when what is written changes; a reader refuses another version rather than misread it.</summary>
@@ -326,8 +324,7 @@ internal static class HeapWire
             RootKind kind = (RootKind)reader.ReadByte();
             roots[r] = Enum.IsDefined(kind) ? new GcRoot(kind, reader.ReadString()) : throw Unread();
         }
-        // An object is at least a byte in each of its columns: its address, type, size, root, parent, the field that holds it,
-        // its depth, retained size, places in the dominator tree's walk and references' count.
+        // An object is at least a byte in each of its eleven columns.
         int count = Count(reader, inflated, 11);
         ulong[] address = new ulong[count];
         ulong previous = 0;

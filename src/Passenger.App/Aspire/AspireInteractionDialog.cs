@@ -58,8 +58,7 @@ public sealed class AspireInteractionDialog : Window
             {
                 return;
             }
-            // The window's close, or the IDE's, closes the prompt with it, answered as below: kept open, it would keep the
-            // window open, and with it the AppHost and everything it runs.
+            // Closed with the window or the IDE: kept open, it would keep the window, and so the AppHost, up.
             e.Cancel = e.CloseReason is not (WindowCloseReason.OwnerWindowClosing or WindowCloseReason.ApplicationShutdown or WindowCloseReason.OSShutdown);
             if (this.interaction.PromptTerminal is not null)
             {
@@ -300,7 +299,7 @@ public sealed class AspireInteractionDialog : Window
                     {
                         throw new InvalidOperationException("The file input changed. Choose the file again.");
                     }
-                    // The window's own picker, which tests answer for, as they do for every file the IDE asks for.
+                    // The window's own picker, which tests answer for.
                     MainWindow window = Owner as MainWindow ?? throw new InvalidOperationException("The AppHost's prompt has no window to choose a file in.");
                     IReadOnlyList<string> selected = await window.PickFiles(input.Label, FileFilters(input.FileFilter), input.AllowMultipleFiles);
                     if (selected.Count > 0)

@@ -15,13 +15,12 @@ using Passenger.Core;
 
 namespace Passenger.Tests;
 
-/// <summary>An agent set up with <c>--mcp-attach</c> before any Passenger runs, as the repository's .mcp.json and the
-/// site's steps set one up: its session has the tools from the start, its first call has Passenger open its folder (the
-/// run's headless build started on it, or a window of the running Passenger's), the window asks the person before the
-/// agent works there, and a window closed is found again at the next call. A window on another folder is never joined,
-/// and on a person's window an agent's open of another folder is theirs to allow; an agent let in on one folder is asked
-/// again once the person opens another there, and Settings keep a folder let in always from another window meanwhile.
-/// What is held to a time is <see cref="McpAttachTimingTests"/>'.</summary>
+/// <summary>An agent set up with <c>--mcp-attach</c> before any Passenger runs: its session has the tools from the start,
+/// its first call has Passenger open its folder (headless here, or a window of the running Passenger's), the window asks
+/// the person before the agent works there, and a window closed is found again at the next call. A window on another
+/// folder is never joined, and on a person's window an agent's open of another folder is theirs to allow; an agent let in
+/// on one folder is asked again once the person opens another there, and Settings keep a folder let in always from
+/// another window meanwhile. What is held to a time is <see cref="McpAttachTimingTests"/>'.</summary>
 public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
 {
     public McpAttachTests(RestoredFolders folders)
@@ -32,8 +31,7 @@ public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
     [Fact]
     public async Task An_agent_set_up_before_Passenger_runs_has_the_tools_and_its_first_call_starts_Passenger_on_its_folder_which_asks()
     {
-        // A state of the agent's own, where no window of this run's listens, its path longer than the 104 bytes macOS allows a
-        // socket's; the run starts Passenger headless (TestRun).
+        // The agent's own state, where no window of this run's listens, its path longer than a socket's 104 bytes.
         string root = TestFolders.Create("mcp-state-");
         DeleteAtEnd(root);
         string state = Path.Combine(root, new string('s', 60), new string('t', 60));
@@ -41,29 +39,23 @@ public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
         Process proxy = StartPassenger(["--mcp-attach"], notes, new() { ["PASSENGER_SETTINGS"] = state });
         await using McpClient client = await Connect(proxy, ["--mcp-attach"]);
 
-        // Listed at once, with nothing running: the build's own tools, every one PassengerTools has.
         IList<McpClientTool> tools = await Exchange("Listing the tools", TimeSpan.FromMinutes(1), cancel => client.ListToolsAsync(cancellationToken: cancel).AsTask());
         string[] built = [.. typeof(PassengerTools).GetMethods().Select(m => m.GetCustomAttribute<McpServerToolAttribute>()?.Name).OfType<string>().Order(StringComparer.Ordinal)];
         Assert.Equal(built, tools.Select(t => t.Name).Order(StringComparer.Ordinal));
-        // Tools alone, as a window serves: no resources or prompts to ask for.
         Assert.True(client.ServerCapabilities.Resources is null && client.ServerCapabilities.Prompts is null, "The agent's session offers resources or prompts no window has");
-        // The instructions say how to begin, that a first call may start Passenger where the person sees it, and what it asks.
         foreach (string said in (string[])["Begin with workspace", "refactor with describe true", "in a window the person sees", "the window asks them to let the agent in"])
         {
             Assert.True(client.ServerInstructions?.Contains(said, StringComparison.Ordinal) == true, $"The server's instructions leave out \"{said}\": {client.ServerInstructions}");
         }
-        // The state's sockets are in a folder of its own, short whatever the state's path, never the run's or the person's.
         string sockets = McpHost.SocketFolderFor(state);
         DeleteAtEnd(sockets);
         Assert.NotEqual(McpHost.SocketFolder, sockets);
-        // A Passenger it starts is its child from the moment it starts, well before that Passenger listens anywhere.
         Assert.True(Started(proxy).Length == 0, $"Listing the tools started a Passenger: {string.Join("; ", Started(proxy).Select(Processes.Describe))}");
 
-        // Its first call starts Passenger on the agent's folder, whose window asks the person and holds the call meanwhile.
         using CancellationTokenSource giveUp = CancellationTokenSource.CreateLinkedTokenSource(Cancel);
         Task<CallToolResult> waiting = CallGivingUp(client, "workspace", new(), giveUp.Token);
         string? window = null;
-        // The window writes its socket's .folder as it opens: read beside that write, never failing on it.
+        // The window writes its socket's .folder as it opens, so the read must not fail beside that write.
         await Until(() => (window = Directory.Exists(sockets) ? Directory.GetFiles(sockets, "*.sock").FirstOrDefault(s =>
             Ui.Shared(Path.ChangeExtension(s, ".folder")) == PathNames.Canonical(notes)) : null) is not null,
             "Passenger to start with a window on the agent's folder");
@@ -78,7 +70,6 @@ public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
             "the started Passenger's window to ask the person to let Test Agent in");
         Assert.False(waiting.IsCompleted, $"The call was answered before the person answered: {waiting.Status}");
 
-        // The agent gives up and goes: the Passenger it started, the run's child, goes with it.
         giveUp.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => waiting);
         int started = McpHostProcess(window!);
@@ -86,9 +77,9 @@ public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
         await Until(() => !Processes.IsRunning(started), "the Passenger the agent started to end with its session");
     }
 
-    /// <summary>An agent's client that asks the system to end its server a moment after closing the server's input (OpenCode
-    /// 1's SIGTERM, 20 ms after) has it end as the end of its input ends it: exit code 0, and the headless Passenger it
-    /// started ended with it and its socket taken away, where the watchdog's kill had left the socket behind.</summary>
+    /// <summary>An agent's client that asks the system to end its server 20 ms after closing the server's input (OpenCode
+    /// 1's end) has it end cleanly: exit code 0, and the headless Passenger it started ended with it and its socket taken
+    /// away.</summary>
     [Fact]
     public async Task An_agents_server_the_system_asks_to_end_as_its_input_closes_ends_cleanly_with_the_passenger_it_started()
     {
@@ -101,7 +92,6 @@ public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
         McpClient client = await Connect(proxy, ["--mcp-attach"]);
         string sockets = McpHost.SocketFolderFor(state);
         DeleteAtEnd(sockets);
-        // Its first call starts Passenger on the folder, whose window asks; given up once that window listens.
         using CancellationTokenSource giveUp = CancellationTokenSource.CreateLinkedTokenSource(Cancel);
         Task<CallToolResult> waiting = CallGivingUp(client, "workspace", new(), giveUp.Token);
         string? socket = null;
@@ -111,7 +101,6 @@ public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
         giveUp.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => waiting);
 
-        // OpenCode 1's end: the input closed, and the system asked to end the process 20 ms later.
         proxy.StandardInput.Close();
         Waiting.For(TimeSpan.FromMilliseconds(20), "OpenCode 1's moment between closing the input and SIGTERM");
         // Gone already, the signal finds no process, which is as good.
@@ -137,7 +126,6 @@ public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
         McpClient client = Await(Task.Run(() => Start(["--mcp-attach", wanted])), "the agent's session starting");
         try
         {
-            // The window on another folder is not the agent's: the running Passenger opens its folder in a window of its own.
             Task<CallToolResult> denied = Task.Run(() => Result(client, "workspace"));
             WaitFor(() => PassengerApp.Windows.Count == 2, "the running Passenger to open the agent's folder in a window of its own");
             MainWindow second = PassengerApp.Windows.Single(w => w != first);
@@ -146,14 +134,12 @@ public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
             Assert.Contains("Test Agent wants to work in this window", Texts(asked));
             Assert.Empty(first.OwnedWindows.OfType<AgentAdmissionDialog>());
 
-            // Don't allow answers the call saying so; the session keeps its tools.
             Press(asked, AgentAdmissionDialog.DontAllow);
             CallToolResult no = Await(denied, "the call the person did not allow");
             Assert.True(no.IsError == true && Text(no).Contains("did not let Test Agent work there", StringComparison.Ordinal),
                 $"A call the person did not let in was answered: {Text(no)}");
             Assert.True(first.Agents == 0 && second.Agents == 0, "An agent the person did not let in is counted on a window");
 
-            // A later call asks again; allowed always for this folder, it goes through.
             Task<JsonElement> allowed = Task.Run(() => Call(client, "workspace"));
             AgentAdmissionDialog again = Admission(second, "the window to ask again at the next call");
             Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(again).OfType<CheckBox>().Single(c => (string?)c.Content == "Always for this folder").IsChecked = true;
@@ -162,7 +148,6 @@ public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
             WaitFor(() => second.AgentStatus == "Agent connected", "the status bar to say an agent is on the window");
             Assert.Null(first.AgentStatus);
 
-            // The window closed, the next call has the folder opened again, and the folder's Always lets the agent in unasked.
             second.Close();
             Ui.Settle();
             JsonElement reopened = Await(Task.Run(() => Call(client, "workspace")), "the call after the agent's window closed");
@@ -170,7 +155,6 @@ public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
             Assert.Equal(third.Folder, reopened.GetProperty("folder").GetString());
             Assert.Empty(third.OwnedWindows.OfType<AgentAdmissionDialog>());
 
-            // Another agent set up in the folder joins the window open on it: no window more.
             McpClient another = Await(Task.Run(() => Start(["--mcp-attach"], wanted)), "a second agent's session starting");
             try
             {
@@ -183,7 +167,6 @@ public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
                 Gone(another);
             }
 
-            // Taken back in Settings: the folder leaves the list, and the agent on its window is asked again at its next call.
             SettingsDialog taking = DialogButtonsTests.Check(third.ShowSettings());
             taking.Page = SettingsDialog.McpPage;
             Ui.Settle();
@@ -238,9 +221,9 @@ public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
         }
     }
 
-    /// <summary>An agent that gives up on the call the window's let-in question holds takes the question away, as a tool's
-    /// is: nothing waits on it, and a later "Allow" would let in an agent that asked nothing. The window's limit is long,
-    /// so only the giving up can close it within the wait.</summary>
+    /// <summary>An agent that gives up on the call the window's let-in question holds takes the question away: nothing waits
+    /// on it, and a later "Allow" would let in an agent that asked nothing. The window's limit is long, so only the giving up
+    /// can close it within the wait.</summary>
     [AvaloniaFact]
     public void An_agent_giving_up_on_its_call_takes_the_windows_question_away()
     {
@@ -255,8 +238,7 @@ public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
             using CancellationTokenSource giveUp = new();
             Task<CallToolResult> givenUp = Task.Run(() => CallGivingUp(client, "workspace", new(), giveUp.Token));
             WaitFor(() => window.OwnedWindows.OfType<AgentAdmissionDialog>().Any(d => d.IsVisible), "the window to ask whether the agent may work there");
-            // The status bar's words stand out while the question waits (a click bringing it forward, which headless windows,
-            // never losing activation, cannot show).
+            // Headless windows never lose activation, so only the words standing out can show a question waits.
             Button agent = window.FindControl<Button>("AgentButton")!;
             Assert.True(agent.Classes.Contains("asking"), "The status bar's words on a question an agent waits on should stand out (asking)");
             giveUp.Cancel();
@@ -294,7 +276,6 @@ public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
             Dictionary<string, string> setups = dialog.AgentSetups.ToDictionary(s => s.Heading, s => s.Text);
             Assert.Equal(["Claude Code", "A repository's .mcp.json", "Codex", "Codex's config.toml", "Claude Desktop", "OpenCode", "OpenCode 2"], dialog.AgentSetups.Select(s => s.Heading));
 
-            // The commands name the program running, wherever it is, which an agent's session starts.
             string claude = setups["Claude Code"];
             Assert.StartsWith("claude mcp add passenger -- ", claude, StringComparison.Ordinal);
             Assert.EndsWith(" --mcp-attach", claude, StringComparison.Ordinal);
@@ -308,8 +289,7 @@ public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
                 Assert.Equal(passenger, server.GetProperty("command").GetString());
                 Assert.Equal(arguments, server.GetProperty("args").EnumerateArray().Select(a => a.GetString()!));
             }
-            // OpenCode's, in each version's shape: its command one list, a call given minutes, and OpenCode 2's tools called
-            // directly rather than through Code Mode.
+            // OpenCode's in each version's shape, OpenCode 2's tools called directly rather than through Code Mode.
             JsonElement openCode = JsonDocument.Parse(setups["OpenCode"]).RootElement.GetProperty("mcp").GetProperty("passenger");
             JsonElement openCode2 = JsonDocument.Parse(setups["OpenCode 2"]).RootElement.GetProperty("mcp").GetProperty("servers").GetProperty("passenger");
             foreach (JsonElement server in (JsonElement[])[openCode, openCode2])
@@ -320,7 +300,6 @@ public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
             Assert.Equal((true, 600_000), (openCode.GetProperty("enabled").GetBoolean(), openCode.GetProperty("timeout").GetInt32()));
             Assert.Equal((false, 1_800_000), (openCode2.GetProperty("codemode").GetBoolean(), openCode2.GetProperty("timeout").GetProperty("execution").GetInt32()));
 
-            // Copy puts the text on the clipboard whole, and says it did until another is copied.
             Button copy = dialog.CopyButtons["Claude Desktop"];
             Ui.Click(copy, settle: false);
             Ui.WaitFor(() => Ui.Clipboard(dialog) == setups["Claude Desktop"], "Claude Desktop's configuration on the clipboard");
@@ -400,7 +379,6 @@ public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
             Assert.Equal("notes first\n", File.ReadAllText(Path.Combine(first, "Notes.txt")));
             WaitFor(() => window.Agents == 1, "the window to count the agent it let in");
 
-            // The person opens another folder there: the agent let in on the first is shut out, and its next call asks again.
             window.OpenFolder(second);
             Ui.Settle();
             WaitFor(() => window.Agents == 0, "the agent let in on the first folder to be shut out as the window opened the second");
@@ -413,8 +391,6 @@ public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
                 $"The agent's edit after the person opened another folder was answered: {Text(refused)}");
             Assert.Equal("notes\n", File.ReadAllText(Path.Combine(second, "Notes.txt")));
 
-            // Let in there and allowed to edit, its own open of a third, which the person allows, keeps it let in; its first
-            // edit there asks again.
             Task<JsonElement> editingSecond = Task.Run(() => Call(client, "edit", Note("second")));
             Press(Admission(window, "the window to ask at the agent's next call"), AgentAdmissionDialog.Allow);
             Press(Question(window, "the question for the agent's edit in the second folder"), "Allow");
@@ -475,8 +451,8 @@ public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
         }
     }
 
-    /// <summary>A folder let in always from one window stays let in when another window's Settings, open since before, takes
-    /// back a different one: the list merges as what each changed, where it was taken whole from the last to change it.</summary>
+    /// <summary>A folder let in always from one window stays let in when another window's Settings, open since before, take
+    /// back a different one: the list merges what each changed.</summary>
     [AvaloniaFact]
     public void A_folder_let_in_always_from_one_window_stays_when_another_windows_settings_take_back_a_different_one()
     {
@@ -503,7 +479,6 @@ public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
             Ui.Settle();
             Assert.Equal([PathNames.Canonical(taken)], dialog.AgentFolderList.Items.OfType<string>());
 
-            // Meanwhile the other window lets an agent in always for its folder.
             Task<JsonElement> letIn = Task.Run(() => Call(client, "workspace"));
             AgentAdmissionDialog asked = Admission(asking, "the other window to ask whether the agent may work there");
             Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(asked).OfType<CheckBox>().Single(c => (string?)c.Content == "Always for this folder").IsChecked = true;
@@ -511,7 +486,6 @@ public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
             Await(letIn, "the call let in always");
             Assert.True(asking.AlwaysLetsAgentsIn, "Always for this folder did not keep the folder");
 
-            // The Settings open since before take back the folder they list.
             dialog.AgentFolderList.SelectedIndex = 0;
             Ui.Click(dialog.RemoveAgentFolderButton, settle: false);
             dialog.Ok();
@@ -529,7 +503,7 @@ public sealed class McpAttachTests : McpRig, IClassFixture<RestoredFolders>
         }
     }
 
-    /// <summary>An edit of Notes.txt, as <see cref="Plain"/> writes it, that adds a word.</summary>
+    /// <summary>An edit of Notes.txt, as <see cref="McpRig.Plain"/> writes it, that adds a word.</summary>
     private static Dictionary<string, object?> Note(string word) => new() { ["path"] = "Notes.txt", ["oldText"] = "notes", ["newText"] = $"notes {word}" };
 
     /// <summary>The process a window's socket is named for (<c>PID-WINDOW.sock</c>).</summary>
@@ -804,7 +778,6 @@ public sealed class McpAttachTimingTests : McpRig, IClassFixture<RestoredFolders
         McpClient client = Await(Task.Run(() => Start(["--mcp-attach", ProcessId])), "the agent attaching");
         try
         {
-            // Enable MCP Server off: the first call waits for the person to let the agent in, and nobody does.
             Heard letIn = new();
             Stopwatch asked = Stopwatch.StartNew();
             Task<CallToolResult> unanswered = Task.Run(() => Result(client, "workspace", heard: letIn));
@@ -821,7 +794,6 @@ public sealed class McpAttachTimingTests : McpRig, IClassFixture<RestoredFolders
             Assert.True(letIn.Told.Any(t => t.Message?.StartsWith($"Waiting for the person at {where} to let Test Agent in", StringComparison.Ordinal) == true),
                 $"The agent never heard what its call waited on: {letIn}");
 
-            // Let in, its first build waits for the person's leave, and nobody gives it.
             window.ApplySettings(window.Settings with { McpServer = true });
             Heard leave = new();
             asked.Restart();
@@ -842,18 +814,16 @@ public sealed class McpAttachTimingTests : McpRig, IClassFixture<RestoredFolders
             IReadOnlyList<ModelContextProtocol.ProgressNotificationValue> told = leave.Told;
             Assert.True(told.Any(t => t.Message?.StartsWith($"Waiting for the person at {where} to allow Test Agent to use build", StringComparison.Ordinal) == true),
                 $"The agent never heard its build waited for the person: {leave}");
-            // Each told once, under counts of its own: the SDK's client hands them over as they come, not always in order.
+            // The SDK's client hands the progress over as it comes, not always in order.
             Assert.True(told.Select(t => t.Progress).Distinct().Count() == told.Count, $"The progress told through --mcp-attach repeated a count: {leave}");
             // The window's word passed on as it said it, never the proxy's own beat over it.
             Assert.True(!told.Any(t => System.Text.RegularExpressions.Regex.IsMatch(t.Message ?? string.Empty, @"\(\d+\.\d s\) \(\d+\.\d s\)$")),
                 $"--mcp-attach told its own beat over the window's words: {leave}");
 
-            // A later call asks again.
             Task<CallToolResult> again = Task.Run(() => Result(client, "build"));
             Press(Question(window, "the question asked again"), "Deny");
             Assert.Contains("did not allow build", Text(Await(again, "the build the person denied")), StringComparison.Ordinal);
 
-            // The trace has each call's waits, what they came to and their ends, with their times, and none of what they were given.
             IdeLog.Flush();
             string trace = Ui.Shared(IdeLog.PathOf(IdeLog.Mcp));
             foreach (string line in (string[])[

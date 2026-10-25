@@ -64,8 +64,7 @@ public sealed partial class PassengerTools
         }
         if (Session.Web is { } languages && languages.For(document) is { } web)
         {
-            // Its server starts with the first file of its kind, and answers once it has; without a Node.js to run on, never.
-            // Looked at every 50 ms: a web server's document comes as the server starts, which raises nothing of it.
+            // Looked at every 50 ms: a web server's document comes as the server starts, raising nothing.
             await Until(() => web.Lsp is not null || languages.CannotStart(document), ServerLimit, cancel);
             return web.Lsp is { } server
                 ? new ServerServed(document, LanguageOf(document), server, web)
@@ -264,8 +263,9 @@ public sealed partial class PassengerTools
         return $"Applied '{fix.Title}' to {Relative(web.Document.Path)}";
     }
 
-    /// <summary>Reformat Code on a web file the project's Prettier formats (Rider's Run on 'Reformat Code' action), saved;
-    /// null for one its .prettierignore names or whose type it does not read, which the language server formats.</summary>
+    /// <summary>Reformat Code on a web file the project's Prettier formats (Prettier's Run on 'Reformat Code' action),
+    /// saved; null for one its .prettierignore names or whose type it does not read, which the language server
+    /// formats.</summary>
     private async Task<string?> Prettify(ServerServed web)
     {
         if (Session.Web is not { } languages || !languages.Prettier.OnReformat(web.Document.Path))

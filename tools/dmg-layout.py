@@ -1,19 +1,13 @@
 #!/usr/bin/env python3
-"""Writes the .DS_Store of the macOS disk image's top folder (tools/package-mac.sh), and reads it back to check it:
-Finder opens the image as an icon window of a fixed size with no toolbar or sidebar, Passenger.app on the left and the
-Applications link on the right to drag it onto, over a picture of an arrow from one to the other (#188), as Rider's
-image and most Mac downloads open.
+"""Writes the .DS_Store of the macOS disk image's top folder, and checks one names its background: Finder opens the
+image as an icon window of a fixed size with no toolbar or sidebar, Passenger.app on the left and the Applications link
+on the right to drag it onto, over a picture of the window's size (and its 2x) of an arrow from one to the other.
 
-Finder writes these files itself when told through AppleScript, which needs a window session and the person's leave to
-automate Finder, neither of which a build or a CI runner has; so this writes the file Finder would, in its format: a
-buddy allocator's blocks holding one B-tree, here a single leaf of records sorted by file name, then by record code.
-The picture is named as Finder names it, by a Carbon alias record: the volume by its name and creation date, the
-picture by its catalog IDs and its paths, read from the image's own volume mounted while it is made. The compressed
-image keeps every one of them, and the paths are the ones a Mac mounting the volume under its name gives them.
+Written here, since Finder writes one only through AppleScript, which needs a window session and leave to automate it:
+a buddy allocator's blocks holding one B-tree, a single leaf of records sorted by name then code. The picture is named
+by a Carbon alias record, read from the image's own volume mounted while it is made (the compressed image keeps it).
 
-python3 -I tools/dmg-layout.py write|check VOLUME NAME
-VOLUME is the image's top folder as mounted, NAME its volume's name: write makes VOLUME/.DS_Store; check fails, saying
-why, unless VOLUME's .DS_Store names VOLUME's background, a picture of the window's size with its 2x representation.
+python3 -I tools/dmg-layout.py write|check VOLUME NAME   (the image's top folder as mounted, and its volume's name)
 """
 import os
 import plistlib
@@ -42,8 +36,7 @@ BACKGROUND_SIZE = (600, 400)
 MAC_EPOCH = 2082844800
 
 PAGE = 0x1000
-# Where the allocator's blocks sit, as offsets after the file's 4-byte prefix, past its own 32-byte header at 0: the
-# store's header (block 1), the allocator's bookkeeping (block 0) and the B-tree's one leaf (block 2).
+# Offsets after the 4-byte prefix: the store's header (block 1), the bookkeeping (block 0) and the one leaf (block 2).
 HEADER_AT, HEADER_SIZE = 0x20, 0x20
 BOOKKEEPING_AT, BOOKKEEPING_SIZE = 0x800, 0x800
 LEAF_AT, LEAF_SIZE = 0x1000, PAGE

@@ -65,10 +65,10 @@ public sealed class AspireOrchestrationTests : IClassFixture<AspireOrchestration
         window.Close();
     }
 
-    /// <summary>The backing services a service's packages point to, found as Add > Docker Compose finds them, join the AppHost
-    /// with it: a Postgres server and the database its connection string names, a Redis by its connection string's name, each
-    /// referenced and waited for by the service under the name it reads, Aspire's hosting integrations referenced at the
-    /// AppHost's own version; one undo takes it all back.</summary>
+    /// <summary>The backing services a service's packages point to join the AppHost with it: a Postgres server and the
+    /// database its connection string names, a Redis by its connection string's name, each referenced and waited for by
+    /// the service under the name it reads, Aspire's hosting integrations referenced at the AppHost's own version; one
+    /// undo takes it all back.</summary>
     [AvaloniaFact]
     public void Orchestration_adds_the_backing_services_a_service_reads_and_references_them_by_its_connection_strings_names()
     {

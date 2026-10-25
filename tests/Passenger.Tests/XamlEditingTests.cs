@@ -15,13 +15,13 @@ using static Passenger.Tests.XamlTests;
 
 namespace Passenger.Tests;
 
-/// <summary>Rider's XAML editing tools through the window, each in Avalonia's XAML (an app <c>dotnet new avalonia.app</c>
-/// makes) and WPF's (one <c>dotnet new wpf</c> makes): Reformat Code by Rider's XAML code style and the file's
-/// .editorconfig, Extract Resource and Extract Style, the fixes that create a binding's property or command in its view
-/// model (the MVVM Toolkit's way where the project has it, stood in by its attributes' names) and a missing converter's
-/// class and resource, and Surround With's elements; and a generated resource class's strings read through <c>{x:Static}</c>
-/// (#476), known as C# knows them: each language's value on the card, Go to Declaration to each file's entry, the keys
-/// completed, and a key a language lacks warned of with the fix that adds it, for the window and an agent alike.</summary>
+/// <summary>The XAML editing tools through the window, each in Avalonia's XAML (an app <c>dotnet new avalonia.app</c>
+/// makes) and WPF's (one <c>dotnet new wpf</c> makes): Reformat Code by its XAML code style and the file's .editorconfig,
+/// Extract Resource and Extract Style, the fixes that create a binding's property or command in its view model (the MVVM
+/// Toolkit's way where the project has it, stood in by its attributes' names) and a missing converter's class and
+/// resource, and Surround With's elements; and a generated resource class's strings read through <c>{x:Static}</c>, known
+/// as C# knows them: each language's value on the card, Go to Declaration to each file's entry, the keys completed, and a
+/// key a language lacks warned of with the fix that adds it, for the window and an agent alike.</summary>
 public sealed class XamlEditingTests : IClassFixture<XamlEditingTests.AvaloniaGallery>, IClassFixture<XamlEditingTests.WpfGallery>
 {
     private readonly AvaloniaGallery avalonia;
@@ -69,13 +69,10 @@ public sealed class XamlEditingTests : IClassFixture<XamlEditingTests.AvaloniaGa
     }
 
     /// <summary>A Designer class over a neutral Resources.resx and a French one lacking Thanks, read by a view through
-    /// <c>{x:Static p:Resources.…}</c>: Thanks is warned of, and only it; Welcome's card says its neutral and French values;
-    /// Go to Declaration offers the generated property and each language's entry, and goes to the French one; completion
-    /// after <c>p:Resources.</c> offers the keys with their neutral text, not the class's private fields; the fix asks the
-    /// French value and adds the entry as the file writes its others, the warning going, and one Undo takes it out again; the
-    /// code-behind's C# read of Thanks is warned of alike. An agent's diagnostics lists the warning, its code_actions the fix
-    /// first, apply_code_action adds the value it names, and its definition reaches the property and both entries, from a
-    /// positional read and from one named Member.</summary>
+    /// <c>{x:Static p:Resources.…}</c>: Thanks alone is warned of, in the XAML and the code-behind's C#; Welcome's card says
+    /// its neutral and French values; Go to Declaration offers the property and each language's entry; completion offers the
+    /// keys with their neutral text; the fix asks the French value and adds the entry, one Undo taking it out again. An
+    /// agent's diagnostics, code_actions, apply_code_action and definition say and do the same.</summary>
     [AvaloniaTheory]
     [InlineData("Avalonia")]
     [InlineData("WPF")]
@@ -141,7 +138,6 @@ public sealed class XamlEditingTests : IClassFixture<XamlEditingTests.AvaloniaGa
             Ui.WaitFor(() => File.ReadAllText(french) == written, () => $"undo to take the entry back out ({window.Status}): {File.ReadAllText(french)}");
             Ui.WaitFor(() => Untranslated(window).Count == 1, "the warning to come back once undo took the entry away");
 
-            // The code-behind reads Thanks in C#, whose help reads the same files and warns of it alike.
             window.OpenFile(app.PathOf(view + ".cs"));
             Ui.WaitFor(() => Untranslated(window).SetEquals(["'Thanks' has no French translation (Resources.fr.resx)"]),
                 () => $"the code-behind's read of Thanks to be warned of as the view's is: {string.Join("; ", Untranslated(window))}");
@@ -241,7 +237,7 @@ public sealed class XamlEditingTests : IClassFixture<XamlEditingTests.AvaloniaGa
         Assert.Equal(written, editor.Document.Snapshot.ToString());
     }
 
-    /// <summary>Reformat Code lays XAML out by Rider's code style and the file's .editorconfig, changing nothing but whitespace.</summary>
+    /// <summary>Reformat Code lays XAML out by its code style and the file's .editorconfig, changing nothing but whitespace.</summary>
     private static void Reformat(MainWindow window, SharedProject app, string dialect)
     {
         CodeEditor editor = window.EditorArea.CodeEditor;
@@ -257,8 +253,7 @@ public sealed class XamlEditingTests : IClassFixture<XamlEditingTests.AvaloniaGa
         Ui.Run(window, AppActions.Reformat);
         Ui.Settle();
         Assert.Equal("Reformatted", window.Status);
-        // Rider's defaults: attributes as they were broken over lines, aligned with the first; every child a line of its own,
-        // indented from its parent, at most two blank lines; the comment moved whole; values and quotes as written.
+        // Rider's defaults: attributes aligned as broken, each child on a line, at most two blank lines, values as written.
         Assert.Equal(before[..start] + "<StackPanel Margin=\"12\">\n        <!-- the\n             greeting -->\n        <TextBlock Text='Fish &amp; chips' />\n"
             + "        <Button Grid.Row=\"1\" Content=\"Go\"\n                x:Name=\"Pay\"\n                HorizontalAlignment=\"Center\" />\n\n\n        <Border></Border>\n    </StackPanel>"
             + before[end..], editor.Document.Snapshot.ToString());
@@ -277,8 +272,7 @@ public sealed class XamlEditingTests : IClassFixture<XamlEditingTests.AvaloniaGa
         Ui.Run(window, EditorActions.Undo);
         Ui.Settle();
 
-        // The project's .editorconfig, by Rider's keys and XAML Styler's: each attribute on a line of its own, one indent
-        // in, in XAML Styler's order (x:Name, then Grid's, then layout's, then the rest), and an empty element closed.
+        // The .editorconfig, by Rider's keys and XAML Styler's: each attribute on a line, in XAML Styler's order.
         File.WriteAllText(app.PathOf(".editorconfig"), "root = true\n\n[*.{axaml,xaml}]\nxml_attribute_style = on_different_lines\nxml_attribute_indent = single_indent\n"
             + "xaml_enable_attribute_reordering = true\nxaml_remove_ending_tag_of_empty_element = true\n");
         editor.Selections = SelectionSet.Single(0);
@@ -288,11 +282,10 @@ public sealed class XamlEditingTests : IClassFixture<XamlEditingTests.AvaloniaGa
         Assert.Equal("<StackPanel Margin=\"12\">\n        <!-- the\n             greeting -->\n        <TextBlock Text='Fish &amp; chips' />\n"
             + "        <Button\n            x:Name=\"Pay\"\n            Grid.Row=\"1\"\n            HorizontalAlignment=\"Center\"\n            Content=\"Go\" />\n\n\n        <Border />\n    </StackPanel>"
             + before[end..], configured[configured.IndexOf("<StackPanel", StringComparison.Ordinal)..]);
-        // The root's attributes too: x:Class first, then its namespaces.
         Assert.StartsWith("<Window\n    x:Class=\"Gallery.MainWindow\"\n    xmlns=\"", configured, StringComparison.Ordinal);
         File.Delete(app.PathOf(".editorconfig"));
 
-        // Settings' own page, Rider's words, which the window's Reformat follows where no .editorconfig says otherwise.
+        // Settings' own page, which Reformat follows where no .editorconfig says otherwise.
         SettingsDialog settings = window.ShowSettings();
         settings.Page = SettingsDialog.XamlCodeStylePage;
         Ui.Settle();
@@ -354,7 +347,6 @@ public sealed class XamlEditingTests : IClassFixture<XamlEditingTests.AvaloniaGa
         Ui.Settle();
         Assert.DoesNotContain("PanelMargin", editor.Document.Snapshot.ToString(), StringComparison.Ordinal);
 
-        // A brush to the application's resources: two files, one command, Undo asking first.
         string appText = File.ReadAllText(app.PathOf(appFile));
         Insert(editor, avaloniaXaml ? "<TextBlock Name=\"Title\"" : "<TextBlock Style=\"{StaticResource Heading}\"", " Foreground=\"#E2A33F\"");
         Ui.PlaceAfter(editor, "Foreground=\"#E2");
@@ -375,7 +367,6 @@ public sealed class XamlEditingTests : IClassFixture<XamlEditingTests.AvaloniaGa
         Assert.Equal(appText, File.ReadAllText(app.PathOf(appFile)));
         Assert.DoesNotContain("ForegroundBrush", editor.Document.Snapshot.ToString(), StringComparison.Ordinal);
 
-        // The button's margin and background to a style: WPF's keyed one it names, Avalonia's selecting a class it takes.
         Ui.PlaceAfter(editor, "<Butt");
         Assert.True(window.RunFromMenu(AppActions.ExtractStyle), window.Status);
         ExtractStyleDialog style = Shown<ExtractStyleDialog>(window, "Extract Style");
@@ -417,7 +408,6 @@ public sealed class XamlEditingTests : IClassFixture<XamlEditingTests.AvaloniaGa
         string model = app.PathOf("ViewModels/MainViewModel.cs");
         string last = avaloniaXaml ? "public int Count { get; set; }" : "public bool IsBusy { get; set; }";
 
-        // A property the view model lacks, typed as the TextBlock's Text reads it.
         Replace(editor, "{Binding Greeting}", "{Binding Subtitle}");
         Ui.WaitFor(() => document.Markers.Any(m => m.Message.Contains("'Subtitle'", StringComparison.Ordinal)), "the binding path the view model lacks marked");
         Ui.PlaceAfter(editor, "{Binding Subt");
@@ -429,7 +419,6 @@ public sealed class XamlEditingTests : IClassFixture<XamlEditingTests.AvaloniaGa
         Assert.Contains($"    {last}\n\n    public string? Subtitle {{ get; set; }}\n}}", File.ReadAllText(model).ReplaceLineEndings("\n"), StringComparison.Ordinal);
         Ui.WaitFor(() => !document.Markers.Any(m => m.Message.Contains("'Subtitle'", StringComparison.Ordinal)), "the binding resolved once the property is there");
 
-        // A command for a button's Command: an ICommand property, its using added.
         Insert(editor, avaloniaXaml ? "<Button Name=\"Go\" Content=\"Go\"" : "<Button x:Name=\"Go\" Content=\"Go\" Click=\"OnGo\"", " Command=\"{Binding SaveCommand}\"");
         Ui.WaitFor(() => document.Markers.Any(m => m.Message.Contains("'SaveCommand'", StringComparison.Ordinal)), "the command the view model lacks marked");
         Ui.PlaceAfter(editor, "{Binding Save");
@@ -443,7 +432,6 @@ public sealed class XamlEditingTests : IClassFixture<XamlEditingTests.AvaloniaGa
         Assert.Contains(avaloniaXaml ? "using System.Windows.Input;\n\nnamespace Gallery.ViewModels;" : "using System.Collections.ObjectModel;\nusing System.Windows.Input;\n", written, StringComparison.Ordinal);
         Ui.WaitFor(() => !document.Markers.Any(m => m.Message.Contains("'SaveCommand'", StringComparison.Ordinal)), "the command resolved once it is there");
 
-        // A converter nothing defines: its class in a file of its own and its resource, one command Undo takes back whole.
         Insert(editor, avaloniaXaml ? "<TextBlock Text=\"{Binding #Go.Content}\" />" : "<TextBlock Text=\"{Binding Content, ElementName=Go}\" />",
             "\n        <TextBlock Text=\"{Binding Greeting, Converter={StaticResource ShoutConverter}}\" />");
         Ui.WaitFor(() => document.Markers.Any(m => m.Message == "Resource 'ShoutConverter' is not found"), "the converter nothing defines marked");
@@ -472,7 +460,6 @@ public sealed class XamlEditingTests : IClassFixture<XamlEditingTests.AvaloniaGa
         Assert.False(File.Exists(converter), "Undo left the converter's file it made");
         Assert.DoesNotContain("ShoutConverter x:Key", editor.Document.Snapshot.ToString(), StringComparison.Ordinal);
 
-        // With the MVVM Toolkit, an [ObservableProperty] field and a [RelayCommand] method, the class made partial.
         window.OpenFile(app.PathOf(avaloniaXaml ? "ShopView.axaml" : "ShopView.xaml"));
         Ui.Settle();
         CodeEditor shop = window.EditorArea.CodeEditor;
@@ -542,7 +529,6 @@ public sealed class XamlEditingTests : IClassFixture<XamlEditingTests.AvaloniaGa
         Ui.Run(window, EditorActions.Undo);
         Ui.Settle();
 
-        // Two elements chosen: what holds one child alone is not offered; Rider's tag, its name typed in both tags.
         text = editor.Document.Snapshot.ToString();
         int from = text.IndexOf(title, StringComparison.Ordinal) + 3;
         editor.Selections = SelectionSet.Single(new Selection(from, text.IndexOf(button, StringComparison.Ordinal) + 4));
@@ -574,7 +560,6 @@ public sealed class XamlEditingTests : IClassFixture<XamlEditingTests.AvaloniaGa
         Assert.All(found, usage => Assert.True(text.GetText(text.GetOffset(new TextPosition(usage.Line, usage.Column)), 2) == "Go",
             $"A usage of Go was found at line {usage.Line + 1}, column {usage.Column + 1}: '{text.GetLineText(usage.Line)}'"));
 
-        // The view model's property, below such breaks in its open text, from a binding's path.
         window.OpenFile(avalonia.PathOf("ViewModels/MainViewModel.cs"));
         Ui.Settle();
         Insert(window.EditorArea.CodeEditor, "namespace Gallery.ViewModels;\n", $"\n/* Pasted:{(char)0x2028}a{(char)0x2029}b{(char)0x85}c\rd */\n");

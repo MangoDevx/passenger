@@ -94,8 +94,7 @@ public sealed class DebugSession
         ProcessStartInfo start;
         if (place is not null)
         {
-            // The adapter where the program is (in its container): its flags the same, its symbols kept there.
-            // The engine's log, when the IDE keeps it, is kept there too, in the container's own temporary folder.
+            // The adapter where the program is: its flags the same, its symbols and the engine's log kept there.
             start = place.Command(["--interpreter=vscode", $"--symbolCache={place.SymbolCache}", "--remote",
                 .. AdapterEnvironment.EngineLog is not null ? (string[])[$"--engineLogging={ContainerEngineLog}"] : []]);
         }
@@ -253,8 +252,7 @@ public sealed class DebugSession
     /// <summary>Whether the program's process id (<see cref="ProcessStarted"/>) names a process of this machine.</summary>
     public bool IsLocal => !Elsewhere && processLocal;
 
-    /// <summary>Where the adapter runs when not beside the app (the program's container, which Attach Profiler records it
-    /// in too), or null.</summary>
+    /// <summary>Where the adapter runs when not beside the app (the program's container), or null.</summary>
     public AdapterPlace? Place => place;
 
     private bool processLocal = true;
@@ -262,23 +260,21 @@ public sealed class DebugSession
     /// <summary>The session ended with Detach: the program runs on without the debugger.</summary>
     public bool Detached { get; private set; }
 
-    /// <summary>The adapter's process, for a test to see it gone.</summary>
+    /// <summary>The adapter's process id.</summary>
     public int AdapterProcessId => adapter.Id;
 
     /// <summary>Where the adapter keeps symbols it decompiles for assemblies that ship none, and prunes them as it starts:
-    /// under the state folder's cache/, as Rider keeps its decompiler's under its system folder.</summary>
+    /// under the state folder's cache/.</summary>
     public static string SymbolCache => Path.Combine(Passenger.App.State.StateStore.DefaultRoot, "cache", "symbols");
 
     /// <summary>Where an adapter in a container keeps the engine's log while PASSENGER_ENGINE_LOG asks for one.</summary>
     public const string ContainerEngineLog = "/tmp/passenger-engine.log";
 
-    /// <summary>Starts the adapter and launches a plan's program under it (a .dll under dotnet, or an
-    /// executable), with the breakpoints the store has, its exception breakpoints among them (Rider's "Any exception" stops
-    /// on what the user's code leaves unhandled). What the program writes, and the debugger's own words ("console"), go to
-    /// <paramref name="output"/> on the connection's thread, in order. With <paramref name="runInTerminal"/> the program
-    /// runs in the terminal it starts, which the adapter asks for (runInTerminal), and its output goes there.
-    /// <paramref name="starting"/> is handed the session as it begins, so Stop can end it while it starts; with
-    /// <paramref name="elsewhere"/> the program is not on this machine (<see cref="Elsewhere"/>).</summary>
+    /// <summary>Starts the adapter and launches a plan's program under it (a .dll under dotnet, or an executable), with the
+    /// store's breakpoints. What the program writes, and the debugger's own words ("console"), go to
+    /// <paramref name="output"/> on the connection's thread, in order; with <paramref name="runInTerminal"/> it runs in the
+    /// terminal it starts, its output there. <paramref name="starting"/> is handed the session as it begins, so Stop can end
+    /// it while it starts; with <paramref name="elsewhere"/> the program is on another machine.</summary>
     public static Task<DebugSession> LaunchAsync(Run.LaunchPlan plan, BreakpointStore breakpoints, BuiltLines lines, Action<string> log, Action<OutputEvent> output,
         Func<RunInTerminalArguments, Task<Run.TerminalRun>>? runInTerminal = null, Func<LineBreakpoint, int?>? columns = null, bool hotReload = false,
         Action<DebugSession>? starting = null, bool elsewhere = false, AdapterPlace? place = null)
@@ -316,8 +312,7 @@ public sealed class DebugSession
         bool quiet = false)
     {
         UiThread.Check();
-        // The adapter's fork off the window's thread (#441); Stop meanwhile finds the tab still opening, which its session
-        // closes as it is handed over.
+        // Forked off the window's thread; a Stop meanwhile finds the tab still opening, which its session closes.
         Process adapter = await ChildProcesses.StartAsync(AdapterStart(place, elsewhere));
         DebugSession session = new(adapter, breakpoints, lines, log, output, columns, elsewhere, place, quiet) { Program = program, Attached = request == DapCommands.Attach };
         IdeLog.Write(IdeLog.Debugger, $"[{session.connection.Name}] {request} {program}");
@@ -363,7 +358,7 @@ public sealed class DebugSession
             // Never asked of an adapter already told to go: it would start the program as it went.
             session.GoingOn();
             await session.connection.RequestAsync(DapCommands.ConfigurationDone, new DapEmpty());
-            // A stop told before this answer stands, as one before a resume's does (Passenger's adapter tells none until it is written).
+            // A stop told before this answer stands, as one before a resume's does.
             if (session.State == DebugState.Starting)
             {
                 session.SetState(DebugState.Running);
@@ -469,8 +464,8 @@ public sealed class DebugSession
         End(ExitCode);
     }
 
-    /// <summary>Rider's Detach: the debugger takes its breakpoints out of the program it attached to and lets go of it, and
-    /// the program runs on, from where it was paused if it was; the session ends with the adapter.</summary>
+    /// <summary>Detach: the debugger takes its breakpoints out of the program it attached to and lets go of it, and the
+    /// program runs on, from where it was paused if it was; the session ends with the adapter.</summary>
     public async Task DetachAsync()
     {
         UiThread.Check();
@@ -487,9 +482,9 @@ public sealed class DebugSession
     /// too): the IDE refuses to start with a malformed value, so this is the adapter's own.</summary>
     internal static TimeSpan EvaluationLimit => AdapterEnvironment.EvaluationTimeout;
 
-    /// <summary>How long Detach waits for the adapter's let-go: an evaluation the stop's read gave up a moment before has the
-    /// rest of its time (<see cref="EvaluationLimit"/> at most), then the program is run off its stop in rounds of 3.2 s at
-    /// most, then detached; within it, the adapter is never killed under a let-go, which would leave the program held.</summary>
+    /// <summary>How long Detach waits for the adapter's let-go: the rest of an evaluation given up a moment before
+    /// (<see cref="EvaluationLimit"/> at most), then a few seconds to run the program off its stop; within it, the adapter
+    /// is never killed under a let-go, which would leave the program held.</summary>
     internal static TimeSpan LetGoLimit => EvaluationLimit + TimeSpan.FromSeconds(5);
 
     /// <summary>How long the adapter is given to let a program attached to go as the window closes, which waits a few seconds
@@ -527,7 +522,7 @@ public sealed class DebugSession
     /// given) and itself, and kills the adapter when it has not gone within this ask's limits. It is asked once, by Stop,
     /// Detach, the program's end or the window's close, whichever comes first: a second disconnect waits on an adapter the
     /// first has let go. The answer is awaited, and the exit waited for, on the thread pool, never failing, so a window gone
-    /// meanwhile (a test's, its dispatcher with it) leaves no failed request behind.</summary>
+    /// meanwhile (its dispatcher with it) leaves no failed request behind.</summary>
     private Task EndProcessesAsync(TimeSpan answer, TimeSpan exit, bool terminate = true, TimeSpan? letGoWithin = null)
     {
         // Not held: the window's end waits for these with no UI thread to come back to (MainWindow.Ended).
@@ -583,7 +578,7 @@ public sealed class DebugSession
         catch (Exception unknown) when (unknown is TimeoutException or IOException or InvalidOperationException or System.ComponentModel.Win32Exception
             or OperationCanceledException)
         {
-            // Nothing could say: taken for the debugger's own end, as before any place could.
+            // Nothing could say: taken for the debugger's own end.
             stopped = false;
         }
         if (!stopped)
@@ -620,8 +615,7 @@ public sealed class DebugSession
             }
             else if (State != DebugState.Ended)
             {
-                // The runtime's debugging library can crash tearing a session down once the program has gone
-                // (a race in its transport); the program's end was already told, so nothing was lost.
+                // Its debugging library can crash tearing down after the program has gone, whose end was told already.
                 log($"Passenger's debugger stopped with exit code {code} after the program ended");
             }
         }
@@ -872,8 +866,7 @@ public sealed class DebugSession
 
     private void OnBreakpointsChanged(object? sender, string path)
     {
-        // A report from the debugger raises Changed too, and an edit that only carries breakpoints with their code asks
-        // nothing new: only what changes the request goes back to it.
+        // A report from the debugger raises Changed too: only what changes the request goes back to it.
         if (State is DebugState.Running or DebugState.Paused && disconnected is null && (!sent.TryGetValue(path, out string? last) || last != Signature(path)))
         {
             Sending(SendBreakpointsAsync(path));
@@ -881,8 +874,8 @@ public sealed class DebugSession
     }
 
     /// <summary>Every breakpoint change made while the program runs or is paused, answered: the program has them once this
-    /// is done (a request the debugger refused, or the session's end, ends it too). What an agent's breakpoint_set waits for,
-    /// since its next step may come before the request's answer.</summary>
+    /// is done (a request the debugger refused, or the session's end, ends it too), so what is done next can wait for
+    /// that.</summary>
     public Task BreakpointsAnswered
     {
         get
@@ -1049,8 +1042,7 @@ public sealed class DebugSession
         }
     }
 
-    /// <summary>What a tracepoint of XAML Binding Errors with no message of its own logs, as Rider's "Breakpoint reached"
-    /// does for a line's: the failure.</summary>
+    /// <summary>What a tracepoint of XAML Binding Errors with no message of its own logs: the failure.</summary>
     private const string BindingErrorLog = "Binding error: {bindingError.Description,nq}";
 
     /// <summary>A condition or log message of XAML Binding Errors as the debugger reads it: <c>$bindingError</c>, the name
@@ -1217,7 +1209,7 @@ public sealed class DebugSession
         breakpoints.DataChanged -= OnDataChanged;
         breakpoints.PropertiesChanged -= OnFunctionsChanged;
         breakpoints.BindingErrorsChanged -= OnFunctionsChanged;
-        // What its debugger said goes, and its data breakpoints, each on a member of one of its objects, as Rider's do.
+        // What its debugger said goes, and its data breakpoints, each on a member of one of its objects.
         if (!Quiet)
         {
             breakpoints.Leave(this);

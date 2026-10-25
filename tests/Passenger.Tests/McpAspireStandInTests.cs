@@ -27,7 +27,6 @@ public sealed class McpAspireStandInTests(StandInAppHost project) : McpRig, ICla
         await Running(client, host);
         string key = File.ReadAllText(project.DashboardKeyFile);
 
-        // A log's values read whole and its credentials hidden, whatever attribute or message carries them.
         dashboard.Answer = _ => (200, "application/json", AspireDashboardHost.Wrapped(Logs));
         foreach (Dictionary<string, object?> asked in (Dictionary<string, object?>[])[new() { ["appHost"] = host, ["limit"] = 1 }, new() { ["resource"] = api, ["limit"] = 1 }])
         {
@@ -47,8 +46,7 @@ public sealed class McpAspireStandInTests(StandInAppHost project) : McpRig, ICla
             Assert.Equal(key, request.Key);
         }
 
-        // What the dashboard says of a resource it does not know is an empty snapshot; any other 404 is the agent's error,
-        // never the key, and never answered from another resource's or the whole AppHost's telemetry.
+        // A resource the dashboard does not know is an empty snapshot; any other 404 is the agent's error.
         (string Kind, bool Resource, string? TraceId, string? Title, string ContentType, bool Empty)[] cases =
         [
             ("logs", true, null, "Resource not found", "application/problem+json", true),
@@ -90,8 +88,7 @@ public sealed class McpAspireStandInTests(StandInAppHost project) : McpRig, ICla
             Assert.Equal($"/api/telemetry/{path}?limit=1" + (resource ? "&resource=api-owned-instance" : string.Empty), request.PathAndQuery);
         }
 
-        // An answer the dashboard gives that cannot be read is the dashboard's to say, in the Telemetry view's words, where it
-        // was reported as Passenger's own failure.
+        // An answer from the dashboard that cannot be read is the dashboard's to say, in the Telemetry view's words.
         dashboard.Answer = _ => (200, "text/plain", "not telemetry");
         CallToolResult unread = await Result(client, "telemetry", new() { ["appHost"] = host, ["limit"] = 1 });
         Assert.True(unread.IsError == true && Text(unread).Contains("dashboard's logs and traces could not be read", StringComparison.Ordinal)
@@ -104,8 +101,7 @@ public sealed class McpAspireStandInTests(StandInAppHost project) : McpRig, ICla
     public async Task An_agents_telemetry_never_sends_the_key_to_a_dashboard_elsewhere_or_named_with_credentials()
     {
         await using AspireDashboardHost dashboard = await AspireDashboardHost.StartAsync();
-        // An address no machine answers at (TEST-NET-1), and the stand-in dashboard's own named with a user, as a launch
-        // profile could name either; each run by an IDE of its own, which reads the profile as it opens the folder.
+        // An address no machine answers at (TEST-NET-1), and the stand-in dashboard's own named with a user.
         foreach (Uri elsewhere in (Uri[])[new("http://192.0.2.10:5000"), new($"http://agent@127.0.0.1:{dashboard.Endpoint.Port}")])
         {
             project.Reset();
@@ -135,7 +131,7 @@ public sealed class McpAspireStandInTests(StandInAppHost project) : McpRig, ICla
         string host = PathNames.Canonical(project.ProjectFile);
         await Running(client, host);
 
-        // The AppHost's resource service ends its calls, as one that restarts or goes away does, while the AppHost runs on.
+        // The resource service ends its calls while the AppHost runs on.
         resources.Drop();
         JsonElement workspace = default;
         Assert.True(await Waiting.UntilAsync(async () =>
@@ -151,11 +147,10 @@ public sealed class McpAspireStandInTests(StandInAppHost project) : McpRig, ICla
         Assert.Empty(resources.Errors);
     }
 
-    /// <summary>An agent runs an AppHost resource's advertised commands through container_action, as the Aspire window's menu
-    /// does: by the command's name, or restart as Aspire's resource-restart; a confirmation asks no one (the agent's call is its
-    /// own, and nobody would answer a headless IDE's question), while one that asks the person for input, one the resource
-    /// lacks and one not enabled now are refused saying why, the AppHost never asked; workspace lists the commands it may run
-    /// and how the AppHost's run was started.</summary>
+    /// <summary>An agent runs an AppHost resource's advertised commands through container_action, by the command's name, or
+    /// restart as Aspire's resource-restart; a confirmation asks no one (nobody would answer a headless IDE's question), while
+    /// one that asks the person for input, one the resource lacks and one not enabled now are refused saying why, the AppHost
+    /// never asked; workspace lists the commands it may run and how the AppHost's run was started.</summary>
     [Fact]
     public async Task An_agent_runs_an_AppHost_resources_commands_through_container_action_and_is_refused_those_it_cannot()
     {
@@ -185,7 +180,6 @@ public sealed class McpAspireStandInTests(StandInAppHost project) : McpRig, ICla
         Assert.Equal(["resource-restart", "passenger-ping", "passenger-seed"], listed.GetProperty("commands").EnumerateArray().Select(c => c.GetString()));
         string target = listed.GetProperty("target").GetString()!;
 
-        // By the resource's display name and Aspire's restart, then by its target and the command's own name.
         Assert.Equal("api-owned-instance: resource-restart Succeeded", Text(await Call(client, "container_action", new() { ["container"] = "api", ["action"] = "restart" })));
         Assert.Equal("api-owned-instance: passenger-ping Succeeded", Text(await Call(client, "container_action", new() { ["container"] = target, ["action"] = "passenger-ping" })));
         Assert.Equal(["resource-restart", "passenger-ping"], resources.Commands.Select(command => command.CommandName));
@@ -201,9 +195,7 @@ public sealed class McpAspireStandInTests(StandInAppHost project) : McpRig, ICla
         }
         Assert.Equal(2, resources.Commands.Length);
 
-        // run of a resource the AppHost itself runs (a container), as of a compose file's backing service, runs nothing (its
-        // commands are container_action's) and answers how it stands in the shape a compose service's run answers: its
-        // AppHost's resources one line each.
+        // run of a resource the AppHost runs itself (a container) runs nothing and answers how its resources stand.
         Passenger.App.Aspire.Protocol.Resource cache = new() { Name = "cache", DisplayName = "cache", Uid = "cache", ResourceType = "Container", State = "Running" };
         cache.Commands.Add(new Passenger.App.Aspire.Protocol.ResourceCommand { Name = "resource-restart", DisplayName = "Restart", State = Passenger.App.Aspire.Protocol.ResourceCommandState.Enabled });
         resources.PushResource(cache);

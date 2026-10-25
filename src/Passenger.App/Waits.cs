@@ -2,10 +2,9 @@ using System.Globalization;
 
 namespace Passenger.App;
 
-/// <summary>How much longer the IDE's own bounded waits on what it started are on a slower machine (a test run's, by its time
-/// scale): an Aspire service's start for the profiler or the debugger, a restart's wait for it, an agent's wait for a
-/// resource. <see cref="ScaleVariable"/> gives the factor, a number above 0, 1 when unset; any other value is fatal, as a
-/// malformed flag is (Program checks it before the window opens).</summary>
+/// <summary>How much longer the IDE's own bounded waits on what it started are on a slower machine: an Aspire service's
+/// start for the profiler or the debugger, a restart's wait for it, an agent's wait for a resource.
+/// <see cref="ScaleVariable"/> gives the factor, a number above 0, 1 when unset; any other value is fatal.</summary>
 public static class Waits
 {
     public const string ScaleVariable = "PASSENGER_WAIT_SCALE";

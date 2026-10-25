@@ -122,8 +122,7 @@ public sealed class AspireContainerRecoveryTests
         {
             new { Name = Context, Endpoints = new { docker = new { Host = endpoint } } },
         }));
-        // A line of ps's JSON as Docker's CLI writes it, none for a container the engine no longer holds; a Persistent one
-        // carries the orchestrator's label.
+        // ps's JSON as Docker writes it, empty for a gone container; a Persistent one carries the orchestrator's label.
         File.WriteAllText(Path.Combine(folder, "inspect.json"), scenario == "gone" ? string.Empty : JsonSerializer.Serialize(new
         {
             ID = scenario == "unknown-id" ? UnrecordedId : RecordedId,

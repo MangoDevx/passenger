@@ -53,14 +53,13 @@ public sealed class ServiceUnreachedException(string message, Exception? inner =
 /// whose gutter icon names it), which the service actions act on: its run and its name there, whether it runs now or not.</summary>
 public sealed record ChosenService(ServiceRun Run, string Name);
 
-/// <summary>A run of several .NET services, the one model every kind of it is (a container run; an Aspire AppHost's run
-/// next): it lists its .NET services, and keeps for each what it is held at its start for (the debugger, quietly for Hot
-/// Reload; none: unheld), the sessions that reach it from here, whether it was attached to as it ran, and the one the
-/// profiler records, which <see cref="BuildRunController"/>'s service actions (Debug, Attach, Run without Debugger,
-/// Restart, the restart for an edit Hot Reload cannot apply) and Stop's order work on, written once. A kind supplies only
-/// what is its own: how its services restart (<see cref="RestartAsync"/>), how a hold chosen takes effect at their next
-/// start (<see cref="HoldsChangedAsync"/>) and where a service's program is (<see cref="ProgramAsync"/>). A UI-thread
-/// object of the session's.</summary>
+/// <summary>A run of several .NET services, the one model of every kind of it (a container run, an Aspire AppHost's run):
+/// it lists its .NET services, and keeps for each what it is held at its start for (the debugger, quietly for Hot Reload;
+/// none: unheld), the sessions that reach it from here, whether it was attached to as it ran, and the one the profiler
+/// records, which <see cref="BuildRunController"/>'s service actions and Stop's order work on, written once. A kind
+/// supplies only what is its own: how its services restart (<see cref="RestartAsync"/>), how a hold chosen takes effect
+/// at their next start (<see cref="HoldsChangedAsync"/>) and where a service's program is (<see cref="ProgramAsync"/>). A
+/// UI-thread object of the session's.</summary>
 public abstract class ServiceRun
 {
     /// <summary>What each .NET service is held at its start for, as last chosen (debugged, or attached to quietly for Hot
@@ -101,7 +100,7 @@ public abstract class ServiceRun
     public List<string> Notes { get; } = [];
 
     /// <summary>Where its services' logs and traces are read (an AppHost's dashboard, a container run's own), null while it
-    /// has none: the Telemetry view and an agent's <c>telemetry</c> read every kind of run through it.</summary>
+    /// has none.</summary>
     public virtual Telemetry.TelemetrySource? Telemetry => null;
 
     /// <summary>The .NET services held at their start for the debugger, which a restart holds again.</summary>
@@ -163,11 +162,10 @@ public abstract class ServiceRun
     public virtual string? StartLater(IRunService service, bool profiled) => $"{Name} does not start {service.Name}";
 
     /// <summary>Ends what reaches services of the run from here (every one, given none): their debugging sessions (in a tab
-    /// or for Hot Reload) and the profiler's recording, its snapshot read; done once they have. Stop's order, written once for
-    /// every stop of a service or a run (Stop, a restart, a service's own end, the folder's end): these end before the
-    /// programs do, so no debugger loses its program under it and the profiler's trace keeps its rundown. As the folder ends
-    /// (<paramref name="closing"/>) each session is closed, needing no UI thread once begun, and the recording is the
-    /// folder's profiler's to let go, read by no one.</summary>
+    /// or for Hot Reload) and the profiler's recording, its snapshot read; done once they have. Stop's order for every stop of
+    /// a service or a run: these end before the programs do, so no debugger loses its program under it and the profiler's
+    /// trace keeps its rundown. As the folder ends (<paramref name="closing"/>) each session is closed, needing no UI thread
+    /// once begun, and the recording is left to the folder's profiler.</summary>
     public Task EndSessionsAsync(DebugController debug, IEnumerable<IRunService>? services = null, bool closing = false)
     {
         List<IRunService>? given = services?.ToList();

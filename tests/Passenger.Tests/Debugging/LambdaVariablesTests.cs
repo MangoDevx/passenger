@@ -22,7 +22,6 @@ public class LambdaVariablesTests(ITestOutputHelper testOutputHelper)
             .WithConfigurationDoneRequest()
             .WithOptionalResumeRuntime(p2.Id, startSuspended);
 
-        // stop inside the lambda
         StoppedEvent stoppedEvent = await debugProtocolHost.WaitForStoppedEvent();
         (string filePath, int line, int column) stopInfo = stoppedEvent.ReadStopInfo();
         Assert.EndsWith("MyLambdaClass.cs", stopInfo.filePath);

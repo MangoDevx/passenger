@@ -11,7 +11,7 @@ internal readonly record struct CilInterpretationResult(ICorDebugValue Value, IC
 
 internal sealed class CilInterpreter(ManagedDebugger debugger, RuntimeAssemblyPrimitiveTypeClasses primitiveTypes)
 {
-    /// <summary>Rider's and Visual Studio's word for an expression stopped before it finished.</summary>
+    /// <summary>What an expression stopped before it finished says.</summary>
     internal const string TookTooLong = "The expression took too long to evaluate";
 
     public async Task<CilInterpretationResult> InterpretAsync(CompiledEvaluationMethod compiled, CompiledExpressionEvaluationContext context, Lazy<DelegateMaterializerAssembly> delegateMaterializer)
@@ -393,8 +393,7 @@ internal sealed class CilInterpreter(ManagedDebugger debugger, RuntimeAssemblyPr
             }
             catch (ArithmeticException thrown)
             {
-                // What the program would throw running the instruction itself (an overflow, a division by zero), told as
-                // one that code the debugger runs in the program throws.
+                // What the program would throw running the instruction itself, told as code run in the program throws.
                 throw new ManagedDebugger.EvalException($"Evaluation threw {thrown.GetType().FullName}: {thrown.Message}");
             }
             catch (Exception ex) when (ex is not NotSupportedException and not ManagedDebugger.EvalException)
@@ -666,8 +665,7 @@ internal sealed class CilInterpreter(ManagedDebugger debugger, RuntimeAssemblyPr
             callArguments[0] = receiver.Value is EvaluationDelegate or EvaluationClosure
                 ? await MaterializeForCallAsync(receiver, run.Compiled, resolver, run.Delegates, context, handles)
                 : await MaterializeReceiverAsync(receiver, context, constrainedType, resolver, handles);
-            // A constrained call on a struct runs on a boxed copy; what it changes goes back where
-            // the struct lives, as the call on the struct's own address would have (upstream #30).
+            // A constrained call on a struct runs on a boxed copy, whose changes go back where the struct lives.
             if (constrainedType is not null && receiverValue.Location is { } receiverHome
                 && callArguments[0] != receiver.CorValue && callArguments[0].UnwrapDebugValue() is ICorDebugGenericValue)
             {
@@ -860,8 +858,7 @@ internal sealed class CilInterpreter(ManagedDebugger debugger, RuntimeAssemblyPr
             byte[] sourceBytes = sourceGeneric.GetValueAsBytes();
             if (sourceBytes.Length != primitiveResult.Size && value.TryGetInt64(out long integer))
             {
-                // An enum narrower or wider than the result goes through its value, signed as its type is:
-                // an sbyte enum's -1 widened byte by byte would be 255 (upstream #30).
+                // An enum goes through its value, signed as its type is: an sbyte enum's -1 is never 255.
                 sourceBytes = CilValueEncoding.GetBytesForSize(integer, primitiveResult.Size);
             }
             unsafe
@@ -1025,9 +1022,7 @@ internal sealed class CilInterpreter(ManagedDebugger debugger, RuntimeAssemblyPr
             return handles.Track(await eval.NewParameterizedArrayAsync(debugger.ProcessRuntimeEventsUntilEvalEvent, debugger.EvalStatus, elementType, length, throwOnException: true));
         }
 
-        // ICorDebugEval::NewArray can only allocate arrays of primitive and reference types; for other
-        // value types (e.g. DateTime) the runtime throws ArgumentOutOfRangeException in the debuggee.
-        // In this case we have to allocate through a real Array.CreateInstance call.
+        // NewArray makes only primitive and reference arrays; others come from Array.CreateInstance.
         ICorDebugValue arrayType = await GetSystemTypeAsync(elementCilType, resolver, context, handles) ?? throw new InvalidOperationException("Failed to resolve the element type for array allocation");
         ResolvedRuntimeMethod createInstance = resolver.ResolveRuntimeMethod("System", "Array", "CreateInstance", "System.Type", PrimitiveTypeCode.Int32.ToString());
         ICorDebugValue lengthValue = await MaterializeAsync(CilValue.FromPrimitive(checked((int)length)), context, handles);
@@ -1499,11 +1494,9 @@ internal sealed class CilInterpreter(ManagedDebugger debugger, RuntimeAssemblyPr
         _ => throw new NotSupportedException($"Value '{value.GetType().Name}' is not a primitive CIL value")
     };
 
-    // The following method calls are special-cased instead of being executed through ICorDebugEval because
-    // they cannot be run in the debuggee: the DefaultInterpolatedStringHandler calls that the compiler lowers
-    // interpolated strings to. Real pointer/span arithmetic (Unsafe.*, MemoryMarshal, span-based String.Join)
-    // is not modeled - it cannot be executed through ICorDebugEval, and I am undecided whether it should be emulated on the
-    // debugger side, so such expressions surface as eval errors rather than returning incorrect results.
+    // The calls run here rather than in the program, which cannot run them: those of DefaultInterpolatedStringHandler
+    // that interpolated strings are lowered to. Pointer and span arithmetic (Unsafe, MemoryMarshal, span-based
+    // String.Join) is not modelled, so such an expression fails rather than give a wrong value.
     private async Task<(bool Handled, CilValue? Result)> TryExecuteIntrinsicCallAsync(
         ResolvedRuntimeMethod method,
         CilValue? receiver,

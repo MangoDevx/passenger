@@ -43,7 +43,7 @@ public sealed class LiveTreeController
     /// <summary>The chosen element's properties with a breakpoint, as its rows last showed them.</summary>
     private string watchedShown = string.Empty;
 
-    /// <summary>The window's view once it is first shown or asked for (#441), and what it shows, kept until then.</summary>
+    /// <summary>The window's view once it is first shown or asked for, and what it shows, kept until then.</summary>
     private LiveTreeView? view;
     private (string? Message, string? Line) status;
     private string? banner;
@@ -61,7 +61,6 @@ public sealed class LiveTreeController
         {
             WhyNot = _ => WhyNotAsk(),
         });
-        // What it says before any app is followed, as it says once one has gone from it.
         ShowState();
     }
 
@@ -128,8 +127,7 @@ public sealed class LiveTreeController
     /// <summary>The app the window follows, or null.</summary>
     public LiveApp? App => app;
 
-    /// <summary>The control chosen in the tree (by the inspector's id for it), or null: what an .axaml file's binding values
-    /// are read for (<see cref="BindingValuesController"/>).</summary>
+    /// <summary>The control chosen in the tree (by the inspector's id for it), or null.</summary>
     public long? Chosen => chosen;
 
     /// <summary>Another control was chosen, or none is now.</summary>
@@ -226,8 +224,8 @@ public sealed class LiveTreeController
         ? string.Join(';', current.Debug.Breakpoints.Properties.Where(p => p.Session == debugged && p.Element == shown.Id).Select(p => p.Property).Order(StringComparer.Ordinal))
         : string.Empty;
 
-    /// <summary>The inspectors in the apps told of the property breakpoints as they are now (while each runs), which an
-    /// agent's breakpoint_set waits for, so its next click finds the property watched.</summary>
+    /// <summary>The inspectors in the apps told of the property breakpoints as they are now (while each runs): once it ends,
+    /// the next input to an app finds the property watched.</summary>
     public Task Watching { get; private set; } = Task.CompletedTask;
 
     /// <summary>Tells the inspector in each debugged app which of its properties to watch, as the property breakpoints of its
@@ -270,7 +268,7 @@ public sealed class LiveTreeController
         }
         watchesStale = false;
         BreakpointStore store = current.Debug.Breakpoints;
-        // Held, so what is done next in the app (a test's, an agent's) finds the property watched.
+        // Held, so what is done next in the app finds the property watched.
         using IDisposable held = BackgroundWork.Scope();
         foreach ((DebugTab tab, LiveApp live) in current.Debug.Apps.ToList())
         {
@@ -407,7 +405,6 @@ public sealed class LiveTreeController
         ShowState();
         if (app!.State == LiveAppState.Connected)
         {
-            // As Visual Studio opens its Live Visual Tree when a XAML app starts under its debugger.
             parts.Dock.Show(window.Id);
             _ = RefreshAsync();
             _ = SyncWatchesAsync();
@@ -610,8 +607,8 @@ public sealed class LiveTreeController
         }
     }
 
-    /// <summary>Chooses a control by the inspector's id for it, as the profiler's frames name one, when the app the window
-    /// follows is the process they came from: the tree, asked again, chooses it. False for any other process.</summary>
+    /// <summary>Chooses a control by the inspector's id for it, when the app the window follows is that process: the tree,
+    /// asked again, chooses it. False for any other process.</summary>
     public bool Reveal(int processId, long id)
     {
         UiThread.Check();

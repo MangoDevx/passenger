@@ -10,15 +10,15 @@ public readonly record struct InlineDiff(int OldStart, int OldEnd, int NewStart,
     public bool IsDeletion => NewStart == NewEnd;
 }
 
-/// <summary>Changed lines compared again inside themselves, as IntelliJ's diff does (its ByWord and ByChar): by words, the
-/// spaces and punctuation between matched words compared character by character from both ends, so a changed word is
-/// marked alone and a comma or a space added is marked as itself; or by characters. A word is a run of letters, digits
-/// and underscores (any character but a space and ASCII punctuation), each character of a script written without spaces
-/// (Chinese, Japanese, Thai) a word of its own, and each line break one too. Any thread may compare.</summary>
+/// <summary>Changed lines compared again inside themselves: by words, the spaces and punctuation between matched words
+/// compared character by character from both ends, so a changed word is marked alone and a comma or a space added is
+/// marked as itself; or by characters. A word is a run of letters, digits and underscores (any character but a space
+/// and ASCII punctuation), each character of a script written without spaces (Chinese, Japanese, Thai) a word of its
+/// own, and each line break one too. Any thread may compare.</summary>
 public static class WordDiff
 {
     /// <summary>The most words (or characters) the two sides may have together: past it a change is shown by its lines
-    /// alone, as IntelliJ gives up on a fragment too big to compare, so a huge rewrite costs a bounded time.</summary>
+    /// alone, so a huge rewrite costs a bounded time.</summary>
     private const int MostTokens = 20_000;
 
     /// <summary>The words that differ, or null when the two are too big to compare. A difference covering both texts whole
@@ -141,13 +141,13 @@ public static class WordDiff
         return chunks;
     }
 
-    /// <summary>IntelliJ's alpha: anything but a space and ASCII punctuation, the underscore being a letter.</summary>
+    /// <summary>A word's character: anything but a space or ASCII punctuation, the underscore a letter.</summary>
     private static bool IsWordPart(char c) => !char.IsWhiteSpace(c) && !IsPunctuation(c);
 
     private static bool IsPunctuation(char c) => c != '_' && c is (>= '!' and <= '/') or (>= ':' and <= '@') or (>= '[' and <= '`') or (>= '{' and <= '~');
 
-    /// <summary>Scripts written without spaces between words, whose every character IntelliJ takes for a word: Thai, the
-    /// kana and the CJK ideographs.</summary>
+    /// <summary>Scripts written without spaces between words, whose every character is a word: Thai, the kana and the
+    /// CJK ideographs.</summary>
     private static bool IsContinuousScript(char c) => c is (>= '฀' and <= '๿') or (>= '぀' and <= 'ヿ')
         or (>= '㐀' and <= '䶿') or (>= '一' and <= '鿿') or (>= '豈' and <= '﫿');
 }

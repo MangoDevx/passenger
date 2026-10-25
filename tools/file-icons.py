@@ -3,9 +3,7 @@
 (https://github.com/file-icons) draws with: its own icons (ISC), MFixx (MIT) and GitHub's Octicons (MIT), plus the few
 drawn here.
 
-Each SVG is fetched once into artifacts/file-icons/ and kept there; the list below is the only place a shape is named,
-so adding one is a line here and `just file-icons`. Which file takes which shape is `Explorer/FileIconSet.cs`.
-THIRD_PARTY_NOTICES.md credits the sets.
+Each SVG is fetched once into artifacts/file-icons/ and kept there; the list below is the only place a shape is named.
 
 The icons are drawn at one weight, Octicons' outline: a logo that is a solid badge (a block, shield or disc with its
 letters cut out of it, OUTLINED) keeps its outer edge as a ring and its letters filled, so it reads as light as the rest.

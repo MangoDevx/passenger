@@ -75,7 +75,7 @@ public sealed class XamlFile
 
     public XamlProject Project { get; }
 
-    /// <summary>The theme variant (Dark, Light) whose resources a swatch shows where a theme has several.</summary>
+    /// <summary>The theme variant (Dark, Light) whose resources are read where a theme has several.</summary>
     public string? Variant { get; init; }
 
     public TypeSystem Types => Project.Types;
@@ -327,10 +327,10 @@ public sealed class XamlFile
     }
 
     /// <summary>The type a binding at an element resolves its path against: the nearest <c>x:DataType</c> above it (a data
-    /// template's <c>DataType</c> too), as Avalonia's compiled bindings do. In a dialect that compiles no binding (WPF's),
-    /// unless <paramref name="hints"/> says otherwise, also what says a data context's type, as WPF's designer and Rider
-    /// read it: <c>d:DataContext</c>'s <c>d:DesignInstance</c>, a <c>DataContext</c> property element's object, a
-    /// <c>DataContext</c> bound to a path of the one above, and a template's items, from its control's <c>ItemsSource</c>.</summary>
+    /// template's <c>DataType</c> too). In a dialect that compiles no binding (WPF's), unless <paramref name="hints"/> says
+    /// otherwise, also what says a data context's type: <c>d:DataContext</c>'s <c>d:DesignInstance</c>, a
+    /// <c>DataContext</c> property element's object, a <c>DataContext</c> bound to a path of the one above, and a
+    /// template's items, from its control's <c>ItemsSource</c>.</summary>
     public ClrType? DataTypeAt(XmlElement element, bool inherit = true, bool stopAtTemplates = false, bool? hints = null)
     {
         bool reading = hints ?? !Dialect.CompilesBindings;

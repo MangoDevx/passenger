@@ -1,9 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Passenger's hook inside a test run it starts of a project that tests Avalonia headless under xunit v3: the runtime
-       loads it as a startup hook (DOTNET_STARTUP_HOOKS) into that run's test program alone, never into the project as built,
-       and it draws a failing test's windows into the test's result (Frames.cs). It is compiled against Avalonia 12 and takes
-       the test project's own Avalonia assemblies whatever their 12.x version (StartupHook.cs), and reads xunit by reflection,
-       as the project's own xunit is the one running; carried under testframes/ beside Passenger, its own assembly alone. -->
+  <!-- Passenger's startup hook (DOTNET_STARTUP_HOOKS) in the test program of a test run it starts, for a project that
+       tests Avalonia headless under xunit v3, never in the project as built: it draws a failing test's windows into the
+       test's result. Carried under testframes/ beside Passenger, its own assembly alone. -->
   <PropertyGroup>
     <!-- The oldest .NET an Avalonia 12 test project runs on, so it loads into any of them. -->
     <TargetFramework>net8.0</TargetFramework>
@@ -11,8 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Compiled against Avalonia's implementation assemblies, as the inspector is: a popup's owner is not in the
-         reference ones the package gives a build. -->
+    <!-- Compiled against Avalonia's implementation assemblies: a popup's owner is not in the reference ones the package
+         gives a build. -->
     <PackageReference Include="Avalonia" GeneratePathProperty="true" ExcludeAssets="compile" />
     <Reference Include="$(PkgAvalonia)/lib/net8.0/Avalonia.Base.dll" Private="false" />
     <Reference Include="$(PkgAvalonia)/lib/net8.0/Avalonia.Controls.dll" Private="false" />

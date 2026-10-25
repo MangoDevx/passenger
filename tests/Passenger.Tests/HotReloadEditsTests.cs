@@ -126,7 +126,6 @@ public sealed class HotReloadEditsTests : IClassFixture<HotReloadEditsTests.Tick
                 {
                     Assert.True(outcome.Result == HotReloadResult.RestartNeeded, $"Changing {edit.Kind}{after} should need a restart: {outcome.Said}");
                     Assert.Contains(outcome.Problems, p => p.Path == DemoPath && p.Code?.StartsWith("ENC", StringComparison.Ordinal) == true);
-                    // Nothing was applied: the program goes on ticking as it was, never into a body the update left throwing.
                     Ui.WaitFor(() => Output(window)[before..].Contains("generic", StringComparison.Ordinal), $"the program to tick on as it was ({Output(window)[before..]})");
                     Assert.True(window.Debugger.Session?.State == DebugState.Running, $"The program stopped after an edit that was not applied: {Output(window)[before..]}");
                     Assert.Same(edit, Chains[chain][^1]);
@@ -137,8 +136,7 @@ public sealed class HotReloadEditsTests : IClassFixture<HotReloadEditsTests.Tick
                 applied.Add(edit.Kind);
                 if (edit.Kind == "a method body")
                 {
-                    // Applied without pausing the program; the edits Roslyn's rules allowed are those the program's own runtime says
-                    // it can take, read from its CoreLib.
+                    // The edits Roslyn's rules allowed are those the program's own runtime says it can take.
                     Assert.Equal(DebugState.Running, window.Debugger.Session!.State);
                     Dap.HotReloadStateResponse state = Ui.Await(window.Debugger.Session.HotReloadStateAsync(), "what the program's runtime can take");
                     TestContext.Current.TestOutputHelper?.WriteLine($"The runtime's capabilities: {string.Join(' ', state.Capabilities ?? [])}");
@@ -155,8 +153,8 @@ public sealed class HotReloadEditsTests : IClassFixture<HotReloadEditsTests.Tick
         }
     }
 
-    /// <summary>An edit to the method the program is paused in runs from the paused statement, applied with Apply Hot Reload
-    /// Changes, and, as Rider does, with no Apply at all: by the Resume that lets the program go on.</summary>
+    /// <summary>An edit to the method the program is paused in runs from the paused statement, applied with Apply Hot
+    /// Reload Changes, or with no Apply at all by the Resume that lets the program go on.</summary>
     [AvaloniaFact]
     public void An_edit_to_a_method_paused_on_the_stack_runs_from_its_statement()
     {
@@ -178,7 +176,6 @@ public sealed class HotReloadEditsTests : IClassFixture<HotReloadEditsTests.Tick
             Ui.WaitFor(() => Output(window).Contains("tick edited 2", StringComparison.Ordinal), $"the program to tick with the edit ({Output(window)})");
             Assert.Contains("tick edited 1", Output(window), StringComparison.Ordinal);
 
-            // Paused in Tick again, an edit there is applied by Resume alone, the paused tick printing what the new code prints.
             window.EditorArea.CodeEditor.GoTo(new TextPosition(6, 8));
             Ui.Run(window, AppActions.ToggleBreakpoint);
             Ui.WaitFor(() => window.Debugger.Session?.State == DebugState.Paused && window.Debugger.Stop is not null, "the program to stop in Tick again");

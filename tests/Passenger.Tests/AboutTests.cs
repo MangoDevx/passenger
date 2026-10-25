@@ -12,9 +12,9 @@ using Passenger.Core;
 
 namespace Passenger.Tests;
 
-/// <summary>About Passenger, where Rider has it, naming the version, the commit and the runtime, and the licence and
-/// notices the app carries beside it: Passenger's own licence, and every package it carries (the app's, the debugger's
-/// and Roslyn's server's, which tools/check-notices.py checks THIRD_PARTY_NOTICES.md names) with its licence's text.</summary>
+/// <summary>About Passenger, naming the version, the commit and the runtime, and the licence and notices the app
+/// carries beside it: Passenger's own licence, and every package it carries (the app's, the debugger's and Roslyn's
+/// server's) with its licence's text.</summary>
 public sealed partial class AboutTests : IDisposable
 {
     private readonly string folder = TestFolders.Create("about-");
@@ -42,7 +42,6 @@ public sealed partial class AboutTests : IDisposable
                 $"About does not name the runtime the IDE runs on, {RuntimeInformation.FrameworkDescription}: it shows\n{shown}");
             Assert.Contains(head, about.Text);
 
-            // Its notices link opens the notices beside the app, read-only, in place of About.
             Ui.Click(Link(about, AboutDialog.NoticesLink));
             Assert.False(about.IsVisible, "About stays open over the notices its link opened");
             Assert.Equal(PathNames.Canonical(Path.Combine(AppContext.BaseDirectory, "THIRD-PARTY-NOTICES.txt")), window.EditorArea.Active?.Path);
@@ -53,7 +52,6 @@ public sealed partial class AboutTests : IDisposable
             Assert.True(window.EditorArea.CodeEditor.Document.Snapshot.ToString() == notices && !window.EditorArea.Active!.IsModified,
                 "A key typed into the notices the app carries changed them, which a save would write into the installed app");
 
-            // And its licence link opens Passenger's licence beside the app, the repository's LICENSE.
             about = OpenAbout(window);
             Ui.Click(Link(about, AboutDialog.LicenseLink));
             Assert.Equal(PathNames.Canonical(Path.Combine(AppContext.BaseDirectory, "LICENSE.txt")), window.EditorArea.Active?.Path);
@@ -91,8 +89,6 @@ public sealed partial class AboutTests : IDisposable
             }
         }
 
-        // What the app carries: the app's packages (the test project's .deps.json from the app on), the debugger's and the
-        // language server's.
         SortedSet<string> carried = new(StringComparer.OrdinalIgnoreCase);
         carried.UnionWith(AppPackages(Path.Combine(beside, "Passenger.Tests.deps.json")));
         foreach (string deps in Directory.EnumerateFiles(Path.Combine(beside, "debugger"), "*.deps.json")
@@ -109,7 +105,6 @@ public sealed partial class AboutTests : IDisposable
         Assert.True(licence == "MIT" && text.Contains("Permission is hereby granted, free of charge", StringComparison.Ordinal),
             $"Avalonia, under MIT as its package states, is under '{licence}' in the notices, with this text:\n{text}");
 
-        // And what was copied into Passenger, with its licences, as THIRD_PARTY_NOTICES.md lists it.
         Assert.Contains("## SharpDbg and ICorDebugSharp", notices);
         Assert.Contains("Copyright (c) 2026 Matthew Parker", notices);
         Assert.Contains("SIL OPEN FONT LICENSE Version 1.1", notices);

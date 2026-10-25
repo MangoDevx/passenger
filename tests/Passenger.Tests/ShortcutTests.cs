@@ -8,9 +8,9 @@ using Passenger.Terminal;
 
 namespace Passenger.Tests;
 
-/// <summary>Shortcuts as Rider takes them: a chord's first key says so in the status bar and waits for its second, but
-/// is forgotten on a click, when the focus moves and after two seconds, so a letter typed later is typed; and on Windows,
-/// which sends AltGr as Ctrl+Alt, AltGr types its character rather than running the Ctrl+Alt shortcut of the same key.</summary>
+/// <summary>Shortcuts: a chord's first key says so in the status bar and waits for its second, but is forgotten on a
+/// click, when the focus moves and after two seconds, so a letter typed later is typed; and on Windows, which sends AltGr
+/// as Ctrl+Alt, AltGr types its character rather than running the Ctrl+Alt shortcut of the same key.</summary>
 public sealed class ShortcutTests : IDisposable
 {
     private const string Source = "class One { }\n";
@@ -54,7 +54,7 @@ public sealed class ShortcutTests : IDisposable
         Ui.Type(window, "C", "c");
         Assert.Equal("c" + Source, Text(editor));
 
-        // Left waiting, the first key goes after Rider's two seconds, and its message with it.
+        // Left waiting, the first key goes after two seconds, and its message with it.
         Ui.Press(window, first);
         Assert.StartsWith("Prefix key pressed: ", window.Status);
         Ui.WaitFor(() => !(window.Status ?? "").StartsWith("Prefix key pressed", StringComparison.Ordinal),

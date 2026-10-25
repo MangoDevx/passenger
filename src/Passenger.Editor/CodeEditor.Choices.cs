@@ -4,9 +4,9 @@ using Passenger.Text;
 
 namespace Passenger.Editor;
 
-/// <summary>Ranges of the text offered to choose among, as Rider's Smart Step Into offers a line's calls: each filled, the
-/// one chosen in a stronger colour and boxed. Right and Left (Down and Up, Tab and Shift+Tab) move the choice, Enter or a
-/// click on one takes it; Escape, a click elsewhere, an edit or any other key leaves without one.</summary>
+/// <summary>Ranges of the text offered to choose among (a line's calls to step into): each filled, the one chosen in a
+/// stronger colour and boxed. Right and Left (Down and Up, Tab and Shift+Tab) move the choice, Enter or a click on one
+/// takes it; Escape, a click elsewhere, an edit or any other key leaves without one.</summary>
 public sealed partial class CodeEditor
 {
     private ChoiceSession? choosing;

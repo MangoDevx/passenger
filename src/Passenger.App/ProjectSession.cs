@@ -19,12 +19,13 @@ using Passenger.Profiler;
 
 namespace Passenger.App;
 
-/// <summary>What a window lends each session it makes: its editors (whose open files the session's services follow), where
-/// its state and Local History are kept, how folders are watched, the warm language server a test's windows share, the
-/// consoles, Debug window and tests tree its runners, debugger and test runner write to, the build a test run starts with,
-/// the tab of the Terminal window a program the debugger launches there runs in, the settings as they stand (the
+/// <summary>What a window lends each session it makes: its editors (whose open files the session's services follow),
+/// where its state and Local History are kept, how folders are watched, the warm language server it may take up, the
+/// consoles, Debug window and tests tree its runners, debugger and test runner write to, the build a test run starts
+/// with, the tab of the Terminal window a program the debugger launches there runs in, the settings as they stand (the
 /// Node.js the web language servers run on, whether remote JSON schemas are downloaded), the window's work under way,
-/// which Git's operations and test runs show themselves in, and the container engine the folder's containers run on.</summary>
+/// which Git's operations and test runs show themselves in, and the container engine the folder's containers run
+/// on.</summary>
 public sealed record SessionSetup(
     EditorArea Editors,
     string StateFolder,
@@ -39,7 +40,7 @@ public sealed record SessionSetup(
     ActionWork Work,
     Func<Containers.ContainerEngine> Engine)
 {
-    /// <summary>Where the Dockerfile server asks for image tags in Docker Hub's place: the window's stand-in, a test's.</summary>
+    /// <summary>Where the Dockerfile server asks for image tags in Docker Hub's place: the window's.</summary>
     public Uri? DockerHub { get; init; }
 
     /// <summary>Whether the session starts the C# language server: the window's <see cref="MainWindow.StartsLanguageServer"/>.</summary>
@@ -147,8 +148,7 @@ public sealed class ProjectSession : IAsyncDisposable
         session.Index.Build(folder);
         session.Watcher = new FolderWatcher(folder, setup.Watching);
         session.Web = new Web.WebLanguages(folder, setup.Settings, setup.Engine) { DockerHub = setup.DockerHub };
-        // A compose file's check reads what each .NET service's project reads through the language server, once it is loaded,
-        // and the reads of what a service's environment lacks are marked in its code.
+        // A compose file's check reads what each .NET service's project reads, once the language server has loaded it.
         session.Web.Checks.Code = () => new Containers.ComposeCode(session.Projects, session.CSharp is { IsReady: true } csharp ? csharp.Session : null);
         session.Web.Checks.GapsChanged += (_, _) => session.CSharp?.ComposeGapsChanged();
         return session;
@@ -213,7 +213,7 @@ public sealed class ProjectSession : IAsyncDisposable
         return [.. Projects.Select(ConfigurationOf).Where(c => c.SecretsIn(ConfigurationFiles.Disk) is { } own && PathNames.Same(own, secrets))];
     }
 
-    /// <summary>The name of the project a file belongs to, as Find and Problems group by it; outside them all, Rider's
+    /// <summary>The name of the project a file belongs to, as Find and Problems group by it; outside them all,
     /// Miscellaneous Files.</summary>
     public string ProjectNameOf(string path) => ProjectOf(path) is { } owner ? Path.GetFileNameWithoutExtension(owner.Path) : "Miscellaneous Files";
 
@@ -295,8 +295,7 @@ public sealed class ProjectSession : IAsyncDisposable
             return run.StopAsync(run.IsStopped ? null : run.EndSessionsAsync(Debug));
         }
         Runner.Stop();
-        // The services debugged end first, and the one profiled ends its recording: a container taken from under its debugger
-        // would end the adapter as a failure, and from under the profiler's tools the trace without its rundown.
+        // The services debugged and profiled end first, or the adapter fails and the trace loses its rundown.
         Task stopped = run.StopAsync(run.IsStopped ? null : run.EndSessionsAsync(Debug));
         if (!run.Plan.KeepBacking || run.Plan.Backing.Count == 0)
         {
@@ -540,8 +539,7 @@ public sealed class ProjectSession : IAsyncDisposable
         }
         Workspace = Models.Apply(before);
         Configurations.Configure(Projects);
-        // A project evaluated again, its file or what it imports changed: the language server loads it again too, as it
-        // watches only some of what a project imports.
+        // A project evaluated again is loaded again by the language server too, which watches only some imports.
         CSharp?.Reload([.. before.Projects.Where(p => changed.Contains(p.Path) && p.Evaluated is { Complete: true }).Select(p => p.Path).Distinct(StringComparer.Ordinal)]);
         bool tests = !before.Projects.Where(p => p.IsTestProject).Select(p => p.Path).SequenceEqual(Workspace.Projects.Where(p => p.IsTestProject).Select(p => p.Path));
         bool packages = before.Projects.Zip(Workspace.Projects).Any(p => changed.Contains(p.First.Path) && !p.First.Packages.SequenceEqual(p.Second.Packages));
@@ -701,8 +699,7 @@ public sealed class ProjectSession : IAsyncDisposable
         {
             WalkForProjects();
         }
-        // Once the files it opens with are open (those kept, those the command line names), so the one shown's project
-        // is evaluated first.
+        // Once the files it opens with are open, so the one shown's project is evaluated first.
         UiThread.Post(Evaluate);
     }
 
@@ -756,7 +753,7 @@ public sealed class ProjectSession : IAsyncDisposable
     }
 
     /// <summary>The language server on the workspace, in place of the one before, the files open its too; none for a
-    /// folder with neither a solution nor a project, nor in a window a test made without one.</summary>
+    /// folder with neither a solution nor a project, nor in a window that starts none.</summary>
     private void StartCSharp()
     {
         _ = CSharp?.DisposeAsync();
@@ -881,8 +878,7 @@ public sealed class ProjectSession : IAsyncDisposable
         {
             start.Work.Cancel();
         }
-        // Profile's program ends with the others, its snapshot taken or not, and each run, read by no one now, leaves no
-        // port listening.
+        // Profile's program ends with the others, and each run, read by no one now, leaves no port listening.
         Profiled?.Run.Kill();
         foreach (ProfilingSession run in new[] { Profiling, Profiled?.Run }.OfType<ProfilingSession>().Distinct())
         {
@@ -902,8 +898,7 @@ public sealed class ProjectSession : IAsyncDisposable
         CSharp = null;
         parts.Add(("the web language servers", Web?.DisposeAsync().AsTask() ?? Task.CompletedTask));
         Web = null;
-        // No child holds a container: what the folder started is ended by asking the engine, once Compose bringing a run up
-        // (ended here) has stopped making them.
+        // No child holds a container: the engine ends what the folder started, once Compose has stopped making them.
         Task abandoned = ContainerRun?.Abandon() ?? Task.CompletedTask;
         parts.Add(("the folder's containers", Containers.EndAsync(Task.WhenAll(debuggers, abandoned))));
         Xaml.Dispose();

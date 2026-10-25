@@ -8,7 +8,7 @@ using Passenger.Lsp;
 
 namespace Passenger.App.Web;
 
-/// <summary>The language servers of a web project's files, as Rider's JavaScript and TypeScript support has them.</summary>
+/// <summary>The language servers of a web project's files.</summary>
 public enum WebServerKind
 {
     /// <summary>typescript-language-server over TypeScript's own tsserver: .ts, .tsx, .js, .jsx, .mjs, .cjs.</summary>
@@ -31,13 +31,14 @@ public enum WebServerKind
     Yaml,
 }
 
-/// <summary>JavaScript, TypeScript, HTML, CSS, JSON, Dockerfiles and YAML for the open folder: each kind's language server (the npm packages
-/// carried under <c>web/</c>, run on the machine's Node.js through ChildProcesses) started as the first file that needs
-/// it opens, every open file of its languages kept in step with it (a <see cref="WebDocument"/> each), and ended with the
-/// folder. Without a Node.js to run them (none found, or one too old), each file says why in its banner and the status bar,
-/// keeping its colours. A server that ends or stops answering is started again with its files, a few times at most, as
-/// C#'s is. The project's own <c>node_modules/typescript</c> is the TypeScript server's when it has one, as in Rider. A
-/// UI-thread object: what a server says from its threads crosses through <see cref="UiThread"/>.</summary>
+/// <summary>JavaScript, TypeScript, HTML, CSS, JSON, Dockerfiles and YAML for the open folder: each kind's language
+/// server (the npm packages carried under <c>web/</c>, run on the machine's Node.js through ChildProcesses) started as
+/// the first file that needs it opens, every open file of its languages kept in step with it (a
+/// <see cref="WebDocument"/> each), and ended with the folder. Without a Node.js to run them (none found, or one too
+/// old), each file says why in its banner and the status bar, keeping its colours. A server that ends or stops
+/// answering is started again with its files, a few times at most. The project's own <c>node_modules/typescript</c> is
+/// the TypeScript server's when it has one. A UI-thread object: what a server says from its threads crosses through
+/// <see cref="UiThread"/>.</summary>
 public sealed class WebLanguages : IAsyncDisposable
 {
     private const int RestartLimit = 3;
@@ -92,8 +93,8 @@ public sealed class WebLanguages : IAsyncDisposable
 
     public JsonSchemas Schemas { get; }
 
-    /// <summary>Where the Dockerfile server asks for image tags in Docker Hub's place: a test's stand-in; null for the
-    /// place <c>PASSENGER_DOCKER_HUB</c> names, else Docker Hub's own (<see cref="DockerHubTags"/>).</summary>
+    /// <summary>Where the Dockerfile server asks for image tags in Docker Hub's place: a stand-in; null for the place
+    /// <c>PASSENGER_DOCKER_HUB</c> names, else Docker Hub's own (<see cref="DockerHubTags"/>).</summary>
     public Uri? DockerHub { get; init; }
 
     /// <summary>ESLint, for the files it checks.</summary>
@@ -337,8 +338,8 @@ public sealed class WebLanguages : IAsyncDisposable
         Recheck();
     }
 
-    /// <summary>Rider's "Run 'npm install'": npm install in the folder of the package.json that lists what is missing, on
-    /// the Node.js the servers run on, through ChildProcesses; the banners say so meanwhile, and once it is done ESLint
+    /// <summary>"Run 'npm install'": npm install in the folder of the package.json that lists what is missing, on the
+    /// Node.js the servers run on, through ChildProcesses; the banners say so meanwhile, and once it is done ESLint
     /// checks the files it covers and the banners go.</summary>
     public async Task InstallAsync(string where)
     {
@@ -397,7 +398,7 @@ public sealed class WebLanguages : IAsyncDisposable
         LanguageOf(document.Path) is { } language && servers.GetValueOrDefault(language.Kind) is { Session: null } server ? server.State : null;
 
     /// <summary>What the status bar says of a file's running server worth saying: for a script, the TypeScript it runs,
-    /// the project's own or, marked so, the one Passenger carries, as Rider's widget names it; null otherwise.</summary>
+    /// the project's own or, marked so, the one Passenger carries; null otherwise.</summary>
     public string? DetailOf(OpenDocument document) =>
         LanguageOf(document.Path) is { Kind: WebServerKind.TypeScript } && servers.GetValueOrDefault(WebServerKind.TypeScript)?.Session?.Server.TypeScript is { } typescript
             ? $"TypeScript {typescript.Version}{(typescript.Source == "bundled" ? " (Passenger's)" : string.Empty)}"
@@ -647,8 +648,7 @@ public sealed class WebLanguages : IAsyncDisposable
         {
             Configuration = section => Section(kind, section),
             Content = kind is WebServerKind.Json or WebServerKind.Yaml ? Schemas.ContentAsync : null,
-            // None names the version its pushes answer: the Dockerfile server's checks each text, the YAML server's the latest
-            // after 200 ms, TypeScript's 200 ms at the least after a change or a request (its delayer), pushing only past nothing.
+            // How each server's pushes follow a change, since none names the version a push answers.
             Pushes = kind switch
             {
                 WebServerKind.Dockerfile => new PushPace(EachText: true, TimeSpan.Zero),
@@ -715,8 +715,7 @@ public sealed class WebLanguages : IAsyncDisposable
                 });
                 break;
             case WebServerKind.Yaml:
-                // It asks for its settings as it starts (YamlSettings); this has it ask Passenger for a schema named over
-                // HTTP rather than download it, before any file opens. Its one parameter goes unread.
+                // Has the server ask Passenger for a schema named over HTTP rather than download it.
                 await server.NotifyAsync("yaml/registerContentRequest", new { });
                 break;
             case WebServerKind.Dockerfile:

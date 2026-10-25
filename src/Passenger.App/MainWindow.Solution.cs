@@ -5,15 +5,15 @@ using Passenger.Core;
 
 namespace Passenger.App;
 
-/// <summary>The Solution view's edits to the solution itself, as Rider's: New Solution Folder, Existing Project and
-/// Existing Item into a solution folder (or a folder or project into the solution), a folder's Rename, and Remove of a
-/// folder (with all it holds, once asked) or of a file it lists. Each changes the .sln or .slnx through
-/// <see cref="SolutionEdits"/>, and the Explorer, Build, Run and the language server read the solution again.</summary>
+/// <summary>The Solution view's edits to the solution itself: New Solution Folder, Existing Project and Existing Item
+/// into a solution folder (or a folder or project into the solution), a folder's Rename, and Remove of a folder (with
+/// all it holds, once asked) or of a file it lists. Each changes the .sln or .slnx through <see cref="SolutionEdits"/>,
+/// and the Explorer, Build, Run and the language server read the solution again.</summary>
 public partial class MainWindow
 {
-    /// <summary>Asks the person for files (Existing Project, Existing Item, Compare With, an Aspire AppHost's file input), by
-    /// a title, the types it takes (any file with none) and whether it takes several, in the system's own dialog; tests
-    /// answer for them.</summary>
+    /// <summary>Asks the person for files (Existing Project, Existing Item, Compare With, an Aspire AppHost's file
+    /// input), by a title, the types it takes (any file with none) and whether it takes several, in the system's own
+    /// dialog.</summary>
     public Func<string, IReadOnlyList<FilePickerFileType>?, bool, Task<IReadOnlyList<string>>> PickFiles
     {
         get => pickFiles ?? PickFilesAsync;
@@ -34,8 +34,8 @@ public partial class MainWindow
         return [.. picked.Select(f => f.TryGetLocalPath()).OfType<string>()];
     }
 
-    /// <summary>Rider's New Solution Folder: a folder in a solution folder (by its path in the solution), or at the
-    /// solution's top with none. Null once made, else why not.</summary>
+    /// <summary>New Solution Folder: a folder in a solution folder (by its path in the solution), or at the solution's
+    /// top with none. Null once made, else why not.</summary>
     public string? AddSolutionFolder(string? parent, string name)
     {
         string? problem = EditSolution(file => SolutionEdits.AddFolder(file, parent, name), $"Added solution folder {name}");
@@ -59,8 +59,8 @@ public partial class MainWindow
         return problem;
     }
 
-    /// <summary>Rider's Remove on a solution folder: once the person agrees to what goes with it (its projects, the
-    /// folders and files in it), all of it leaves the solution; every file stays on disk.</summary>
+    /// <summary>Remove on a solution folder: once the person agrees to what goes with it (its projects, the folders and
+    /// files in it), all of it leaves the solution; every file stays on disk.</summary>
     public async Task<bool> RemoveSolutionFolderAsync(string path)
     {
         if (Solution is not { } solution || FindFolder(solution.Entries, path) is not { } removing)
@@ -102,8 +102,8 @@ public partial class MainWindow
         return EditSolution(file => SolutionEdits.RemoveFile(file, holder, path), $"Removed {name} from {FolderName(holder)}") is null;
     }
 
-    /// <summary>Rider's Add Existing Project: the projects the person picks, put in a solution folder, or at the solution's
-    /// top with none.</summary>
+    /// <summary>Add Existing Project: the projects the person picks, put in a solution folder, or at the solution's top
+    /// with none.</summary>
     public async Task AddExistingProjectsAsync(string? into)
     {
         string where = into is null ? "the Solution" : $"Solution Folder '{FolderName(into)}'";
@@ -115,7 +115,7 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>Rider's Add Existing Item: the files the person picks, listed in a solution folder.</summary>
+    /// <summary>Add Existing Item: the files the person picks, listed in a solution folder.</summary>
     public async Task AddExistingItemsAsync(string into)
     {
         IReadOnlyList<string> picked = await PickFiles($"Add Existing Item to '{FolderName(into)}'", null, true);
@@ -202,7 +202,7 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>Rider's Run Unit Tests on projects or solution folders in the Solution view: the tests of the test projects
+    /// <summary>Run Unit Tests on projects or solution folders in the Solution view: the tests of the test projects
     /// among them, found first when they have not been.</summary>
     private void RunProjectTests(IReadOnlyList<string> projects, string what, bool debug)
     {

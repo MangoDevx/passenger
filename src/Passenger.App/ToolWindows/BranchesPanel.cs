@@ -48,8 +48,8 @@ public sealed class BranchNode(BranchNodeKind kind, string title, string key, in
     public override string ToString() => Title;
 }
 
-/// <summary>The branches marked as favourites in a folder, as Rider keeps them: those marked, and those of Rider's own
-/// (main and master, and origin's) unmarked. Full ref names.</summary>
+/// <summary>The branches marked as favourites in a folder: those marked, and the predefined ones (main and master, and
+/// origin's) unmarked. Full ref names.</summary>
 public sealed record GitBranchesState : IStateDocument<GitBranchesState>
 {
     public List<string> Favorites { get; init; } = [];
@@ -65,14 +65,14 @@ public sealed record GitBranchesState : IStateDocument<GitBranchesState>
     };
 }
 
-/// <summary>Rider's branches panel at the Git log's left: HEAD (Current Branch), then Local, Remote by remote and Tags,
-/// each grouped by directory, the current branch first, then favourites (main and master starred to begin with), then
-/// folders, then the rest by name; a search narrows them. A double-click or Enter on one filters the log to it (Rider's
-/// Update Branch Filter in Log); its menu checks out, branches, compares, rebases, merges, updates, pushes, renames and
-/// deletes, as Rider's does.</summary>
+/// <summary>The branches panel at the Git log's left: HEAD (Current Branch), then Local, Remote by remote and Tags, each
+/// grouped by directory, the current branch first, then favourites (main and master starred to begin with), then
+/// folders, then the rest by name; a search narrows them. A double-click or Enter on one filters the log to it (Update
+/// Branch Filter in Log); its menu checks out, branches, compares, rebases, merges, updates, pushes, renames and
+/// deletes.</summary>
 public sealed class BranchesPanel : DockPanel
 {
-    /// <summary>Rider's predefined favourites (GitBranchManager's default branch names).</summary>
+    /// <summary>The predefined favourites.</summary>
     private static readonly string[] Predefined = ["refs/heads/master", "refs/heads/main", "refs/remotes/origin/master", "refs/remotes/origin/main"];
 
     private VcsController vcs;
@@ -112,7 +112,6 @@ public sealed class BranchesPanel : DockPanel
                 ToggleFavorite(branch);
             }
         });
-        // Rider's branches toolbar runs down the panel's left edge.
         StackPanel tools = new()
         {
             Orientation = Orientation.Vertical,
@@ -178,8 +177,7 @@ public sealed class BranchesPanel : DockPanel
     /// <summary>A branch was marked or unmarked as a favourite, for the folder to keep.</summary>
     public event EventHandler<GitBranchesState>? FavoritesChanged;
 
-    /// <summary>The menu Rider gives a branch or tag here, in its order (its Git.Branch group): the items that cannot
-    /// run on it are left out, as Rider hides them.</summary>
+    /// <summary>The menu of a branch or tag here: the items that cannot run on it are left out.</summary>
     public IReadOnlyList<Control> Menu(BranchInfo branch)
     {
         string? current = vcs.Branch;
@@ -238,7 +236,7 @@ public sealed class BranchesPanel : DockPanel
         return items;
     }
 
-    /// <summary>A name as Rider's menus quote it.</summary>
+    /// <summary>A name quoted for a menu, a long one cut short.</summary>
     private static string Quoted(string name) => $"'{(name.Length > 40 ? name[..39] + "…" : name)}'";
 
     /// <summary>Lists another folder's branches from now on, its session's working tree in place of the last's.</summary>
@@ -316,7 +314,7 @@ public sealed class BranchesPanel : DockPanel
         }
     }
 
-    /// <summary>Rider's Mark/Unmark As Favorite.</summary>
+    /// <summary>Mark/Unmark As Favorite.</summary>
     public void ToggleFavorite(BranchInfo branch)
     {
         string full = branch.Ref.FullName;
@@ -379,7 +377,7 @@ public sealed class BranchesPanel : DockPanel
         return node;
     }
 
-    /// <summary>A group's branches under it, those named alike in folders (Rider's Group by Directory).</summary>
+    /// <summary>A group's branches under it, those named alike in folders (Group by Directory).</summary>
     private void Fill(BranchNode group, IReadOnlyList<(BranchInfo Branch, string Path)> branches, int depth)
     {
         foreach (IGrouping<string, (BranchInfo Branch, string Path)> folder in branches.Where(b => b.Path.Contains('/')).GroupBy(b => b.Path[..b.Path.IndexOf('/')]))
@@ -395,8 +393,8 @@ public sealed class BranchesPanel : DockPanel
         Sort(group.Children);
     }
 
-    /// <summary>Rider's order (BranchTreeNodeComparator): the current branch, favourites, folders holding favourites,
-    /// other folders, then the rest, each by name.</summary>
+    /// <summary>The order: the current branch, favourites, folders holding favourites, other folders, then the rest, each
+    /// by name.</summary>
     private static void Sort(List<BranchNode> nodes) =>
         nodes.Sort((a, b) => Weight(a) != Weight(b) ? Weight(a).CompareTo(Weight(b)) : string.Compare(a.Title, b.Title, StringComparison.OrdinalIgnoreCase));
 
@@ -549,7 +547,7 @@ public sealed class BranchesPanel : DockPanel
         row.Children.Add(name);
         if (node.Branch is { Kind: RefKind.Local, Upstream: { } upstream })
         {
-            // Where it pushes and pulls, muted after its name, as Rider's tree shows a branch's tracked branch.
+            // Where it pushes and pulls, muted after its name.
             TextBlock tracked = new() { Text = upstream, FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) };
             tracked.Bind(TextBlock.ForegroundProperty, tracked.GetResourceObservable("Passenger.TextMuted"));
             row.Children.Add(tracked);

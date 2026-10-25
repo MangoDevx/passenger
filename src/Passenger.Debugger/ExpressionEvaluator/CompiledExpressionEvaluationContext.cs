@@ -7,7 +7,8 @@ public class CompiledExpressionEvaluationContext(ICorDebugThread thread, ThreadI
     public ICorDebugThread Thread { get; set; } = thread;
     public FrameStackDepth StackDepth { get; set; } = stackDepth;
     public ThreadId ThreadId { get; set; } = threadId;
-    /// Used as the root value for identifier resolution, if provided. Primarily for evaluating DebuggerDisplay expressions, which only have access to the current object.
+    /// <summary>The value names resolve against, when given: a DebuggerDisplay expression sees only the current
+    /// object.</summary>
     public ICorDebugValue? RootValue { get; set; } = rootValue;
 }
 

@@ -11,17 +11,17 @@ using Passenger.App.Workspace;
 
 namespace Passenger.Tests;
 
-/// <summary>The NuGet window takes its feeds from the folder's nuget.config, as restore does: a folder of packages and a
-/// private v3 feed on a loopback port that asks for the credentials the file gives. Sources lists them, adds a feed leaving
-/// the rest of the file as it was, and disables one, which leaves the chooser and search; the chooser searches All Feeds or
-/// one; an install restores with the credentials, which nothing logs. The run's NuGet home stands in for the person's, so
-/// their nuget.config is never read or written.</summary>
+/// <summary>The NuGet window takes its feeds from the folder's nuget.config: a folder of packages and a private v3 feed on
+/// a loopback port that asks for the credentials the file gives. Sources lists them, adds a feed leaving the rest of the
+/// file as it was, and disables one, which leaves the chooser and search; the chooser searches All Feeds or one; an
+/// install restores with the credentials, which nothing logs. The run's NuGet home stands in for the person's, so their
+/// nuget.config is never read or written.</summary>
 public sealed class PackageSourcesTests : NuGetFeedsFolder
 {
     /// <summary>The Sources tab and the chooser list the folder's two feeds; a search of one feed finds only its packages and
     /// All Feeds both feeds'; a feed disabled leaves search until enabled again; and a feed added is written into the
-    /// folder's nuget.config, the rest of the file kept, Local History keeping the file as it was before, as it keeps every
-    /// write of the IDE's. One window, the feed added last, since nothing answers at its address.</summary>
+    /// folder's nuget.config, the rest of the file kept, Local History keeping the file as it was before. One window, the
+    /// feed added last, since nothing answers at its address.</summary>
     [AvaloniaFact]
     public void The_folders_feeds_are_listed_searched_one_or_all_disabled_and_enabled_and_a_new_one_written_into_its_nuget_config()
     {
@@ -47,7 +47,6 @@ public sealed class PackageSourcesTests : NuGetFeedsFolder
                 $"The NuGet window read the user's nuget.config at {user.Path}, which is the person's own, not the test run's");
         }
 
-        // A search of one feed, then of All Feeds.
         nuget.ChosenFeed = "private";
         Search(nuget, "passenger");
         Assert.True(Ids(nuget).SequenceEqual(["Passenger.Private"]), $"Searching the private feed found [{string.Join(", ", Ids(nuget))}]");
@@ -64,7 +63,6 @@ public sealed class PackageSourcesTests : NuGetFeedsFolder
         Assert.True(Ids(nuget).Order().SequenceEqual(["Passenger.Other", "Passenger.Private", "Passenger.Sample"]), $"All Feeds found [{string.Join(", ", Ids(nuget))}]");
         Assert.True(nuget.Rows.Single(r => r.Id == "Passenger.Private").Feeds.SequenceEqual(["private"]), "The private package is not said to come from the private feed");
 
-        // A feed disabled in Sources, and enabled again.
         ShowSources(nuget);
         Toggle(nuget, "local").IsChecked = false;
         Ui.Landed(() => !nuget.FeedChoices.Contains("local"), "the folder feed gone from the chooser");
@@ -84,7 +82,6 @@ public sealed class PackageSourcesTests : NuGetFeedsFolder
         Search(nuget, "passenger");
         Assert.True(Ids(nuget).Order().SequenceEqual(["Passenger.Other", "Passenger.Private", "Passenger.Sample"]), $"With the folder feed enabled again, All Feeds found [{string.Join(", ", Ids(nuget))}]");
 
-        // A feed added in Sources.
         byte[] bytes = File.ReadAllBytes(config);
         string before = File.ReadAllText(config);
         ShowSources(nuget);
@@ -170,8 +167,7 @@ public sealed class CredentialProviderTests : NuGetFeedsFolder
         }
         File.WriteAllText(config, Config(withCredentials: false));
         feed.Accept("provided", "from-provider");
-        // On PATH, where restore finds a provider that is a program of its own (NUGET_NETCORE_PLUGIN_PATHS names assemblies,
-        // which restore runs with dotnet), so the restore of the folder's project is given the credentials too.
+        // On PATH, where restore finds a provider that is a program of its own, so the restore gets the credentials too.
         string plugins = Directory.CreateDirectory(Path.Combine(folder, "plugins")).FullName;
         string plugin = Path.Combine(plugins, "nuget-plugin-passenger-tests");
         File.WriteAllText(plugin, Provider("provided", "from-provider"));
@@ -196,9 +192,9 @@ public sealed class CredentialProviderTests : NuGetFeedsFolder
         }
     }
 
-    /// <summary>A credential provider as NuGet's plugin protocol has one: a JSON message a line on its input, each
-    /// request answered by its id; it says it authenticates and gives the feed's user and password. Without its own
-    /// handshake, the restore of the folder's project waited for it and then for the feed's 401s, 45 s on CI.</summary>
+    /// <summary>A credential provider as NuGet's plugin protocol has one, its own handshake included: a JSON message a line
+    /// on its input, each request answered by its id; it says it authenticates and gives the feed's user and
+    /// password.</summary>
     private static string Provider(string user, string password) => $$$"""
         #!/bin/sh
         while IFS= read -r line; do

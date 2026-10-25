@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!-- Puts the npm packages a package-lock.json pins into a folder, each tarball checked against the sha512 the lock file
-       gives it; the build runs it (src/Passenger.Lsp/WebServers.targets), never the app. -->
+       gives it: a tool of the build, never part of the app. -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <RootNamespace>Passenger.NodePackages</RootNamespace>

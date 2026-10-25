@@ -51,8 +51,7 @@ public sealed class XamlDocument : IDisposable
 
     internal XamlLoading Loading { get; private set; }
 
-    /// <summary>The project's first read, which a test or a screenshot waits for; its answer null for a project whose
-    /// XAML Passenger does not read.</summary>
+    /// <summary>The project's first read; its answer null for a project whose XAML Passenger does not read.</summary>
     public Task<XamlProject?> Loaded => Loading.Loaded;
 
     /// <summary>Whether the project's types have been read and are XAML Passenger reads.</summary>

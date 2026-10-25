@@ -8,11 +8,11 @@ using Passenger.App.Vcs;
 
 namespace Passenger.Tests;
 
-/// <summary>Rider's branches panel at the Git log's left, over a real working tree with a bare repository as its origin:
-/// HEAD, the local branches by directory, origin's branches and the tags, in Rider's order with main starred; a branch
-/// chosen filtering the log to its commits; and its menu's Checkout, New Branch from, Checkout and Rebase onto, Compare
-/// with, Show Diff with Working Tree, Rebase onto, Merge into, Update, Push, Rename and Delete each doing what it says, a
-/// merge that conflicts opening the Conflicts dialog.</summary>
+/// <summary>The branches panel at the Git log's left, over a real working tree with a bare repository as its origin:
+/// HEAD, the local branches by directory, origin's branches and the tags, main starred; a branch chosen filtering the
+/// log to its commits; and its menu's Checkout, New Branch from, Checkout and Rebase onto, Compare with, Show Diff with
+/// Working Tree, Rebase onto, Merge into, Update, Push, Rename and Delete each doing what it says, a merge that
+/// conflicts opening the Conflicts dialog.</summary>
 public sealed class BranchesTests : IDisposable
 {
     private const string Shop = "class Shop\n{\n    int count;\n\n    void Add() { count++; }\n}\n";
@@ -63,7 +63,6 @@ public sealed class BranchesTests : IDisposable
                 "Tags",
             ], Listed(panel));
 
-        // Tags open to v1.0 and v2.0; a favourite marked goes up, after the current branch.
         panel.Toggle(panel.Rows.Single(r => r.Title == "Tags"));
         Assert.Equal(["v1.0", "v2.0"], panel.Rows.SkipWhile(r => r.Title != "Tags").Skip(1).Select(r => r.Title));
         Assert.True(panel.Select("feature"));
@@ -71,7 +70,6 @@ public sealed class BranchesTests : IDisposable
         Assert.Equal(["main", "feature", "team", "login"], panel.Rows.SkipWhile(r => r.Title != "Local").Skip(1).TakeWhile(r => r.Title != "Remote").Select(r => r.Title));
         Assert.Contains("refs/heads/feature", panel.Favorites.Favorites);
 
-        // The search keeps what has the text and the groups above it.
         panel.SearchText = "log";
         Ui.Settle();
         Assert.Equal(["HEAD (Current Branch)", "Local", "  team", "    login"], Listed(panel));
@@ -94,7 +92,6 @@ public sealed class BranchesTests : IDisposable
         Assert.Equal("refs/heads/feature", log.BranchFilter);
         Assert.Equal(["Feature", "First"], log.Rows.Select(r => r.Commit.Subject));
 
-        // HEAD (Current Branch) is main's alone.
         Assert.True(panel.Select("HEAD"));
         panel.Activate(panel.Selected!);
         Ui.Settle();
@@ -157,12 +154,10 @@ public sealed class BranchesTests : IDisposable
         BranchesPanel panel = window.GitBranches;
         ListBox rows = List(panel);
 
-        // Checkout of origin's feature: the local feature, which there is.
         Choose(panel, rows, "origin/feature", "Checkout");
         Assert.Equal("feature", window.Vcs.Branch);
         Assert.True(File.Exists(Path.Combine(folder, "Feature.cs")), "The checkout left feature's file out");
 
-        // New Branch from 'main'…: named, made at main, checked out.
         Choose(panel, rows, "main", "New Branch from 'main'…");
         NamePopup popup = Assert.IsType<NamePopup>(window.Popup);
         Assert.Equal("main", popup.Text);
@@ -173,7 +168,6 @@ public sealed class BranchesTests : IDisposable
         Assert.Equal("hotfix", window.Vcs.Branch);
         Assert.Equal(Git("rev-parse", "main").Trim(), Git("rev-parse", "HEAD").Trim());
 
-        // Rename...: team/login is login under team no more.
         Choose(panel, rows, "team/login", "Rename…");
         popup = Assert.IsType<NamePopup>(window.Popup);
         popup.Text = "signin";
@@ -182,7 +176,6 @@ public sealed class BranchesTests : IDisposable
         Assert.Equal(["feature", "hotfix", "main", "signin"], LocalBranches());
         Assert.Contains(panel.Rows, r => r.Title == "signin" && r.Depth == 1);
 
-        // Delete of a branch whose commits HEAD has goes at once; of one it lacks, once the person agrees.
         List<string> asked = [];
         window.Confirm = (title, text, yes) =>
         {
@@ -196,7 +189,6 @@ public sealed class BranchesTests : IDisposable
         Assert.Equal(["Branch Was Not Fully Merged: The branch signin was not fully merged to hotfix. Delete it and its unmerged commits?"], asked);
         Assert.Equal(["feature", "hotfix"], LocalBranches());
 
-        // A tag's Delete; origin's main's Checkout makes main again, tracking it.
         panel.Toggle(panel.Rows.Single(r => r.Title == "Tags"));
         Choose(panel, rows, "v1.0", "Delete");
         Assert.Equal(["v2.0"], Git("tag").Split('\n', StringSplitOptions.RemoveEmptyEntries));
@@ -204,7 +196,6 @@ public sealed class BranchesTests : IDisposable
         Assert.Equal("main", window.Vcs.Branch);
         Assert.Equal("origin/main", Git("rev-parse", "--abbrev-ref", "main@{upstream}").Trim());
 
-        // Update brings feature, not checked out, forward to origin's, which another clone moved on.
         string clone = TestFolders.Create("branches-clone-");
         TestGit.Run(clone, "clone", "-q", "-b", "feature", origin, ".");
         TestGit.Run(clone, "config", "user.email", "tests@passenger.invalid");
@@ -216,7 +207,6 @@ public sealed class BranchesTests : IDisposable
         Choose(panel, rows, "feature", "Update");
         Assert.Equal(Git("rev-parse", "origin/feature").Trim(), Git("rev-parse", "feature").Trim());
 
-        // Push... sends hotfix, which origin lacks, there, and tracks it.
         Choose(panel, rows, "hotfix", "Push…");
         Assert.Equal(Git("rev-parse", "hotfix").Trim(), TestGit.Run(origin, "rev-parse", "hotfix").Trim());
         Assert.Equal("origin/hotfix", Git("rev-parse", "--abbrev-ref", "hotfix@{upstream}").Trim());
@@ -231,20 +221,17 @@ public sealed class BranchesTests : IDisposable
         BranchesPanel panel = window.GitBranches;
         ListBox rows = List(panel);
 
-        // Merge 'feature' into 'main': main has feature's commit, in a merge of the two.
         Choose(panel, rows, "feature", "Merge 'feature' into 'main'");
         Assert.True(Ancestor("feature", "main"), "main lacks feature's commit after the merge");
         Assert.Equal("Merged feature to main", window.Status);
         Assert.Equal("Merge branch 'feature'", Git("log", "-1", "--format=%s").Trim());
 
-        // Checkout and Rebase onto 'main': team/login checked out, its commit on top of main.
         Choose(panel, rows, "team/login", "Checkout and Rebase onto 'main'");
         Assert.Equal("team/login", window.Vcs.Branch);
         Assert.True(Ancestor("main", "team/login"), "team/login was not rebased onto main");
         Assert.Equal("Login", Git("log", "-1", "--format=%s").Trim());
         Assert.Equal("Checked out team/login and rebased it on main", window.Status);
 
-        // Rebase 'team/login' onto 'feature' after feature moves on.
         Git("branch", "-f", "feature", "main");
         Git("switch", "-q", "feature");
         Commit("Later.cs", "class Later { }\n", "Later");
@@ -277,7 +264,6 @@ public sealed class BranchesTests : IDisposable
         window.GitWindow.ShowLog();
         Ui.Settle();
 
-        // The files feature's tree and the working tree differ in: Shop.cs edited, Feature.cs only there, Notes.txt only here.
         Choose(panel, rows, "feature", "Show Diff with Working Tree");
         ChangesWindow changes = Assert.IsType<ChangesWindow>(window.Frontmost);
         Assert.Equal("Changes Between feature and Current Working Tree", changes.Title);
@@ -310,7 +296,6 @@ public sealed class BranchesTests : IDisposable
         ConflictsDialog dialog = window.ConflictsWindow!;
         Assert.Equal("Merging branch feature into branch main", dialog.Description);
         Assert.Equal(["Shop.cs"], dialog.Rows.Select(r => r.Conflict.Name));
-        // The file's markers and the merge's message name the branch as git and Rider do.
         Assert.Contains(">>>>>>> feature\n", File.ReadAllText(Path.Combine(folder, "Shop.cs")), StringComparison.Ordinal);
         dialog.Close();
         window.Perform(AppActions.Commit);
@@ -324,7 +309,6 @@ public sealed class BranchesTests : IDisposable
     {
         MainWindow window = Open();
 
-        // Enter on feature opens feature's menu, Rider's for a branch, and checks nothing out.
         ContextMenu menu = OpenBranchWidget(window);
         MenuItem feature = Reach(window, menu.Items.OfType<MenuItem>(), "feature");
         Ui.Press(window, "Enter");
@@ -336,14 +320,12 @@ public sealed class BranchesTests : IDisposable
                 "Rebase 'main' onto 'feature'", "Merge 'feature' into 'main'", "Update", "Push…", "Rename…", "Delete",
             ], feature.Items.OfType<MenuItem>().Select(i => i.Header as string));
 
-        // Its Merge merges, main still checked out.
         Reach(window, feature.Items.OfType<MenuItem>(), "Merge 'feature' into 'main'");
         Ui.Press(window, "Enter");
         Ui.Landed(() => window.Status == "Merged feature to main", "the merge");
         Assert.True(Ancestor("feature", "main"), "main lacks feature's commit after Merge 'feature' into 'main'");
         Assert.Equal("main", window.Vcs.Branch);
 
-        // And its Checkout checks it out.
         menu = OpenBranchWidget(window);
         MenuItem login = Reach(window, menu.Items.OfType<MenuItem>(), "team/login");
         Ui.Press(window, "Enter");

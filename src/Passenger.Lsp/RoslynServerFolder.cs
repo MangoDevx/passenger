@@ -7,7 +7,7 @@ namespace Passenger.Lsp;
 
 /// <summary>Where Roslyn's server runs from. It writes its MEF caches in cache/ beside its own assemblies and takes no other
 /// folder for them, so where the app's roslyn/ is inside a macOS app bundle (a file added there breaks the bundle's seal,
-/// and Gatekeeper then calls a downloaded copy damaged, #450) or cannot be written (a system-wide Linux install), the
+/// and Gatekeeper then calls a downloaded copy damaged) or cannot be written (a system-wide Linux install), the
 /// server runs from a copy in the state's cache, one per build of it (<see cref="Stamp"/>); elsewhere from roslyn/ itself.
 /// Passenger's own reads of roslyn/ (the Razor design-time targets) stay with the app's.</summary>
 internal static class RoslynServerFolder

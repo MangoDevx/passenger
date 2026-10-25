@@ -9,8 +9,8 @@ using Passenger.Xaml.Features;
 
 namespace Passenger.App.Xaml;
 
-/// <summary>Rider's colour picker over a swatch: a square of saturation and brightness for the hue chosen on the bar
-/// under it, an alpha bar, the colour before and after, and its hex to read or type. Choose (or Enter) gives the colour,
+/// <summary>A colour picker over a swatch: a square of saturation and brightness for the hue chosen on the bar under
+/// it, an alpha bar, the colour before and after, and its hex to read or type. Choose (or Enter) gives the colour,
 /// Cancel or Escape leaves it. Its gradients are the colours being chosen; its chrome is the theme's.</summary>
 internal sealed class ColourPicker : Border
 {
@@ -42,7 +42,7 @@ internal sealed class ColourPicker : Border
         after = new Border { Width = 28, Height = 28 };
         before.Bind(Border.CornerRadiusProperty, before.GetResourceObservable("Passenger.ControlRadius", r => r is CornerRadius c ? new CornerRadius(c.TopLeft, 0, 0, c.BottomLeft) : default(CornerRadius)));
         after.Bind(Border.CornerRadiusProperty, after.GetResourceObservable("Passenger.ControlRadius", r => r is CornerRadius c ? new CornerRadius(0, c.TopRight, c.BottomRight, 0) : default(CornerRadius)));
-        // The field takes what the swatches and buttons leave: a fixed width crowded them at the buttons' own width.
+        // The field takes what the swatches and buttons leave.
         hex = new TextBox { Classes = { "search" }, FontFamily = new FontFamily("avares://Passenger.Editor/Fonts#JetBrains Mono") };
         Button choose = new() { Content = "Choose", Classes = { "primary" }, IsDefault = true };
         Button cancel = new() { Content = "Cancel" };
@@ -277,7 +277,6 @@ internal sealed class ColourPicker : Border
         {
             Rect area = new(Bounds.Size);
             Argb colour = Picker.Colour;
-            // A checkerboard shows through what is clear.
             for (double x = 0; x < area.Width; x += 7)
             {
                 for (double y = 0; y < area.Height; y += 7)

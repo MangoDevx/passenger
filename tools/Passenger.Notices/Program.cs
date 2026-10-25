@@ -436,8 +436,7 @@ public static partial class NoticesFile
             }
         }
 
-        // An npm package's entry from its own folder: its package.json's name, version and SPDX licence, the licence file it
-        // carries (whose first copyright line is its copyright; else its author's) or else SPDX's text, and its notice files.
+        // An npm package's entry from its folder: its SPDX licence, the licence file it carries or SPDX's, its notices.
         void Npm(string folder)
         {
             JsonElement package;

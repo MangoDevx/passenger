@@ -22,9 +22,9 @@ public sealed partial record DockerfileStages(IReadOnlyList<DockerfileStage> Sta
     public bool Declares(string argument) =>
         GlobalArguments.Contains(argument, StringComparer.Ordinal) || Stages.Any(s => s.Arguments.Contains(argument, StringComparer.Ordinal));
 
-    /// <summary>The stage fast mode runs a .NET service in, as Visual Studio's fast mode chooses it: the one named as the
-    /// project's <c>DockerfileFastModeStage</c> says, else one named <c>base</c>, else the stage the final stage is FROM; null
-    /// when the final stage builds FROM an image of its own (no stage to stop at).</summary>
+    /// <summary>The stage fast mode runs a .NET service in: the one named as the project's <c>DockerfileFastModeStage</c>
+    /// says, else one named <c>base</c>, else the stage the final stage is FROM; null when the final stage builds FROM an
+    /// image of its own (no stage to stop at).</summary>
     public DockerfileStage? FastStage(string? named)
     {
         if (named is { Length: > 0 } && Stages.FirstOrDefault(s => string.Equals(s.Name, named, StringComparison.OrdinalIgnoreCase)) is { } chosen)

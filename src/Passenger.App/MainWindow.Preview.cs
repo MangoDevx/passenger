@@ -8,11 +8,11 @@ using A = Passenger.App.AppActions;
 
 namespace Passenger.App;
 
-/// <summary>The XAML previewer beside the editor, as Rider's Avalonia previewer splits it: View, XAML Preview shows each
-/// editor group's XAML file of an Avalonia or WPF project with its design view to its right, drawn from the project's last
-/// build by its framework's previewer and following the text as typing pauses. Where the previewer places the file's
-/// elements (WPF's), a click on one selects its start tag in the editor and the element at the caret is outlined. A file's
-/// preview runs while the file is open and the preview on; it ends as either goes.</summary>
+/// <summary>The XAML previewer beside the editor: View, XAML Preview shows each editor group's XAML file of an Avalonia
+/// or WPF project with its design view to its right, drawn from the project's last build by its framework's previewer
+/// and following the text as typing pauses. Where the previewer places the file's elements (WPF's), a click on one
+/// selects its start tag in the editor and the element at the caret is outlined. A file's preview runs while the file
+/// is open and the preview on; it ends as either goes.</summary>
 public partial class MainWindow
 {
     /// <summary>How long typing pauses before the previewer is sent the text.</summary>
@@ -21,10 +21,10 @@ public partial class MainWindow
     private readonly Dictionary<OpenDocument, (XamlPreview Preview, XamlPreviewPane Pane, Debounce Typing, EventHandler<DocumentChangedEventArgs> Changed)> previews = [];
     private bool previewing;
 
-    /// <summary>The preview of a file while it is shown, for tests.</summary>
+    /// <summary>The preview of a file while it is shown.</summary>
     public XamlPreview? PreviewOf(OpenDocument document) => previews.TryGetValue(document, out var shown) ? shown.Preview : null;
 
-    /// <summary>The preview pane of a file while it is shown, for tests to find its frame on the window.</summary>
+    /// <summary>The preview pane of a file while it is shown.</summary>
     public XamlPreviewPane? PreviewPaneOf(OpenDocument document) => previews.TryGetValue(document, out var shown) ? shown.Pane : null;
 
     private void AddPreview()

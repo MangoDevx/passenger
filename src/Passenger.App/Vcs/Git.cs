@@ -5,7 +5,7 @@ using Passenger.Editor;
 
 namespace Passenger.App.Vcs;
 
-/// <summary>How a file differs from the last commit, as Rider's Commit window colours it.</summary>
+/// <summary>How a file differs from the last commit.</summary>
 public enum ChangeKind
 {
     Modified,
@@ -101,9 +101,9 @@ public sealed record GitResult(int Code, string Output, string Error)
     public string Message => (Error.Trim().Length > 0 ? Error : Output).Trim();
 }
 
-/// <summary>A Git working tree, through the `git` executable as Rider drives it: its status, branches, a file as the
-/// last commit has it, and committing, pushing and switching. Every call runs git in the tree's root, its output read
-/// as UTF-8, never through a shell.</summary>
+/// <summary>A Git working tree, through the `git` executable: its status, branches, a file as the last commit has it,
+/// and committing, pushing and switching. Every call runs git in the tree's root, its output read as UTF-8, never
+/// through a shell.</summary>
 public sealed class Git
 {
     private Git(string root, string gitDir)
@@ -129,10 +129,10 @@ public sealed class Git
             : null;
     }
 
-    /// <summary>Makes a folder a working tree, as Rider's Create Git Repository does.</summary>
+    /// <summary>Makes a folder a working tree (Create Git Repository).</summary>
     public static Task<GitResult> InitAsync(string folder) => RunAsync(folder, ["init"]);
 
-    /// <summary>Clones a repository into a folder, as Rider's Clone Repository does: each line git says of its progress
+    /// <summary>Clones a repository into a folder: each line git says of its progress
     /// goes to <paramref name="progress"/> as it is said, on another thread. Canceled, git is ended with all it started
     /// and the task is canceled; what it had made of the folder is the caller's to remove.</summary>
     public static async Task<GitResult> CloneAsync(string url, string destination, Action<string> progress, CancellationToken cancel)
@@ -302,8 +302,7 @@ public sealed class Git
         }
         return new MergeState(MergeOperation.None, ours, null, null, null);
 
-        // The commit message git wrote for the merge, less its comment lines (the conflicts it lists), as a commit
-        // given the message in a file would keep them.
+        // Git's message for the merge less its comment lines (the conflicts), which a commit from a file would keep.
         static string? Message(string? written) => written is null ? null
             : string.Join('\n', written.Split('\n').Where(l => !l.StartsWith('#'))).Trim() is { Length: > 0 } kept ? kept : null;
     }
@@ -415,7 +414,7 @@ public sealed class Git
     /// <summary>Marks a conflicted file resolved with what is on disk now (the merge's result written there).</summary>
     public Task<GitResult> MarkResolvedAsync(string path) => RunAsync(Root, ["add", "--", Literal(Relative(path))]);
 
-    /// <summary>Rider's Abort Merge, Abort Rebase and the like: the tree back as it was before the operation began.</summary>
+    /// <summary>Abort Merge, Abort Rebase and the like: the tree back as it was before the operation began.</summary>
     public Task<GitResult> AbortAsync(MergeOperation operation) => RunAsync(Root, [operation switch
     {
         MergeOperation.Merge => "merge",
@@ -425,7 +424,7 @@ public sealed class Git
         _ => throw new ArgumentException("Nothing is under way to abort", nameof(operation)),
     }, "--abort"]);
 
-    /// <summary>Rider's Continue Rebase: the resolved commit made with the message it had, and the rest replayed.</summary>
+    /// <summary>Continue Rebase: the resolved commit made with the message it had, and the rest replayed.</summary>
     public Task<GitResult> ContinueRebaseAsync() =>
         RunAsync(Root, ["rebase", "--continue"], environment: new Dictionary<string, string> { ["GIT_EDITOR"] = "true" });
 
@@ -519,10 +518,10 @@ public sealed class Git
         return (found, remotes.Succeeded ? remotes.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) : []);
     }
 
-    /// <summary>The history of every branch, remote and tag and of HEAD, newest first with a branch's commits together (as
-    /// Rider's log has it), at most this many; or, given <paramref name="revisions"/>, theirs alone (a branch the log is
-    /// filtered to, "main..feature" for the commits of feature main lacks). Not --all, which takes in the stash's own
-    /// commits (and notes').</summary>
+    /// <summary>The history of every branch, remote and tag and of HEAD, newest first with a branch's commits together, at
+    /// most this many; or, given <paramref name="revisions"/>, theirs alone (a branch the log is filtered to,
+    /// "main..feature" for the commits of feature main lacks). Not --all, which takes in the stash's own commits (and
+    /// notes').</summary>
     public async Task<IReadOnlyList<CommitInfo>> LogAsync(int most = 2000, IReadOnlyList<string>? revisions = null)
     {
         // An unborn HEAD (a new repository, an orphan branch) is left out rather than failing the whole log.
@@ -893,7 +892,7 @@ public sealed class Git
         return moves.Length == 0 ? staged : await RunAsync(Root, ["update-index", "-z", "--index-info"], moves.ToString());
     }
 
-    /// <summary>Rider's Update Project: the branch's upstream merged in (or rebased onto, as the person's pull.rebase
+    /// <summary>Update Project: the branch's upstream merged in (or rebased onto, as the person's pull.rebase
     /// says).</summary>
     public Task<GitResult> PullAsync() => RunAsync(Root, ["pull", "--no-edit"]);
 
@@ -906,10 +905,9 @@ public sealed class Git
         return log.Succeeded ? log.Output.TrimEnd() : null;
     }
 
-    /// <summary>Commits these files' changes (new ones added first) with a message, as Rider's Commit does; amending
-    /// the last commit when asked. Finishing a merge (or a cherry-pick or a revert stopped for conflicts), which git
-    /// commits only whole, the files <paramref name="excluded"/> are taken out of it and kept as changes, as Rider's merge
-    /// commit leaves the files it excludes.</summary>
+    /// <summary>Commits these files' changes (new ones added first) with a message, amending the last commit when asked.
+    /// Finishing a merge (or a cherry-pick or a revert stopped for conflicts), which git commits only whole, the files
+    /// <paramref name="excluded"/> are taken out of it and kept as changes.</summary>
     public async Task<GitResult> CommitAsync(IReadOnlyList<string> paths, string message, bool amend = false, bool merging = false, IReadOnlyList<string>? excluded = null)
     {
         string[] relative = [.. paths.Select(Relative).Distinct()];
@@ -962,15 +960,14 @@ public sealed class Git
     /// empty the working tree.</summary>
     public Task<GitResult> CheckoutAsync(string branch) => RunAsync(Root, ["switch", "--end-of-options", branch]);
 
-    /// <summary>A remote's branch checked out as a local branch of the same name that tracks it, as Rider's Checkout of a
-    /// remote branch makes one.</summary>
+    /// <summary>A remote's branch checked out as a local branch of the same name that tracks it.</summary>
     public Task<GitResult> CheckoutTrackingAsync(string remoteBranch) => RunAsync(Root, ["switch", "--track", "--end-of-options", remoteBranch]);
 
     /// <summary>Another branch merged into the current one, git's own message for the merge commit.</summary>
     public Task<GitResult> MergeAsync(string branch) => RunAsync(Root, ["merge", "--no-edit", "--end-of-options", branch]);
 
     /// <summary>The current branch rebased onto another; or, given <paramref name="branch"/>, that branch checked out and
-    /// rebased onto <paramref name="onto"/> (Rider's Checkout and Rebase onto Current, "git rebase HEAD branch").</summary>
+    /// rebased onto <paramref name="onto"/> (Checkout and Rebase onto Current, "git rebase HEAD branch").</summary>
     public Task<GitResult> RebaseAsync(string onto, string? branch = null) =>
         RunAsync(Root, ["rebase", "--end-of-options", onto, .. branch is null ? Array.Empty<string>() : [branch]],
             environment: new Dictionary<string, string> { ["GIT_EDITOR"] = "true" });
@@ -988,8 +985,8 @@ public sealed class Git
     /// <summary>Whether every commit of a branch is in HEAD's history.</summary>
     public async Task<bool> IsMergedAsync(string branch) => (await RunAsync(Root, ["merge-base", "--is-ancestor", branch, "HEAD"], answers: [1])).Succeeded;
 
-    /// <summary>A local branch that is not checked out brought up to date with the remote's branch it tracks, as Rider's
-    /// Update of a branch fetches it: forward only, refused where the two went apart.</summary>
+    /// <summary>A local branch that is not checked out brought up to date with the remote's branch it tracks: forward only,
+    /// refused where the two went apart.</summary>
     public Task<GitResult> FetchIntoAsync(string remote, string remoteBranch, string local) =>
         RunAsync(Root, ["fetch", "--end-of-options", remote, $"{remoteBranch}:refs/heads/{local}"]);
 
@@ -999,7 +996,7 @@ public sealed class Git
         ? RunAsync(Root, ["push", "--end-of-options", remote, $"refs/heads/{branch.Name}:{target}"])
         : RunAsync(Root, ["push", "-u", "--end-of-options", "origin", $"refs/heads/{branch.Name}:refs/heads/{branch.Name}"]);
 
-    /// <summary>The files that differ between a revision and the working tree (Rider's Show Diff with Working Tree), renames
+    /// <summary>The files that differ between a revision and the working tree (Show Diff with Working Tree), renames
     /// found, each by its path now.</summary>
     public async Task<IReadOnlyList<FileChange>> ChangesSinceAsync(string revision)
     {
@@ -1044,7 +1041,7 @@ public sealed class Git
     /// <summary>A branch made at a commit and checked out.</summary>
     public Task<GitResult> NewBranchAtAsync(string name, string hash) => RunAsync(Root, ["switch", "-c", name, "--end-of-options", hash]);
 
-    /// <summary>A commit checked out on its own, with no branch (a detached head), as Rider's Checkout Revision does.</summary>
+    /// <summary>A commit checked out on its own, with no branch (a detached head).</summary>
     public Task<GitResult> CheckoutRevisionAsync(string hash) => RunAsync(Root, ["switch", "--detach", "--end-of-options", hash]);
 
     public Task<GitResult> CherryPickAsync(string hash) => RunAsync(Root, ["cherry-pick", "--end-of-options", hash]);
@@ -1055,7 +1052,7 @@ public sealed class Git
     /// <summary>The branch moved to a commit: soft keeps the changes staged, mixed keeps them in the files, hard drops them.</summary>
     public Task<GitResult> ResetAsync(string hash, ResetMode mode) => RunAsync(Root, ["reset", $"--{mode.ToString().ToLowerInvariant()}", "--end-of-options", hash]);
 
-    /// <summary>Puts files back as the last commit has them (Rider's Rollback); new files are deleted. A file another
+    /// <summary>Puts files back as the last commit has them (Rollback); new files are deleted. A file another
     /// program holds is tried again (<see cref="Attempts"/>), and one it never lets go of is named in the result, the
     /// rest rolled back all the same.</summary>
     public async Task<GitResult> RollbackAsync(IReadOnlyList<FileChange> changes)
@@ -1078,10 +1075,8 @@ public sealed class Git
         return new GitResult(restored.Succeeded ? 1 : restored.Code, restored.Output, string.Join('\n', reasons));
     }
 
-    /// <summary>How often a rollback tries a file, half a second apart. Windows refuses to delete or replace a file that
-    /// another program has open without sharing deletes (a virus scanner, an indexer, a reader), and git's restore deletes
-    /// each file before it writes the commit's, so for that moment it failed with "unable to unlink old" and left the
-    /// file changed; macOS never refuses.</summary>
+    /// <summary>How often a rollback tries a file, half a second apart: on Windows, another program holding it open (a
+    /// virus scanner, an indexer) fails git's restore for that moment with "unable to unlink old".</summary>
     private const int Attempts = 3;
 
     private static readonly TimeSpan Retry = TimeSpan.FromMilliseconds(500);
@@ -1203,8 +1198,7 @@ public sealed class Git
         ProcessStartInfo start = ChildProcesses.Command(git, arguments, folder);
         // Git never stops to ask on a terminal: it has none (ChildProcesses), and this keeps it from looking for one.
         start.Environment["GIT_TERMINAL_PROMPT"] = "0";
-        // A status or a diff read in the background never takes the index's lock, so a stash, a commit or a checkout
-        // started at the same moment does not fail on it.
+        // A background status or diff never takes the index's lock, so a stash, commit or checkout then never fails on it.
         start.Environment["GIT_OPTIONAL_LOCKS"] = "0";
         return start;
     }

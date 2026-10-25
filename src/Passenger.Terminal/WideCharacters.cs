@@ -3,7 +3,7 @@
 namespace Passenger.Terminal;
 
 /// <summary>The characters a terminal draws two columns wide: East Asian Wide and Fullwidth, and those presented as
-/// emoji (the regional indicators besides), as xterm.js's Unicode 11 widths and wcwidth's tables decide.</summary>
+/// emoji (the regional indicators besides).</summary>
 internal static class WideCharacters
 {
     /// <summary>The first and last code point of each range, in order.</summary>

@@ -46,7 +46,6 @@ public sealed class AssetPreviewControl : DockPanel, IDisposable
         }
         if (asset.Bitmap is { } bitmap)
         {
-            // Inset as the font's samples are, its words and picture on one edge.
             DockPanel picture = new() { Margin = new Thickness(2 * Gap) };
             TextBlock dimensions = Label($"{bitmap.PixelSize.Width} × {bitmap.PixelSize.Height} pixels"
                 + (asset.Frames > 1 ? $" · the first of its {asset.Frames} frames" : ""));

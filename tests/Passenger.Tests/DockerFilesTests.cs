@@ -43,7 +43,6 @@ public sealed class DockerFilesTests : IClassFixture<DockerFilesTests.Shop>
             OpenDocument document = window.EditorArea.Active!;
             Assert.Equal("Dockerfile", document.Language.Name);
 
-            // A FROM's image goes to its registry's page; a stage it names, to the stage.
             Ui.PlaceAfter(editor, "FROM mcr.microsoft.com/dotnet/asp");
             Ui.Press(window, Ui.Shortcut(AppActions.GoToDeclaration));
             Ui.WaitFor(() => window.Browsed.Count > 0, "the aspnet image's page opened");
@@ -106,7 +105,6 @@ public sealed class DockerFilesTests : IClassFixture<DockerFilesTests.Shop>
             Ui.Settle();
             Assert.False(window.Settings.DockerHubTags, "Clearing Complete image tags from Docker Hub left it on");
 
-            // The server, started again, answers (an instruction's completion) and offers no tags, asking Docker Hub nothing.
             editor.Selections = SelectionSet.Single(editor.Document.Snapshot.Length);
             TypeEach(window, "WORK");
             Ui.WaitFor(() => window.Assist.CompletionLabels.Any(l => l.StartsWith("WORKDIR", StringComparison.Ordinal)), "the Dockerfile server started again answering");
@@ -260,7 +258,6 @@ public sealed class DockerFilesTests : IClassFixture<DockerFilesTests.Shop>
             Offers(window, "      - source: nginx", "      - source: ‸", ["nginx", "proxy"]);
             Offers(window, "    image: nginx:1.27", "    image: ‸", []);
 
-            // Chosen, a name goes in for what was typed of it.
             Offers(window, "    volumes_from:\n      - api", "    volumes_from:\n      - api\n      - ca‸", ["cache"], chosen: "    volumes_from:\n      - api\n      - cache\n");
         }
         finally
@@ -270,12 +267,11 @@ public sealed class DockerFilesTests : IClassFixture<DockerFilesTests.Shop>
         }
     }
 
-    /// <summary>Rename on a compose file's own name renames it where it is declared and everywhere the file and its override
-    /// use it, as one command global undo takes back in both: a service from a depends_on of it (depends_on as a list and a
-    /// mapping, links, volumes_from, network_mode's service:, an extends of it, the override's entry and its depends_on); a
-    /// volume from its declaration (a short entry, a long one's source, the override's); a service another file declares,
-    /// from an extends naming it, there, here and in the compose file beside it that extends it too. A name its kind has
-    /// already, or one Compose would not take, is refused, saying why, and nothing changes.</summary>
+    /// <summary>Rename on a compose file's own name renames it where it is declared and wherever the file and its
+    /// override use it, one command global undo takes back: a service from a depends_on of it (a list or a mapping,
+    /// links, volumes_from, network_mode's service:, an extends); a volume from its declaration (a short entry, a long
+    /// one's source); a service another file declares, from an extends naming it, in every file. A name its kind has,
+    /// or one Compose would not take, is refused, saying why.</summary>
     [AvaloniaFact]
     public void Rename_in_a_compose_file_renames_a_service_or_volume_where_it_is_declared_and_used_with_its_override_as_one_undo()
     {
@@ -290,20 +286,17 @@ public sealed class DockerFilesTests : IClassFixture<DockerFilesTests.Shop>
         CodeEditor editor = window.EditorArea.CodeEditor;
         try
         {
-            // A service, from where a service depends on it.
             Rename(window, "depends_on:\n      - d", "db", "postgres", "Renamed the service db to postgres in 2 files");
             Assert.Equal(Renamed.Replace("db", "postgres", StringComparison.Ordinal), editor.Document.Snapshot.ToString());
             Assert.Equal(Overridden.Replace("db", "postgres", StringComparison.Ordinal), File.ReadAllText(overrides));
             Undone(window, compose, overrides);
 
-            // A volume, from its declaration.
             Rename(window, "\nvolumes:\n  da", "data", "pgdata", "Renamed the volume data to pgdata in 2 files");
             Assert.Equal(Renamed.Replace("      - data:", "      - pgdata:", StringComparison.Ordinal).Replace("source: data", "source: pgdata", StringComparison.Ordinal)
                 .Replace("\n  data:\n", "\n  pgdata:\n", StringComparison.Ordinal), editor.Document.Snapshot.ToString());
             Assert.Equal(Overridden.Replace("      - data:", "      - pgdata:", StringComparison.Ordinal), File.ReadAllText(overrides));
             Undone(window, compose, overrides);
 
-            // A service another file declares, from the extends naming it: there, here, and in the compose file beside it.
             Rename(window, "service: ba", "base", "redis", "Renamed the service base to redis in 3 files");
             Assert.Equal(Renamed.Replace("service: base", "service: redis", StringComparison.Ordinal), editor.Document.Snapshot.ToString());
             Assert.Equal("services:\n  redis:\n    image: redis:7\n", File.ReadAllText(app.PathOf("ops/common.yaml")));
@@ -312,7 +305,6 @@ public sealed class DockerFilesTests : IClassFixture<DockerFilesTests.Shop>
             Assert.Equal("services:\n  base:\n    image: redis:7\n", File.ReadAllText(app.PathOf("ops/common.yaml")));
             Assert.Equal(Shop.ComposeFile, File.ReadAllText(app.PathOf("ops/compose.yaml")));
 
-            // Refused, saying why: a name its kind has already, one Compose would not take.
             Rename(window, "services:\n  w", "web", "worker", "compose.yaml has a service named worker already");
             Rename(window, "services:\n  w", "web", "my web", "A service's name has only letters, digits, dots, dashes and underscores");
             Assert.Equal(Renamed, editor.Document.Snapshot.ToString());
@@ -493,35 +485,29 @@ public sealed class DockerFilesTests : IClassFixture<DockerFilesTests.Shop>
             string compose = app.PathOf("ops/compose.yaml");
             Ui.WaitFor(() => window.Session.Workspace?.Projects.Any(p => p.Name == "Api") == true, "the solution's projects");
 
-            // The Structure window shows the YAML server's outline: the services and what declares them.
             Ui.Run(window, AppActions.ShowStructure);
             Ui.WaitFor(() => window.StructureView.Rows.Any(r => r.Name == "depends_on"), "the compose file's outline in the Structure window");
             Assert.Equal(["services", "api", "build"], window.StructureView.Rows.Take(3).Select(r => r.Name));
 
-            // A build: its Dockerfile, and the project the Dockerfile's entry point runs, to choose from.
             GoFrom(window, compose, "dockerfile: ops/api.Dock");
             Ui.WaitFor(() => window.Assist.Offered.Count == 2, "the build's Dockerfile and project offered");
             Assert.Equal(["api.Dockerfile", "Api.csproj"], window.Assist.Offered);
             Ui.Press(window, "ESCAPE");
 
-            // A service a service names, however it names it.
             Arrives(window, compose, "depends_on:\n      d", compose, new TextPosition(19, 2));
             Arrives(window, compose, "links: [ca", compose, new TextPosition(25, 2));
             Arrives(window, compose, "volumes_from:\n      - cac", compose, new TextPosition(25, 2));
             Arrives(window, compose, "network_mode: service:d", compose, new TextPosition(19, 2));
             Arrives(window, compose, "service: ba", app.PathOf("ops/common.yaml"), new TextPosition(1, 2));
 
-            // A named volume, network and secret: their declarations at the file's foot.
             Arrives(window, compose, "      - da", compose, new TextPosition(31, 2));
             Arrives(window, compose, "      - back", compose, new TextPosition(33, 2));
             Arrives(window, compose, "      - tok", compose, new TextPosition(35, 2));
 
-            // A variable: its line in the .env beside the file; an env_file: its file.
             Arrives(window, compose, "$DB_PASS", app.PathOf("ops/.env"), new TextPosition(1, 0));
             Arrives(window, compose, "${REGIS", app.PathOf("ops/.env"), new TextPosition(0, 0));
             Arrives(window, compose, "      - api.e", app.PathOf("ops/api.env"), new TextPosition(0, 0));
 
-            // An image: its page on Docker Hub, in the browser.
             GoFrom(window, compose, "image: postgres:1");
             Ui.WaitFor(() => window.Browsed.Count > 0, "postgres's page opened");
             Assert.Equal("https://hub.docker.com/_/postgres", window.Browsed[^1].AbsoluteUri);
@@ -552,13 +538,11 @@ public sealed class DockerFilesTests : IClassFixture<DockerFilesTests.Shop>
             Assert.Equal(DockerFiles.Ignore, File.ReadAllText(ignore));
             Assert.Equal(dockerfile, window.EditorArea.Active?.Path);
 
-            // The .dockerignore comments with #, as a .env does.
             window.OpenFile(ignore);
             Ui.Settle();
             Assert.Equal(("Ignore", "#"), (window.EditorArea.Active!.Language.Name, window.EditorArea.Active.Language.LineComment));
             Assert.Equal("#", Language.ForPath(app.PathOf("ops/.env")).LineComment);
 
-            // Undo, from the Solution view, takes both away together, asked first.
             List<string> asked = Answer(window);
             window.ExplorerView.Reveal(app.PathOf("Api/Api.csproj"));
             Ui.Settle();
@@ -595,7 +579,6 @@ public sealed class DockerFilesTests : IClassFixture<DockerFilesTests.Shop>
             Assert.Equal(set, File.ReadAllText(worker));
             Assert.False(File.Exists(app.PathOf("Worker/Dockerfile")), "The SDK's container support wrote a Dockerfile too");
 
-            // Set again, the properties are where they were: nothing is added twice.
             Assert.Null(window.AddDockerSupport(worker, DockerSupportKind.Sdk));
             Assert.Equal(set, File.ReadAllText(worker));
         }
@@ -629,7 +612,6 @@ public sealed class DockerFilesTests : IClassFixture<DockerFilesTests.Shop>
             Assert.Contains("<Folder Name=\"/Solution Items/\">\r\n    <File Path=\"compose.yaml\" />\r\n  </Folder>", File.ReadAllText(app.PathOf("Shop.slnx")), StringComparison.Ordinal);
             Assert.Equal(compose, window.EditorArea.Active?.Path);
 
-            // Undo takes the compose file, the Dockerfile and the solution's entry back.
             List<string> asked = Answer(window);
             Ui.ClickRow(window, Row(window, NodeKind.Solution, "Shop"));
             Ui.Run(window, EditorActions.Undo);
@@ -675,7 +657,6 @@ public sealed class DockerFilesTests : IClassFixture<DockerFilesTests.Shop>
             string listed = File.ReadAllText(app.PathOf("Shop.slnx"));
             Assert.Contains("compose.yaml", solution.Text.Snapshot.ToString(), StringComparison.Ordinal);
 
-            // From the solution's editor, Undo takes the whole command back: its entry, and the files made.
             window.OpenFile(app.PathOf("Shop.slnx"));
             Ui.Settle();
             Ui.Run(window, EditorActions.Undo);

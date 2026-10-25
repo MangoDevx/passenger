@@ -2,7 +2,7 @@
   <!-- What every project shares. A project's own file sets only what is its own. -->
   <PropertyGroup>
     <TargetFramework>net11.0</TargetFramework>
-    <!-- What a package says it is (tools/package-mac.sh) until a vX.Y.Z tag on the commit names the version. -->
+    <!-- The version, until a vX.Y.Z tag on the commit names it. -->
     <Version>0.2.0</Version>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -18,12 +18,10 @@
          only what it names. -->
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <RestoreLockedMode Condition="'$(CI)' == 'true'">true</RestoreLockedMode>
-    <!-- The systems Passenger is published for (just publish, tools/package-*.sh; the musl ones for the container tools
-         alone, just container-tools), so each lock file holds their
-         packages too: a publish for one restores what is locked rather than writing new lock files, which CI's locked
-         restore would refuse. Their runtime and host packs download only for a publish, never for a build for this
-         machine, and ASP.NET Core's, which nothing here uses, never. A publish also builds every library for its system,
-         so the Roslyn server it copies is that system's, not the publishing machine's. -->
+    <!-- Every system Passenger is published for (the musl pair for the container tools alone), so each lock file holds
+         their packages and a publish restores what is locked, which CI's locked restore needs, and builds every library
+         for its system, Roslyn's server included. Their runtime and host packs download only for a publish, and ASP.NET
+         Core's, which nothing uses, never. -->
     <RuntimeIdentifiers>osx-arm64;osx-x64;win-x64;win-arm64;linux-x64;linux-arm64;linux-musl-x64;linux-musl-arm64</RuntimeIdentifiers>
     <EnableRuntimePackDownload Condition="'$(RuntimeIdentifier)' == ''">false</EnableRuntimePackDownload>
     <EnableAppHostPackDownload Condition="'$(RuntimeIdentifier)' == ''">false</EnableAppHostPackDownload>

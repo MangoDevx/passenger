@@ -3,12 +3,12 @@ using Avalonia.Layout;
 
 namespace Passenger.App.Settings;
 
-/// <summary>Rider's Languages &amp; Frameworks, JavaScript, Code Quality Tools, ESLint, and JavaScript, Prettier, by its
-/// words: each tool Disabled, Automatic (the project's own package, found from each file's folder up) or Manual (a package
-/// named here), the files it works on as a glob, and what it does on save and on Reformat Code.</summary>
+/// <summary>The ESLint and Prettier pages: each tool Disabled, Automatic (the project's own package, found from each
+/// file's folder up) or Manual (a package named here), the files it works on as a glob, and what it does on save and on
+/// Reformat Code.</summary>
 public sealed partial class SettingsDialog
 {
-    /// <summary>Rider's names for <see cref="ToolConfiguration"/>'s choices, in its order, for a tool.</summary>
+    /// <summary>The names of <see cref="ToolConfiguration"/>'s choices, in its order, for a tool.</summary>
     public static string[] ConfigurationChoices(string tool) =>
         [$"Disabled {tool} configuration", $"Automatic {tool} configuration", $"Manual {tool} configuration"];
 
@@ -52,7 +52,7 @@ public sealed partial class SettingsDialog
             $"{Prettier} run on save actions on save", "File, Save and Save All format each file the glob covers with Prettier first.");
     }
 
-    /// <summary>Rider's three radio buttons for how a tool is configured.</summary>
+    /// <summary>The three radio buttons for how a tool is configured.</summary>
     private static StackPanel Configuration(string tool, ToolConfiguration now, Action<ToolConfiguration> changed)
     {
         StackPanel choices = new() { Spacing = 4 };

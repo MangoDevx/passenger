@@ -6,11 +6,9 @@ using Passenger.Core;
 
 namespace Passenger.Profiler;
 
-/// <summary>A run's memory snapshots of a program in a container: Passenger's tools there (<c>heap</c>, started with the
-/// first snapshot and kept for the run) dump the heap and read it with the container's own DAC, which a Linux runtime's
-/// is, so it loads only there, and follow its objects from one snapshot to the next through the program's collections as
-/// <see cref="HeapHistory"/> does here; each snapshot comes back whole over docker exec (<see cref="HeapWire"/>) and is
-/// compared, listed and opened on this side as one of this machine's is. One at a time; its end ends the tools there.</summary>
+/// <summary>A run's memory snapshots of a program in a container, taken there by Passenger's tools (<c>heap</c>,
+/// started with the first snapshot and kept for the run), since only there does the container's own DAC load; each
+/// comes back whole over docker exec (<see cref="HeapWire"/>). One at a time; its end ends the tools there.</summary>
 internal sealed class ContainerHeap(ProfilePlace place, int processId) : IAsyncDisposable
 {
     private readonly SemaphoreSlim taking = new(1, 1);

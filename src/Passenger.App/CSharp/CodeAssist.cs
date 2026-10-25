@@ -45,11 +45,11 @@ public sealed record EditorFix(string Title, string Detail, TextRange Range, str
 /// answer, given an agent's call's patience, saying what it came to (never the answer).</summary>
 public sealed record ValueAsked(string Question, bool Secret, Func<string, Patience?, Task<RefactorOutcome>> Make);
 
-/// <summary>What the language server adds to the editor as you work: completion as you type, a card
-/// when the pointer rests (the diagnostics there and the symbol's description), signature help after
-/// an opening bracket or a comma, and the commands Rider binds (quick fixes, rename, go to
-/// declaration, implementation, type declaration, base and derived symbols, find usages, reformat, next error). Its popups
-/// sit on a layer over the editor, placed at the caret.</summary>
+/// <summary>What the language server adds to the editor as you work: completion as you type, a card when the pointer
+/// rests (the diagnostics there and the symbol's description), signature help after an opening bracket or a comma, and
+/// the code commands (quick fixes, rename, go to declaration, implementation, type declaration, base and derived
+/// symbols, find usages, reformat, next error). Its popups sit on a layer over the editor, placed at the
+/// caret.</summary>
 public sealed partial class CodeAssist
 {
     private readonly EditorArea editors;
@@ -246,8 +246,8 @@ public sealed partial class CodeAssist
     /// <summary>An option of Rename's turned on or off, for the window to keep.</summary>
     public event EventHandler? RenameSettingsChanged;
 
-    /// <summary>While the debugger is paused, the value of what the pointer rests on, which the hover
-    /// card shows instead of the symbol's description, as Rider does; in a debugged app's .axaml file, a binding's.</summary>
+    /// <summary>While the debugger is paused, the value of what the pointer rests on, which the hover card shows
+    /// instead of the symbol's description; in a debugged app's .axaml file, a binding's.</summary>
     public Func<int, CancellationToken, Task<DebuggerHover?>>? DebuggerValue { get; set; }
 
     private CodeEditor Editor => editors.CodeEditor;
@@ -353,7 +353,6 @@ public sealed partial class CodeAssist
     /// file.</summary>
     public void AddActions(ActionRegistry actions)
     {
-        // Rider's Code, Code Completion: Basic, then Complete Current Statement after a separator.
         Code(AppActions.Complete, "Basic Completion", context => _ = StartCompletion(null), new("Code/Code Completion", 0, 0), xaml: true, msbuild: true);
         Code(AppActions.CompleteStatement, "Complete Current Statement", _ => CompleteStatement(), new("Code/Code Completion", 1, 0), server: false, syntax: true);
         // Passenger's own fixes first, which a file the server does not read (a XAML file) may have too.
@@ -362,8 +361,7 @@ public sealed partial class CodeAssist
             WhyNot = context => OwnFixes(context.File, context.Editor.Selections.Primary.Caret).Count > 0 ? null : WhyNot(context, server: true, xaml: true),
             Menus = [new("Code", 0, 1)],
         });
-        // Rider's Generate: the server's actions that write code for the type (constructors, equality, interface members,
-        // overrides).
+        // Generate: the server's actions that write code for the type (constructors, equality, members, overrides).
         Code(AppActions.Generate, "Generate…", context => _ = ShowFixes(a => GenerateWords.Any(w => a.Title.StartsWith(w, StringComparison.Ordinal)), "Generate"),
             new("Code", 0, 2));
         Code(AppActions.SurroundWith, "Surround With…", _ => ShowSurround(), new("Code", 0, 3), server: false, syntax: true, markup: true);
@@ -378,9 +376,6 @@ public sealed partial class CodeAssist
         Code(AppActions.OptimizeUsings, "Optimize Imports", context => _ = OptimizeUsings(), new("Code", 1, 2));
         Code(AppActions.RefactorThis, "Refactor This…", context => _ = ShowFixes(a => a.Kind?.StartsWith("refactor", StringComparison.Ordinal) == true, "Refactor This"),
             new("Refactor", 0, 0), xaml: true);
-        // IntelliJ's RefactoringMenu: Rename (the window's, Rider's RenameElement, an Explorer row's too: Rename and
-        // WhyNotRename here) and Change Signature, the Extract and Introduce actions, Inline; Move and Safe Delete; Pull
-        // Members Up and Push Members Down, with Encapsulate Field, which Rider adds last.
         Code(AppActions.ChangeSignature, "Change Signature…", context => _ = ChangeSignature(), new("Refactor", 1, 1));
         Code(AppActions.ExtractMethod, "Extract Method…", context => _ = Refactor(a => a.Title == "Extract method", "Extract Method", renameMethod: true),
             new("Refactor", 1, 2));
@@ -396,7 +391,6 @@ public sealed partial class CodeAssist
         Code(AppActions.PullMembersUp, "Pull Members Up…", context => _ = MoveMembers(up: true), new("Refactor", 3, 0));
         Code(AppActions.PushMembersDown, "Push Members Down…", context => _ = MoveMembers(up: false), new("Refactor", 3, 1));
         Code(AppActions.EncapsulateField, "Encapsulate Field…", context => _ = Refactor(EncapsulateField), new("Refactor", 3, 2));
-        // Rider's XAML refactorings, which ask their options in a dialog, in their own group.
         actions.Add(new IdeAction(AppActions.ExtractResource, "Extract Resource…", "Code", context => _ = ExtractResource())
         {
             WhyNot = context => WhyNotXaml(context),
@@ -407,7 +401,6 @@ public sealed partial class CodeAssist
             WhyNot = context => WhyNotXaml(context),
             Menus = [new("Refactor", 4, 1)],
         });
-        // Rider's order in Navigate: Declaration, Derived Symbols, Implementation(s), Type Declaration, Base Symbols.
         Code(AppActions.GoToDeclaration, "Go to Declaration", context => _ = GoToDefinition(Caret), new("Navigate", 2, 0), xaml: true, msbuild: true, http: true);
         Code(AppActions.DerivedSymbols, "Derived Symbols", context => _ = GoToRelated("Derived Symbols", Caret, DerivedSymbolsAsync, "No derived symbols found"),
             new("Navigate", 2, 1));
@@ -507,9 +500,9 @@ public sealed partial class CodeAssist
         AfterTyped(text);
     }
 
-    /// <summary>Where the name typed so far ends, when what was just typed is one of the chosen item's commit characters
-    /// (the server's: a dot, a bracket, a semicolon), so the item goes in before it; null otherwise. Space is not one, as
-    /// in Rider, and nothing commits before a letter of the name is typed.</summary>
+    /// <summary>Where the name typed so far ends, when what was just typed is one of the chosen item's commit
+    /// characters (the server's: a dot, a bracket, a semicolon), so the item goes in before it; null otherwise. Space
+    /// is not one, and nothing commits before a letter of the name is typed.</summary>
     private int? CommitsOn(string text)
     {
         if (open is null || text.Length != 1 || text == " ")
@@ -572,7 +565,7 @@ public sealed partial class CodeAssist
         }
         if (last == '.' || (InRazor && last is '<' or '@'))
         {
-            // In a Razor file, as in Rider, a tag's '<' lists the elements and components, and '@' Razor's directives and the C#.
+            // In a Razor file a tag's '<' lists the elements and components, and '@' Razor's directives and the C#.
             _ = StartCompletion(last.ToString());
         }
         else if (IsIdentifierChar(last) && !char.IsDigit(last) && WordStart(Editor.Selections.Primary.Caret) == Editor.Selections.Primary.Caret - 1)
@@ -648,8 +641,7 @@ public sealed partial class CodeAssist
             int caret = Editor.Selections.Primary.Caret;
             TextSnapshot asked = Editor.Document.Snapshot;
             Web.WebDocument? web = WebCurrent;
-            // A compose file's own names where one is typed, merged with the server's by label, ahead of them; a settings file's
-            // keys and values from what the code reads, the same way.
+            // A compose file's names, or a settings file's keys and values, merged by label ahead of the server's.
             (int Start, IReadOnlyList<CompletionItem> Items)? named = web is not null ? await ComposeCompletionAsync(web, lsp, asked, caret) : null;
             (int Start, IReadOnlyList<CompletionItem> Items, string Tail)? settings = named is null && web is not null
                 ? await SettingsCompletionAsync(web, asked, caret, cancel.Token) : null;
@@ -682,14 +674,13 @@ public sealed partial class CodeAssist
             int start = named?.Start ?? (served.FirstOrDefault(i => i.TextEdit is not null)?.TextEdit is { } edit
                 ? lsp.OffsetOf(edit.Range.Start)
                 : lsp.IsRazor ? RazorWordStart(caret, served) : web is not null ? WebWordStart(web, caret) : WordStart(caret));
-            // Rider lists the live templates that may go here with the server's items, ahead of a keyword they share: C#'s.
+            // The live templates that may go here are listed with the server's items, ahead of a keyword they share.
             TemplateScope scope = Syntax is { } syntax ? TemplateScopes.At(syntax, caret).Scope : TemplateScope.None;
             templatesOffered.Clear();
             foreach (LiveTemplate template in web is null ? Templates.In(scope) : [])
             {
                 templatesOffered[new CompletionItem { Label = template.Abbreviation, Kind = 15, Detail = template.Description, SortText = "!" + template.Abbreviation }] = template;
             }
-            // After an expression and a dot, the postfix templates that may wrap it, after its members.
             postfixOffered.Clear();
             foreach ((PostfixTemplate postfix, PostfixTarget target) in Templates.PostfixInCompletion ? Postfixes(Math.Min(start, caret), caret) : [])
             {
@@ -824,10 +815,10 @@ public sealed partial class CodeAssist
     /// <summary>The most rows the list shows.</summary>
     private const int MostShown = 200;
 
-    /// <summary>The items that match what was typed, the best first (the higher score over <paramref name="alike"/>, then
-    /// the one the server preselects, then by its sort text): only the best <see cref="MostShown"/> kept as the items are
-    /// scored, where every match of a statement's list (every type in reach) was sorted at every key. An item with no
-    /// filter text of its own is matched by <paramref name="bare"/>, what was typed less a web server's lead.</summary>
+    /// <summary>The items that match what was typed, the best first (the higher score over <paramref name="alike"/>,
+    /// then the one the server preselects, then by its sort text): only the best <see cref="MostShown"/> kept as the
+    /// items are scored, since a statement's list is every type in reach. An item with no filter text of its own is
+    /// matched by <paramref name="bare"/>, what was typed less a web server's lead.</summary>
     private static CompletionItem[] Shown(IReadOnlyList<CompletionItem> items, string typed, string bare, int alike)
     {
         PriorityQueue<CompletionItem, (int Score, CompletionItem Item, int Index)> best = new(MostShown + 1, WorstFirst.Instance);
@@ -1063,8 +1054,8 @@ public sealed partial class CodeAssist
         itemCard.IsVisible = false;
     }
 
-    /// <summary>Rider's documentation beside the completion list: the chosen item's signature and summary, resolved
-    /// once the choice rests a moment.</summary>
+    /// <summary>The documentation beside the completion list: the chosen item's signature and summary, resolved once
+    /// the choice rests a moment.</summary>
     private async Task DescribeSelected()
     {
         describing?.Cancel();
@@ -1212,7 +1203,6 @@ public sealed partial class CodeAssist
             {
                 hoverCard.AddCode(described);
             }
-            // A localized string's: each language's value, as C#'s card says it.
             if (await XamlLocalizationHoverAsync(xaml, offset) is { } languages && !cancel.IsCancellationRequested)
             {
                 hoverCard.AddText(languages);
@@ -1245,7 +1235,6 @@ public sealed partial class CodeAssist
                 // The card says what the markers there say, without the symbol's description.
             }
         }
-        // A configuration key's: where a read's is given and with what, or what reads a settings file's.
         if (debuggerValue is null && XamlCurrent is null && MSBuildCurrent is null && await ConfigurationHoverAsync(offset, cancel.Token) is { } configured)
         {
             if (cancel.IsCancellationRequested)
@@ -1254,7 +1243,6 @@ public sealed partial class CodeAssist
             }
             hoverCard.AddText(configured);
         }
-        // A localized key's: each language's value.
         if (debuggerValue is null && XamlCurrent is null && MSBuildCurrent is null && await LocalizationHoverAsync(offset, cancel.Token) is { } localized)
         {
             if (cancel.IsCancellationRequested)
@@ -1402,7 +1390,6 @@ public sealed partial class CodeAssist
         }
         if (focused)
         {
-            // The keys go back to the editor the card was over.
             Editor.Focus();
         }
     }
@@ -1608,7 +1595,7 @@ public sealed partial class CodeAssist
                 .ToList();
             try
             {
-                // ESLint's fixes for the line first, as Rider lists its linters' before the language's own.
+                // ESLint's fixes for the line first, before the language's own.
                 linted = only is null ? await LintFixes(document, primary.Caret) : [];
                 actions = [.. (await lsp.CodeActionsAsync(primary.Range, here)).Where(a => a.Disabled is null && (only?.Invoke(a) ?? true))];
             }
@@ -1741,8 +1728,8 @@ public sealed partial class CodeAssist
     /// <summary>What the status bar says of a command left unrun: Roslyn's own are run, and it registers no other.</summary>
     private static string NotRun(string what, LspCommand command) => $"{what} needs {command.Command}, which Passenger cannot run";
 
-    /// <summary>One of Rider's refactorings by its own key, over the selection: the language server's action of that
-    /// kind applied at once, and for Extract Method its new method's name then offered to rename, as Rider asks for it.</summary>
+    /// <summary>A refactoring by its own key, over the selection: the language server's action of that kind applied at
+    /// once, and for Extract Method its new method's name then offered to rename.</summary>
     private async Task Refactor(Func<CodeAction, bool> pick, string name, bool renameMethod)
     {
         if (Ask(name) is not { } lsp || editors.Active is not { } document)
@@ -1887,8 +1874,8 @@ public sealed partial class CodeAssist
         _ = OfferFileRenames(box, document, word.Start);
     }
 
-    /// <summary>Rider's Also rename files to reflect this change, offered in the open rename box once the server says the
-    /// name is a type's declared in files named after it.</summary>
+    /// <summary>Also rename files to reflect this change, offered in the open rename box once the server says the name
+    /// is a type's declared in files named after it.</summary>
     private async Task OfferFileRenames(RenameBox box, OpenDocument document, int offset)
     {
         BackgroundWork.Begin();
@@ -1965,7 +1952,7 @@ public sealed partial class CodeAssist
                 return;
             }
             IReadOnlyList<LspLocation> found = await lsp.DefinitionAsync(offset);
-            // A FROM's image that names no stage of the file: its registry's page, as a compose file's image goes.
+            // A FROM's image that names no stage of the file: its registry's page.
             if (found.Count == 0 && WebCurrent is { Kind: Passenger.App.Web.WebServerKind.Dockerfile } && FromImageAt(Editor.Document.Snapshot, offset) is { } page)
             {
                 Browse?.Invoke(this, page);
@@ -2042,8 +2029,8 @@ public sealed partial class CodeAssist
         }
     }
 
-    /// <summary>Rider's Base Symbols: a type's base types and interfaces, or the members a member overrides or implements,
-    /// the nearest first, through every level of the hierarchy that has source.</summary>
+    /// <summary>Base Symbols: a type's base types and interfaces, or the members a member overrides or implements, the
+    /// nearest first, through every level of the hierarchy that has source.</summary>
     private async Task<IReadOnlyList<Target>> BaseSymbolsAsync(LspDocument lsp, int offset)
     {
         string name = NameAt(offset);
@@ -2077,16 +2064,15 @@ public sealed partial class CodeAssist
         return [.. found.Select(l => new Target(l))];
     }
 
-    /// <summary>Rider's Derived Symbols: the types that derive from a type or implement an interface, through every level,
-    /// or the members that override or implement a member.</summary>
+    /// <summary>Derived Symbols: the types that derive from a type or implement an interface, through every level, or
+    /// the members that override or implement a member.</summary>
     private async Task<IReadOnlyList<Target>> DerivedSymbolsAsync(LspDocument lsp, int offset)
     {
         if (await lsp.PrepareTypeHierarchyAsync(offset) is { } type && IsType(type, NameAt(offset)))
         {
             return [.. (await Walk(type, (server, item) => server.SubtypesAsync(item))).Select(TargetOf)];
         }
-        // The server's implementations of a member that has a body hold the member itself, which is not derived from it.
-        // They come in no order; they are listed by file and line.
+        // The server's implementations of a member with a body hold the member itself, which is not derived from it.
         IReadOnlyList<LspLocation> own = await lsp.DefinitionAsync(offset);
         IReadOnlyList<LspLocation> found = await lsp.ImplementationAsync(offset);
         Dictionary<string, string> paths = DocumentUris.ToPaths([.. own.Select(o => o.Uri), .. found.Select(l => l.Uri)]);
@@ -2276,7 +2262,7 @@ public sealed partial class CodeAssist
             }
             return;
         }
-        // Rider's Prettier "Run on 'Reformat Code' action": a file its .prettierignore names goes to its language server.
+        // Prettier's "Run on 'Reformat Code' action": a file its .prettierignore names goes to its language server.
         if (editors.Active is { } file && PrettierReformats(file) && Web?.Invoke() is { } web
             && await Prettify(web, file, "Reformat Code") is not (Prettified.Ignored or Prettified.Unsupported))
         {
@@ -2314,11 +2300,11 @@ public sealed partial class CodeAssist
         }
     }
 
-    /// <summary>Rider's Code Cleanup on the file, through the language server's own fixes: the unnecessary usings
-    /// removed (IDE0005's fix), the usings sorted, then the file reformatted.</summary>
+    /// <summary>Code Cleanup on the file, through the language server's own fixes: the unnecessary usings removed
+    /// (IDE0005's fix), the usings sorted, then the file reformatted.</summary>
     private async Task CleanupCore()
     {
-        // Rider's Code Cleanup on XAML reformats it, by the same code style.
+        // Code Cleanup on XAML reformats it, by the same code style.
         if (editors.Active is { } shown && XamlService.IsXaml(shown.Path))
         {
             if (await ReformatXaml(shown, "Code Cleanup") is { } changed)
@@ -2618,13 +2604,13 @@ public sealed partial class CodeAssist
         return identifier;
     }
 
-    /// <summary>A XAML colour's badge, the colour itself, as Rider shows a colour in its list; null for any other item.</summary>
+    /// <summary>A XAML colour's badge, the colour itself; null for any other item.</summary>
     private IBrush? Swatch(CompletionItem item) =>
         xamlOffered.TryGetValue(item, out XamlItem? offered) && KnownColours.Parse(offered.Colour) is { } colour
             ? new SolidColorBrush(Color.FromArgb(colour.A, colour.R, colour.G, colour.B))
             : null;
 
-    /// <summary>A row's badge: the letter and colour Rider gives each kind of completion.</summary>
+    /// <summary>A row's badge: the letter and colour of each kind of completion.</summary>
     private static CompletionRow Row(CompletionItem item)
     {
         (string letter, string brush) = item.Kind switch
@@ -2652,8 +2638,6 @@ public sealed partial class CodeAssist
         return new CompletionRow(item, letter, brush, detail);
     }
 
-    /// <summary>An open completion list: every item the server gave, and where the word it completes
-    /// began.</summary>
     /// <summary>An open completion list: its items, where the name it completes starts, the characters that commit an
     /// item that names none of its own, and whether the server left items out until more is typed.</summary>
     private sealed record Completion(IReadOnlyList<CompletionItem> Items, int Start, IReadOnlyList<string> CommitCharacters, bool IsIncomplete)
@@ -2672,7 +2656,7 @@ public sealed partial class CodeAssist
         public string Lead { get; init; } = string.Empty;
     }
 
-    /// <summary>The text after the caret a list's items replace, by the first item's range: past the caret, unlike Roslyn's.</summary>
+    /// <summary>The text after the caret a list's items replace, by the first item's range past the caret.</summary>
     private static string Tail(TextSnapshot asked, IReadOnlyList<CompletionItem> items, int caret)
     {
         if (items.FirstOrDefault(i => i.TextEdit is not null)?.TextEdit is not { } edit)

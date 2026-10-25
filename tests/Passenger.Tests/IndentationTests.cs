@@ -10,10 +10,10 @@ using Passenger.Text;
 
 namespace Passenger.Tests;
 
-/// <summary>How a file indents, and what its save does to it, as Rider has it: the nearest .editorconfig sections that
-/// match the file, else the file's own lines, else its language; Enter, Tab, Shift+Tab and a pasted block follow it, the
-/// status bar names it and where it came from, a save trims, ends and writes the file as the .editorconfig asks, and an
-/// .editorconfig changed on disk is followed at once. The language server's side is in <see cref="CodeAssistTests"/>.</summary>
+/// <summary>How a file indents, and what its save does to it: the nearest .editorconfig sections that match the file,
+/// else the file's own lines, else its language; Enter, Tab, Shift+Tab and a pasted block follow it, the status bar
+/// names it and where it came from, a save trims, ends and writes the file as the .editorconfig asks, and an
+/// .editorconfig changed on disk is followed at once.</summary>
 public sealed class IndentationTests : IDisposable
 {
     private readonly string folder = PathNames.Canonical(TestFolders.Create("indent-"));
@@ -28,7 +28,6 @@ public sealed class IndentationTests : IDisposable
         CodeEditor editor = window.EditorArea.CodeEditor;
         Assert.Equal("2 spaces, detected", IndentShown(window));
 
-        // Enter after a brace goes in a level of two; Tab adds two more and Shift+Tab takes them back.
         Ui.PlaceAfter(editor, "if (a > 0)\n    {");
         Ui.Press(window, "ENTER");
         window.KeyTextInput("a--;");
@@ -42,7 +41,6 @@ public sealed class IndentationTests : IDisposable
         Ui.Press(window, "shift TAB");
         Assert.Contains("\n    a--;  \n", Text(editor), StringComparison.Ordinal);
 
-        // A block copied from a file of tabs goes in with the file's two spaces a level.
         Ui.PlaceAfter(editor, "int a = 1;");
         Ui.Press(window, "ENTER");
         Copy(window, "if (a < 0)\n\t\t{\n\t\t\ta = 0;\n\t\t}");
@@ -73,7 +71,6 @@ public sealed class IndentationTests : IDisposable
         Ui.Press(window, "shift TAB");
         Assert.Contains("\n\t\ta();\n", Text(editor), StringComparison.Ordinal);
 
-        // Four spaces a level from elsewhere become a tab a level.
         Ui.PlaceAfter(editor, "int a = 1;");
         Ui.Press(window, "ENTER");
         Copy(window, "if (a < 0)\n        {\n            a = 0;\n        }");
@@ -137,7 +134,6 @@ public sealed class IndentationTests : IDisposable
         CodeEditor editor = window.EditorArea.CodeEditor;
         Assert.Equal("LF", window.FindControl<TextBlock>("LineEndingText")!.Text);
 
-        // A space typed at the end of a line stays while the caret is on it, as Rider keeps the caret's line.
         Ui.PlaceAfter(editor, "int b;\t");
         window.KeyTextInput(" ");
         Ui.Press(window, Ui.Shortcut(AppActions.Save));
@@ -151,7 +147,6 @@ public sealed class IndentationTests : IDisposable
         Assert.Equal("CRLF", window.FindControl<TextBlock>("LineEndingText")!.Text);
         Assert.Equal("UTF-8 BOM", window.FindControl<TextBlock>("EncodingText")!.Text);
 
-        // Enter now writes the .editorconfig's break, and a new class is made with it.
         Ui.Press(window, "ENTER");
         Assert.Contains("    int b;\t \r\n    \r\n}", Text(editor), StringComparison.Ordinal);
         Assert.Null(window.CreateClass(folder, "Made"));
@@ -217,21 +212,18 @@ public sealed class IndentationTests : IDisposable
         MainWindow window = Open("Entering.axaml");
         CodeEditor editor = window.EditorArea.CodeEditor;
 
-        // Between a start tag and its end tag: a line a level in, the end tag on its own at the element's indentation.
         Ui.PlaceAfter(editor, "<Border>");
         Ui.Press(window, "ENTER");
         Assert.True(Text(editor).Contains("        <Border>\n            \n        </Border>\n", StringComparison.Ordinal),
             $"Enter between <Border> and </Border> did not open a line a level in with the end tag below:\n{Text(editor)}");
         Assert.Equal(new TextPosition(6, 12), editor.CaretPosition);
 
-        // After a self-closing tag whose attributes line up under its first, a sibling's indentation, not the attributes'.
         Ui.PlaceAfter(editor, "Width=\"80\" />");
         Ui.Press(window, "ENTER");
         window.KeyTextInput("<Separator />");
         Assert.True(Text(editor).Contains("                Width=\"80\" />\n        <Separator />\n", StringComparison.Ordinal),
             $"Enter after a self-closing tag lined the next element up under its attributes:\n{Text(editor)}");
 
-        // Inside a tag, under its first attribute; and Shift+Enter on a start tag's line opens a line a level in.
         Ui.PlaceAfter(editor, "<Button Content=\"One\"");
         Ui.Press(window, "ENTER");
         window.KeyTextInput("Height=\"20\"");

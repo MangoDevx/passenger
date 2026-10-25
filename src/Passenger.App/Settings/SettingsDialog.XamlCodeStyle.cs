@@ -3,9 +3,9 @@ using Passenger.Xaml.Features;
 
 namespace Passenger.App.Settings;
 
-/// <summary>Rider's Editor, Code Style, XAML: its XML formatter's options by its words, which Reformat Code and Code Cleanup
-/// lay out Avalonia's and WPF's XAML by, and XAML Styler's attribute order and empty-element style after them. A file's
-/// .editorconfig says over each, by Rider's key.</summary>
+/// <summary>The Editor, Code Style, XAML page: the XML formatter's options, which Reformat Code and Code Cleanup lay
+/// out Avalonia's and WPF's XAML by, then the attribute order and empty-element style. A file's .editorconfig says over
+/// each, by Rider's keys.</summary>
 public sealed partial class SettingsDialog
 {
     private void AddXamlCodeStyle()
@@ -47,7 +47,6 @@ public sealed partial class SettingsDialog
         Add(XamlCodeStylePage, "Right margin (columns)", Number(now.RightMargin, 0, XamlFormatSettings.WidestMargin, 1, v => Set(x => x with { RightMargin = (int)v })),
             $"{Words} right margin columns wrap hard max line length");
 
-        // XAML Styler's, which Rider has from that plugin: attributes in its rule groups' order, and empty elements closed.
         TextBox order = new() { Classes = { "search" }, Text = Groups(now.AttributeOrder), AcceptsReturn = true, Width = 420, Height = 210, IsEnabled = now.ReorderAttributes };
         // A group longer than the box scrolls into view rather than being cut at its edge.
         ScrollViewer.SetHorizontalScrollBarVisibility(order, Avalonia.Controls.Primitives.ScrollBarVisibility.Auto);

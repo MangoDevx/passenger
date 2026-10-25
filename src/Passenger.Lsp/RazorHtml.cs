@@ -5,16 +5,16 @@ namespace Passenger.Lsp;
 
 /// <summary>Razor's questions about the HTML in a .razor or .cshtml file. Razor, cohosted in Roslyn's server, gives the
 /// client each open Razor file's HTML (<c>razor/updateHtml</c>: the file with its C# blanked out, so places are the
-/// file's own) and asks it what HTML's language service says at a place, as VS Code's HTML server answers there. With an
-/// HTML language server (<see cref="Server"/>, VS Code's), each file's HTML is a document of its own there, named as
-/// VS Code names it (the file's URI and <c>__virtual.html</c>), and every question goes to it, so the markup, a
-/// <c>&lt;style&gt;</c>'s CSS and a <c>&lt;script&gt;</c>'s JavaScript are answered as in an HTML file. Without one
+/// file's own) and asks it what HTML's language service says at a place. With an HTML language server
+/// (<see cref="Server"/>), each file's HTML is a document of its own there (<see cref="VirtualSuffix"/>), and every
+/// question goes to it, so the markup, a <c>&lt;style&gt;</c>'s CSS and a <c>&lt;script&gt;</c>'s JavaScript are
+/// answered as in an HTML file. Without one
 /// (no Node.js), Passenger answers HTML's element names where a tag's name is typed and its global attributes inside a
 /// start tag, and nothing for the rest, so Razor's own answers (components and their parameters, directives, tag helpers,
 /// the C#) stand on their own. Called on any thread.</summary>
 internal sealed class RazorHtml
 {
-    /// <summary>What VS Code's Razor names a Razor file's HTML by, after the file's own URI; Razor's definitions map it back.</summary>
+    /// <summary>The name Razor gives a Razor file's HTML after the file's own URI, which its definitions map back.</summary>
     private const string VirtualSuffix = "__virtual.html";
 
     /// <summary>The HTML server, asked for as each question comes (it may be started again meanwhile), or null with none.</summary>
@@ -273,7 +273,6 @@ internal sealed class RazorHtml
         }
         if (start > 0 && char.IsWhiteSpace(html[start - 1]) && InStartTag(html, start))
         {
-            // Written with its value's quotes and the caret between them, as Razor writes its own attributes.
             return new
             {
                 isIncomplete = false,

@@ -7,8 +7,8 @@
   <!-- Microsoft's server (MIT, built in the Roslyn repo), one package per platform, copied beside the app under roslyn/;
        RoslynServer.targets finds it. -->
   <Import Project="RoslynServer.targets" />
-  <!-- The servers for JavaScript, TypeScript, HTML, CSS and JSON, npm packages carried under web/; WebServers.targets puts
-       them in place with tools/Passenger.NodePackages, built first and run, never linked. -->
+  <!-- The web languages' servers, npm packages carried under web/; WebServers.targets puts them in place with
+       tools/Passenger.NodePackages, built first and run, never linked. -->
   <Import Project="WebServers.targets" />
   <ItemGroup>
     <ProjectReference Include="../../tools/Passenger.NodePackages/Passenger.NodePackages.csproj" ReferenceOutputAssembly="false" Private="false"
@@ -39,8 +39,8 @@
     </ItemGroup>
   </Target>
 
-  <!-- The server's files become this project's output items, so every project that references this
-       one (the app, the tests) gets them beside its own binaries, with the package's third-party notices. -->
+  <!-- The server's files become this project's output items, so every project that references this one gets them
+       beside its own binaries, with the package's third-party notices. -->
   <Target Name="IncludeRoslynServer" BeforeTargets="AssignTargetPaths" DependsOnTargets="FindRoslynServer">
     <ItemGroup>
       <RoslynServerNotices Include="$(RoslynServerPackage)ThirdPartyNotices.*" />
@@ -63,9 +63,9 @@
     </ItemGroup>
   </Target>
 
-  <!-- Passenger's own extension to the server becomes this project's output under roslyn-extension/, as the server's files
-       do under roslyn/: a folder of its own, since the server loads an extension's folder into a context of its own and
-       Roslyn's assemblies must come from the server's. -->
+  <!-- Passenger's own extension to the server becomes this project's output under roslyn-extension/: a folder of its own,
+       since the server loads an extension's folder into a context of its own and Roslyn's assemblies must come from the
+       server's. -->
   <Target Name="IncludeRoslynExtension" BeforeTargets="AssignTargetPaths">
     <MSBuild Projects="../Passenger.Roslyn.Extension/Passenger.Roslyn.Extension.csproj" Targets="GetTargetPath"
              RemoveProperties="RuntimeIdentifier;SelfContained;PublishReadyToRun" BuildInParallel="$(BuildInParallel)">

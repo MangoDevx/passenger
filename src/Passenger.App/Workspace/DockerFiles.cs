@@ -23,9 +23,9 @@ public sealed record DockerProject(string Path, string Name, string Assembly, st
     public string Service => DockerFiles.ServiceName(Name);
 }
 
-/// <summary>The files Add > Docker Support and Add > Docker Compose write: a project's Dockerfile (its stages base, build,
-/// publish and final, as .NET's own images are layered), the .dockerignore at the build's context, and a solution's
-/// compose.yaml. Text alone: the window writes them as one command (MainWindow.DockerSupport.cs).</summary>
+/// <summary>The files Add > Docker Support and Add > Docker Compose write: a project's Dockerfile (its stages base,
+/// build, publish and final), the .dockerignore at the build's context, and a solution's compose.yaml. Text alone: the
+/// window writes them as one command (MainWindow.DockerSupport.cs).</summary>
 public static class DockerFiles
 {
     /// <summary>A project as its Dockerfile needs it, from its evaluation and the solution's other projects.</summary>

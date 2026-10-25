@@ -69,7 +69,7 @@ public sealed record ResourceSet(string BasePath, IReadOnlyList<ResourceFile> Fi
     }
 
     /// <summary>Each language its files have that lacks a key: the file to give it in, and whether it is there untranslated (an
-    /// XLIFF unit still new); what C#'s and XAML's warnings say.</summary>
+    /// XLIFF unit still new).</summary>
     public IEnumerable<ResourceGap> Lacking(string key)
     {
         foreach (string culture in Cultures)
@@ -82,8 +82,8 @@ public sealed record ResourceSet(string BasePath, IReadOnlyList<ResourceFile> Fi
         }
     }
 
-    /// <summary>What a key's card says of each language, the neutral file's first: its value, or that it has none, is not
-    /// translated yet or wants review. C#'s card and XAML's say it alike.</summary>
+    /// <summary>What a key is in each language, the neutral file's first: its value, or that it has none, is not
+    /// translated yet or wants review.</summary>
     public IReadOnlyList<string> Languages(string key)
     {
         List<string> lines = [];
@@ -103,17 +103,17 @@ public sealed record ResourceSet(string BasePath, IReadOnlyList<ResourceFile> Fi
 }
 
 /// <summary>A key a language of a resource lacks: the key, the resource's base path, the file to give it in, the culture,
-/// and whether the file has it untranslated (an XLIFF unit still new); what a warning says and its fix gives.</summary>
+/// and whether the file has it untranslated (an XLIFF unit still new).</summary>
 public sealed record ResourceGap(string Key, string BasePath, ResourceFile File, string Culture, bool Untranslated)
 {
-    /// <summary>The warning's words, in C# and XAML alike.</summary>
+    /// <summary>The words of a warning of it.</summary>
     public string Message => Untranslated ? $"'{Key}' is not translated to {File.Language} yet ({File.Name})" : $"'{Key}' has no {File.Language} translation ({File.Name})";
 }
 
-/// <summary>A resource's files found and read, the one reading of them shared by the C# localizers' help and XAML's: where a
-/// resource's files are by its base path (<see cref="Of"/>) or by the name ResourceManager looks it up by (<see cref="Named"/>,
-/// as MSBuild names an embedded .resx), and each language's entries with their places. A file on disk is read again only once
-/// its length or time changed, an open one's text once it changed; both read on any thread, so off the UI thread.</summary>
+/// <summary>A resource's files found and read: where a resource's files are by its base path (<see cref="Of"/>) or by the
+/// name ResourceManager looks it up by (<see cref="Named"/>, as MSBuild names an embedded .resx), and each language's
+/// entries with their places. A file on disk is read again only once its length or time changed, an open one's text once
+/// it changed; both read on any thread, so off the UI thread.</summary>
 public static class ResourceFiles
 {
     private static readonly ConcurrentDictionary<string, (long Length, DateTime Written, ResourceFile File)> Read = new(StringComparer.Ordinal);
@@ -331,7 +331,7 @@ public static class ResourceFiles
     }
 
     /// <summary>A .resx's text with a key given a value: a new <c>&lt;data&gt;</c> after its last, written as that one is (on one
-    /// line or three, its indentation, xml:space) with no comment, or as Visual Studio writes one where it has none; every other
+    /// line or three, its indentation, xml:space) with no comment, or on three lines with xml:space where it has none; every other
     /// character kept. Null where the text has no <c>&lt;root&gt;</c> to hold it, or has the key already.</summary>
     public static string? WithEntry(string text, string key, string value)
     {

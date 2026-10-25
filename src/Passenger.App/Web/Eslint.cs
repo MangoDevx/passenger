@@ -12,11 +12,12 @@ using Passenger.Text;
 
 namespace Passenger.App.Web;
 
-/// <summary>ESLint for the folder open, as Rider's ESLint support has it: VS Code's ESLint language server (carried under
-/// web/ in vscode-langservers-extracted) on the web servers' Node.js, started with the first file it checks, running the
-/// project's own eslint package (found from each file's folder up, or the one Settings names) with its own configuration,
-/// for the files "Run for files" covers. Its problems are each file's as typed (<see cref="EslintDocument"/>); a server
-/// that ends is started again with its files, a few times at most. A UI-thread object.</summary>
+/// <summary>ESLint for the folder open: VS Code's ESLint language server (carried under web/ in
+/// vscode-langservers-extracted) on the web servers' Node.js, started with the first file it checks, running the
+/// project's own eslint package (found from each file's folder up, or the one Settings names) with its own
+/// configuration, for the files "Run for files" covers. Its problems are each file's as typed
+/// (<see cref="EslintDocument"/>); a server that ends is started again with its files, a few times at most. A UI-thread
+/// object.</summary>
 public sealed class EslintService : IAsyncDisposable
 {
     private const int RestartLimit = 3;
@@ -110,7 +111,7 @@ public sealed class EslintService : IAsyncDisposable
     }
 
     /// <summary>Files changed on disk: ESLint's configuration files, its ignore file and package.json are told to the
-    /// server as VS Code's client tells them, which checks every file again.</summary>
+    /// server, which checks every file again.</summary>
     public void FilesChanged(IReadOnlyCollection<string> paths)
     {
         UiThread.Check();
@@ -122,8 +123,8 @@ public sealed class EslintService : IAsyncDisposable
         }
     }
 
-    /// <summary>Whether a file is one of those VS Code's ESLint extension watches: a configuration (flat or eslintrc), the
-    /// ignore file, or package.json (its eslintConfig).</summary>
+    /// <summary>Whether a file configures ESLint: a configuration (flat or eslintrc), the ignore file, or package.json
+    /// (its eslintConfig).</summary>
     private static bool Configures(string name) =>
         name is ".eslintignore" or "package.json" or ".eslintrc"
         || (name.StartsWith("eslint.config.", StringComparison.Ordinal) && Path.GetExtension(name) is ".js" or ".mjs" or ".cjs" or ".ts" or ".mts" or ".cts")
@@ -232,9 +233,9 @@ public sealed class EslintService : IAsyncDisposable
         }
     }
 
-    /// <summary>What the server reads as each file's settings (VS Code's ESLint extension's, which it asks for whole): lint as
-    /// typed, the package found from the file's folder up unless Manual names one (by the node_modules it is in), the
-    /// project's flat or eslintrc configuration as its eslint decides, fixes and suppressions offered as VS Code offers them.</summary>
+    /// <summary>What the server reads as each file's settings, asked for whole: lint as typed, the package found from
+    /// the file's folder up unless Manual names one (by the node_modules it is in), the project's flat or eslintrc
+    /// configuration as its eslint decides, and fixes and suppressions offered.</summary>
     private object? Section(string? section)
     {
         if (section is { Length: > 0 })
@@ -248,7 +249,7 @@ public sealed class EslintService : IAsyncDisposable
             ["validate"] = "on",
             ["packageManager"] = "npm",
             ["useESLintClass"] = false,
-            // Neither flat nor eslintrc forced: the project's eslint takes the configuration it finds, as its CLI does.
+            // Neither flat nor eslintrc forced: the project's eslint takes the configuration it finds.
             ["experimental"] = new JsonObject(),
             ["codeAction"] = new JsonObject
             {
@@ -275,8 +276,7 @@ public sealed class EslintService : IAsyncDisposable
     private void Hear(LanguageSession started)
     {
         LanguageServer server = started.Server;
-        // Touched only by the server's messages, which come one at a time in order: its catch-all's first line, held for the
-        // error it introduces, and whether the error was a missing configuration, for the file's status that follows.
+        // Touched only by the server's messages, which come one at a time in order.
         string? introduced = null;
         bool configMissing = false;
         server.Logged += (_, message) =>
@@ -347,9 +347,9 @@ public sealed class EslintService : IAsyncDisposable
     /// <summary>The first line vscode-eslint's catch-all writes before the error's stack, as a message of its own.</summary>
     private const string UnexpectedError = "An unexpected error occurred:";
 
-    /// <summary>Whether what the server logged is ESLint's flat configuration not found (ESLint 9 on: its
-    /// config-file-missing, which vscode-eslint, knowing only eslintrc's no-config-found, takes for a failure): a project
-    /// with eslint installed and no configuration, which is an answer for the status bar, not an error for the log.</summary>
+    /// <summary>Whether what the server logged is ESLint's flat configuration not found (its config-file-missing, which
+    /// the server takes for a failure): a project with eslint installed and no configuration, which is an answer for
+    /// the status bar, not an error for the log.</summary>
     private static bool IsConfigMissing(string logged)
     {
         string first = logged.Split('\n', 2)[0].Trim();
@@ -433,8 +433,8 @@ public sealed class EslintService : IAsyncDisposable
     }
 }
 
-/// <summary>One of ESLint's fixes as Rider names it ("ESLint: Fix 'prefer-const'"), with the server's code action that
-/// makes it.</summary>
+/// <summary>One of ESLint's fixes, named as "ESLint: Fix 'prefer-const'", with the server's code action that makes
+/// it.</summary>
 public sealed record EslintFix(string Title, CodeAction Action, string? Rule)
 {
     /// <summary>A rule's page to open rather than an edit to make.</summary>
@@ -484,8 +484,8 @@ public sealed class EslintDocument : IDisposable
     /// <summary>The problems asked for again (the server's refresh).</summary>
     public void Refresh() => Pull(TimeSpan.Zero);
 
-    /// <summary>The fixes for the problems on the caret's line, as Rider lists ESLint's: each fixable rule's, its
-    /// suggestions, the file's, then the suppressions and the rule's page.</summary>
+    /// <summary>The fixes for the problems on the caret's line: each fixable rule's, its suggestions, the file's, then
+    /// the suppressions and the rule's page.</summary>
     public async Task<IReadOnlyList<EslintFix>> FixesAsync(int caret, CancellationToken cancel = default)
     {
         if (Lsp is not { } lsp)
@@ -589,8 +589,8 @@ public sealed class EslintDocument : IDisposable
         });
     }
 
-    /// <summary>A problem as Rider shows ESLint's: "ESLint: message (rule)", the rule's name its page's link, at the
-    /// severity the configuration gives the rule, never faded as unnecessary (the server tags no-unused-vars so).</summary>
+    /// <summary>A problem as "ESLint: message (rule)", the rule's name its page's link, at the severity the
+    /// configuration gives the rule, never faded as unnecessary (the server tags no-unused-vars so).</summary>
     private static Marker? Marker(Diagnostic diagnostic, TextRange range)
     {
         if (DiagnosticMarks.Kind(diagnostic.Severity) is not { } k)

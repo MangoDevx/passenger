@@ -5,8 +5,8 @@ using Passenger.Roslyn.Extension;
 
 namespace Passenger.App.CSharp;
 
-/// <summary>Rider's Move to Another File and Move to Namespace dialogs for a type: the new file's name, or the namespace
-/// it is to be in.</summary>
+/// <summary>The Move to Another File and Move to Namespace dialogs for a type: the new file's name, or the namespace it
+/// is to be in.</summary>
 public sealed class MoveTypeDialog : RefactoringDialog
 {
     private readonly bool toFile;

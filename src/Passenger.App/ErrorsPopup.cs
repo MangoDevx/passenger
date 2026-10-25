@@ -6,8 +6,8 @@ using Avalonia.Media;
 
 namespace Passenger.App;
 
-/// <summary>Rider's IDE Internal Errors: the errors caught since the last Clear All, each once with how many times it
-/// came, the chosen one's details under them, and the log a button away.</summary>
+/// <summary>The IDE's internal errors: those caught since the last Clear All, each once with how many times it came,
+/// the chosen one's details under them, and the log a button away.</summary>
 public sealed class ErrorsPopup : UserControl
 {
     private readonly ListBox list;
@@ -113,7 +113,7 @@ public sealed class ErrorsPopup : UserControl
         return new DockPanel { Children = { count, what } };
     }
 
-    /// <summary>Rider's line over an error's details: how often it came, and when.</summary>
+    /// <summary>The line over an error's details: how often it came, and when.</summary>
     private static string Occurred(IdeError error) => error.Count == 1
         ? $"Occurred once, at {error.At:HH:mm:ss}"
         : $"Occurred {error.Count} times, from {error.At:HH:mm:ss} to {error.Last:HH:mm:ss}";

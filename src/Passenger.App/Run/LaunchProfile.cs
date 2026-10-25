@@ -4,12 +4,12 @@ using Passenger.App.Workspace;
 
 namespace Passenger.App.Run;
 
-/// <summary>A launch profile from a project's <c>Properties/launchSettings.json</c>, as <c>dotnet run</c>, Visual Studio
-/// and Rider read one: what it launches (its <c>commandName</c>), with what arguments, environment and working directory,
-/// and the browser it opens. Passenger launches the two kinds that run a program (<see cref="ProjectCommand"/> and
-/// <see cref="ExecutableCommand"/>) and the two that run the project in a container (<c>Docker</c>, <c>SdkContainer</c>,
-/// with Visual Studio's container properties: its ports, whether it serves HTTPS, its <c>docker run</c> words and env
-/// files); every other kind Rider knows is read too, and says why it does not run here.</summary>
+/// <summary>A launch profile from a project's <c>Properties/launchSettings.json</c>: what it launches (its
+/// <c>commandName</c>), with what arguments, environment and working directory, and the browser it opens. Passenger
+/// launches the two kinds that run a program (<see cref="ProjectCommand"/> and <see cref="ExecutableCommand"/>) and the
+/// two that run the project in a container (<c>Docker</c>, <c>SdkContainer</c>, with Visual Studio's container
+/// properties: its ports, whether it serves HTTPS, its <c>docker run</c> words and env files); every other kind is read
+/// too, and says why it does not run here.</summary>
 public sealed record LaunchProfile(
     string Name,
     string? Command,
@@ -63,7 +63,7 @@ public sealed record LaunchProfile(
 
     public static string SettingsPath(ProjectModel project) => Path.Combine(project.Folder, "Properties", "launchSettings.json");
 
-    /// <summary>Null for a profile Passenger launches, else why it does not, in Rider's terms for each command it knows.</summary>
+    /// <summary>Null for a profile Passenger launches, else why it does not, for each command known.</summary>
     public string? Unsupported => Command switch
     {
         null or "" => "its profile names no commandName",
@@ -162,7 +162,7 @@ public sealed record LaunchProfile(
     }
 
     /// <summary>Where the browser opens when the profile asks for one: its launch URL, relative to its first application
-    /// URL unless absolute, as Visual Studio and Rider take it; empty with neither.</summary>
+    /// URL unless absolute; empty with neither.</summary>
     public string BrowserUrl()
     {
         string? root = ApplicationUrl?.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault();

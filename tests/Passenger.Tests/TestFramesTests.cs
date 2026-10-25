@@ -155,10 +155,10 @@ public sealed class HeadlessTestsFolder : IDisposable
     }
 }
 
-/// <summary>A failing Avalonia headless test shows what its windows looked like as it failed, as #198 asks: run from the
-/// Unit Tests window, through the Testing Platform and through VSTest, its result carries a frame of its window drawn by
-/// the headless platform (the popup over it in its place), taken before its cleanup closed the window; the window shows
-/// it over the result's details, and a click opens it at its size to zoom. A test's own picture shows the same way; a
+/// <summary>A failing Avalonia headless test shows what its windows looked like as it failed: run from the Unit Tests
+/// window, through the Testing Platform and through VSTest, its result carries a frame of its window drawn by the
+/// headless platform (the popup over it in its place), taken before its cleanup closed the window; the window shows it
+/// over the result's details, and a click opens it at its size to zoom. A test's own picture shows the same way; a
 /// passing test's caught exception draws nothing; and the frames go with the next run.</summary>
 public sealed class TestFramesTests(HeadlessTestsFolder project) : IClassFixture<HeadlessTestsFolder>, IDisposable
 {
@@ -206,15 +206,13 @@ public sealed class TestFramesTests(HeadlessTestsFolder project) : IClassFixture
             frames.Add(frame.Path);
             Assert.Equal("Boxes", frame.Name);
             using Bitmap picture = new(frame.Path);
-            // The window at its size, as it was when the assertion failed: the box where it was put, white around it, and
-            // the popup drawn over it where it opened, though the test's Dispose closed the window right after.
+            // The window as the assertion failed, its popup drawn over it, though Dispose closed the window right after.
             Assert.Equal(new PixelSize(400, 300), picture.PixelSize);
             Assert.True(Pixel(picture, 140, 80) == Red, $"The frame on {runner} has {Pixel(picture, 140, 80)} where the red box is");
             Assert.True(Pixel(picture, 20, 20) == White, $"The frame on {runner} has {Pixel(picture, 20, 20)} where the window is white");
             Assert.True(Pixel(picture, 270, 170) == Yellow, $"The frame on {runner} has {Pixel(picture, 270, 170)} where the popup is over the window");
             Assert.Contains($"Attachments:\n  Boxes: {frame.Path}", failed.Details, StringComparison.Ordinal);
         }
-        // A test's own picture is shown as a frame too; a test that passed having caught an exception has none.
         foreach (TestNode own in Methods(window, "Draws_its_own_frame"))
         {
             Assert.Equal(TestState.Passed, own.State);
@@ -227,7 +225,6 @@ public sealed class TestFramesTests(HeadlessTestsFolder project) : IClassFixture
         Assert.All(Methods(window, "Passes_whatever_it_caught"), m => Assert.True(m.State == TestState.Passed && m.Results.All(r => r.Attachments.Count == 0),
             $"A test that passed having caught an exception carries {m.Results.Sum(r => r.Attachments.Count)} attachments"));
 
-        // Chosen in the Unit Tests window, the failed test's frame is a thumbnail over its details.
         TestsView tests = window.BottomPanel.Tests;
         tests.Choose(Methods(window, "The_box_is_where_it_was_put").First(m => m.ProjectPath!.Contains("VsTests", StringComparison.Ordinal)));
         Ui.Settle();
@@ -239,7 +236,6 @@ public sealed class TestFramesTests(HeadlessTestsFolder project) : IClassFixture
         Ui.Settle();
         Assert.True(tests.Details.Bounds.Height >= (tests.Details.Bounds.Height + tests.Frames.Bounds.Height) * 0.4,
             $"The failed test's details are {tests.Details.Bounds.Height:0.#} px tall under a frame strip of {tests.Frames.Bounds.Height:0.#}: the strip leaves them cramped");
-        // A test with no frame shows none.
         tests.Choose(Methods(window, "Passes_whatever_it_caught")[0]);
         Ui.Settle();
         Assert.False(tests.Frames.IsVisible, "A passing test with no pictures still shows the frames of the one chosen before");
@@ -259,7 +255,6 @@ public sealed class TestFramesTests(HeadlessTestsFolder project) : IClassFixture
         tests.Choose(box);
         Ui.Settle();
 
-        // A click on the thumbnail opens the frame at its size: one picture pixel a unit.
         Ui.Click(Assert.Single(Thumbnails(tests)));
         FrameViewer viewer = Assert.Single(window.OwnedWindows.OfType<FrameViewer>());
         Assert.Equal("Boxes — The_box_is_where_it_was_put", viewer.Title);
@@ -274,7 +269,6 @@ public sealed class TestFramesTests(HeadlessTestsFolder project) : IClassFixture
         Assert.Equal(new Size(300, 225), viewer.DrawnSize);
         Ui.Press(viewer, Command("SLASH"));
         Assert.Equal(new Size(400, 300), viewer.DrawnSize);
-        // Enlarged, it shows the window's own pixels, its red box where the test put it.
         Ui.Press(viewer, Command("EQUALS"));
         Ui.Press(viewer, Command("EQUALS"));
         Ui.Press(viewer, Command("EQUALS"));
@@ -285,7 +279,6 @@ public sealed class TestFramesTests(HeadlessTestsFolder project) : IClassFixture
         Ui.Press(viewer, "Escape");
         Assert.Empty(window.OwnedWindows.OfType<FrameViewer>());
 
-        // Run again once the test passes: its frame goes with the run, and the strip with it.
         File.Delete(project.Failing);
         Ui.Launched(window, window.Tests.RunAsync(window.Folder!, [box]), "the box test's second run", TimeSpan.FromSeconds(240));
         Assert.Equal(TestState.Passed, box.State);

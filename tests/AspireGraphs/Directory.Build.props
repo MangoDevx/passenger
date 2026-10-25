@@ -6,7 +6,7 @@
        the packages its frameworks bring (Microsoft.Extensions.*), which a net10.0 AppHost asks at versions above its
        framework's. An AppHost's project references take no part in its restore, so an AppHost's graph is its package's
        alone, and the starter's web frontend's is ServiceDefaults'. Built as empty libraries, never run, under none of the
-       repo's rules, which are for Passenger's code (as the debuggees' Directory.Build.props). -->
+       repo's rules, which are for Passenger's code. -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <OutputType>Library</OutputType>

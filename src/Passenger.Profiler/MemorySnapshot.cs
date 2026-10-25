@@ -1,16 +1,16 @@
 namespace Passenger.Profiler;
 
-/// <summary>A type on the heap: how many objects of it live, the bytes they take themselves (shallow), and the bytes they
-/// keep alive together (retained), as dotMemory's type list has them.</summary>
+/// <summary>A type on the heap: how many objects of it live, the bytes they take themselves (shallow), and the bytes
+/// they keep alive together (retained).</summary>
 public sealed record HeapType(string Name, int Count, long Bytes, long RetainedBytes)
 {
     internal int Index { get; init; }
 }
 
-/// <summary>What a program's heap held at a moment, as dotMemory's snapshot: every object a GC root keeps alive, by type,
-/// with what each retains and the shortest path that keeps it. The runtime writes a dump of the heap through its
-/// diagnostic port (createdump, so no debugger attaches) and ClrMD reads it; the dump, as large as the heap, is deleted
-/// once read. Snapshots of one run can be compared, object by object.</summary>
+/// <summary>What a program's heap held at a moment: every object a GC root keeps alive, by type, with what each retains
+/// and the shortest path that keeps it. The runtime writes a dump of the heap through its diagnostic port (createdump,
+/// so no debugger attaches) and ClrMD reads it; the dump, as large as the heap, is deleted once read. Snapshots of one
+/// run can be compared, object by object.</summary>
 public sealed class MemorySnapshot
 {
     private readonly IReadOnlyDictionary<int, Identity> earlier;
@@ -47,7 +47,7 @@ public sealed class MemorySnapshot
     /// <summary>Which of the run's snapshots this is, from 1.</summary>
     public int Number { get; }
 
-    /// <summary>"Snapshot #2", as dotMemory names them.</summary>
+    /// <summary>"Snapshot #2".</summary>
     public string Name => $"Snapshot #{Number}";
 
     public DateTime Taken { get; }
@@ -109,8 +109,8 @@ public sealed class MemorySnapshot
             : $"The objects of {older.Name} could not be followed to {newer.Name}: the program's collections were not all seen";
     }
 
-    /// <summary>Compares this snapshot with another of the run, the older to the newer, type by type: dotMemory's new,
-    /// dead and survived objects. Matching every object takes a while on a large heap: call it off the UI thread.</summary>
+    /// <summary>Compares this snapshot with another of the run, the older to the newer, type by type: the new, dead and
+    /// survived objects. Matching every object takes a while on a large heap: call it off the UI thread.</summary>
     public SnapshotComparison CompareWith(MemorySnapshot other)
     {
         if (WhyNotComparable(other) is { } why)

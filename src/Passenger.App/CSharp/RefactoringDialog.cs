@@ -7,10 +7,10 @@ using Passenger.Editor;
 
 namespace Passenger.App.CSharp;
 
-/// <summary>The frame of Rider's refactoring dialogs: the refactoring's name in the title bar, the page's title and what
-/// to do above its options, and Cancel and Next below, with why the options will not do beside them. Next makes the
-/// refactoring with the options as they stand and closes the dialog with true once it is made; refused, the dialog stays
-/// open saying why. Escape cancels.</summary>
+/// <summary>The frame of the refactoring dialogs: the refactoring's name in the title bar, the page's title and what to
+/// do above its options, and Cancel and Next below, with why the options will not do beside them. Next makes the
+/// refactoring with the options as they stand and closes the dialog with true once it is made; refused, the dialog
+/// stays open saying why. Escape cancels.</summary>
 public abstract class RefactoringDialog : Window
 {
     private readonly TextBlock problem = new() { TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 12, 0) };

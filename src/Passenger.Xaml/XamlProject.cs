@@ -259,7 +259,7 @@ public sealed class XamlProject
 
     private bool? compiles;
 
-    /// <summary>A project with its file at <paramref name="path"/> summarised afresh (an open file's text as it stands).</summary>
+    /// <summary>A project with the file of <paramref name="summary"/> summarised afresh (an open file's text as it stands).</summary>
     public XamlProject With(XamlFileSummary summary)
     {
         Dictionary<string, XamlFileSummary> files = new(Files, StringComparer.Ordinal) { [summary.Path] = summary };

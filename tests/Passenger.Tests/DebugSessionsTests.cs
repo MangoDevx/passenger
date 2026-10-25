@@ -48,7 +48,6 @@ public sealed class DebugSessionsTests : IClassFixture<DebugSessionsTests.Pair>
             DebugSession first = Debug(window, "First");
             Assert.Equal(DebugState.Paused, first.State);
             DebugSession second = Debug(window, "Second");
-            // Started beside the first, which stays paused where it stopped; the stop brought the window to the second.
             Assert.Equal(DebugState.Paused, first.State);
             Assert.Same(second, window.Debugger.Session);
             Assert.Equal(["First", "Second"], window.Debugger.Tabs.Select(t => t.Name));
@@ -62,29 +61,23 @@ public sealed class DebugSessionsTests : IClassFixture<DebugSessionsTests.Pair>
             Assert.NotSame(window.Debugger.Tabs[0].Console, window.Debugger.Tabs[1].Console);
             Assert.Same(window.Debugger.Tabs[1].Console, window.BottomPanel.Debug.Console);
 
-            // Stepping the chosen program leaves the other paused where it was.
             int firstThread = first.StoppedThread!.Value;
             Ui.Run(window, AppActions.StepOver);
             Ui.WaitFor(() => second.State == DebugState.Paused && window.Debugger.Stop?.Top?.Line == Pair.Next + 2, "the second program's step");
             Assert.Equal(DebugState.Paused, first.State);
             Assert.Equal(firstThread, first.StoppedThread);
             Assert.Same(second, window.Debugger.Session);
-            // A value the pointer rests on is the chosen program's, read in the frame of its stop.
             Assert.Equal("next = {int} 1", Hover(window, editor, "return next", 8));
 
-            // Its tab chosen, the first program's frames, values, console and execution point are the window's, still at the
-            // breakpoint it stopped at.
             Ui.Click(Tabs(window).Single(t => t.Name == "First").Button);
             Assert.Same(first, window.Debugger.Session);
             Ui.WaitFor(() => window.BottomPanel.Debug.Frames.Count > 0 && window.BottomPanel.Debug.Frames[0].Line == Pair.Next + 1, "the first program's frames");
             Ui.WaitFor(() => Value(window, "value") == "0", "the first program's values at its stop");
-            // The card read at the second program's stop went with it, and the same value rested on now is the first's.
             Assert.True(window.Assist.HoverText is null, $"The card read at the second program's stop stayed as the first's tab was chosen: {window.Assist.HoverText}");
             Assert.Equal("next = {int} 0", Hover(window, editor, "return next", 9));
             Assert.Same(window.Debugger.Tabs[0].Console, window.BottomPanel.Debug.Console);
             Assert.Contains(new LineMark(Pair.Next, LineMarkKind.ExecutionPoint), editor.LineMarks);
 
-            // Stop ends the program chosen, alone: its tab stays, greyed, and the window goes to the one still paused.
             Ui.Run(window, AppActions.Stop);
             Ui.WaitFor(() => first.State == DebugState.Ended, "the first program to end");
             Ui.WaitFor(() => window.Debugger.Session == second, "the window to show the program still debugged");
@@ -92,13 +85,11 @@ public sealed class DebugSessionsTests : IClassFixture<DebugSessionsTests.Pair>
             Assert.True(window.Debugger.IsDebugging, "Stop ended every program, where it ends the one chosen");
             Assert.True(window.Debugger.Tabs[0].HasEnded && Tabs(window).Single(t => t.Name == "First").Greyed, "The ended program's tab was not kept greyed");
 
-            // Debugged again, the first program takes its own tab's place.
             DebugSession again = Debug(window, "First");
             Assert.Equal(["First", "Second"], window.Debugger.Tabs.Select(t => t.Name));
             Assert.Same(again, window.Debugger.Tabs[0].Session);
             Assert.False(Tabs(window).Single(t => t.Name == "First").Greyed, "The tab of the program debugged again stayed greyed");
 
-            // Stop All, from the Run menu, ends every program debugged.
             Assert.True(window.Perform(AppActions.StopAll), $"Stop All could not run: {Ui.Said(window)}");
             Ui.WaitFor(() => !window.Debugger.IsDebugging, "every program to end");
             Assert.Equal(DebugState.Ended, again.State);
@@ -106,7 +97,6 @@ public sealed class DebugSessionsTests : IClassFixture<DebugSessionsTests.Pair>
             Assert.All(Tabs(window), t => Assert.True(t.Greyed, $"{t.Name}'s tab was not greyed as its program ended"));
             Assert.DoesNotContain(editor.LineMarks, m => m.Kind == LineMarkKind.ExecutionPoint);
 
-            // A tab closed goes; the last closed leaves the window as before any program was debugged.
             Ui.Click(Tabs(window).Single(t => t.Name == "Second").Close);
             Assert.Equal(["First"], window.Debugger.Tabs.Select(t => t.Name));
             Ui.Click(Tabs(window).Single().Close);

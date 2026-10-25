@@ -9,7 +9,7 @@ public sealed record GraphRow(CommitInfo Commit, int Lane, IReadOnlyList<string?
     public int Width => Math.Max(Lane + 1, Math.Max(Above.Count, Below.Count));
 }
 
-/// <summary>Lays out the log's graph as Git's own does: each commit takes the lane that waits for it (a new one when
+/// <summary>Lays out the log's graph: each commit takes the lane that waits for it (a new one when
 /// none does), hands that lane to its first parent and opens lanes for the others, and lanes that waited for the same
 /// commit join at its dot.</summary>
 public static class CommitGraph

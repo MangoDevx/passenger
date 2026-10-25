@@ -1,35 +1,11 @@
-# A release (#56), run by hand from a vX.Y.Z tag with Dry run unticked (Actions > Release > Run workflow, or
-# `gh workflow run Release --ref vX.Y.Z -f dry_run=false`; pushing the tag alone runs nothing): every test on macOS,
-# Windows and Linux (test.yml), then the macOS disk images (tools/package-mac.sh), the Windows installers
-# (tools/package-win.sh) and the Linux archives (tools/package-linux.sh, #57) at the tag's version, checks that each
-# build says that version, and publishes them as the tag's GitHub release with SHA256SUMS, notes from the version's
-# docs/release-notes/X.Y.Z.md (which the app carries as What's New), else from the tag (tools/release-notes.sh), and
-# Velopack's update feed for each Windows channel. The site's download buttons and
-# site/linux.html take releases/latest/download/NAME, and an installed Passenger's update check looks for its own
-# system's by name (Updates/Releases.cs), so the packages' names never change: Passenger-macos-arm64.dmg,
-# Passenger-windows-x64.exe, Passenger-windows-arm64.exe, Passenger-linux-x64.tar.gz and
-# Passenger-linux-arm64.tar.gz. A Linux archive is one passenger/ folder with its install.sh, as site/linux.html tells
-# people to use it; it is not signed, and Passenger on Linux does not update itself: its update notice downloads the
-# newer archive, whose install.sh replaces the old. The container tools (tools/container-tools.sh, #344) go beside them
-# as Passenger-container-tools-<rid>.tar.gz for linux-x64, linux-arm64, linux-musl-x64 and linux-musl-arm64, which the
-# IDE downloads from its own version's release (releases/download/vX.Y.Z/NAME) and checks against its SHA256SUMS.
-#
-# Signed only when the repository's secrets hold the credentials, and otherwise unsigned, as the owner decided the MVP
-# may ship (#34, #36):
-# - macOS, the Developer ID: MACOS_DEVELOPER_ID_P12_BASE64 (the Developer ID Application certificate and its private
-#   key, a .p12 in base64) and MACOS_DEVELOPER_ID_PASSWORD (the .p12's); then notarized with an App Store Connect API
-#   key: APPLE_API_KEY_P8_BASE64 (the AuthKey_*.p8 in base64), APPLE_API_KEY_ID and APPLE_API_ISSUER_ID.
-# - Windows, Azure Artifact Signing: AZURE_TENANT_ID, AZURE_CLIENT_ID and AZURE_CLIENT_SECRET (an identity with the
-#   account's Artifact Signing Certificate Profile Signer role), AZURE_ARTIFACT_SIGNING_ENDPOINT (the account region's,
-#   such as https://eus.codesigning.azure.net), AZURE_ARTIFACT_SIGNING_ACCOUNT and AZURE_ARTIFACT_SIGNING_PROFILE.
-# - Or Windows, a certificate: WINDOWS_CERTIFICATE_PFX_BASE64 and WINDOWS_CERTIFICATE_PASSWORD, timestamped by the
-#   repository variable WINDOWS_TIMESTAMP_URL (DigiCert's when it is not set).
-#
-# Run by hand (Actions > Release > Run workflow), it is a dry run unless unticked: everything is built and checked, and
-# what the release would carry, with its notes, is kept as the run's artifact instead of being published. From a branch
-# it can only be a dry run, at the version the packaging scripts take there; from a tag, unticked, it publishes that
-# tag's release. Only the last job, which publishes, can write to the repository. Actions are pinned to a release's
-# commit.
+# A release, run by hand from a vX.Y.Z tag with Dry run unticked (Actions > Release > Run workflow, or `gh workflow run
+# Release --ref vX.Y.Z -f dry_run=false`; pushing the tag alone runs nothing): every test, then each system's package
+# and the container tools at the tag's version, each build checked to say that version, published as the tag's GitHub
+# release with SHA256SUMS, the version's notes and Velopack's feed for each Windows channel. The files' names never
+# change, since the site's download links and an installed Passenger take them by name. Signed only when the
+# repository's secrets hold the credentials (the signing steps name them), else unsigned. A dry run, the default and
+# from a branch the only kind, builds and checks everything and keeps what the release would carry as the run's
+# artifact. Only the last job, which publishes, can write to the repository. Actions are pinned to a release's commit.
 name: Release
 
 on:
@@ -55,9 +31,8 @@ env:
   AVALONIA_TELEMETRY_OPTOUT: 1
 
 jobs:
-  # What is released, before the tests: the tag's version in numbers, as every package's version must be. A dry
-  # run from a branch takes the version as tools/package-mac.sh and package-win.sh do: a vX.Y.Z tag on the commit, else
-  # Directory.Build.props'.
+  # What is released, before the tests: the tag's version in numbers, as every package's version must be; a dry run
+  # from a branch takes a vX.Y.Z tag on the commit, else Directory.Build.props' Version.
   version:
     name: Version
     runs-on: ubuntu-latest
@@ -108,9 +83,8 @@ jobs:
     needs: version
     uses: ./.github/workflows/test.yml
 
-  # Each system's package as `just package-mac`, `just package-win` and `just package-linux` make it, with the Developer
-  # ID or the Windows signature when the secrets hold one. macOS is Apple Silicon only (the owner dropped Intel Macs);
-  # the arm64 installer and archive are cross-published on x64 runners, as CI does.
+  # Each system's package, with the Developer ID or the Windows signature when the secrets hold one. macOS is Apple
+  # Silicon only; the arm64 installer and archive are cross-published on x64 runners.
   package:
     name: Package (${{ matrix.rid }})
     needs: [version, test]
@@ -145,7 +119,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      # .NET 10 runs vpk, as in CI's installer job.
+      # .NET 10 runs vpk.
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
@@ -159,8 +133,10 @@ jobs:
           key: nuget-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('global.json', '**/Directory.Packages.props', '**/Directory.Build.props', '**/*.csproj', '**/packages.lock.json') }}
           restore-keys: nuget-${{ runner.os }}-${{ runner.arch }}-
 
-      # The Developer ID goes into a keychain of the job's own, made the default so codesign and notarytool find it, and
-      # the API key into a notarytool profile there. The notary needs the Developer ID; the Developer ID alone signs.
+      # The Developer ID (MACOS_DEVELOPER_ID_P12_BASE64, its certificate and private key as a .p12 in base64, and
+      # MACOS_DEVELOPER_ID_PASSWORD) goes into a keychain of the job's own, made the default so codesign and notarytool
+      # find it, and the App Store Connect API key (APPLE_API_KEY_P8_BASE64, the AuthKey_*.p8 in base64, with its ID and
+      # issuer) into a notarytool profile there. The notary needs the Developer ID; the Developer ID alone signs.
       - name: Developer ID and notary
         if: runner.os == 'macOS'
         env:
@@ -211,8 +187,10 @@ jobs:
           rm -f "$key"
           echo "PASSENGER_NOTARY_PROFILE=passenger-notary" >> "$GITHUB_ENV"
 
-      # tools/package-win.sh signs through vpk with one of the two; Azure's credential reads its identity from the
-      # environment, as the package step gives it.
+      # What the package step signs with: Azure Artifact Signing (the account's AZURE_ARTIFACT_SIGNING_ENDPOINT, _ACCOUNT
+      # and _PROFILE, and an identity with its Certificate Profile Signer role, AZURE_TENANT_ID, AZURE_CLIENT_ID and
+      # AZURE_CLIENT_SECRET, which that step reads) or a certificate (WINDOWS_CERTIFICATE_PFX_BASE64 and
+      # WINDOWS_CERTIFICATE_PASSWORD, timestamped by the repository variable WINDOWS_TIMESTAMP_URL, else DigiCert's).
       - name: Windows signature
         if: runner.os == 'Windows'
         shell: pwsh
@@ -242,8 +220,7 @@ jobs:
             "PASSENGER_ARTIFACT_SIGNING_METADATA=$metadata" >> $env:GITHUB_ENV
             'Signed by Azure Artifact Signing'
           } elseif ($env:WINDOWS_CERTIFICATE_PFX_BASE64) {
-            # The certificate with its key into the user's store, which signtool takes it from by its thumbprint, and
-            # the rest of its chain among the intermediate authorities.
+            # The certificate and its key where signtool finds them by thumbprint, the rest of the chain among the CAs.
             $flags = [Security.Cryptography.X509Certificates.X509KeyStorageFlags]'UserKeySet, PersistKeySet'
             $chain = [Security.Cryptography.X509Certificates.X509Certificate2Collection]::new()
             $chain.Import([Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_PFX_BASE64), $env:WINDOWS_CERTIFICATE_PASSWORD, $flags)
@@ -273,7 +250,7 @@ jobs:
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
         run: tools/package-win.sh "$RID"
 
-      # What site/linux.html asks a person to install, with which the script's check runs the x64 archive's app.
+      # The libraries a person installs (site/linux.html), with which the script's check runs the x64 archive's app.
       - name: The libraries Passenger needs on Linux
         if: runner.os == 'Linux'
         run: |
@@ -284,8 +261,8 @@ jobs:
         if: runner.os == 'Linux'
         run: tools/package-linux.sh "$RID"
 
-      # The version Product reads (About, the log, the update check) is the tag's, as the build stamped it into the
-      # informational version with the commit: "1.2.0+<commit>", which FileVersionInfo gives as the product version.
+      # The version the app reads is the tag's, stamped into the informational version with the commit
+      # ("1.2.0+<commit>"), which FileVersionInfo gives as the product version.
       - name: The build says the tag's version
         shell: pwsh
         run: |
@@ -298,8 +275,8 @@ jobs:
           }
           Write-Host "Passenger.dll for $env:RID says it is $said"
 
-      # The Windows channels' update feed (#35): releases.<rid>.json, which names the full package and its SHA-256, beside
-      # the package. An installed Passenger reads the newer release's by these names, as Velopack's GithubSource would.
+      # Each Windows channel's update feed, releases.<rid>.json, naming the full package and its SHA-256, beside it: an
+      # installed Passenger reads the newer release's by these names.
       - name: Gather the release's files
         run: |
           mkdir -p artifacts/release
@@ -334,9 +311,8 @@ jobs:
           compression-level: 0
           retention-days: 1
 
-  # Passenger's container tools for each Linux system a container may run (#344): the debug adapter and its process
-  # lister, self-contained, as `just container-tools RID --archive` makes them, at the tag's version. The IDE downloads
-  # its own version's by these fixed names on a first Debug in a container, checked against SHA256SUMS.
+  # Passenger's container tools for each Linux system a container may run, at the tag's version, by fixed names: the IDE
+  # downloads its own version's on a first Debug in a container, checked against SHA256SUMS.
   container-tools:
     name: Container tools (${{ matrix.rid }})
     needs: [version, test]
@@ -448,7 +424,7 @@ jobs:
             }
           done
 
-      # What a Mac's update checks its disk image against (#35), as a person can check a download.
+      # What a Mac's update checks its disk image against, and a person a download.
       - name: Checksums
         working-directory: release/assets
         run: |
@@ -456,8 +432,8 @@ jobs:
           mv ../SHA256SUMS .
           cat SHA256SUMS
 
-      # The version's own notes (docs/release-notes, which the app carries as What's New), else the commits since the last
-      # release; a release published with notes still the stand-in fails here.
+      # The version's own notes (docs/release-notes), else the commits since the last release; a release published with
+      # notes still the stand-in fails here.
       - name: Notes
         env:
           PUBLISH: ${{ needs.version.outputs.publish }}

@@ -19,16 +19,16 @@ public sealed record NavigatorParts(
     Func<string, string?> OpenFile,
     Func<string, TextSnapshot?> TextOf);
 
-/// <summary>Getting about the code, as Rider does: going to a file and position remembered for Back and Forward, Last and
-/// Next Edit Location, Recent Locations with their lines of code, and the Go to popups (File, Symbol, Everything,
-/// Line:Column, File Structure). The places are the open folder's (its session's navigation history), visited as a file
-/// is left for another and edited as one is typed in. A UI-thread object of the window.</summary>
+/// <summary>Getting about the code: going to a file and position remembered for Back and Forward, Last and Next Edit
+/// Location, Recent Locations with their lines of code, and the Go to popups (File, Symbol, Everything, Line:Column,
+/// File Structure). The places are the open folder's (its session's navigation history), visited as a file is left for
+/// another and edited as one is typed in. A UI-thread object of the window.</summary>
 public sealed class Navigator
 {
-    /// <summary>How many places Recent Locations lists, Rider's own (ide.max.recent.locations).</summary>
+    /// <summary>How many places Recent Locations lists.</summary>
     private const int RecentLocationsShown = 25;
 
-    /// <summary>The lines Recent Locations shows either side of a place, Rider's (recent.locations.lines.before.and.after).</summary>
+    /// <summary>The lines Recent Locations shows either side of a place.</summary>
     private const int LinesAround = 2;
 
     private const string NoEditBefore = "No earlier edit location";
@@ -38,7 +38,7 @@ public sealed class Navigator
     private OpenDocument? shownLast;
     private bool editNoted;
 
-    /// <summary>Whether Recent Locations last showed only the places edited, which it opens on again, as Rider's does.</summary>
+    /// <summary>Whether Recent Locations last showed only the places edited, which it opens on again.</summary>
     private bool recentEditedOnly;
 
     /// <summary>The lines of the files Go to Symbol's rows have named, read once while its popup is open, kept only where
@@ -48,7 +48,6 @@ public sealed class Navigator
     public Navigator(NavigatorParts parts)
     {
         this.parts = parts;
-        // A file left for another is a place visited, where its caret was left.
         Editors.ActiveChanged += (_, _) =>
         {
             if (shownLast is { } left && left != Editors.Active)
@@ -78,11 +77,10 @@ public sealed class Navigator
     {
         HistoryPlace? from = Here();
         parts.OpenFile(path);
-        // Opened files are known by their canonical path: the one given may run through a symlink (macOS's /var).
+        // Opened files are known by their canonical path: the one given may run through a symlink.
         if (Editors.Active is { } active && active.Path == PathNames.Canonical(path))
         {
             Editors.CodeEditor.GoTo(position);
-            // Only a move to another line or file is a place to come back to, as in IntelliJ.
             if (from is not null && Here() is { } to && (to.Path != from.Path || to.Line != from.Line))
             {
                 Places.Left(from);
@@ -122,8 +120,8 @@ public sealed class Navigator
     /// <summary>Why Last Edit Location (a step of -1) or Next Edit Location (1) cannot go now: no edit that way.</summary>
     public string? WhyNotStepEdits(int step) => Places.CanStepEdits(step) ? null : step < 0 ? NoEditBefore : NoEditAfter;
 
-    /// <summary>An edit to the file shown keeps the caret's place once the edit has put it there, as IntelliJ keeps the
-    /// place a command changed. A reload from disk, or what a save does to the text, leaves the file saved and keeps none.</summary>
+    /// <summary>An edit to the file shown keeps the caret's place once the edit has put it there. A reload from disk,
+    /// or what a save does to the text, leaves the file saved and keeps none.</summary>
     private void NoteEdit(OpenDocument document)
     {
         if (editNoted || Editors.Active != document)
@@ -162,8 +160,8 @@ public sealed class Navigator
         }
     }
 
-    /// <summary>Rider's Recent Locations: the places left and edited, each with its lines of code. Its own keys again
-    /// while it is open turn Show edited only, as Rider's do.</summary>
+    /// <summary>Recent Locations: the places left and edited, each with its lines of code. Its own keys again while it
+    /// is open turn Show edited only.</summary>
     public RecentLocationsPopup ShowRecentLocations()
     {
         if (parts.Popups.Open is RecentLocationsPopup open)
@@ -186,7 +184,6 @@ public sealed class Navigator
             }
         };
         popup.Forgot += (_, place) => places.Forget(place);
-        // The colours made for closed files go with the popup.
         popup.DetachedFromVisualTree += (_, _) =>
         {
             recentEditedOnly = popup.EditedOnly;
@@ -289,7 +286,7 @@ public sealed class Navigator
         parts.Popups.Show(popup);
     }
 
-    /// <summary>What a search starts from: the editor's selection, if it is one word, as Rider seeds it.</summary>
+    /// <summary>What a search starts from: the editor's selection, if it is one word.</summary>
     public string? SelectedWord()
     {
         if (Editors.Active is null)
@@ -313,7 +310,6 @@ public sealed class Navigator
             throw new Lsp.LanguageServerFailed(csharp is null ? "no C# language server runs for this folder" : $"the C# language server is not ready: {csharp.State}");
         }
         IReadOnlyList<Lsp.SymbolInformation> found = await server.SymbolsAsync(query.Trim(), cancel);
-        // Each row's line as the editor counts its file's, the files read off the UI thread: an open one as it is now.
         string? root = Session.Folder;
         Dictionary<string, TextSnapshot> open = new(StringComparer.Ordinal);
         foreach (OpenDocument document in Editors.Documents)
@@ -331,8 +327,8 @@ public sealed class Navigator
         })], cancel);
     }
 
-    /// <summary>Go to Everything: types first, then files, then members, as Rider orders them; the recent files
-    /// before anything is typed.</summary>
+    /// <summary>Go to Everything: types first, then files, then members; the recent files before anything is
+    /// typed.</summary>
     private async Task<IReadOnlyList<SymbolRow>> SearchEverything(string query, CancellationToken cancel)
     {
         ProjectSession session = Session;
@@ -341,7 +337,6 @@ public sealed class Navigator
         {
             return [.. session.RecentFiles.Skip(Editors.Active is null ? 0 : 1).Select(path => FileRow(PathNames.Shown(path, root)))];
         }
-        // A file's name with a line after it ("CodeEditor.cs:20"), as Go to File takes it: its files open at that place.
         (string named, TextPosition? at) = GoToFilePopup.PlaceIn(query);
         IReadOnlyList<SymbolRow> symbols = [];
         try
@@ -370,7 +365,7 @@ public sealed class Navigator
         };
     }
 
-    /// <summary>Roslyn's container ("in Greeter (project Greetings (net10.0))") as Rider names it: the type, or the
+    /// <summary>A server's container ("in Greeter (project Greetings (net10.0))") as a row names it: the type, or the
     /// project for a type.</summary>
     private static string? Container(string? container)
     {
@@ -387,8 +382,8 @@ public sealed class Navigator
         return owner.Length > 0 ? owner : match.Groups["project"].Value.Trim();
     }
 
-    /// <summary>Rider's File Structure: the active file's types and members, indented, filtered as typed with the
-    /// containers of what matches kept.</summary>
+    /// <summary>File Structure: the active file's types and members, indented, filtered as typed with the containers of
+    /// what matches kept.</summary>
     public void ShowFileStructure()
     {
         if (Editors.Active is not { } active || Session.CSharp?.For(active)?.Lsp is null)
@@ -406,7 +401,7 @@ public sealed class Navigator
             return FilterOutline(outline, query.Trim());
         })
         {
-            // The innermost member the caret is in, as Rider's popup opens on it.
+            // The innermost member the caret is in.
             Initial = rows => rows.Select((row, i) => (row, i)).LastOrDefault(p => p.row.Spans(caretLine), (null!, 0)).Item2,
         };
         popup.Done += (_, row) =>
@@ -469,8 +464,8 @@ public sealed class Navigator
         parts.Popups.Show(popup);
     }
 
-    /// <summary>A file's colours over a stretch of it, shifted to the stretch's own offsets, as Recent Locations draws a
-    /// place's lines apart from the file.</summary>
+    /// <summary>A file's colours over a stretch of it, shifted to the stretch's own offsets, for a place's lines drawn
+    /// apart from the file.</summary>
     private sealed class FragmentColours(IHighlighter whole, TextSnapshot text, int start) : IHighlighter
     {
         public event EventHandler? Changed

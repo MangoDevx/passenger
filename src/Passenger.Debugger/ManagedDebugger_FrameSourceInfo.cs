@@ -17,8 +17,8 @@ public sealed record SymbolsWanted(string AssemblyPath, string Name, Guid Mvid, 
 
 public partial class ManagedDebugger
 {
-    /// This appears to be 1 based, ie requires no adjustment when returned to the user. With
-    /// <paramref name="decompiled"/>, a module with no symbols of its own takes the decompiled ones the cache has.
+    /// <summary>A frame's source and place, as its PDB counts them, from 1. With <paramref name="decompiled"/>, a
+    /// module with no symbols of its own takes the decompiled ones the cache has.</summary>
     private SourceInfo? GetSourceInfoAtFrame(ICorDebugFrame frame, bool decompiled)
     {
         if (frame is not ICorDebugILFrame ilFrame)

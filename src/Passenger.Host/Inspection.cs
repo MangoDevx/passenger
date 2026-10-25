@@ -197,7 +197,6 @@ internal static class Inspection
                 [.. items.SelectMany(i => i.DirectMetadata.Select(m => m.Name)).Distinct(StringComparer.OrdinalIgnoreCase).Take(Listed)], defined));
             if (type == "SupportedTargetFramework")
             {
-                // .NET's first, then .NET Standard's, then .NET Framework's, each newest first.
                 frameworks.AddRange(items
                     .Select(i => (Identifier: i.EvaluatedInclude.Split(',')[0], Version: Version.TryParse(i.EvaluatedInclude.Split("Version=v").Last(), out Version? v) ? v : new Version(0, 0),
                         Framework: new InsightFramework(i.GetMetadataValue("Alias"), i.GetMetadataValue("DisplayName"))))

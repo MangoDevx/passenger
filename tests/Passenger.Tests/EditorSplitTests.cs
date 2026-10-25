@@ -10,9 +10,9 @@ using Passenger.Text;
 
 namespace Passenger.Tests;
 
-/// <summary>Split editors as Rider's: Split Right shows a file twice over one text, each split with its own caret; a
-/// tab dragged to a split's edge splits there and onto another's strip moves into it; Close takes the tab of the split
-/// worked in alone, and a split whose last tab goes gives its room back.</summary>
+/// <summary>Split editors: Split Right shows a file twice over one text, each split with its own caret; a tab dragged
+/// to a split's edge splits there and onto another's strip moves into it; Close takes the tab of the split worked in
+/// alone, and a split whose last tab goes gives its room back.</summary>
 public sealed class EditorSplitTests : IDisposable
 {
     private readonly string folder = TestFolders.Create("splits-");
@@ -40,7 +40,6 @@ public sealed class EditorSplitTests : IDisposable
         Assert.Same(left.Active, right.Active);
         Assert.Single(area.Documents);
 
-        // Typed in the right split, the text is in the left one too, whose caret stays where it was.
         right.Editor.GoTo(new TextPosition(0, 0));
         window.KeyTextInput("// ");
         Ui.Settle();
@@ -48,7 +47,6 @@ public sealed class EditorSplitTests : IDisposable
         Assert.Equal(2, left.Editor.CaretPosition.Line);
         Assert.Equal(0, right.Editor.CaretPosition.Line);
 
-        // Closing it in one split keeps it open in the other, and the split it left goes.
         area.CloseTab(right, right.Active!);
         Ui.Settle();
         Assert.Single(area.Groups);
@@ -67,14 +65,12 @@ public sealed class EditorSplitTests : IDisposable
         EditorGroup right = area.ActiveGroup;
         Assert.Equal(["Two.cs"], right.Tabs.Select(t => t.Document.Name));
 
-        // Cmd+W (Ctrl+F4 on Windows) in the right split: its one tab goes and the split with it, the left one as it was.
         Ui.Run(window, AppActions.CloseTab);
         Assert.True(left.Tabs.Count == 2, $"Close in the right split took Two.cs from the left one too, which has only [{string.Join(", ", left.Tabs.Select(t => t.Document.Name))}]");
         Assert.Same(left, Assert.Single(area.Groups));
         Assert.Same(left, area.ActiveGroup);
         Assert.Equal(["One.cs", "Two.cs"], area.Documents.Select(d => d.Name));
 
-        // In the one split left, it closes the file shown.
         Ui.Run(window, AppActions.CloseTab);
         Assert.Equal(["One.cs"], left.Tabs.Select(t => t.Document.Name));
         Assert.Equal(["One.cs"], area.Documents.Select(d => d.Name));
@@ -87,7 +83,6 @@ public sealed class EditorSplitTests : IDisposable
         MainWindow window = Open("One.cs", "Two.cs");
         WeakReference<EditorGroup> closed = SplitFindAndClose(window);
 
-        // Typed on in the split left, its tab marks the file changed.
         window.KeyTextInput("// ");
         Ui.Settle();
         EditorGroup left = Assert.Single(window.EditorArea.Groups);
@@ -118,7 +113,6 @@ public sealed class EditorSplitTests : IDisposable
         Ui.Settle();
         Assert.True(left.Editor.ScrollOffset.Y > 200 * left.Editor.LineHeight, "Going to the last line left the view at the file's top");
 
-        // Everything after the tenth line deleted in the right split.
         TextSnapshot text = right.Editor.Document.Snapshot;
         right.Editor.Selections = SelectionSet.Single(new Selection(text.GetLineStart(10), text.Length));
         right.Editor.Focus();
@@ -142,10 +136,8 @@ public sealed class EditorSplitTests : IDisposable
         EditorGroup second = area.Groups[1];
         Assert.Equal(["Two.cs"], second.Tabs.Select(t => t.Document.Name));
         Assert.Equal(["One.cs"], first.Tabs.Select(t => t.Document.Name));
-        // Side by side: the new split is to the right of the first.
         Assert.True(second.TranslatePoint(default, window)!.Value.X > first.TranslatePoint(default, window)!.Value.X + 100);
 
-        // Back onto the first split's strip, after One.cs: one split again, with both tabs in order.
         Point back = Ui.Centre(Tab(second, "Two.cs"), window);
         Point strip = first.TabStrip.TranslatePoint(new Point(first.TabStrip.Bounds.Width - 30, first.TabStrip.Bounds.Height / 2), window)!.Value;
         Drag(window, back, strip);
@@ -200,7 +192,6 @@ public sealed class EditorSplitTests : IDisposable
         Assert.False(window.IsPopupOpen);
         Assert.Equal(2, window.EditorArea.Groups.Count);
 
-        // Run once, it is the first thing offered next time.
         Ui.Run(window, AppActions.FindAction);
         Assert.Equal(AppActions.SplitRight, ((Passenger.App.Navigation.ActionPopup)window.Popup!).Rows[0].Id);
         Ui.Press(window, "ESCAPE");
@@ -261,7 +252,6 @@ public sealed class EditorSplitTests : IDisposable
         Assert.True(area.Groups[1].TranslatePoint(default, area)!.Value.Y > area.Groups[0].TranslatePoint(default, area)!.Value.Y,
             "Split Down came back as a split beside, not below");
 
-        // Another folder has its own editors: this one's close, and come back with it.
         string other = TestFolders.Create("other-");
         second.OpenFolder(other);
         Assert.Empty(area.Documents);

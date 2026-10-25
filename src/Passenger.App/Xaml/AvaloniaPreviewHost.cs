@@ -15,11 +15,10 @@ using Passenger.Xaml.Projects;
 
 namespace Passenger.App.Xaml;
 
-/// <summary>An Avalonia file's design view, as Avalonia's own previewer draws it: the project's
-/// Avalonia.Designer.HostApp (in its Avalonia package, MIT) run through ChildProcesses on the project's last build, its
-/// frames sent over Avalonia.Remote.Protocol to a port of Passenger's on loopback, and the file's text as it stands sent
-/// to it as it is typed. The host honours what Avalonia's design-time support says (d:DesignWidth, Design.DataContext,
-/// Design.PreviewWith). A UI-thread object: the protocol's messages cross to it through <see cref="UiThread"/>.</summary>
+/// <summary>An Avalonia file's design view, drawn by the project's Avalonia.Designer.HostApp (in its Avalonia package,
+/// MIT) run through ChildProcesses on the project's last build: its frames come over Avalonia.Remote.Protocol to a port
+/// of Passenger's on loopback, and the file's text as it stands goes to it as it is typed. A UI-thread object: the
+/// protocol's messages cross to it through <see cref="UiThread"/>.</summary>
 internal sealed class AvaloniaPreviewHost : IPreviewHost
 {
     private readonly XamlPreview preview;
@@ -69,8 +68,8 @@ internal sealed class AvaloniaPreviewHost : IPreviewHost
         }
     }
 
-    /// <summary>The host started on the build, its fork off the window's thread (#441), held as background work so a
-    /// screenshot waits for the frame it draws.</summary>
+    /// <summary>The host started on the build, its fork off the window's thread, held as background work until the
+    /// frame it draws.</summary>
     private async Task RunAsync(string designer)
     {
         int port = FreePort();
@@ -144,8 +143,7 @@ internal sealed class AvaloniaPreviewHost : IPreviewHost
         switch (message)
         {
             case RequestViewportResizeMessage resize:
-                // Only said, never answered: an allocation in reply lays a root sized to its content out again, which asks
-                // again, frame after frame. A root of no size (hidden, or empty with no design size) is never drawn.
+                // Never answered: an answer lays out a root sized to its content again, which asks again.
                 empty = resize.Width < 1 || resize.Height < 1;
                 break;
             case UpdateXamlResultMessage result:

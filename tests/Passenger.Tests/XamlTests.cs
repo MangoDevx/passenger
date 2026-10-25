@@ -77,7 +77,6 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
         window.KeyTextInput("orizontalA");
         Ui.Settle();
         Assert.Equal("HorizontalAlignment", window.Assist.CompletionLabels.FirstOrDefault());
-        // The property goes in with its quotes, the caret between them, and its values are offered there at once.
         Ui.Press(window, "ENTER");
         Assert.EndsWith("<Button HorizontalAlignment=\"|\"", CaretLine(editor), StringComparison.Ordinal);
         Ui.WaitFor(() => window.Assist.CompletionLabels.Contains("Center"), "the enum's members offered inside the new value's quotes");
@@ -110,8 +109,7 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
         Ui.WaitFor(() => window.Assist.CompletionLabels.Contains("Center"), "the enum's members offered inside the new value's quotes");
         Assert.EndsWith("<Button VerticalAlignment=\"|\"", CaretLine(editor), StringComparison.Ordinal);
 
-        // Chosen at once, with nothing typed to replace: the caret goes after the value, so the quote typed next steps over
-        // the closing one and the next attribute follows, rather than both landing in front of the value.
+        // Chosen with nothing typed: the caret goes after the value, so the quote typed next steps over the closing one.
         string first = window.Assist.CompletionLabels[0];
         Ui.Press(window, "ENTER");
         Assert.True(CaretLine(editor).EndsWith($"<Button VerticalAlignment=\"{first}|\"", StringComparison.Ordinal),
@@ -217,8 +215,8 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
         window.Close();
     }
 
-    /// <summary>Markup extensions nested a hundred thousand deep in one value, whose reading, one inside another, overflowed
-    /// the stack and ended the IDE: the file stays checked, a mistake beside them marked and put right.</summary>
+    /// <summary>Markup extensions nested a hundred thousand deep in one value leave the file checked and the IDE running: a
+    /// mistake beside them is marked and put right.</summary>
     [AvaloniaFact]
     public void A_value_of_markup_extensions_nested_a_hundred_thousand_deep_leaves_the_xaml_checked_and_the_ide_running()
     {
@@ -245,8 +243,7 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
         window.KeyTextInput("\n        <TextBlock Text=\"{Binding Subtitle}\" />\n        <TextBlock Text=\"{Binding Caption}\" />");
         Ui.WaitFor(() => view.Markers.Count == 2, "the two properties the view model lacks marked");
 
-        // On the way to IMainViewModelBase the interface names itself; a binding the view model lacks then asks what it
-        // implements (the toolkit's ObservableObject, INotifyPropertyChanged, for Create property), which went round for good.
+        // On the way to IMainViewModelBase the interface names itself, which a binding the view model lacks then asks of.
         window.OpenFile(app.PathOf("ViewModels/MainViewModel.cs"));
         Ui.Settle();
         CodeEditor code = window.EditorArea.CodeEditor;
@@ -272,8 +269,7 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
     [AvaloniaFact]
     public void A_character_reference_to_half_a_surrogate_pair_leaves_its_file_and_the_projects_others_with_their_help()
     {
-        // An emoji written as two references, each half a UTF-16 pair: no character XML allows, read as written. The file is
-        // on disk as the project loads, and the window's own file has one typed into it.
+        // An emoji written as two references, each half a UTF-16 pair: no character XML allows, read as written.
         string emoji = app.Write("Emoji.axaml", """
             <UserControl xmlns="https://github.com/avaloniaui"
                          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -379,8 +375,7 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
     }
 
     /// <summary>A project whose folders link back up its own tree gets its XAML help, and Go to Declaration from a named
-    /// element's field in the code-behind finds the XAML that declares its class, deep among those links: the class's XAML
-    /// was looked for on the window's thread through every link, round the loops for good.</summary>
+    /// element's field in the code-behind finds the XAML that declares its class, deep among those links.</summary>
     [AvaloniaFact]
     public void A_project_holding_folder_links_back_up_its_own_tree_gets_its_xaml_help()
     {
@@ -430,8 +425,7 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
                     """);
                 Restore.Run(shop);
             }, folder);
-            // Links to the folder each is in and to the one above it, at the project's top and inside it: the two inside
-            // lead back to Views from Views, so a walk that followed them would find twice the folders at every level.
+            // Links to the folder each is in and the one above it: a walk following them would double the folders each level.
             TestFolders.LinkFolder(Path.Combine(shop, "self"), shop);
             TestFolders.LinkFolder(Path.Combine(shop, "up"), folder);
             TestFolders.LinkFolder(Path.Combine(views, "here"), views);
@@ -500,8 +494,7 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
             // Avalonia added, as NuGet's window or dotnet add package adds it, and restored.
             File.WriteAllText(project, $"{Plain}  <ItemGroup>\n    <PackageReference Include=\"Avalonia\" Version=\"{AvaloniaApp.Version}\" />\n  </ItemGroup>\n</Project>\n");
             Ui.Settle();
-            // A tag begun before the restore lands: its list (nothing, or the project file's read without Avalonia's types,
-            // as the watcher heard it in time) is of the project as it was, and is asked again once the restore is read.
+            // A tag begun before the restore lands takes its list from the project as it was, asked again once it is read.
             CodeEditor editor = window.EditorArea.CodeEditor;
             Ui.PlaceAfter(editor, "<TextBlock Text=\"Later\" />");
             window.KeyTextInput("\n        ");
@@ -553,8 +546,7 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
             Ui.WaitFor(() => document.Markers.Any(m => m.Message.Contains("AvaloniaHeadlessPlatformOptions", StringComparison.Ordinal)),
                 "the type of a package the app does not reference marked");
 
-            // The package added (here where the project file does not name it, so only its restore says so) and restored, by
-            // the language server or a terminal's dotnet restore: the restore's assets are what the XAML reads it from.
+            // The package added where only its restore says so: the restore's assets are what the XAML reads it from.
             File.WriteAllText(Path.Combine(folder, "Directory.Build.props"),
                 $"<Project>\n  <ItemGroup>\n    <PackageReference Include=\"Avalonia.Headless\" Version=\"{AvaloniaApp.Version}\" />\n  </ItemGroup>\n</Project>\n");
             Ui.Settle();
@@ -625,7 +617,7 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
     [AvaloniaFact]
     public void An_x_class_no_csharp_declares_is_marked_as_avalonias_compiler_refuses_it()
     {
-        // Unlike WPF's MarkupCompile, Avalonia's compiler makes no class: it says "Unable to find type" (AVLN2000).
+        // Avalonia's compiler makes no class for it: it says "Unable to find type" (AVLN2000).
         string badge = app.Write("Badge.axaml", """
             <UserControl xmlns="https://github.com/avaloniaui"
                          xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -730,7 +722,6 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
         Ui.WaitFor(() => window.Assist.Offered.Count == 2, "the class and its control theme to choose from");
         Ui.Press(window, "ENTER");
         Ui.Settle();
-        // Avalonia's own Button, decompiled from the package's assembly, read-only, at the class.
         OpenDocument library = window.EditorArea.Active!;
         Assert.Equal("Avalonia.Controls.Button.cs", library.Name);
         Assert.True(library.IsReadOnly, "the library's code opened editable");
@@ -766,7 +757,6 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
     {
         MainWindow window = app.Open(app.PathOf("MainWindow.axaml.cs"));
         CodeEditor code = window.EditorArea.CodeEditor;
-        // The field Avalonia's generator makes for the button leads to its name in the XAML.
         Ui.PlaceAfter(code, "        G");
         Ui.Run(window, AppActions.GoToDeclaration);
         Ui.Settle();
@@ -791,7 +781,6 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
         Assert.Contains("<Button Name=\"Start\"", renamed, StringComparison.Ordinal);
         Assert.Contains("{Binding #Start.Content}", renamed, StringComparison.Ordinal);
         Assert.DoesNotContain("Name=\"Go\"", renamed, StringComparison.Ordinal);
-        // One command, undone whole, asked first as Rider asks of a change to more than one file.
         List<string> asked = [];
         window.Confirm = (title, text, _) =>
         {
@@ -893,13 +882,11 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
         Ui.Press(window, "ENTER");
         Ui.Settle();
         Assert.Null(window.PickingColour);
-        // Written where the brush is defined, in the palette's dark dictionary; the light one keeps its own.
         string palette = File.ReadAllText(app.PathOf("Styles/Palette.axaml"));
         Assert.Contains("<SolidColorBrush x:Key=\"Accent\" Color=\"#E2A33F\" />", palette, StringComparison.Ordinal);
         Assert.Contains("<SolidColorBrush x:Key=\"Accent\" Color=\"#3574F0\" />", palette, StringComparison.Ordinal);
         Ui.WaitFor(() => view.ColourMarks.SingleOrDefault(m => m.Line == button).Colour == Color.Parse("#E2A33F"), "the swatch following the palette");
 
-        // C#'s colours too, written back in the form they were written.
         window.OpenFile(app.PathOf("MainWindow.axaml.cs"));
         Ui.Settle();
         CodeEditor code = window.EditorArea.CodeEditor;
@@ -964,8 +951,7 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
         MainWindow window = app.Open(app.PathOf("MainWindow.axaml"));
         Passenger.App.Xaml.XamlDocument xaml = window.XamlService.For(window.EditorArea.Active!)!;
         Ui.WaitFor(() => xaml.IsLoaded, "the project's XAML read");
-        // Fluent's control list as its Source Link gave it in an earlier session, merging in a file five folders up from
-        // the version's own: in the state folder itself, had the download been let through.
+        // Fluent's control list as an earlier session's Source Link gave it, merging in a file five folders up.
         Passenger.Xaml.Metadata.AssemblyTypes fluent = xaml.Loaded.Result!.Types.Assemblies.Single(a => a.Name == "Avalonia.Themes.Fluent");
         string entry = Path.Combine(Passenger.App.Xaml.LibrarySources.Folder, "SourceLink", fluent.Name,
             Passenger.App.Xaml.LibrarySources.Stamp(Passenger.App.Xaml.LibrarySources.Implementation(fluent.Path)));
@@ -1030,7 +1016,6 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
         }
     }
 
-    /// <summary>The one marker over a stretch of the text.</summary>
     [AvaloniaFact]
     public void The_preview_draws_a_window_from_the_last_build_follows_its_text_as_it_is_typed_and_draws_styles_as_their_PreviewWith()
     {
@@ -1062,8 +1047,7 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
         window.KeyTextInput(" Background=\"#E2A33F\"");
         Ui.WaitFor(() => Below() == orange, "the preview drawing the panel's new background once typing paused", TimeSpan.FromSeconds(30));
 
-        // XAML that does not load leaves the last frame up, the host's reason over it with its line, the editor's: the host
-        // reads the lone '\r' in the window's tag as an XML reader does, a line's end the editor reads inside the line.
+        // The host reads the lone '\r' in the window's tag as a line's end, which the editor reads inside the line.
         Replace(editor, "d:DesignWidth=\"800\" d:DesignHeight", "d:DesignWidth=\"800\"\r d:DesignHeight");
         Replace(editor, "</StackPanel>", "</StackPane>");
         Ui.WaitFor(() => preview.Error is not null, "the previewer saying why the XAML did not load", TimeSpan.FromSeconds(30));
@@ -1074,7 +1058,6 @@ public sealed class XamlTests : IClassFixture<XamlTests.Gallery>
         Replace(editor, "</StackPane>", "</StackPanel>");
         Ui.WaitFor(() => preview.Error is null, "the error gone once the XAML loads again", TimeSpan.FromSeconds(30));
 
-        // Styles preview as their Design.PreviewWith: the file shown is the one previewed.
         string styles = app.PathOf("Styles/Buttons.axaml");
         File.WriteAllText(styles, Gallery.Buttons);
         window.OpenFile(styles);

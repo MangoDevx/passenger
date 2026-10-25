@@ -38,7 +38,7 @@
     <AssemblyMetadata Include="AspireTemplatesVersion" Value="$(AspireTemplatesVersion)" />
   </ItemGroup>
 
-  <!-- Aspire's dashboard and orchestrator (DCP) for this machine, about 900 MB in the package cache (#400), which only a test
+  <!-- Aspire's dashboard and orchestrator (DCP) for this machine, about 900 MB in the package cache, which only a test
        that runs an AppHost needs: downloaded where PassengerAspireRuntime is true (a property, or an environment variable of
        that name, which the person or CI sets). Without them every AppHost the run restores leaves them out (the
        Directory.Build.targets AspireApp.UseFeed writes), and a test that would run one skips, saying how to have them
@@ -112,11 +112,10 @@
   </Target>
 
   <!-- The project's own ESLint and Prettier that EslintPrettierTests put in a test folder's node_modules: npm packages
-       NodePackages/package.json pins and its package-lock.json locks, each tarball with its sha512, put in place at build by
-       tools/Passenger.NodePackages as the web language servers are (no Node.js, cached in artifacts/node/cache), and copied
-       into the tests' output under node-packages/, never into the app's. No test reaches npm's registry. To move a pin,
-       change package.json, have npm write the lock file again there (npm install with its package-lock-only and
-       ignore-scripts options), and bring THIRD_PARTY_NOTICES.md's tests' table along. -->
+       NodePackages/package.json pins and package-lock.json locks, each tarball with its sha512, put in place at build by
+       tools/Passenger.NodePackages (no Node.js, cached in artifacts/node/cache) under node-packages/ in the tests' output;
+       no test reaches npm's registry. To move a pin, change package.json, have npm write the lock again (npm install with
+       its package-lock-only and ignore-scripts options), and bring THIRD_PARTY_NOTICES.md's tests' table along. -->
   <PropertyGroup>
     <TestNodeLock>$(MSBuildThisFileDirectory)NodePackages/package-lock.json</TestNodeLock>
     <TestNodeRoot>$([MSBuild]::EnsureTrailingSlash('$(ArtifactsPath)'))node/</TestNodeRoot>

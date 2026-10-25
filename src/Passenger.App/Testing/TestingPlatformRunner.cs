@@ -12,12 +12,11 @@ using StreamJsonRpc;
 
 namespace Passenger.App.Testing;
 
-/// <summary>Tests found and run through Microsoft.Testing.Platform's own protocol, as Visual Studio and Rider run a test
-/// project that is a Testing Platform application (xUnit v3, MSTest's runner, TUnit): the built program started with
-/// <c>--server</c> and the port it connects back to, then asked over JSON-RPC to find or to run tests, one request a
-/// process, as the platform asks of a client. Its test nodes stay in here, each told as the IDE's own test and its results
-/// as outcomes. What a test host warns of or fails with is in the logs folder's vstest.log, and with Trace protocol
-/// messages on every message it sends.</summary>
+/// <summary>Tests found and run through Microsoft.Testing.Platform's own protocol, for a test project that is a Testing
+/// Platform application (xUnit v3, MSTest's runner, TUnit): the built program started with <c>--server</c> and the port
+/// it connects back to, then asked over JSON-RPC to find or to run tests, one request a process. Its test nodes stay in
+/// here, each told as the IDE's own test and its results as outcomes. What a test host warns of or fails with is in the
+/// logs folder's vstest.log, and with Trace protocol messages on every message it sends.</summary>
 public sealed class TestingPlatformRunner : ITestRunner
 {
     /// <summary>The assembly attribute the platform's build gives a Testing Platform application (IsTestingPlatformApplication).</summary>
@@ -661,8 +660,7 @@ public sealed class TestingPlatformRunner : ITestRunner
             }
         }
 
-        /// <summary>Ends a test host: the runner's own with all it started, the debugger's alone, as VSTest ends a test host
-        /// the IDE started under its debugger.</summary>
+        /// <summary>Ends a test host: the runner's own with all it started, the debugger's alone.</summary>
         private static void End(Process? process, int id)
         {
             if (process is not null)

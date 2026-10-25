@@ -11,9 +11,9 @@ using Passenger.Editor;
 
 namespace Passenger.Tests;
 
-/// <summary>Rider's main menu: its menus in Rider's order from the action catalog, each item with the shortcut the
-/// keymap gives it now and disabled where it cannot run; an item chosen runs its action, an editing one where the focus
-/// is. The toolbar's menus, opened by a click, take the keys as Rider's popups do.</summary>
+/// <summary>The main menu: its menus from the action catalog, each item with the shortcut the keymap gives it now and
+/// disabled where it cannot run; an item chosen runs its action, an editing one where the focus is. The toolbar's menus,
+/// opened by a click, take the keys.</summary>
 public sealed class MenuTests : IDisposable
 {
     private readonly string folder = TestFolders.Create("menu-");
@@ -30,7 +30,7 @@ public sealed class MenuTests : IDisposable
         NativeMenu given = NativeMenu.GetMenu(window)!;
         int menus = given.Items.Count;
 
-        // As a start does (the window keeping its settings) and as Settings' OK does.
+        // As a start and Settings' OK apply them.
         window.ApplySettings(window.Settings);
         window.ApplySettings(window.Settings);
         Ui.Settle();
@@ -55,7 +55,6 @@ public sealed class MenuTests : IDisposable
         Assert.Equal(["File", "Edit", "View", "Navigate", "Code", "Refactor", "Build", "Run", "Tests", "Tools", "Git", "Window", "Help"],
             bar.Items.OfType<NativeMenuItem>().Select(i => i.Header));
 
-        // Each item shows its action's shortcut in the keymap.
         NativeMenuItem saveAll = Item(Open(bar, "File"), "Save All");
         Shortcut keys = AppActions.Keymap().ShortcutsFor(AppActions.SaveAll)[0];
         Assert.Equal(new KeyGesture(keys.First.Key, keys.First.Modifiers), saveAll.Gesture);
@@ -65,7 +64,6 @@ public sealed class MenuTests : IDisposable
         Assert.False(Item(run, "Step Over").IsEnabled);
         Assert.True(Item(run, "Toggle Breakpoint").IsEnabled);
 
-        // Window, Editor Tabs, Split Right splits the editor; View, Tool Windows, Terminal shows the terminal.
         Item(Open(Open(bar, "Window"), "Editor Tabs"), "Split Right").Command!.Execute(null);
         Ui.Settle();
         Assert.Equal(2, window.EditorArea.Groups.Count);
@@ -74,7 +72,6 @@ public sealed class MenuTests : IDisposable
         Ui.Settle();
         Assert.True(window.DockHost.IsShown(ToolWindowIds.Problems));
 
-        // Edit, Select All goes to the editor with the focus, and to a text box when it has it.
         window.EditorArea.CodeEditor.Focus();
         Item(Open(bar, "Edit"), "Select All").Command!.Execute(null);
         Assert.Equal("class One { }\n".Length, window.EditorArea.CodeEditor.Selections.Primary.Length);
@@ -87,8 +84,8 @@ public sealed class MenuTests : IDisposable
         window.Close();
     }
 
-    /// <summary>A menu in the window shows an action whose keys are all chords with its first chord, as Rider's menus show
-    /// one ("⌘E, C" for Code Cleanup), where a gesture could hold only one keystroke.</summary>
+    /// <summary>A menu in the window shows an action whose keys are all chords with its first chord ("⌘E, C" for Code
+    /// Cleanup), where a gesture could hold only one keystroke.</summary>
     [AvaloniaFact]
     public void The_editors_menu_shows_a_chord_for_an_action_whose_keys_are_all_chords()
     {
@@ -142,7 +139,6 @@ public sealed class MenuTests : IDisposable
             Assert.False(MenuOpen(window), $"Once a dialog over the window was answered, Escape left the menu a click on {widget} opened still open: the keys went back under it");
         }
 
-        // The run configurations' menu: Down from nothing chosen goes to the first, Up to the last, and Enter chooses.
         ClickOpen(window, "RunConfigButton");
         Ui.Press(window, "DOWN");
         Ui.Press(window, "DOWN");
@@ -161,7 +157,7 @@ public sealed class MenuTests : IDisposable
     [AvaloniaFact]
     public void The_main_menu_as_a_bar_shows_the_menus_the_toolbar_has_room_for_and_the_rest_behind_its_button()
     {
-        // macOS shows the main menu in its own menu bar; here the window keeps it on the toolbar as Windows and Linux do.
+        // The menu on the toolbar, as on Windows and Linux, rather than in macOS's own menu bar.
         MainWindow.SystemMenuBar = false;
         MainWindow window = new() { Width = 1800, Height = 800 };
         try
@@ -176,27 +172,23 @@ public sealed class MenuTests : IDisposable
             Button[] titles = [.. place.Children.OfType<Button>().Where(b => b != button)];
             Assert.Equal(["File", "Edit", "View"], titles.Take(3).Select(t => t.Content as string));
 
-            // Wide, every menu stands on the bar in the title bar's own words, and the button has nothing left to hold.
             Assert.True(place.MenusShown == titles.Length, $"At 1800 wide the bar shows {place.MenusShown} of its {titles.Length} menus");
             Assert.True(button.Opacity == 0 && !button.IsHitTestVisible, "The main menu's button still shows beside a bar that holds every menu");
             Color words = window.TryFindResource("Passenger.TitleBar.Text", window.ActualThemeVariant, out object? token) && token is ISolidColorBrush own
                 ? own.Color : throw new Xunit.Sdk.XunitException("The theme has no title bar words");
             Assert.All(titles, t => Assert.True(t.Foreground is ISolidColorBrush ink && ink.Color == words, $"The bar's {t.Content} is not in the title bar's own words"));
 
-            // A title clicked opens its menu under it, and a click on the next title opens that one in its place.
             Ui.Click(titles[0]);
             Ui.WaitFor(() => OpenMenuTitles(window).Contains("Open…"), "the File menu");
             Ui.Click(titles[1]);
             Ui.WaitFor(() => OpenMenuTitles(window).Contains("Undo"), "the Edit menu in the File menu's place");
             Assert.False(OpenMenuTitles(window).Contains("Open…"), "The File menu stayed open under the Edit menu");
-            // With one open, the pointer moving over another title opens that one, as a menu bar's do, no click needed.
             Hover(window, titles[2]);
             Ui.WaitFor(() => OpenMenuTitles(window).Contains("Recent Locations"), "the View menu, opened by the pointer moving over its title");
             Hover(window, titles[0]);
             Ui.WaitFor(() => OpenMenuTitles(window).Contains("Open…"), "the File menu again, opened by the pointer moving back over its title");
             Ui.Press(window, "ESCAPE");
             Assert.False(MenuOpen(window), "Escape left the bar's File menu open: it never took the keys");
-            // A click on the open menu's title closes it, as a menu bar's does, rather than opening it again.
             Ui.Click(titles[1]);
             Ui.WaitFor(() => OpenMenuTitles(window).Contains("Undo"), "the Edit menu");
             Ui.Click(titles[1]);
@@ -205,7 +197,6 @@ public sealed class MenuTests : IDisposable
             Ui.WaitFor(() => OpenMenuTitles(window).Contains("Undo"), "the Edit menu, opened again by the next click");
             Ui.Press(window, "ESCAPE");
 
-            // Narrower, the menus the toolbar has no room for go behind the button after the bar, which holds just those.
             window.Width = 1200;
             Ui.Settle();
             int shown = place.MenusShown;
@@ -217,7 +208,6 @@ public sealed class MenuTests : IDisposable
             Ui.Press(window, "ESCAPE");
             double project = window.FindControl<Button>("ProjectButton")!.Bounds.Width;
 
-            // Off, the button holds every menu again, and the project's name is as wide as it was beside the bar.
             window.ApplySettings(window.Settings with { MainMenuBar = false });
             Ui.Settle();
             Assert.True(Math.Abs(window.FindControl<Button>("ProjectButton")!.Bounds.Width - project) < 0.5,
@@ -264,12 +254,10 @@ public sealed class MenuTests : IDisposable
             Ui.Press(window, "RIGHT");
             Assert.True(Focused(window) == titles[0], "Right from Help did not go round to File");
 
-            // Down opens File's menu with its first item taking the keys, its title shown pressed while it is open.
             Ui.Press(window, "DOWN");
             Ui.WaitFor(() => OpenMenuTitles(window).Contains("Open…"), "the File menu, opened by Down");
             Assert.True(Focused(window) is MenuItem, $"The File menu opened by Down left the keys with {Focused(window)?.GetType().Name}");
             Assert.True(titles[0].Classes.Contains("open"), "The open File menu's title does not show pressed");
-            // Right on an item with no submenu opens the next menu, Left the one before.
             Ui.Press(window, "RIGHT");
             Ui.WaitFor(() => OpenMenuTitles(window).Contains("Undo"), "the Edit menu, opened by Right from File's");
             Assert.False(titles[0].Classes.Contains("open"), "File's title still shows pressed with Edit's menu open");
@@ -277,7 +265,6 @@ public sealed class MenuTests : IDisposable
             Ui.Press(window, "LEFT");
             Ui.WaitFor(() => OpenMenuTitles(window).Contains("Open…"), "the File menu again, opened by Left from Edit's");
 
-            // Escape closes it and gives the keys back to the editor, as Alt does from the bar.
             Ui.Press(window, "ESCAPE");
             Assert.False(MenuOpen(window), "Escape left the bar's menu open");
             Assert.True(Focused(window) == window.EditorArea.CodeEditor, $"Escape gave the keys to {Focused(window)?.GetType().Name}, not back to the editor");
@@ -286,7 +273,6 @@ public sealed class MenuTests : IDisposable
             TapAlt(window);
             Assert.True(Focused(window) == window.EditorArea.CodeEditor, "Alt tapped again did not give the keys back to the editor");
 
-            // Alt held with another key is that key's shortcut, never the bar.
             window.KeyPress(Key.LeftAlt, RawInputModifiers.Alt, PhysicalKey.AltLeft, null);
             Ui.Press(window, "alt UP");
             window.KeyRelease(Key.LeftAlt, RawInputModifiers.None, PhysicalKey.AltLeft, null);

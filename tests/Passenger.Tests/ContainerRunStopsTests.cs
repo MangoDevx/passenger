@@ -33,9 +33,10 @@ public sealed class ContainerRunStopsTests(ContainerRunDebuggingTests.Tools tool
         window.Close();
     }
 
-    /// <summary>Debug pressed while Run is still bringing the configuration up (its cache not answering its health check, which
-    /// up waits on, until the test lets it) takes Run's place: Run's up ends and says it was stopped, and Debug's run comes up whole, one container
-    /// a service, its sessions left as they are once Run's start has ended.</summary>
+    /// <summary>Debug pressed while Run is still bringing the configuration up (its cache not answering its health
+    /// check, which up waits on, until the test lets it) takes Run's place: Run's up ends and says it was stopped, and
+    /// Debug's run comes up whole, one container a service, its sessions left as they are once Run's start has
+    /// ended.</summary>
     [AvaloniaFact]
     public void Debug_while_Run_comes_up_takes_its_place_leaving_one_run_and_its_sessions()
     {

@@ -91,13 +91,10 @@ internal sealed class AsyncStepper
             ICorDebugEval eval = thread.CreateEval();
             ICorDebugValue boolValue = eval.NewBooleanValue(true);
 
-            // Find SetNotificationForWaitCompletion method
             ICorDebugFunction? function = _debugger.FindMethodOnType(objectValue.ExactType, "SetNotificationForWaitCompletion", [boolValue], false, false);
             ArgumentNullException.ThrowIfNull(function);
 
-            // Call builder.SetNotificationForWaitCompletion(true)
             ICorDebugType[] typeParameterArgs = objectValue.ExactType.TypeParameters;
-            // result should be null, as SetNotificationForWaitCompletion returns void
             ICorDebugValue? result = await eval.CallParameterizedFunctionAsync(
                 _debugger.ProcessRuntimeEventsUntilEvalEvent,
                 _debugger.EvalStatus,
@@ -131,7 +128,6 @@ internal sealed class AsyncStepper
             const string className = "System.Threading.Tasks.Task";
             const string methodName = "NotifyDebuggerOfWaitCompletion";
 
-            // Find the module
             ICorDebugModule? targetModule = null;
             foreach (ModuleInfo module in _modules.Values)
             {
@@ -147,7 +143,6 @@ internal sealed class AsyncStepper
                 return false;
             }
 
-            // TODO: This doesn't need to be looked up every time
             IMetaDataImport metadataImport = targetModule.GetMetaDataInterface<IMetaDataImport>();
             mdTypeDef? classDef = metadataImport.FindTypeDefByNameOrNull(className, mdToken.Nil);
             if (classDef is null)
@@ -182,13 +177,8 @@ internal sealed class AsyncStepper
         }
     }
 
-    /// <summary>
-    /// Try to set up async stepping. Returns true if async stepping was initiated.
-    /// </summary>
-    /// <param name="thread">Thread to step on</param>
-    /// <param name="stepType">Type of step</param>
-    /// <param name="shouldUseSimpleStepper">Output: whether to use simple stepper</param>
-    /// <returns>True if async stepping was initiated, false otherwise</returns>
+    /// <summary>Sets up an async step where the step is over an await or out of an async method: whether the async
+    /// stepper took it, and whether a simple stepper steps too.</summary>
     public async Task<(bool HandledByAsyncStepper, bool? ShouldUseSimpleStepper)> TrySetupAsyncStep(ICorDebugThread thread, StepType stepType)
     {
         try
@@ -205,13 +195,11 @@ internal sealed class AsyncStepper
             ICorDebugCode ilCode = function.ILCode;
             int methodVersion = ilCode.VersionNumber;
 
-            // Check if module has symbols
             if (_debugger.FindModule(function.Module) is not { } moduleInfo || moduleInfo.MetadataReader.HasSymbols is false)
             {
                 return (false, null);
             }
 
-            // Check if method has async stepping info
             ModuleMetadataReader.AsyncMethodSteppingInfo? asyncInfo = moduleInfo.MetadataReader.GetAsyncMethodSteppingInfo(methodToken, methodVersion);
             if (asyncInfo is null)
             {
@@ -220,7 +208,6 @@ internal sealed class AsyncStepper
 
             ICorDebugILFrame? ilFrame = frame as ICorDebugILFrame;
 
-            // Check if we're at the end of an async method and need step-out behavior
             if (stepType != StepType.StepOut)
             {
                 if (ilFrame is not null)
@@ -233,49 +220,39 @@ internal sealed class AsyncStepper
                         mappingResult != CorDebugMappingResult.MAPPING_EPILOG &&
                         currentOffset >= asyncInfo.LastUserCodeIlOffset)
                     {
-                        // At end of async method with await blocks - switch to step-out behavior
                         stepType = StepType.StepOut;
                     }
                 }
             }
 
-            // Clean up any existing async step
             _currentAsyncStep?.Dispose();
             _currentAsyncStep = null;
 
             if (stepType == StepType.StepOut)
             {
-                // For step-out in async method with await, check if we need NotifyDebuggerOfWaitCompletion
                 ICorDebugValue? builder = ilFrame is not null ? GetAsyncBuilder(ilFrame) : null;
                 if (builder is not null)
                 {
-                    // Check if builder is AsyncVoidMethodBuilder
                     string builderType = ManagedDebugger.GetCorDebugTypeFriendlyName(builder.ExactType);
                     if (builderType == "System.Runtime.CompilerServices.AsyncVoidMethodBuilder")
                     {
-                        // async void method - use normal step-out
                         return (false, null);
                     }
 
-                    // Not async void - use NotifyDebuggerOfWaitCompletion magic
                     bool success = await SetNotificationForWaitCompletion(builder, thread);
                     if (success)
                     {
-                        // Setup breakpoint in Task.NotifyDebuggerOfWaitCompletion
                         bool notifyBpSuccess = SetupNotifyDebuggerOfWaitCompletionBreakpoint();
                         if (notifyBpSuccess)
                         {
-                            // Async step-out handled - no need for stepper
                             return (true, false);
                         }
                     }
                 }
 
-                // Fall back to normal step-out
                 return (false, null);
             }
 
-            // Find next await block after current offset
             if (ilFrame is null)
             {
                 return (false, null);
@@ -285,7 +262,6 @@ internal sealed class AsyncStepper
             ModuleMetadataReader.AsyncAwaitInfo? awaitInfo = FindNextAwaitInfo(asyncInfo, (uint)stepFrom);
             if (awaitInfo is null)
             {
-                // No more await blocks - use simple stepper
                 return (false, null);
             }
 
@@ -297,37 +273,26 @@ internal sealed class AsyncStepper
                 Yield = Arm(ilCode, moduleAddress, methodToken, awaitInfo.YieldOffset),
             };
 
-            // Don't set shouldUseSimpleStepper to false - the simple stepper should be created
-            // to handle stepping until the yield breakpoint is reached
+            // The simple stepper steps on until the yield breakpoint is reached.
             return (true, true);
         }
         catch (Exception)
         {
-            // If anything goes wrong, fall back to simple stepper, TODO remove this
             throw;
-            //return (false, null);
         }
     }
 
-    /// <summary>
-    /// Try to handle a breakpoint hit as part of async stepping.
-    /// </summary>
-    /// <param name="thread">Thread that hit the breakpoint</param>
-    /// <param name="breakpoint">Breakpoint that was hit</param>
-    /// <param name="shouldStop">Output: whether execution should stop</param>
-    /// <returns>True if breakpoint was handled by async stepper</returns>
+    /// <summary>Handles a breakpoint hit as part of an async step: whether the async stepper took it, and whether the
+    /// program stops there.</summary>
     public async Task<(bool HandledByAsyncStepper, bool? ShouldStop)> TryHandleBreakpoint(ICorDebugThread thread, ICorDebugFunctionBreakpoint breakpoint)
     {
-        // Check if it's our NotifyDebuggerOfWaitCompletion breakpoint
         if (_notifyDebuggerBreakpoint is not null &&
             MatchesBreakpoint(breakpoint, _notifyDebuggerBreakpoint, thread))
         {
-            // The task-completion hook was hit during an async step-out operation.
             _notifyDebuggerBreakpoint?.Dispose();
             _notifyDebuggerBreakpoint = null;
 
-            // Let the breakpoint handler step into the runtime hook to reach
-            // the awaiting continuation's next user-code location.
+            // The breakpoint's handler steps into the hook, on to the awaiting continuation's next user code.
             return (true, true);
         }
 
@@ -342,11 +307,9 @@ internal sealed class AsyncStepper
             return (false, null);
         }
 
-        // Check if IP matches expected offset
         ICorDebugILFrame? frame = thread.ActiveFrame as ICorDebugILFrame;
         if (frame is null || frame.IP.pnOffset != (atYield ? step.Yield! : step.Resume!).ILOffset)
         {
-            // Wrong offset - cancel async stepping
             step.Dispose();
             _currentAsyncStep = null;
             return (false, null);
@@ -465,7 +428,6 @@ internal sealed class AsyncStepper
             {
                 return awaitInfo;
             }
-            // Stop search if we're inside an await block
             if (currentOffset < awaitInfo.ResumeOffset)
             {
                 break;
@@ -504,7 +466,6 @@ internal sealed class AsyncStepper
                 return null;
             }
 
-            // Get 'this' parameter
             ICorDebugValue[] arguments = frame.Arguments;
             if (arguments.Length == 0)
             {
@@ -566,7 +527,6 @@ internal sealed class AsyncStepper
         ICorDebugFunction getMethod = module.GetFunctionFromToken(getMethodDef);
         ICorDebugEval eval = frame.Chain.Thread.CreateEval();
 
-        // Call ObjectIdForDebugger getter
         ICorDebugValue? result = await eval.CallParameterizedFunctionAsync(
             _debugger.ProcessRuntimeEventsUntilEvalEvent,
             _debugger.EvalStatus,

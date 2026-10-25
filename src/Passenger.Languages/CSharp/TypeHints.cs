@@ -5,11 +5,11 @@ using Passenger.Editor;
 
 namespace Passenger.Languages.CSharp;
 
-/// <summary>Rider's type name hints from Roslyn's, read from the file's syntax as it stands: a name's type after the
-/// name (<c>total:int</c>), where Roslyn puts it before, and none where Rider's default settings call the type evident: a
-/// <c>var</c> whose initializer shows it (a <c>new</c>, a cast, a literal, a factory or conversion named for it), a name
-/// that says it (<c>isReady</c>, <c>index</c>, <c>customer</c>), a lambda whose delegate is declared beside it, a
-/// <c>new()</c> whose type the declaration it initializes writes.</summary>
+/// <summary>Type name hints from Roslyn's, read from the file's syntax as it stands: a name's type after the name
+/// (<c>total:int</c>), where Roslyn puts it before, and none where the type is evident: a <c>var</c> whose initializer
+/// shows it (a <c>new</c>, a cast, a literal, a factory or conversion named for it), a name that says it
+/// (<c>isReady</c>, <c>index</c>, <c>customer</c>), a lambda whose delegate is declared beside it, a <c>new()</c> whose
+/// type the declaration it initializes writes.</summary>
 public static class TypeHints
 {
     /// <summary>Words that make a static method returning its own type a factory (ReSharper's list).</summary>
@@ -38,8 +38,8 @@ public static class TypeHints
         ["string"] = "String", ["object"] = "Object",
     };
 
-    /// <summary>Rider's hint for the type Roslyn would show at an offset (its label as Roslyn writes the type), or null
-    /// where Rider shows none.</summary>
+    /// <summary>The hint for the type Roslyn would show at an offset (its label as Roslyn writes the type), or null
+    /// where none is shown.</summary>
     public static InlayHint? Place(ParsedText syntax, int offset, string type)
     {
         SyntaxNode root = syntax.Root;
@@ -57,11 +57,10 @@ public static class TypeHints
         {
             return TargetEvident(creation) ? null : new InlayHint(offset, type, PadLeft: true, Kind: InlayHintKind.Type);
         }
-        // A kind of hint Rider has no counterpart for.
         return null;
     }
 
-    /// <summary>Whether Rider leaves off the type of the name a token declares.</summary>
+    /// <summary>Whether the type of the name a token declares is left off.</summary>
     private static bool Hidden(SyntaxToken name, string type)
     {
         string text = name.ValueText;
@@ -97,9 +96,9 @@ public static class TypeHints
             || (up is ArgumentSyntax { Parent: ArgumentListSyntax { Arguments.Count: 1, Parent: ObjectCreationExpressionSyntax } });
     }
 
-    /// <summary>Whether the type a target-typed <c>new</c> makes is written where it stands (ReSharper's evident places
-    /// for one): a field's, property's, local's or parameter's declared type it initializes, an expression-bodied
-    /// member's, or an array's or collection's initializer it is an element of.</summary>
+    /// <summary>Whether the type a target-typed <c>new</c> makes is written where it stands: a field's, property's,
+    /// local's or parameter's declared type it initializes, an expression-bodied member's, or an array's or
+    /// collection's initializer it is an element of.</summary>
     private static bool TargetEvident(ImplicitObjectCreationExpressionSyntax creation)
     {
         SyntaxNode? up = creation.Parent;
@@ -117,7 +116,7 @@ public static class TypeHints
         };
     }
 
-    /// <summary>Whether an initializer shows the type it gives a <c>var</c> (ReSharper's "type is evident").</summary>
+    /// <summary>Whether an initializer shows the type it gives a <c>var</c>.</summary>
     private static bool Evident(ExpressionSyntax value, string type)
     {
         ExpressionSyntax expression = Unwrapped(value);
@@ -212,7 +211,7 @@ public static class TypeHints
         }
     }
 
-    /// <summary>Whether a name says the type it holds (ReSharper's "type is evident from the variable name").</summary>
+    /// <summary>Whether a name says the type it holds.</summary>
     private static bool NameSays(string name, string type)
     {
         string bare = Bare(type);

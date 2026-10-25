@@ -12,7 +12,7 @@ namespace Passenger.App;
 /// restarted, attached again.</summary>
 public partial class MainWindow
 {
-    /// <summary>The question a container run asked last of containers it would replace, for the tests.</summary>
+    /// <summary>The question a container run asked last of containers it would replace.</summary>
     public ReplaceContainersDialog? ReplaceQuestion { get; private set; }
 
     /// <summary>Asks whether a container run may replace containers of its Compose project Passenger did not make; a start
@@ -121,7 +121,7 @@ public partial class MainWindow
             : new(app, app.UnstartedName(chosen.Resource) ?? chosen.Resource.DisplayName, false, chosen, null);
     }
 
-    /// <summary>Why an AppHost's services cannot be acted on: Passenger does not run it, as a container run's say there is none.</summary>
+    /// <summary>Why an AppHost's services cannot be acted on: Passenger does not run it.</summary>
     private static string NotRunHere(string appHost) =>
         $"Passenger does not run {Path.GetFileNameWithoutExtension(appHost)}: Run, Debug or Profile its configuration first";
 

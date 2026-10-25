@@ -42,7 +42,7 @@ public sealed class ActionRegistry(Func<ActionContext> context, Func<Keymap> key
     /// <summary>Where an action asked for now runs: what the window shows and what has its keys.</summary>
     public ActionContext Context() => context();
 
-    /// <summary>An action's first shortcut as Rider shows it ("⌘K, W"), or null with none.</summary>
+    /// <summary>An action's first shortcut as menus and tips show it ("⌘K, W"), or null with none.</summary>
     public string? Shortcut(string id) => Keymap.ShortcutsFor(KeysOf(id)) is { Count: > 0 } keys ? keys[0].Display() : null;
 
     /// <summary>An action's one-keystroke shortcut as a menu shows it; none for a chord, which a menu cannot show.</summary>
@@ -69,9 +69,9 @@ public sealed class ActionRegistry(Func<ActionContext> context, Func<Keymap> key
     /// <summary>The action whose keys run this one: another's where it shares them (<see cref="IdeAction.KeysOf"/>), else its own.</summary>
     private string KeysOf(string id) => byId.GetValueOrDefault(id)?.KeysOf?.Invoke() ?? id;
 
-    /// <summary>A chord in an item's shortcut column, as Rider's own menus show one ("⌘E, C"): a KeyGesture holds one
-    /// keystroke, so the text Fluent's item draws its gesture with is given the chord. macOS's menu bar gets none, since
-    /// a key equivalent there would take the chord's first key before the window could wait for its second.</summary>
+    /// <summary>A chord in an item's shortcut column ("⌘E, C"): a KeyGesture holds one keystroke, so the text Fluent's
+    /// item draws its gesture with is given the chord. macOS's menu bar gets none, since a key equivalent there would
+    /// take the chord's first key before the window could wait for its second.</summary>
     private static void ShowChord(MenuItem item, Shortcut chord) => item.TemplateApplied += (_, e) =>
     {
         if (e.NameScope.Find<TextBlock>("PART_InputGestureText") is { } keys)

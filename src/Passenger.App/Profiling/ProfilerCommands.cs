@@ -36,11 +36,11 @@ public sealed record ProfilerParts(
     Action<string> ShowInFileManager,
     Func<RunConfiguration, string?, Task<string?>>? ProfileAspire = null);
 
-/// <summary>The window's profiler, as Rider's: Profile builds and starts the chosen configuration under the sampling
-/// profiler (an Avalonia app with the inspector in it, which records its frames), or Attach Profiler profiles the program
-/// Run or Debug started from now on, in a container too (else one chosen among the running containers' .NET programs),
-/// there by Passenger's container tools; the Performance Profiler window follows the run, Get Snapshot (or the program's
-/// end) shows where its time went and a memory snapshot what its heap holds, snapshots written before open again, and a
+/// <summary>The window's profiler: Profile builds and starts the chosen configuration under the sampling profiler (an
+/// Avalonia app with the inspector in it, which records its frames), or Attach Profiler profiles the program Run or Debug
+/// started from now on, in a container too (else one chosen among the running containers' .NET programs), there by
+/// Passenger's container tools; the Performance Profiler window follows the run, Get Snapshot (or the program's end)
+/// shows where its time went and a memory snapshot what its heap holds, snapshots written before open again, and a
 /// method or a control named there opens in the code. The run is the session's (<see cref="ProjectSession.Profiling"/>),
 /// ended with its folder. A UI-thread object of the window.</summary>
 public sealed class ProfilerCommands
@@ -87,8 +87,8 @@ public sealed class ProfilerCommands
         });
     }
 
-    /// <summary>The Performance Profiler tool window's view, built as it is first shown or asked for (#441): each profile's
-    /// start, run and snapshot shows the window first, so only the folder's kept snapshots are kept for it until then.</summary>
+    /// <summary>The Performance Profiler tool window's view, built as it is first shown or asked for: each profile's start,
+    /// run and snapshot shows the window first, so only the folder's kept snapshots are kept for it until then.</summary>
     public ProfilerView View => view ?? (ProfilerView)window.Content;
 
     private ProfilerView Make()
@@ -143,9 +143,8 @@ public sealed class ProfilerCommands
         }
     }
 
-    /// <summary>Where the open folder's snapshots are kept, a .nettrace file a run (which PerfView and speedscope read
-    /// too): beside its state, as Rider keeps a solution's, the newest <see cref="Snapshots.Kept"/>. With no folder open,
-    /// the store's own.</summary>
+    /// <summary>Where the open folder's snapshots are kept, a .nettrace file a run: beside its state, the newest
+    /// <see cref="Snapshots.Kept"/>. With no folder open, the store's own.</summary>
     public string SnapshotFolder => Path.Combine(Session.Folder is not { } folder ? parts.StateFolder() : State.ProjectState.FolderOf(parts.StateFolder(), folder), "snapshots");
 
     /// <summary>Lists the open folder's snapshots in the profiler window, after taking off those past the cap; read off
@@ -185,8 +184,8 @@ public sealed class ProfilerCommands
     }
 
     /// <summary>Resolves and builds the chosen configuration, then starts its plan under the profiler from its first
-    /// instruction, as Rider's Profile does, with these arguments in place of its own if given. Null once it runs, or what
-    /// stopped it, which the profiler window says too (all but a failed build, which the Build window shows).</summary>
+    /// instruction, with these arguments in place of its own if given. Null once it runs, or what stopped it, which the
+    /// profiler window says too (all but a failed build, which the Build window shows).</summary>
     public async Task<string?> ProfileAsync(string? arguments = null, RunConfiguration? configuration = null)
     {
         ProjectSession profiled = Session;
@@ -232,7 +231,7 @@ public sealed class ProfilerCommands
 
     /// <summary>Why Profile cannot start a program now: the Run console it writes to is another configuration's program's,
     /// running or about to, whose output it would clear and whose typing it would take. The program Run started for the
-    /// configuration profiled is ended first, as Debug's start ends it (<see cref="BuildRunController.EndOwnRunAsync"/>).</summary>
+    /// configuration profiled is ended first (<see cref="BuildRunController.EndOwnRunAsync"/>).</summary>
     private string? RunConsoleTaken(ProjectSession folder, RunConfiguration? chosen) =>
         parts.Actions.Work.Of(AppActions.RunProgram) is { } running ? ActionWork.Busy(running)
         : folder.Runner.IsRunning && (chosen is null || !parts.Builds().RunsOwnProgram(chosen.Name)) ? "Run's program uses the Run console: stop it first, or Attach Profiler to profile it"
@@ -293,7 +292,7 @@ public sealed class ProfilerCommands
             run.Clear();
             ConsoleSink console = run.Sink;
             ProfilingSession running;
-            // Kill is there while the program starts, as Stop is while the debugger waits for one; the folder's end ends it too.
+            // Kill is there while the program starts; the folder's end ends it too.
             starting = stop;
             profiled.ProfileStarting = stop;
             View.Starting(chosen.Name);
@@ -367,7 +366,7 @@ public sealed class ProfilerCommands
     /// down), the one .NET service it profiles held at its start until the one recording of a service records it there
     /// (<see cref="RecordServiceAsync"/>), which lets it go, so the run has it from its first instruction; the rest run as Run
     /// runs them. The program is the container's, not Kill's: Get Snapshot ends the recording and the run goes on, and Stop
-    /// reads the snapshot before the containers go, as it does once a start that fails after recording takes them down.</summary>
+    /// reads the snapshot before the containers go.</summary>
     private async Task<string?> LaunchInContainersAsync(ProjectSession profiled, RunConfiguration chosen, Working work)
     {
         BuildRunController builds = parts.Builds();
@@ -472,12 +471,11 @@ public sealed class ProfilerCommands
         view?.ShowKill(starting is not null || Session.Profiled is { } program
             && (Session.Profiling is not { } recording || recording.Place is null && recording.ProcessId == program.Run.ProcessId));
 
-    /// <summary>Attach Profiler: profiles the program Debug, Run or Profile started, from now until Get Snapshot or its
-    /// end, as dotTrace attaches to a running process; an Avalonia app's inspector records its frames for as long. The
-    /// program goes on as it was, after too. A program in a container (the one debugged there, <paramref name="inContainer"/>,
-    /// or, with <paramref name="choose"/> and nothing of the folder's running, one chosen among the running containers'
-    /// .NET programs) is recorded there by Passenger's tools, a program held at its start let go once recording. Null once
-    /// it is profiled, else why not, which the profiler window says too.</summary>
+    /// <summary>Attach Profiler: profiles the program Debug, Run or Profile started, from now until Get Snapshot or its end;
+    /// an Avalonia app's inspector records its frames for as long, and the program goes on as it was after. A program in a
+    /// container (the one debugged there, <paramref name="inContainer"/>, or, with <paramref name="choose"/> and nothing of
+    /// the folder's running, one chosen among the running containers' .NET programs) is recorded there by Passenger's tools,
+    /// a program held at its start let go once recording. Null once it is profiled, else why not.</summary>
     public Task<string?> AttachAsync(DotnetProcess? inContainer = null, bool choose = false)
     {
         UiThread.Check();
@@ -499,10 +497,9 @@ public sealed class ProfilerCommands
     }
 
     /// <summary>The one recording of a service of a run of services, a container run's or an Aspire AppHost's, held at its
-    /// start (its run's Profile, part of whose start this is) or as it runs (<paramref name="asItRuns"/>: the window's and an
-    /// agent's Profile of a service, Attach Profiler with a service to profile): its program recorded where its kind runs it
+    /// start (its run's Profile) or as it runs (<paramref name="asItRuns"/>): its program recorded where its kind runs it
     /// (<see cref="ServiceProgram.Recorded"/>, else on this machine), a program held at its start let go once recording, the
-    /// profiler window following it, and the run told what Stop, a restart and Rerun end first, its snapshot read
+    /// profiler window following it, and the run told what Stop, a restart and Rerun end first
     /// (<see cref="ServiceRun.Profiled"/>, <see cref="ServiceRun.EndProfiling"/>). Null once it records, else why not.</summary>
     public async Task<string?> RecordServiceAsync(ServiceRun run, IRunService service, ServiceProgram program, bool asItRuns, CancellationToken stop)
     {
@@ -685,9 +682,9 @@ public sealed class ProfilerCommands
     }
 
     /// <summary>The program Attach Profiler profiles: the selected Aspire service, else the one being debugged (in its
-    /// container, too), else the one Profile
-    /// started that goes on after its snapshot, else the one Run runs, in the Run console or the terminal (an Avalonia app
-    /// by the process its inspector said it is; under Hot Reload, the app dotnet watch started, found as the attach begins).</summary>
+    /// container, too), else the one Profile started that goes on after its snapshot, else the one Run runs, in the Run
+    /// console or the terminal (an Avalonia app by the process its inspector said it is; under Hot Reload, the app dotnet
+    /// watch started, found as the attach begins).</summary>
     private AttachTarget? Attachable(out string? problem)
     {
         ProjectSession current = Session;
@@ -891,7 +888,7 @@ public sealed class ProfilerCommands
     }
 
     /// <summary>Get Memory Snapshot: the running program's heap, listed on the Memory page with the run's earlier ones to
-    /// compare it with; the run goes on. One given up (<paramref name="cancel"/>: an agent's call it was for) is said so.</summary>
+    /// compare it with; the run goes on. One given up (<paramref name="cancel"/>) is said so.</summary>
     public async Task<MemorySnapshot?> MemorySnapshotAsync(CancellationToken cancel = default)
     {
         if (Session.Profiling is not { } run)

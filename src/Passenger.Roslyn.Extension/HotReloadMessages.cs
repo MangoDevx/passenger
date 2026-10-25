@@ -2,10 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace Passenger.Roslyn.Extension;
 
-// Hot Reload while debugging, as Passenger and its extension in Roslyn's server say it to each other, compiled into both:
-// the server's own Edit and Continue service compares the solution with what was built (and applied since), and answers
-// with the deltas the runtime takes and the edits it cannot take, which Passenger's debugger then applies. Each message is
-// to a workspace handler named by its type, as the refactorings' are to document handlers (Messages.cs).
+// Hot Reload's messages between Passenger and its extension in Roslyn's server, compiled into both.
 
 /// <summary>The hot reload handlers' names, as the server knows them: their types' full names.</summary>
 public static class HotReloadHandlers

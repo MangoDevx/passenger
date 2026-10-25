@@ -4,8 +4,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Passenger.Languages.CSharp;
 
-/// <summary>Where in C# a live template may go, as Rider's template contexts: a statement's place, a member's (in a
-/// type's braces), a type's (in a namespace or at the top of a file).</summary>
+/// <summary>Where in C# a live template may go: a statement's place, a member's (in a type's braces), a type's (in a
+/// namespace or at the top of a file).</summary>
 [Flags]
 public enum TemplateScope
 {

@@ -11,9 +11,10 @@ using Passenger.Editor;
 
 namespace Passenger.Tests;
 
-/// <summary>Configuration known from what the app reads (#421): appsettings.json and the project's secrets.json complete the keys
-/// its options classes and reads name, Go to Declaration goes from a key to what reads it and back, a read of a key nothing
-/// gives is warned of with its fixes, and Manage User Secrets gives a project its secrets in the run's own folder.</summary>
+/// <summary>Configuration known from what the app reads: appsettings.json and the project's secrets.json complete the
+/// keys its options classes and reads name, Go to Declaration goes from a key to what reads it and back, a read of a
+/// key nothing gives is warned of with its fixes, and Manage User Secrets gives a project its secrets in the run's own
+/// folder.</summary>
 public sealed class ConfigurationTests : IClassFixture<ConfigurationTests.Project>
 {
     private readonly Project project;
@@ -24,9 +25,10 @@ public sealed class ConfigurationTests : IClassFixture<ConfigurationTests.Projec
         project.Reset();
     }
 
-    /// <summary>Completion in appsettings.json lists a section's keys from the options class bound to it (its properties, a
-    /// renamed one by its configuration name, a nested class's) and from the code's reads, leaving out those the object has;
-    /// a bool's key goes in with its value, and an enum's value offers its names.</summary>
+    /// <summary>Completion in appsettings.json lists a section's keys from the options class bound to it (its
+    /// properties, a renamed one by its configuration name, a nested class's) and from the code's reads, leaving out
+    /// those the object has; a bool's key goes in with its value, and an enum's value offers its names. A key's card
+    /// says what the code reads it as, a comment begun above it (a lone '/' so far) leaving it read as ever.</summary>
     [AvaloniaFact]
     public void Appsettings_completes_a_section_s_keys_from_its_options_class_and_an_enum_s_names()
     {
@@ -34,7 +36,6 @@ public sealed class ConfigurationTests : IClassFixture<ConfigurationTests.Projec
         try
         {
             CodeEditor editor = window.EditorArea.CodeEditor;
-            // A key's card says what the code reads it as.
             string card = Hover(window, "\"Region\"");
             Assert.True(card.Contains("Payments:Region: string (PaymentOptions.Region)", StringComparison.Ordinal), $"Region's card: {card}");
             card = Hover(window, "\"Mode\"");
@@ -68,7 +69,6 @@ public sealed class ConfigurationTests : IClassFixture<ConfigurationTests.Projec
             Ui.Settle();
             Assert.Contains("\"Mail\": {\"Port\": 0,", editor.Document.Snapshot.ToString(), StringComparison.Ordinal);
 
-            // A comment begun above a key (a lone '/' so far) leaves the key read as ever: its card comes, the window never stuck.
             Ui.PlaceAfter(editor, "\"Payments\": {");
             Ui.Type(window, "SLASH", "/");
             card = Hover(window, "\"Region\"");
@@ -80,8 +80,9 @@ public sealed class ConfigurationTests : IClassFixture<ConfigurationTests.Projec
         }
     }
 
-    /// <summary>Go to Declaration from a key in appsettings.json goes to the options property it sets, and from its section to
-    /// where the section is bound; from a read in C# it goes to where appsettings.json gives the key.</summary>
+    /// <summary>Go to Declaration from a key in appsettings.json goes to the options property it sets, an agent's
+    /// definition too, and from its section to where the section is bound; from a read in C# it goes to where
+    /// appsettings.json gives the key.</summary>
     [AvaloniaFact]
     public void Go_to_Declaration_goes_from_a_key_to_its_property_and_from_a_read_to_where_it_is_given()
     {
@@ -96,7 +97,6 @@ public sealed class ConfigurationTests : IClassFixture<ConfigurationTests.Projec
             Ui.Settle();
             GoesTo(window, "Configuration[\"Payments:Reg", "appsettings.json", "\"Region\": \"eu\"");
 
-            // An agent's definition of the key goes where the window's goes.
             int line = Project.Settings.Split('\n').ToList().FindIndex(l => l.Contains("\"Host\"", StringComparison.Ordinal)) + 1;
             Passenger.App.Mcp.PassengerTools agent = new(window);
             IReadOnlyList<Passenger.App.Mcp.Place> places = Ui.Await(agent.Definition("Shop/appsettings.json", line, 7), "an agent's definition of Mail:Host");
@@ -158,7 +158,6 @@ public sealed class ConfigurationTests : IClassFixture<ConfigurationTests.Projec
             // Shop:Banner's, which undo brought back, stays.
             Ui.WaitFor(() => Missing(window).SetEquals(["Shop:Banner"]), $"the secret's warning to go once user secrets give it: {string.Join(", ", Missing(window))}");
             Assert.DoesNotContain("s3cret-value", window.Status ?? string.Empty, StringComparison.Ordinal);
-            // The read's card says where the key is given, a user secret's value as dots.
             string card = Hover(window, "Payments:ApiKey\"");
             Assert.True(card.Contains("user secrets = ••••••", StringComparison.Ordinal) && !card.Contains("s3cret-value", StringComparison.Ordinal),
                 $"The read's card did not say the user secret masked: {card}");
@@ -166,7 +165,6 @@ public sealed class ConfigurationTests : IClassFixture<ConfigurationTests.Projec
             Ui.Run(window, EditorActions.Undo);
             Ui.WaitFor(() => File.ReadAllText(projectFile) == writtenProject && !File.Exists(secrets), "undo to take back the UserSecretsId and the secrets it made");
 
-            // An agent sees the same warning's fix first and makes it with the value it gives.
             Ui.WaitFor(() => Missing(window).Contains("Shop:Banner"), "the warning to come back once undo took the key away");
             Passenger.App.Mcp.PassengerTools agent = new(window);
             string text = File.ReadAllText(project.PathOf("Shop/Program.cs"));
@@ -243,7 +241,6 @@ public sealed class ConfigurationTests : IClassFixture<ConfigurationTests.Projec
             string given = File.ReadAllText(projectFile);
             window.OpenFile(project.PathOf("Shop/Program.cs"));
             Ui.Settle();
-            // Find Action on the project of the file shown.
             Ui.Run(window, AppActions.FindAction);
             window.KeyTextInput("Manage User Secrets");
             Ui.Press(window, "ENTER");

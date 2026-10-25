@@ -5,10 +5,10 @@ using Passenger.Text;
 
 namespace Passenger.Languages.CSharp;
 
-/// <summary>A bracket and the one it pairs with, from the file's syntax: the parentheses, square brackets, braces and type
-/// arguments' angle brackets the classifier colours by depth, never one in a string or a comment. A node holds its own
-/// pair of each kind, so a bracket's pair is found among its node's tokens rather than by counting across the file, and
-/// one whose pair is missing as code is typed pairs with none.</summary>
+/// <summary>A bracket and the one it pairs with, from the file's syntax: the parentheses, square brackets, braces and
+/// type arguments' angle brackets, never one in a string or a comment. A node holds its own pair of each kind, so a
+/// bracket's pair is found among its node's tokens rather than by counting across the file, and one whose pair is
+/// missing as code is typed pairs with none.</summary>
 internal static class BracePairs
 {
     /// <summary>The bracket covering the character at an offset and its pair; null when that is no bracket, or one with

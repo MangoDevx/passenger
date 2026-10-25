@@ -2,9 +2,9 @@ using System.Diagnostics;
 
 namespace Passenger.Core;
 
-/// <summary>The login shell's environment, read once at startup as IntelliJ's EnvironmentUtil reads it: an app opened from
-/// the Finder gets launchd's bare PATH and no DOTNET_ROOT, so dotnet, git and what they run would not be the ones a
-/// terminal finds. What the shell sets goes into this process's environment, which every program it starts inherits.</summary>
+/// <summary>The login shell's environment, read once at startup: an app opened from the Finder gets launchd's bare PATH
+/// and no DOTNET_ROOT, so dotnet, git and what they run would not be the ones a terminal finds. What the shell sets goes
+/// into this process's environment, which every program it starts inherits.</summary>
 public static class ShellEnvironment
 {
     /// <summary>The longest a slow shell profile holds up the programs started, counted from the read's start, so it is
@@ -52,9 +52,7 @@ public static class ShellEnvironment
         try
         {
             file = Path.GetTempFileName();
-            // Interactive as well as login, as a terminal's shell is, so what a profile's rc file adds to PATH is there too.
-            // What the profile prints goes nowhere, and so does what a job it leaves running prints, which would otherwise
-            // hold the shell's output open long after the shell ended: the environment comes back in a file.
+            // Login and interactive, for an rc file's PATH; answered in a file, so no job the profile leaves holds a pipe.
             ProcessStartInfo start = ChildProcesses.Command("/bin/sh",
                 ["-c", "exec \"$@\" >/dev/null 2>&1", "sh", shell, "-l", "-i", "-c", "/usr/bin/env -0 > \"$" + Written + "\""]);
             start.Environment[Written] = file;

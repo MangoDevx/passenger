@@ -19,11 +19,7 @@ public partial class ManagedDebugger
     {
         if (classContainingHoistedLocalsValue is not null)
         {
-            // If we have a classContainingHoistedLocalsValue, it means captured variables from the outer scope are stored
-            // as fields on the compiler-generated closure class - read those first, walking the full closure chain
-            // so that variables captured from enclosing lambdas are also included.
-            // We do NOT return here: non-captured locals declared inside the lambda body are still plain IL locals
-            // on the lambda method frame and must also be read below.
+            // Captured variables are fields of the closure chain; the lambda's own locals are still read below.
             await AddClosureChainMembers(classContainingHoistedLocalsValue, threadId, stackDepth, result);
         }
         ICorDebugILFrame corDebugIlFrame = GetIlFrameForThreadIdAndStackDepth(threadId, stackDepth);
@@ -80,8 +76,7 @@ public partial class ManagedDebugger
     /// kind <see cref="GeneratedNameKind.DisplayClassLocalOrField"/> (e.g. "&lt;&gt;8__1").
     private async Task AddClosureChainMembers(ICorDebugValue closureValue, ThreadId threadId, FrameStackDepth stackDepth, List<VariableInfo> result)
     {
-        // A captured parameter or local is in the closure and in its own slot too, which the method no
-        // longer updates: the closure's copy is the live one, and takes the other's place (upstream #58).
+        // A captured variable's closure copy is the live one, in place of its own slot, which goes stale.
         List<VariableInfo> members = [];
         await AddMembers(closureValue, closureValue.ExactType, threadId, stackDepth, members);
         foreach (VariableInfo member in members)
@@ -97,7 +92,6 @@ public partial class ManagedDebugger
             }
         }
 
-        // Follow the DisplayClassLocalOrField link to the parent closure, if any
         ICorDebugObjectValue objectValue = closureValue.UnwrapDebugValueToObject();
         IMetaDataImport metadataImport = objectValue.Class.Module.GetMetaDataInterface<IMetaDataImport>();
         IEnumerable<mdFieldDef> fields = metadataImport.EnumFields(objectValue.Class.Token);
@@ -125,9 +119,7 @@ public partial class ManagedDebugger
 
         IMetaDataImport metadataImport = module.Module.GetMetaDataInterface<IMetaDataImport>();
 
-        // localsScope.Frame.Arguments includes the implicit "this" parameter for instance methods,
-        // but GetParamForMethodIndex does NOT include it - it is named by convention
-        // so we need to check the method attributes to see if it's static or instance, to conditionally handle "this"
+        // Frame.Arguments has an instance method's 'this', which GetParamForMethodIndex leaves out.
         (string szMethod, mdTypeDef pClass, CorMethodAttr pdwAttr, nint ppvSigBlob, int pcbSigBlob, int pulCodeRVA, int pdwImplFlags) methodProps = metadataImport!.GetMethodProps(corDebugFunction.Token);
         bool isStatic = methodProps.pdwAttr.IsMdStatic();
         ICorDebugValue? classContainingHoistedLocalsValue = null;
@@ -141,10 +133,9 @@ public partial class ManagedDebugger
                 GeneratedNameKind classGeneratedNameKind = GeneratedNameParser.GetKind(containingClassName);
                 if (classGeneratedNameKind is GeneratedNameKind.StateMachineType or GeneratedNameKind.LambdaDisplayClass)
                 {
-                    // In this case, 'this' is actually a compiler generated class that contains a field pointing to the 'this' that the user expects
-                    // We are also going to use this to decide that the containing class contains hoisted locals, so we should return it
+                    // 'this' is a generated class holding the user's 'this' and the hoisted locals, so it is returned.
                     classContainingHoistedLocalsValue = implicitThisValue;
-                    // This may return null, as even though we have checked isStatic is true, that is for the MoveNext method - the user's method may be static, and therefore would have no 'this' proxy field
+                    // Null for a static user method, whose MoveNext has a 'this' but no proxy field for one.
                     implicitThisValue = GetAsyncOrLambdaProxyFieldValue(implicitThisValue, metadataImport);
                 }
             }
@@ -168,9 +159,7 @@ public partial class ManagedDebugger
         int skipCount = isStatic ? 0 : 1; // Skip 'this' for instance methods, as we already handled it
         foreach ((int index, ICorDebugValue? argumentCorDebugValue) in arguments.Skip(skipCount).Index())
         {
-            // index 0 is the return value, so we add 1 to get to the arguments
-            // GetParamForMethodIndex does not include the instance 'this' parameter
-            // A parameter with no row of its own (code emitted without names) is named by its place, as Rider names a local.
+            // Index 0 is the return value; a parameter without a row (emitted code) is named by its place.
             string? argumentName = metadataImport!.TryGetParamForMethodIndex(corDebugFunction.Token, checked((uint)(index + 1)), out mdParamDef paramDef) is Cor.S_OK
                 ? metadataImport.GetParamProps(paramDef).szName
                 : $"arg_{index}";
@@ -392,10 +381,9 @@ public partial class ManagedDebugger
         }
 
         await AddFields(nonStaticFieldDefs, metadataImport, corDebugType, corDebugValue, result, threadId, stackDepth);
-        // We need to pass the un-unwrapped reference value here, as we need to invoke CallParameterizedFunction with the correct parameters
+        // The reference itself, not unwrapped: the getters are called on it.
         await AddProperties(nonStaticProperties, metadataImport, corDebugClass, threadId, stackDepth, corDebugValue, result);
 
-        // Handle members on base types recursively
         ICorDebugType? baseType = corDebugType.Base;
         if (baseType is null)
         {
@@ -421,10 +409,9 @@ public partial class ManagedDebugger
         mdProperty[] staticProperties = metadataImport.EnumProperties(mdTypeDef).AsValueEnumerable().Where(s => s.IsStatic(metadataImport)).ToArray();
 
         await AddFields(staticFieldDefs, metadataImport, corDebugType, corDebugValue, result, threadId, stackDepth);
-        // We need to pass the un-unwrapped reference value here, as we need to invoke CallParameterizedFunction with the correct parameters
+        // The reference itself, not unwrapped: the getters are called on it.
         await AddProperties(staticProperties, metadataImport, corDebugClass, threadId, stackDepth, corDebugValue, result);
 
-        // Handle members on base types recursively
         ICorDebugType? baseType = corDebugType.Base;
         if (baseType is null)
         {
@@ -457,8 +444,7 @@ public partial class ManagedDebugger
                 GeneratedNameParser.TryParseGeneratedName(fieldName, out GeneratedNameKind generatedNameKind, out int openBracketOffset, out int closeBracketOffset);
                 if (generatedNameKind is GeneratedNameKind.HoistedLocalField)
                 {
-                    // e.g. we are in an async method - local variables in the user's method are stored in fields on a generated class, e.g. "<intVar>5__1"
-                    // we want to extract "intVar"
+                    // A hoisted local's field is named "<intVar>5__1": the user's name is between the brackets.
                     ReadOnlySpan<char> originalLocalVariableName = fieldName.AsSpan()[(openBracketOffset + 1)..closeBracketOffset];
                     fieldName = originalLocalVariableName.ToString();
                 }
@@ -476,7 +462,7 @@ public partial class ManagedDebugger
                     DebuggerBrowsableState debuggerBrowsableState = (DebuggerBrowsableState)GetDebuggerBrowsableCustomAttributeResultInt(debuggerBrowsableAttributePointer, debuggerBrowsableAttributeSize);
                     if (debuggerBrowsableState == DebuggerBrowsableState.Never)
                     {
-                        return; // I may not end up doing this, as it would be ideal to still be able to hover the variable in the editor and see the value
+                        return;
                     }
 
                     if (debuggerBrowsableState == DebuggerBrowsableState.RootHidden)
@@ -565,8 +551,8 @@ public partial class ManagedDebugger
 
     internal class EvalException(string message) : Exception(message);
 
-    /// <summary>An evaluation the runtime would not start on the thread where it is stopped (a pause can catch it in the
-    /// runtime's optimized or native code): nothing ran. Said as Visual Studio says it; its HResult is the runtime's.</summary>
+    /// <summary>An evaluation the runtime would not start on the thread where it is stopped (a pause can catch it in
+    /// the runtime's optimized or native code): nothing ran. Its HResult is the runtime's.</summary>
     internal sealed class EvalRefusedException : EvalException
     {
         public EvalRefusedException(System.Runtime.InteropServices.COMException refused) : base(Said(refused)) => HResult = refused.HResult;
@@ -594,14 +580,12 @@ public partial class ManagedDebugger
             {
                 ICorDebugILFrame variablesReferenceIlFrame = GetIlFrameForThreadIdAndStackDepth(threadId, stackDepth);
 
-                // Get the get method for the property
                 mdMethodDef getMethodDef = propertyProps.pmdGetter;
                 if (getMethodDef == 0)
                 {
-                    return; // No get method
+                    return;
                 }
 
-                // Get method attributes to check if it's static
                 (string szMethod, mdTypeDef pClass, CorMethodAttr pdwAttr, nint ppvSigBlob, int pcbSigBlob, int pulCodeRVA, int pdwImplFlags) getterMethodProps = metadataImport.GetMethodProps(getMethodDef);
                 CorMethodAttr getterAttr = getterMethodProps.pdwAttr;
 
@@ -615,7 +599,7 @@ public partial class ManagedDebugger
                     DebuggerBrowsableState debuggerBrowsableState = (DebuggerBrowsableState)GetDebuggerBrowsableCustomAttributeResultInt(debuggerBrowsableAttributePointer, debuggerBrowsableAttributeSize);
                     if (debuggerBrowsableState == DebuggerBrowsableState.Never)
                     {
-                        return; // I may not end up doing this, as it would be ideal to still be able to hover the variable in the editor and see the value
+                        return;
                     }
 
                     if (debuggerBrowsableState == DebuggerBrowsableState.RootHidden)
@@ -627,12 +611,10 @@ public partial class ManagedDebugger
                 ICorDebugFunction getMethod = corDebugClass.Module.GetFunctionFromToken(getMethodDef);
                 ICorDebugEval eval = variablesReferenceIlFrame.Chain.Thread.CreateEval();
 
-                // May not be correct, will need further testing
                 ICorDebugType parameterizedContainingType = corDebugValue.ExactType;
 
                 ICorDebugType[] typeParameterTypes = parameterizedContainingType.TypeParameters;
 
-                // For instance properties, pass the object; for static, pass nothing
                 ICorDebugValue[] corDebugValues = isStatic ? [] : [corDebugValue];
 
                 ICorDebugValue? returnValue = await eval.CallParameterizedFunctionAsync(ProcessRuntimeEventsUntilEvalEvent, EvalStatus, getMethod, typeParameterTypes.Length, typeParameterTypes, corDebugValues.Length, corDebugValues);
@@ -686,8 +668,8 @@ public partial class ManagedDebugger
         }
     }
 
-    /// <summary>A RootHidden member that is an object, not an array: its children in its place, as they
-    /// would show under it, its proxy's if it has one (upstream #55).</summary>
+    /// <summary>A RootHidden member that is an object, not an array: its children in its place, as they would show
+    /// under it, its proxy's if it has one.</summary>
     private async Task AddRootHiddenObject(ICorDebugValue value, ThreadId threadId, FrameStackDepth stackDepth, List<VariableInfo> result)
     {
         (_, _, ICorDebugValue? proxy, _, _) = await GetDisplayedValueAsync(value, threadId, stackDepth, true);
@@ -750,7 +732,7 @@ public partial class ManagedDebugger
             return true;
         }
 
-        // Get the elements first, as the CorDebugArrayValue arrayValue may get neutered during 'await GetValueForCorDebugValueAsync' below, if any evals are required
+        // The elements first: an evaluation below may neuter the array value.
         uint elementCount = count ?? currentDimensionLength;
         (uint[] Indices, ICorDebugValue Element)[] elements = ValueEnumerable.Range(0, checked((int)elementCount))
             .Select(offset =>

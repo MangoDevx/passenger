@@ -139,8 +139,7 @@ public static class EndpointClient
             return (null, $"No value for {string.Join(", ", unresolved.Select(u => "{{" + u + "}}"))}: set it in the file (@{unresolved.First()} = …) or in {HttpVariables.PublicFile}");
         }
         List<EndpointRead> reads = [.. filling.Environment.Select(name => new EndpointRead(IsFile: false, name, filling.Unset.Contains(name)))];
-        // A body that is "< ./file.json" alone is that file's text, as Rider sends it: one outside the folder (through a
-        // link too) is the person's to allow.
+        // A body "< ./file.json" alone is that file's text; one outside the folder (a link's too) is the person's to allow.
         string? bodyFile = null;
         if (resolvedBody.Trim() is ['<', ' ', .. string included] && !included.Contains('\n'))
         {
@@ -180,8 +179,7 @@ public static class EndpointClient
                 return new EndpointResponse { Error = $"The body's file {file} could not be read: {error.Message}", Elapsed = clock.Elapsed };
             }
         }
-        // The timeout holds the whole exchange, the body's reading included, which HttpClient's own leaves out once the
-        // headers are in.
+        // The timeout holds the whole exchange, the body's reading included, which HttpClient's own does not.
         using CancellationTokenSource limit = CancellationTokenSource.CreateLinkedTokenSource(cancel);
         limit.CancelAfter(options.Timeout);
         try
@@ -221,7 +219,7 @@ public static class EndpointClient
                     break;
                 }
                 int status = (int)response.StatusCode;
-                // As .NET's own: a 303, and a 301 or 302 after a POST, goes on as a GET with no body; the rest keep both.
+                // A 303, and a 301 or 302 after a POST, goes on as a GET with no body; the rest keep both.
                 bool asGet = status == 303 ? method != "HEAD" : status is 301 or 302 && method == "POST";
                 // By origin, as what a request reads is allowed to one server: another port of the same host is another server.
                 bool sameOrigin = next.Scheme == first.Scheme && next.Port == first.Port && string.Equals(next.Host, first.Host, StringComparison.OrdinalIgnoreCase);

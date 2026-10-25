@@ -54,7 +54,6 @@ public sealed class ContainerDebuggingTests(ContainerDebuggingTests.Turns turns)
             Ui.WaitFor(() => session.State == DebugState.Paused && window.EditorArea.CodeEditor.LineMarks.Contains(new LineMark(Slept, LineMarkKind.ExecutionPoint)),
                 "the step over to stop on the next line");
 
-            // Detach lets it go: the adapter in the container ends, and the program counts on.
             Assert.True(window.Perform(AppActions.Detach), "Detach could not run on the program in the container");
             Ui.WaitFor(() => !window.Debugger.IsDebugging, "the debugger to let go of the program in the container");
             Assert.Equal("running", Docker.State(container));
@@ -62,8 +61,6 @@ public sealed class ContainerDebuggingTests(ContainerDebuggingTests.Turns turns)
             int seen = Turned(container);
             Ui.WaitFor(() => Turned(container) > seen, "the program let go of to count on");
 
-            // Reattach finds it again by its container and command line; the docker CLI killed, the adapter there sees its
-            // input end and lets the program go as a client's going does.
             Ui.Run(window, AppActions.ReattachToProcess);
             Ui.WaitFor(() => window.Debugger.Session is { State: DebugState.Paused or DebugState.Running } again && again != session, "Reattach to Process to attach again");
             DebugSession reattached = window.Debugger.Session!;
@@ -98,8 +95,6 @@ public sealed class ContainerDebuggingTests(ContainerDebuggingTests.Turns turns)
             Ui.WaitFor(() => !window.Debugger.IsDebugging, "the debugger to let go of the program in the Alpine container");
             Assert.Equal("running", Docker.State(container));
 
-            // A program whose runtime has diagnostics off is listed from outside, but once the tools are in they say why
-            // nothing can attach to it, and the status bar says so.
             string off = Start("alpineoff", turns.Alpine, "-e", "DOTNET_EnableDiagnostics=0");
             dialog = OpenAttachToProcess(window);
             ChooseIn(dialog, off);
@@ -214,7 +209,6 @@ public sealed class ContainerDebuggingTests(ContainerDebuggingTests.Turns turns)
         byte[] archive = turns.Archive(turns.Rid);
         github.Serve(tag, asset, archive);
 
-        // A checksum that names other bytes: refused, and the container keeps no tools.
         github.Serve(tag, "SHA256SUMS", Encoding.UTF8.GetBytes($"{Convert.ToHexStringLower(SHA256.HashData((byte[])[1, 2, 3]))}  {asset}\n"));
         string refusing = Start("refused", turns.Glibc);
         string badCache = TestFolders.Create("tools-bad-");
@@ -236,7 +230,6 @@ public sealed class ContainerDebuggingTests(ContainerDebuggingTests.Turns turns)
             refused.Close();
         }
 
-        // The right checksum: downloaded into the cache, copied in, attached.
         github.Serve(tag, "SHA256SUMS", Encoding.UTF8.GetBytes($"{Convert.ToHexStringLower(SHA256.HashData(archive))}  {asset}\n"));
         string container = Start("download", turns.Glibc);
         string cache = TestFolders.Create("tools-cache-");

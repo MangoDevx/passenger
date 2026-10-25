@@ -208,7 +208,7 @@ public partial class MainWindow
         return null;
     }
 
-    /// <summary>Asks as <see cref="Confirm"/> does, over the dialog that asks (tests answer for the person).</summary>
+    /// <summary>Asks as <see cref="Confirm"/> does, over the dialog that asks.</summary>
     private Task<bool> AskOverAsync(Window owner, string title, string text, string yes) =>
         confirm is { } answer ? answer(title, text, yes) : new ConfirmDialog(title, text, yes).ShowDialog<bool>(owner);
 }

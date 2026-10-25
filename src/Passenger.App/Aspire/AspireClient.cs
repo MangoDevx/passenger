@@ -159,8 +159,7 @@ public sealed class AspireClient(string? program = null)
             }
             foreach (string name in values.Select(value => value.Key).ToArray())
             {
-                // An environment variable's value as a container's is shown (ContainerSecrets' rule masks a secret's); of the
-                // properties, whose sensitivity the CLI does not say, only those known to name no secret.
+                // Environment values masked as a container's; a property shown only when known to name no secret.
                 if (field == "environment" && values[name] is JsonValue value && value.TryGetValue(out string? text))
                 {
                     values[name] = ContainerSecrets.Shown(name, text);
@@ -414,9 +413,9 @@ public sealed class AspireClient(string? program = null)
         }
     }
 
-    /// <summary>What the aspire CLI or a resource service said of a failure, as the status bar, the Aspire window and an
-    /// agent say it: its secrets masked by the one rule every CLI's error takes (<see cref="ContainerSecrets.InSaid"/>, the
-    /// <paramref name="secrets"/> the caller holds among them), on one line, 2,048 characters at most.</summary>
+    /// <summary>What the aspire CLI or a resource service said of a failure, in the same words wherever it is said: its
+    /// secrets masked (<see cref="ContainerSecrets.InSaid"/>, the <paramref name="secrets"/> the caller holds among them), on
+    /// one line, 2,048 characters at most.</summary>
     internal static string SanitizeDiagnostic(string value, params string[] secrets)
     {
         // Bounded before it is read through: nothing past what is shown is said.

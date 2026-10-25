@@ -67,7 +67,6 @@ public abstract class McpRig : IDisposable
 
     public virtual void Dispose()
     {
-        // Each Passenger the test started is given its input's end and its window's end limit to go, then killed.
         lock (passengers)
         {
             foreach (Process passenger in passengers)
@@ -108,12 +107,10 @@ public abstract class McpRig : IDisposable
         Connect(StartPassenger(arguments, workingDirectory, environment, languageServer, executable), arguments, protocol);
 
     /// <summary>Passenger started as the IDE starts a child, with a state folder of the test's own for its log (or, joining
-    /// a window, the run's, where the windows' sockets are), the engine's log and any other change to the environment
-    /// (null takes a variable away), its standard error kept; an <c>--mcp</c> Passenger whose agent asks nothing of C# starts
-    /// no C# language server (<paramref name="languageServer"/>, <see cref="McpHost.LanguageServerVariable"/>). Not the SDK's
-    /// own process transport: that ends a server with the runtime's tree kill, which can hang this process
-    /// (ChildProcesses.Kill says why). The agent going closes its input; <see cref="Dispose"/> ends the rest. The build's
-    /// Passenger beside the tests, or <paramref name="executable"/> (a copy of it laid out otherwise).</summary>
+    /// a window, the run's, where the windows' sockets are), the engine's log and any other change to the environment (null
+    /// takes a variable away), its standard error kept; an <c>--mcp</c> Passenger whose agent asks nothing of C# starts no C#
+    /// language server (<paramref name="languageServer"/>). Not the SDK's process transport, whose tree kill can hang this
+    /// process. The agent going closes its input; <see cref="Dispose"/> ends the rest.</summary>
     protected Process StartPassenger(IList<string> arguments, string? workingDirectory = null, Dictionary<string, string?>? environment = null, bool languageServer = true,
         string? executable = null)
     {
@@ -166,10 +163,9 @@ public abstract class McpRig : IDisposable
     /// <summary>The agent as its client names itself, which a window asking to let it in shows the person.</summary>
     private static readonly Implementation Agent = new() { Name = "test-agent", Title = "Test Agent", Version = "1.0" };
 
-    /// <summary>The SDK's stream transport over a Passenger's input and output; the agent going closes the input, as the
-    /// SDK's process transport does, and Passenger ends on its own. What it tells a Passenger that has gone (killed, as a
-    /// test may) is dropped, as the IDE's own connections drop it (<see cref="PeerTransport"/>): the SDK sends a call's
-    /// cancellation unawaited, and its failure was the next window test's caught error.</summary>
+    /// <summary>The SDK's stream transport over a Passenger's input and output; the agent going closes the input, and
+    /// Passenger ends on its own. What it tells a Passenger that has gone (killed, as a test may) is dropped: the SDK sends a
+    /// call's cancellation unawaited, and its failure would be the next window test's caught error.</summary>
     private sealed class PassengerTransport(Process passenger) : IClientTransport
     {
         public string Name => "passenger";
@@ -363,9 +359,8 @@ public abstract class McpRig : IDisposable
     }
 
     /// <summary>A tool call the agent gives up on as the protocol has it: sent under an id of its own, and on giving up a
-    /// "cancelled" notification naming that id. The SDK's own call can drop that notification: it registers sending it and
-    /// then waits on the same token in a using that disposes the registration, and a token's callbacks run newest first,
-    /// so the wait's end can dispose the sending before it runs (1 in 200 under load), leaving the window waiting.</summary>
+    /// "cancelled" notification naming that id. The SDK's own call can drop that notification (1 in 200 under load), leaving
+    /// the window waiting.</summary>
     protected static async Task<CallToolResult> CallGivingUp(McpClient client, string tool, Dictionary<string, object?> arguments, CancellationToken giveUp)
     {
         RequestId id = new($"given-up-{Guid.NewGuid():N}");

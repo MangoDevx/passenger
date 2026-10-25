@@ -20,15 +20,15 @@ using Velopack.Locators;
 
 namespace Passenger.Tests;
 
-/// <summary>Passenger says when a newer release is out, as Rider does, and installs it: an installed copy downloads it,
-/// checks its SHA-256 (refusing one that does not match, saying why), offers Restart to Update and installs it as it ends;
-/// any other copy says once per version that it is out, never of an older one, a pre-release, a draft or a failure. Check
-/// for Updates asks whenever a person wants; the setting off, nothing is asked or downloaded. A stand-in on a loopback
-/// port answers for GitHub and its downloads, which no test reaches; each installed copy is in a test folder, and each
+/// <summary>Passenger says when a newer release is out, and installs it: an installed copy downloads it, checks its
+/// SHA-256 (refusing one that does not match, saying why), offers Restart to Update and installs it as it ends; any other
+/// copy says once per version that it is out, never of an older one, a pre-release, a draft or a failure. Check for
+/// Updates asks whenever a person wants; the setting off, nothing is asked or downloaded. A stand-in on a loopback port
+/// answers for GitHub and its downloads, which no test reaches; each installed copy is in a test folder, and each
 /// version's disk image is made once for the class (<see cref="DiskImages"/>).</summary>
 public sealed class UpdatesTests : IClassFixture<UpdatesTests.DiskImages>, IDisposable
 {
-    /// <summary>The downloads #56's release workflow publishes with every release, by fixed names.</summary>
+    /// <summary>The downloads the release workflow publishes with every release, by fixed names.</summary>
     private static readonly string[] Downloads =
     [
         "Passenger-macos-arm64.dmg", "Passenger-windows-x64.exe", "Passenger-windows-arm64.exe",
@@ -59,19 +59,16 @@ public sealed class UpdatesTests : IClassFixture<UpdatesTests.DiskImages>, IDisp
         Ui.Settle();
         Assert.True(github.Requests.Count == 1, $"The window asked for the latest release {github.Requests.Count} times as it started, not once");
 
-        // The status bar names the version, and its link is this system's download from the release.
         Assert.True(Notice(window) == $"Passenger {newer} available", $"A newer release, v{newer}, is out, but the status bar's notice is '{Notice(window)}'");
         string download = $"https://github.com/Zaneris/passenger/releases/download/v{newer}/{ThisSystemsDownload()}";
         Assert.True(window.UpdateShown?.Link.AbsoluteUri == download,
             $"The notice's link opens {window.UpdateShown?.Link}, not this system's download from the release, {download}");
         Assert.Contains(download, ToolTip.GetTip(window.FindControl<Button>("UpdateButton")!) as string ?? string.Empty);
-        // Its click opens the download in the browser the one way the IDE opens one (#393).
         Ui.Click(window.FindControl<Button>("UpdateButton")!, settle: false);
         Assert.True(window.Browsed.LastOrDefault()?.AbsoluteUri == download, $"The notice's click opened [{string.Join(", ", window.Browsed)}], not {download} through Browse");
         Assert.True(window.Status == before, $"A check of the window's own said '{window.Status}' in the status bar's message, where it says nothing");
         Assert.Contains(Ui.IdeLog().Split('\n'), line => line.Contains($"Updates: Passenger {newer} is out (v{newer}; this is {Product.Version}): {download}", StringComparison.Ordinal));
 
-        // Nothing is sent but the request: a GET of the release, naming Passenger and its version, and the API's type.
         string[] head = github.Requests[0].Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
         Assert.Equal($"GET {github.Latest.PathAndQuery} HTTP/1.1", head[0]);
         Assert.Contains($"User-Agent: Passenger/{Product.Version}", head);
@@ -80,20 +77,17 @@ public sealed class UpdatesTests : IClassFixture<UpdatesTests.DiskImages>, IDisp
             $"The request sent more than the request itself: {string.Join(", ", headers)}");
         window.Close();
 
-        // Started again while it is still the latest, Passenger asks again and says nothing.
         window = Started();
         window.WatchForUpdates();
         Ui.Settle();
         Assert.True(github.Requests.Count == 2, "The window started again did not ask for the latest release");
         Assert.True(Notice(window) is null, $"v{newer} was announced already, yet the window started again announces it once more: '{Notice(window)}'");
 
-        // Help, Check for Updates says it whenever a person asks.
         CheckForUpdates(window);
         Assert.True(Notice(window) == $"Passenger {newer} available", "Check for Updates did not show the newer release the window had announced before");
         Assert.Equal($"Passenger {newer} is available", window.Status);
         window.Close();
 
-        // A later release is announced in its turn.
         string later = Bumped(1, 1);
         github.Answer = Release($"v{later}");
         window = Started();
@@ -123,7 +117,6 @@ public sealed class UpdatesTests : IClassFixture<UpdatesTests.DiskImages>, IDisp
         MainWindow second = Assert.Single(PassengerApp.Windows, w => w != window);
         Assert.True(github.Requests.Count == 1, $"Two windows of one Passenger asked for the latest release {github.Requests.Count} times, not once");
 
-        // The first closing alone, the second takes the watch over, asking once itself.
         window.Close();
         Ui.Settle();
         Assert.True(github.Requests.Count == 2, $"The window left did not take the watch for updates over: {github.Requests.Count} requests");
@@ -145,7 +138,7 @@ public sealed class UpdatesTests : IClassFixture<UpdatesTests.DiskImages>, IDisp
         Assert.True(Notice(window) is null && window.Status == before,
             $"The latest release is the running version, yet the window shows '{Notice(window)}' and says '{window.Status}'");
 
-        // Asked for, each of these is nothing newer: Rider's words.
+        // Asked for, each of these is nothing newer, in Rider's words.
         (string What, StandIn.Reply Answer)[] nothingNewer =
         [
             ("the running version", Release($"v{Product.Version}")),
@@ -175,7 +168,6 @@ public sealed class UpdatesTests : IClassFixture<UpdatesTests.DiskImages>, IDisp
         MainWindow window = Started();
         Assert.True(window.Settings.CheckForUpdates, "Check for updates is not on by default");
 
-        // Where Rider has it: System Settings, Updates.
         SettingsDialog dialog = window.ShowSettings();
         Ui.Settle();
         dialog.Query = "updates";
@@ -194,7 +186,6 @@ public sealed class UpdatesTests : IClassFixture<UpdatesTests.DiskImages>, IDisp
         Assert.True(github.Requests.Count == 0, $"With Check for updates off, the window asked for the latest release {github.Requests.Count} time(s)");
         Assert.True(Notice(window) is null, $"With Check for updates off, the status bar shows '{Notice(window)}'");
 
-        // On again, it asks at once.
         window.ApplySettings(window.Settings with { CheckForUpdates = true });
         Ui.Settle();
         Assert.True(github.Requests.Count == 1, "Check for updates turned on again did not ask for the latest release");
@@ -227,7 +218,6 @@ public sealed class UpdatesTests : IClassFixture<UpdatesTests.DiskImages>, IDisp
         Assert.True(Notice(window) is null && window.Status == before, $"A check never answered shows '{Notice(window)}' and says '{window.Status}'");
         Assert.Contains(Ui.IdeLog().Split('\n'), line => line.Contains($"Updates: could not ask {github.Latest} for the latest release: no answer in 1 s", StringComparison.Ordinal));
 
-        // Asked for, the failure is said.
         CheckForUpdates(window);
         Assert.Equal("Could not check for updates: no answer in 1 s", window.Status);
         window.Close();
@@ -245,13 +235,12 @@ public sealed class UpdatesTests : IClassFixture<UpdatesTests.DiskImages>, IDisp
         MainWindow window = Started(copy.Updater());
         window.WatchForUpdates();
 
-        // The person sees it happen: the download's progress in the status bar, the stand-in holding it half way.
+        // The stand-in holds the download half way, so its progress shows.
         Ui.PumpUntil(() => Notice(window) is { } shown && shown.StartsWith($"Downloading Passenger {newer}: ", StringComparison.Ordinal) && shown != $"Downloading Passenger {newer}: 0%",
             $"the status bar to say how far v{newer}'s download has come");
         Assert.False(copy.Holds(newer), $"v{newer} was ready to install before its download had all come");
         github.Let();
 
-        // Downloaded and checked, it waits for Passenger to restart: nothing is installed meanwhile.
         Ui.WaitFor(() => Notice(window) == $"Restart to update to Passenger {newer}", $"the status bar to offer Restart to Update once v{newer} had downloaded");
         Assert.True(copy.Holds(newer), $"The status bar offers Restart to Update, but v{newer} is not where it installs from");
         Assert.True(window.UpdateReady?.Version == newer, $"The window offers Restart to Update with {window.UpdateReady?.Version ?? "nothing"} ready, not {newer}");
@@ -260,7 +249,6 @@ public sealed class UpdatesTests : IClassFixture<UpdatesTests.DiskImages>, IDisp
         Assert.True(window.Actions.WhyNot(AppActions.RestartToUpdate, window.Actions.Context()) is null, "Restart to Update cannot run with the update ready");
         Assert.Contains(Ui.IdeLog().Split('\n'), line => line.Contains($"Updates: Passenger {newer} downloaded to ", StringComparison.Ordinal));
 
-        // Each of the update's files asked for once, with nothing in the request but Passenger's name and version.
         foreach (string name in update.Keys)
         {
             string[] asked = github.RequestsFor(name);
@@ -307,7 +295,6 @@ public sealed class UpdatesTests : IClassFixture<UpdatesTests.DiskImages>, IDisp
         string page = $"https://github.com/Zaneris/passenger/releases/tag/v{newer}";
         Assert.True(window.UpdateShown?.Link.AbsoluteUri == page, $"After a refusal the notice opens {window.UpdateShown?.Link}, not the release's page, {page}");
 
-        // Nothing of it is kept, and nothing installs.
         Assert.Null(window.UpdateReady);
         Assert.False(copy.Holds(newer), $"The refused v{newer} is still there to install");
         Assert.True(copy.Downloaded().Count == 0, $"The refused download left {string.Join(", ", copy.Downloaded())} behind");
@@ -332,7 +319,6 @@ public sealed class UpdatesTests : IClassFixture<UpdatesTests.DiskImages>, IDisp
         Ui.Settle();
         Assert.True(github.Requests.Count == 0, $"With Check for updates off, the window asked GitHub {github.Requests.Count} time(s)");
 
-        // Asked for, the newer release is announced with its link, and still nothing is downloaded.
         CheckForUpdates(window);
         Assert.True(Notice(window) == $"Passenger {newer} available", $"Check for Updates with the setting off shows '{Notice(window)}'");
         Ui.Settle();
@@ -340,7 +326,6 @@ public sealed class UpdatesTests : IClassFixture<UpdatesTests.DiskImages>, IDisp
         Assert.True(downloaded.Length == 0, $"With Check for updates off, the window downloaded {string.Join(", ", downloaded)}");
         Assert.False(copy.Holds(newer), $"With Check for updates off, v{newer} is ready to install");
 
-        // On, it downloads; off again, what it downloaded is dropped, and nothing installs as Passenger closes.
         window.ApplySettings(window.Settings with { CheckForUpdates = true });
         Ui.WaitFor(() => Notice(window) == $"Restart to update to Passenger {newer}", "Check for updates turned on to download the newer release");
         window.ApplySettings(window.Settings with { CheckForUpdates = false });
@@ -396,7 +381,6 @@ public sealed class UpdatesTests : IClassFixture<UpdatesTests.DiskImages>, IDisp
         window.WatchForUpdates();
         Ui.WaitFor(() => Notice(window) == $"Restart to update to Passenger {newer}", $"the status bar to offer Restart to Update to v{newer}");
 
-        // The person chooses it: the window closes, and as the process ends the new app takes the old one's place and starts.
         Ui.Click(window.FindControl<Button>("UpdateButton")!, settle: false);
         Ui.Settle();
         Assert.False(window.IsVisible, "Restart to Update did not close the window");
@@ -410,7 +394,6 @@ public sealed class UpdatesTests : IClassFixture<UpdatesTests.DiskImages>, IDisp
         Assert.True(copy.Downloaded().Count == 0, $"The update installed left {string.Join(", ", copy.Downloaded())} behind");
         Assert.Contains(Ui.IdeLog().Split('\n'), line => line.Contains($"Updates: Passenger {newer} installed in {copy.Bundle}, and started", StringComparison.Ordinal));
 
-        // A later release, made ready and left waiting, installs as Passenger closes, and nothing is started.
         string later = Bumped(1, 1);
         github.Answer = Release($"v{later}", files: copy.Update(later));
         window = Started(copy.Updater());
@@ -440,7 +423,6 @@ public sealed class UpdatesTests : IClassFixture<UpdatesTests.DiskImages>, IDisp
         File.SetAttributes(locked, FileAttributes.ReadOnly);
         try
         {
-            // Cancel: the window stays open, and closed later it installs the update without starting it.
             string newer = Bumped(1, 0);
             MainWindow window = ReadyWithLockedChanges(newer);
             Ui.Click(window.FindControl<Button>("UpdateButton")!, settle: false);
@@ -454,7 +436,6 @@ public sealed class UpdatesTests : IClassFixture<UpdatesTests.DiskImages>, IDisp
             Assert.True(copy.InstalledVersion == newer, $"Passenger closed with v{newer} ready left {copy.Bundle} at {copy.InstalledVersion}");
             Assert.True(Ui.Shared(copy.Started) == string.Empty, $"Restart to Update, given up, still started the new version: '{Ui.Shared(copy.Started)}'");
 
-            // Close Without Saving: Passenger quits, installs the update and starts it.
             string later = Bumped(1, 1);
             window = ReadyWithLockedChanges(later);
             Ui.Click(window.FindControl<Button>("UpdateButton")!, settle: false);
@@ -523,7 +504,6 @@ public sealed class UpdatesTests : IClassFixture<UpdatesTests.DiskImages>, IDisp
         Assert.Contains(Ui.IdeLog().Split('\n'), line => line.Contains($"Updates: Passenger {newer} was not installed: ", StringComparison.Ordinal)
             && line.Contains("Permission denied", StringComparison.Ordinal));
 
-        // The next start says so, and offers it again without downloading it again.
         window = Started(copy.Updater());
         window.WatchForUpdates();
         Assert.Equal($"Passenger {newer} did not install: Help, Show Log says why", window.Status);
@@ -556,7 +536,6 @@ public sealed class UpdatesTests : IClassFixture<UpdatesTests.DiskImages>, IDisp
             Assert.True(window.IsVisible, "Restart to Update closed the window while another Passenger runs from the same app");
             Assert.Equal($"Another Passenger is open from {copy.Bundle}: close it, then restart to update", window.Status);
 
-            // Closed anyway, it leaves the app as it is, for the other's files, and the update waits.
             window.Close();
             window.Ended?.Wait();
             window.InstallUpdate();
@@ -639,8 +618,8 @@ public sealed class UpdatesTests : IClassFixture<UpdatesTests.DiskImages>, IDisp
         return window;
     }
 
-    /// <summary>Help, Check for Updates as a person chooses it: the application menu's, after About, on macOS, as Rider has
-    /// it there; elsewhere Help's, before About.</summary>
+    /// <summary>Help, Check for Updates as a person chooses it: the application menu's, after About, on macOS; elsewhere
+    /// Help's, before About.</summary>
     private static void CheckForUpdates(MainWindow window)
     {
         NativeMenu help = Ui.Submenu(window.MenuBar, "Help");
@@ -675,7 +654,7 @@ public sealed class UpdatesTests : IClassFixture<UpdatesTests.DiskImages>, IDisp
     private static string? Notice(MainWindow window) =>
         window.FindControl<Button>("UpdateButton")!.IsVisible ? window.FindControl<TextBlock>("UpdateText")!.Text : null;
 
-    /// <summary>This system's download by #56's fixed names: its system and its processor's.</summary>
+    /// <summary>This system's download by the release's fixed names: its system and its processor's.</summary>
     private static string ThisSystemsDownload()
     {
         string system = OperatingSystem.IsMacOS() ? "macos-{0}.dmg" : OperatingSystem.IsWindows() ? "windows-{0}.exe" : "linux-{0}.tar.gz";
@@ -691,8 +670,8 @@ public sealed class UpdatesTests : IClassFixture<UpdatesTests.DiskImages>, IDisp
         return $"{parts[0] + major}.{minor}.0";
     }
 
-    /// <summary>A release as GitHub's API gives it, with every download #56 publishes; the files given are the stand-in's to
-    /// serve, by their names, and the rest GitHub's, which no test downloads.</summary>
+    /// <summary>A release as GitHub's API gives it, with every download a release publishes; the files given are the
+    /// stand-in's to serve, by their names, and the rest GitHub's, which no test downloads.</summary>
     private StandIn.Reply Release(string tag, bool prerelease = false, bool draft = false, IReadOnlyDictionary<string, byte[]>? files = null)
     {
         JsonArray assets = [];

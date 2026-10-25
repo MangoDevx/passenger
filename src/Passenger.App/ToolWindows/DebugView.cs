@@ -10,12 +10,12 @@ using Passenger.Dap;
 
 namespace Passenger.App.ToolWindows;
 
-/// <summary>The Debug tool window over its <see cref="DebugModel"/>, built as it is first shown (#441), laid out as Rider's: a
-/// toolbar down the left (rerun, resume, pause, stop, detach, then View Breakpoints and Mute Breakpoints), the stepping
-/// actions (Smart Step Into after Step Into, as Rider's) across the top beside the Debugger and Console tabs, and under
-/// Debugger the frames of the chosen thread on the left with the variables of the chosen frame on the right, an expression
-/// to evaluate or watch above them. Each program debugged has a tab in the window's header (<see cref="DebugModel.Sessions"/>),
-/// whose frames, values, console and toolbar the window shows while it is chosen.</summary>
+/// <summary>The Debug tool window over its <see cref="DebugModel"/>, built as it is first shown: a toolbar down the left
+/// (rerun, resume, pause, stop, detach, then View Breakpoints and Mute Breakpoints), the stepping actions (Smart Step Into
+/// after Step Into) across the top beside the Debugger and Console tabs, and under Debugger the frames of the chosen
+/// thread on the left with the variables of the chosen frame on the right, an expression to evaluate or watch above
+/// them. Each program debugged has a tab in the window's header (<see cref="DebugModel.Sessions"/>), whose frames,
+/// values, console and toolbar the window shows while it is chosen.</summary>
 public sealed class DebugView : DockPanel
 {
     private readonly DebugModel model;
@@ -35,9 +35,9 @@ public sealed class DebugView : DockPanel
     public DebugView(DebugModel model)
     {
         this.model = model;
-        // What is typed into the console is the program's input, as in Rider's Debug console.
+        // What is typed into the console is the program's input.
         consolePane = new DockPanel { IsVisible = false, Children = { model.Console } };
-        // The sessions' tabs are in the window's header, after its title, as the Terminal window's shells are.
+        // The sessions' tabs are in the window's header, after its title.
         HeaderTools = new ItemsControl
         {
             ItemsSource = model.Sessions,
@@ -96,8 +96,7 @@ public sealed class DebugView : DockPanel
         ListMenus.Attach(threads, ThreadsMenu);
         DockPanel variablesPane = new() { Children = { evaluate, variables } };
 
-        // The frames a third of the window and the variables the rest, so a narrow window narrows both: the frames' fixed
-        // 320 left the variables nothing and cut the frames at the window's edge.
+        // The frames a third of the window and the variables the rest, so a narrow window narrows both.
         Grid split = new() { ColumnDefinitions = new ColumnDefinitions("*,1,2*") };
         Grid.SetColumn(framesPane, 0);
         HairlineDivider divider = new(GridResizeDirection.Columns) { [Grid.ColumnProperty] = 1 };
@@ -136,7 +135,7 @@ public sealed class DebugView : DockPanel
         Border topBar = new() { [DockProperty] = Dock.Top, Height = 32, BorderThickness = new Thickness(0, 0, 0, 1), Child = top };
         topBar.Bind(Border.BorderBrushProperty, topBar.GetResourceObservable("Passenger.Divider"));
 
-        // Rider's toggle under the program's own buttons: pressed while every breakpoint is muted.
+        // Under the program's own buttons: pressed while every breakpoint is muted.
         mute = ToolButtons.Toggle("Icon.MuteBreakpoints", "Mute Breakpoints");
         ActionTips.Set(mute, AppActions.MuteBreakpoints, "Mute Breakpoints");
         mute.Click += (_, _) =>
@@ -145,7 +144,7 @@ public sealed class DebugView : DockPanel
             mute.IsChecked = model.ShowsMuted;
         };
 
-        // A Debug window too short for its buttons (at 1400 by 880 the last went under the status bar) puts the rest behind More.
+        // A Debug window too short for its buttons puts the rest behind More.
         ToolColumn left = new()
         {
             Spacing = 2,
@@ -186,7 +185,7 @@ public sealed class DebugView : DockPanel
     /// <summary>The window header's own tools: the sessions' tabs.</summary>
     public Control HeaderTools { get; }
 
-    /// <summary>Starts typing over the selected row's value, as F2 does: Rider's Set Value.</summary>
+    /// <summary>Starts typing over the selected row's value, as F2 does (Set Value).</summary>
     public bool EditSelectedValue() => variables.EditSelectedValue();
 
     /// <summary>The Variables view's list, whose rows are <see cref="DebugModel.Tree"/>'s.</summary>
@@ -272,7 +271,7 @@ public sealed class DebugView : DockPanel
         evaluate.Focus();
     }
 
-    /// <summary>Rider's Add to Watches from the Evaluate field, Ctrl+Shift+Enter (⇧⌘Enter), the keys Complete Current
+    /// <summary>Add to Watches from the Evaluate field, Ctrl+Shift+Enter (⇧⌘Enter), the keys Complete Current
     /// Statement has elsewhere: true when the field has the keyboard and an expression, and took them.</summary>
     public bool TakesAction(string action)
     {
@@ -301,7 +300,7 @@ public sealed class DebugView : DockPanel
         e.Handled = true;
     }
 
-    /// <summary>Rider's Frames menu: Copy Stack, every frame a line, and Go to Source for the one chosen.</summary>
+    /// <summary>The Frames menu: Copy Stack, every frame a line, and Go to Source for the one chosen.</summary>
     private IReadOnlyList<Control> FramesMenu()
     {
         if (model.Frames.Count == 0)
@@ -319,7 +318,7 @@ public sealed class DebugView : DockPanel
     private IReadOnlyList<Control> ThreadsMenu() =>
         threads.SelectedItem is DapThread thread ? [ListMenus.Item("Copy Name", null, () => _ = ListMenus.CopyAsync(this, ThreadLabel(thread)))] : [];
 
-    /// <summary>Apply Hot Reload Changes, in Rider's flame: shown while the session has Hot Reload.</summary>
+    /// <summary>Apply Hot Reload Changes, a flame: shown while the session has Hot Reload.</summary>
     private Button HotReloadTool()
     {
         Button button = Tool(AppActions.ApplyHotReloadChanges, "Icon.HotReload", "Apply Hot Reload Changes");
@@ -357,8 +356,7 @@ public sealed class DebugView : DockPanel
         {
             return new TextBlock();
         }
-        // "Hello.dll!Program.<Main>$(string[] args)" reads, as Rider shows it, as the method with
-        // its module after: the module is what tells user code from the framework.
+        // A frame shows as its method, its module after: the module tells user code from the framework's.
         string name = frame.Name;
         string module = string.Empty;
         if (name.IndexOf('!', StringComparison.Ordinal) is int bang and > 0)
@@ -375,7 +373,7 @@ public sealed class DebugView : DockPanel
             VerticalAlignment = VerticalAlignment.Center,
         };
         where.Bind(TextBlock.ForegroundProperty, where.GetResourceObservable("Passenger.TextMuted"));
-        // Its place gives way first, then its name, each ending in an ellipsis, as Rider's frames list narrows.
+        // Its place gives way first, then its name, each ending in an ellipsis.
         return new ShrinkingRow
         {
             Height = ListRow.Height,

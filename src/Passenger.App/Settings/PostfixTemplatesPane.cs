@@ -9,10 +9,10 @@ using Passenger.Languages.CSharp;
 
 namespace Passenger.App.Settings;
 
-/// <summary>Rider's Editor | General | Postfix Completion page, laid out as IntelliJ's: Enable postfix completion and Show
-/// postfix templates in completion autopopup over the templates under their language, each with the check box that
-/// turns it on or off, and beside them the chosen one's Description, Before and After. Each change goes back to the
-/// settings being edited at once, the templates turned off kept by name.</summary>
+/// <summary>The Editor | General | Postfix Completion page: Enable postfix completion and Show postfix templates in
+/// completion autopopup over the templates under their language, each with the check box that turns it on or off, and
+/// beside them the chosen one's Description, Before and After. Each change goes back to the settings being edited at
+/// once, the templates turned off kept by name.</summary>
 public sealed class PostfixTemplatesPane : DockPanel
 {
     private const string Language = "C#";
@@ -62,10 +62,10 @@ public sealed class PostfixTemplatesPane : DockPanel
         tree.SelectedIndex = 1;
     }
 
-    /// <summary>Rider's Enable postfix completion.</summary>
+    /// <summary>Enable postfix completion.</summary>
     public CheckBox EnableBox { get; }
 
-    /// <summary>Rider's Show postfix templates in completion autopopup.</summary>
+    /// <summary>Show postfix templates in completion autopopup.</summary>
     public CheckBox AutopopupBox { get; }
 
     /// <summary>Chooses a postfix template in the list by name, scrolled into view; false when there is none.</summary>
@@ -109,7 +109,7 @@ public sealed class PostfixTemplatesPane : DockPanel
         tree.SelectedIndex = keep;
     }
 
-    /// <summary>The chosen template's description and what it does to an expression, as IntelliJ's Before and After.</summary>
+    /// <summary>The chosen template's description and what it does to an expression, Before and After.</summary>
     private void Describe()
     {
         about.IsVisible = tree.SelectedItem is PostfixTemplate;

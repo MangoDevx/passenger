@@ -7,10 +7,10 @@ namespace Passenger.App;
 /// question asked of the person when it is missing or not trusted.</summary>
 public partial class MainWindow
 {
-    /// <summary>The dotnet a run's <c>dev-certs</c> runs through: the machine's, unless a test gives a stand-in.</summary>
+    /// <summary>The dotnet a run's <c>dev-certs</c> runs through: the machine's, unless one is given.</summary>
     public DotnetWords? DevCertificates { get; init; }
 
-    /// <summary>The question a run asked last of its HTTPS development certificate, for the tests.</summary>
+    /// <summary>The question a run asked last of its HTTPS development certificate.</summary>
     public CertificateQuestionDialog? CertificateQuestion { get; private set; }
 
     /// <summary>Whether this is an agent's own IDE (<c>--mcp</c>): nobody is at it, so what would ask the person (a run's

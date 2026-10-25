@@ -11,11 +11,9 @@ namespace Passenger.App.Migrations;
 /// where it is, in words.</summary>
 public sealed record EfRunDatabase(IReadOnlyDictionary<string, string> Environment, string Where);
 
-/// <summary>Finds the database a compose run or an AppHost gives the startup project. A compose service's connection string
-/// names its database by its service's name, which only the containers reach: it is given again at the port Compose
-/// published it on, on the engine's machine (<see cref="ContainerPort.LinkOn"/>), with the rest of it (database, user,
-/// password) as the service's resolved environment has it. An AppHost's project resource is given connection strings this
-/// machine reaches already (its orchestrator's proxies), as its run's environment has them.</summary>
+/// <summary>Finds the database a compose run or an AppHost gives the startup project, as this machine reaches it. A
+/// compose connection string names its database by a service only the containers reach, so it is given again at the port
+/// Compose published (<see cref="ContainerPort.LinkOn"/>); an AppHost's reaches this machine already.</summary>
 public static class EfDatabases
 {
     private const string Prefix = "ConnectionStrings__";

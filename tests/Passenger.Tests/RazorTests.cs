@@ -17,8 +17,8 @@ namespace Passenger.Tests;
 /// with its code in a code-behind, Tally.razor.cs, and no <c>@code</c>) and a Razor Page: a component's colours and its
 /// errors, completion of components, their parameters, HTML's elements and the C#, go to declaration from a tag, rename
 /// across markup and code, the code-behind's members completed, checked, found and renamed from the markup and back, and a
-/// Razor Page's errors and completion, all from Roslyn's server with Razor cohosted in it. Each test opens its own window,
-/// on the server the last one left running, warm, and on the app as written (<see cref="SharedProject"/>).</summary>
+/// Razor Page's errors and completion. Each test opens its own window, on the server the last one left running, warm,
+/// and on the app as written (<see cref="SharedProject"/>).</summary>
 public sealed class RazorTests : IClassFixture<BlazorShop>
 {
     private readonly BlazorShop app;
@@ -42,13 +42,11 @@ public sealed class RazorTests : IClassFixture<BlazorShop>
         Assert.Equal(TokenKind.AttributeName, KindOf(editor, "role"));
         Assert.Equal(TokenKind.Keyword, KindOf(editor, "@code"));
         Assert.Equal(TokenKind.Keyword, KindOf(editor, "@onclick"));
-        // The C# in the markup and in the code block, coloured by what the compiler knows of it.
         Assert.Equal(TokenKind.Field, KindOf(editor, "currentCount"));
         Assert.Equal(TokenKind.Method, KindOf(editor, "IncrementCount"));
         Assert.DoesNotContain(document.Markers, m => m.Kind == MarkerKind.Error);
         // The route @page gives is not named as the attribute parameter Razor's generated code passes it to.
         Assert.DoesNotContain(document.InlayHints, h => editor.Document.Snapshot.GetLineFromOffset(h.Offset) == 0);
-        // A tag's name lights up with its pair's, the server's colours over the grammar's as they are.
         string text = editor.Document.Snapshot.ToString();
         int start = text.IndexOf("<button", StringComparison.Ordinal) + 1;
         editor.Selections = SelectionSet.Single(start + 3);
@@ -64,7 +62,6 @@ public sealed class RazorTests : IClassFixture<BlazorShop>
         editor.ApplyEdits([new TextEdit(typo, "currentCont".Length, "currentCount")]);
         Ui.WaitFor(() => !document.Markers.Any(m => m.Kind == MarkerKind.Error), "the squiggle to go once the name is put right");
 
-        // Reformat Code lays the code block's C# out again as the template had it, the markup as it was.
         string before = editor.Document.Snapshot.ToString();
         string field = "    private int currentCount = 0;";
         int at = before.IndexOf(field, StringComparison.Ordinal);
@@ -114,7 +111,6 @@ public sealed class RazorTests : IClassFixture<BlazorShop>
         window.KeyTextInput("Ti");
         Ui.Settle();
         Assert.Equal("Times", window.Assist.CompletionLabels.FirstOrDefault());
-        // A parameter goes in with its value's quotes, the caret between them.
         Ui.Press(window, "ENTER");
         Assert.Equal("<Greeting Times=\"\"", editor.Document.Snapshot.GetLineText(3));
         Assert.Equal(new TextPosition(3, "<Greeting Times=\"".Length), editor.CaretPosition);
@@ -171,7 +167,6 @@ public sealed class RazorTests : IClassFixture<BlazorShop>
         Ui.WaitFor(() => window.EditorArea.Active?.Name == "Tally.razor.cs", "the code-behind opened at the method");
         Assert.Equal(new TextPosition(11, "    private void ".Length), window.EditorArea.CodeEditor.CaretPosition);
 
-        // And from the markup's C# expression to the field.
         window.OpenFile(app.PathOf("Components/Pages/Tally.razor"));
         Ui.Settle();
         Ui.PlaceAfter(window.EditorArea.CodeEditor, "@cli");
@@ -188,7 +183,6 @@ public sealed class RazorTests : IClassFixture<BlazorShop>
         Assert.Equal(TokenKind.Property, KindOf(editor, "Start"));
         Assert.DoesNotContain(document.Markers, m => m.Kind == MarkerKind.Error);
 
-        // A name the code-behind does not have is an error where the markup uses it, and none once it is put right.
         int used = editor.Document.Snapshot.ToString().IndexOf("@clicks", StringComparison.Ordinal) + 1;
         editor.ApplyEdits([new TextEdit(used, "clicks".Length, "clciks")]);
         Ui.WaitFor(() => document.Markers.Any(m => m.Kind == MarkerKind.Error), "the squiggle under the code-behind's field misspelt in the markup");
@@ -211,7 +205,6 @@ public sealed class RazorTests : IClassFixture<BlazorShop>
         Ui.WaitFor(() => window.Assist.CompletionLabels.FirstOrDefault() == "AddClick", "the code-behind's method among what the markup's C# offers");
         Ui.Press(window, "ESCAPE");
 
-        // Another component's markup completes the code-behind's parameter where it uses the component.
         window.OpenFile(app.PathOf("Components/Pages/Home.razor"));
         Ui.Settle();
         editor = window.EditorArea.CodeEditor;
@@ -358,7 +351,6 @@ public sealed class RazorDebuggingTests : IDisposable
         Assert.Contains("OnInitialized", top.Name, StringComparison.Ordinal);
         Assert.False(page.IsCompleted, "The page came back while the app was stopped at the breakpoint");
 
-        // A breakpoint on the markup's C# stops as the page is drawn, after its initialization.
         editor.GoTo(new TextPosition(2, 14));
         Ui.Run(window, AppActions.ToggleBreakpoint);
         Ui.Run(window, AppActions.Resume);
@@ -370,7 +362,6 @@ public sealed class RazorDebuggingTests : IDisposable
         string html = Ui.Await(page, "the page once the app goes on");
         Assert.Contains("Visits: 42", html, StringComparison.Ordinal);
 
-        // The component whose code is all in its code-behind stops there as its page is asked for, shown in that file.
         Task<string> tally = Task.Run(() => client.GetStringAsync($"http://localhost:{port}/tally"));
         Ui.WaitFor(() => window.Debugger.Session?.State == DebugState.Paused && window.EditorArea.Active?.Path == code,
             "the app to stop at the breakpoint in the code-behind as the page is asked for");

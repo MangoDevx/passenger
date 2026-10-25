@@ -7,10 +7,8 @@ using Passenger.Editor;
 namespace Passenger.App.Aspire;
 
 /// <summary>What the Aspire window shows of a folder's AppHosts, kept whether or not its view is built (#447): the AppHosts
-/// found and the one chosen, its resources as rows and the row chosen, the tab shown, what the window says, the engine's word,
-/// the AppHost's console, and the reads and commands that change them. A session's AppHosts write here and the Aspire
-/// actions read it; <see cref="AspireView"/> shows it once the window is first shown, and streams the resources' consoles
-/// and telemetry only while it shows them.</summary>
+/// found and the one chosen, its resources as rows and the row chosen, the tab shown, what the window says, the engine's
+/// word, the AppHost's console, and the reads and commands that change them.</summary>
 public sealed class AspireModel : IDisposable
 {
     // The tabs' names are those every list of a run's services has, in its order (RunWindows.Tabs).

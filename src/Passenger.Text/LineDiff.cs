@@ -4,17 +4,16 @@ namespace Passenger.Text;
 /// lines from <see cref="NewStart"/> of the second (either count may be zero), lines from zero.</summary>
 public readonly record struct DiffHunk(int OldStart, int OldCount, int NewStart, int NewCount);
 
-/// <summary>Lines compared as Myers' diff does (the shortest edit), which is what Git shows: the hunks between two
-/// texts (the gutter's change bars, the diff viewer), and the edits that turn one into the other (a reload from disk).
-/// Any thread may compare; the memory it takes grows with the texts, never with how much of them differs.</summary>
+/// <summary>Lines compared by Myers' diff (the shortest edit), which is what Git shows: the hunks between two texts,
+/// and the edits that turn one into the other. Any thread may compare; the memory it takes grows with the texts, never
+/// with how much of them differs.</summary>
 public static class LineDiff
 {
     /// <summary>The most edits the comparison looks for before it calls the rest one changed stretch, so a file edited
     /// all over (or a huge one) costs a bounded time.</summary>
     private const int MostEdits = 4000;
 
-    /// <summary>The hunks between two texts' <see cref="Lines"/>, which a caller keeps to compare one side again (the
-    /// last commit's, as a file is edited).</summary>
+    /// <summary>The hunks between two texts' <see cref="Lines"/>, which a caller may keep to compare again.</summary>
     public static IReadOnlyList<DiffHunk> Hunks(string[] before, string[] after)
     {
         // The ends that agree are no work: only the middle is compared.
@@ -171,9 +170,9 @@ public static class LineDiff
         return starts;
     }
 
-    /// <summary>Myers' comparison in linear space, as GNU diff and Git run it: a stretch is split where the searches from
-    /// its two ends first meet, which is on a shortest edit, and each half compared the same way. It holds one furthest
-    /// point per diagonal for each search, where keeping every step's to trace the path back costs the edits squared.</summary>
+    /// <summary>Myers' comparison in linear space: a stretch is split where the searches from its two ends first meet,
+    /// which is on a shortest edit, and each half compared the same way. It holds one furthest point per diagonal for
+    /// each search, where keeping every step's to trace the path back costs the edits squared.</summary>
     private sealed class Comparison
     {
         private readonly string[] a;

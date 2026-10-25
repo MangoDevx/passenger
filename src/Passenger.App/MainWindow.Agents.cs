@@ -7,8 +7,8 @@ using Passenger.Core;
 
 namespace Passenger.App;
 
-/// <summary>Agents in the window: its own socket, open to them from its start (<c>--no-mcp</c> aside), on which an agent
-/// works once let in: by Rider's Enable MCP Server (turning it off shuts them out), by the folder's Always, or by the
+/// <summary>Agents in the window: its own socket, open to them from its start (<c>--no-mcp</c> aside), on which an
+/// agent works once let in: by Enable MCP Server (turning it off shuts them out), by the folder's Always, or by the
 /// person's Allow when its first call comes; the person's leave before an agent's first use of a tool that changes
 /// something, and before it opens another folder here; and the status bar's word on who is on the window and what they
 /// run there.</summary>

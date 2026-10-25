@@ -9,9 +9,9 @@ using Passenger.Roslyn.Extension;
 
 namespace Passenger.App.CSharp;
 
-/// <summary>Rider's Change Signature dialog: the method's name and return type, its parameters in a table of their
-/// modifier, type, name and default value, which Add, Remove, Move Up and Move Down change, and the signature as it will
-/// read. A new parameter's default value is what every call passes for it; a kept one's is its declaration's.</summary>
+/// <summary>Change Signature: the method's name and return type, its parameters in a table of their modifier, type,
+/// name and default value, which Add, Remove, Move Up and Move Down change, and the signature as it will read. A new
+/// parameter's default value is what every call passes for it; a kept one's is its declaration's.</summary>
 public sealed class ChangeSignatureDialog : RefactoringDialog
 {
     private const string Columns = "110,*,*,*";

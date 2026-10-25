@@ -14,7 +14,7 @@ using Passenger.Text;
 namespace Passenger.App.Navigation;
 
 /// <summary>A place a symbol popup offers: a type, a member, a file. <see cref="Depth"/> indents it under its
-/// container, as the File Structure popup shows members under their type.</summary>
+/// container (File Structure's members under their type).</summary>
 public sealed record SymbolRow(string Name, string? Detail, string? Where, int Kind, string Path, TextPosition Position, int Depth = 0, int? EndLine = null)
 {
     /// <summary>Whether a line (from zero) is inside the declaration: the caret's member is chosen when File
@@ -66,7 +66,7 @@ public sealed class SymbolPopup : UserControl
         DockPanel heading = new();
         if (option is { } shown)
         {
-            // Not focusable: the keys stay with the query, as they do in Rider's popups.
+            // Not focusable: the keys stay with the query.
             this.option = new CheckBox { Content = shown.Label, IsChecked = shown.Checked, Focusable = false, FontSize = 12, VerticalAlignment = VerticalAlignment.Center };
             this.option.IsCheckedChanged += (_, _) =>
             {
@@ -241,7 +241,7 @@ public sealed class SymbolPopup : UserControl
         return new DockPanel { Height = ListRow.Height, Margin = new Thickness(row.Depth * 16, 0, 0, 0), Children = { where, badge, name } };
     }
 
-    /// <summary>A kind's letter on its colour, as Rider marks a symbol or a kind of type.</summary>
+    /// <summary>A kind's letter on its colour, marking a symbol or a kind of type.</summary>
     public static Control KindBadge(string letter, string brush) => new Border
     {
         Width = 16,
@@ -260,7 +260,7 @@ public sealed class SymbolPopup : UserControl
         },
     };
 
-    /// <summary>The letter and colour Rider gives a symbol of each kind (the protocol's SymbolKind).</summary>
+    /// <summary>The letter and colour of a symbol of each kind (the protocol's SymbolKind).</summary>
     public static (string Letter, string Brush) Badge(int kind) => kind switch
     {
         3 => ("N", "Passenger.Syntax.Keyword"),

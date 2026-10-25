@@ -12,7 +12,7 @@ namespace Passenger.App.Vcs;
 /// <summary>One thing a <see cref="ChoicePopup"/> offers: what it is called, what it says beside that, and what it is.</summary>
 public sealed record Choice(string Label, string Detail, object Value);
 
-/// <summary>Rider's popups that choose a version to compare with (Compare with Branch or Tag, Compare with Revision): a
+/// <summary>The popups that choose a version to compare with (Compare with Branch or Tag, Compare with Revision): a
 /// search box over the list, narrowed as words are typed; Enter or a double-click takes the chosen one, Escape gives up.</summary>
 public sealed class ChoicePopup : UserControl
 {

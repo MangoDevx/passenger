@@ -244,8 +244,7 @@ public sealed class ContainerStatsPane : DockPanel
         bool came = false;
         foreach (ContainerStatsSample sample in read)
         {
-            // docker stats writes each container a line a reading: a name read again begins the next, and the lines take
-            // the sum of the one before.
+            // A name read again begins the next reading; the lines take the sum of the one before.
             if (!sinceLast.Add(sample.Name))
             {
                 cpu.Add(latest.Values.Sum(s => s.Cpu));

@@ -4,11 +4,11 @@ using Passenger.Lsp;
 
 namespace Passenger.App;
 
-/// <summary>The IDE's logs folder, which Help, Show Log opens: <c>passenger.log</c> (Rider's idea.log), each C# language
-/// server's own under <c>roslyn/</c>, <c>dap.log</c> for the debugger, <c>vstest.log</c> for the test runner, and with
-/// <see cref="Traces"/> on <c>lsp.log</c> and agents' <c>mcp.log</c>. A line is queued from any thread and written by the
-/// log's own thread; each file is rotated by size, a dozen kept. The process's, as Rider's idea.log is: every window writes
-/// the same files, a line naming the folder where that matters, each language server a log of its own.</summary>
+/// <summary>The IDE's logs folder, which Help, Show Log opens: <c>passenger.log</c>, each C# language server's own
+/// under <c>roslyn/</c>, <c>dap.log</c> for the debugger, <c>vstest.log</c> for the test runner, and with
+/// <see cref="Traces"/> on <c>lsp.log</c> and agents' <c>mcp.log</c>. A line is queued from any thread and written by
+/// the log's own thread; each file is rotated by size, a dozen kept. The process's: every window writes the same files,
+/// a line naming the folder where that matters, each language server a log of its own.</summary>
 public static partial class IdeLog
 {
     /// <summary>The IDE's own log: errors, what the servers and programs it runs said went wrong, startup times.</summary>
@@ -29,7 +29,7 @@ public static partial class IdeLog
     /// call was given.</summary>
     public const string Mcp = "mcp";
 
-    /// <summary>The rotated logs kept beside the current one, <c>passenger.1.log</c> the newest (Rider's idea.log.count).</summary>
+    /// <summary>The rotated logs kept beside the current one, <c>passenger.1.log</c> the newest.</summary>
     public const int Rotations = 12;
 
     /// <summary>Lines waiting for the log's thread; taken under <see cref="Writing"/> so they reach the file in order.</summary>
@@ -46,11 +46,12 @@ public static partial class IdeLog
     /// <summary>How long the log's thread rests after a write, so the lines of a burst share one opening of the file.</summary>
     private static readonly TimeSpan Pause = TimeSpan.FromMilliseconds(250);
 
-    /// <summary>The state store's <c>logs</c>, in force now: a test's settings folder changes under a running process.</summary>
+    /// <summary>The state store's <c>logs</c>, read each time, since the state folder can change under a running
+    /// process.</summary>
     public static string Folder => Path.Combine(State.StateStore.DefaultRoot, "logs");
 
-    /// <summary>The size past which a log is rotated, Rider's idea.log.limit: no log file grows beyond it, but one another
-    /// program holds where it is.</summary>
+    /// <summary>The size past which a log is rotated: no log file grows beyond it, but one another program holds where
+    /// it is.</summary>
     public static long Limit { get; set; } = 10_000_000;
 
     /// <summary>Settings' Trace protocol messages: every message to and from the C# language servers (lsp.log), the debug
@@ -67,9 +68,9 @@ public static partial class IdeLog
         }
     }
 
-    /// <summary>Settings' Log every program started, Rider's debug log of its processes: each program the IDE runs, its exit
-    /// code and time, in passenger.log. Off, only those that fail or take a second are, since git's quick reads come every
-    /// few seconds and would bury the rest.</summary>
+    /// <summary>Settings' Log every program started: each program the IDE runs, its exit code and time, in
+    /// passenger.log. Off, only those that fail or take a second are, since git's quick reads come every few seconds
+    /// and would bury the rest.</summary>
     public static bool Programs { get; set; }
 
     public static string PathOf(string log) => Path.Combine(Folder, $"{log}.log");
@@ -235,9 +236,9 @@ public static partial class IdeLog
 
     private static FileStream Open(string path) => new(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete);
 
-    /// <summary>Rider's RollingFileHandler: the oldest goes, each moves up one, and the log becomes <c>passenger.1.log</c>.
-    /// The log is moved aside first, so one that cannot be (Windows, a reader not sharing deletion) leaves the rotated ones
-    /// as they were; false then.</summary>
+    /// <summary>Rotates a log: the oldest goes, each moves up one, and the log becomes <c>passenger.1.log</c>. The log
+    /// is moved aside first, so one that cannot be (Windows, a reader not sharing deletion) leaves the rotated ones as
+    /// they were; false then.</summary>
     private static bool Rotate(string path)
     {
         string aside = Rotated(path, "rotating");

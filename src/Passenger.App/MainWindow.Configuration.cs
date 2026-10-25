@@ -41,10 +41,10 @@ public partial class MainWindow
         ? row is { Kind: NodeKind.Project, Path: { } path } ? SolutionProject(path) : null
         : context.File is { } file ? ProjectOf(file.Path) : null;
 
-    /// <summary>A project's user secrets opened in an editor tab: its UserSecretsId given first where it has none (a new GUID,
-    /// set in its project file as Add > Docker Support sets a property) and its secrets.json made where missing, both one
-    /// command of global undo, in the user secrets' folder (<see cref="UserSecrets.Root"/>, the run's own in a test). Null once
-    /// open, else why not, which the status bar says too.</summary>
+    /// <summary>A project's user secrets opened in an editor tab: its UserSecretsId given first where it has none (a
+    /// new GUID, set in its project file) and its secrets.json made where missing, both one command of global undo, in
+    /// the user secrets' folder (<see cref="UserSecrets.Root"/>). Null once open, else why not, which the status bar
+    /// says too.</summary>
     public string? ManageUserSecrets(string project)
     {
         if (SolutionProject(project) is not { } model)

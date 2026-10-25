@@ -92,7 +92,6 @@ public sealed class ContainerDetailsTests
         Assert.Contains(ContainerSecrets.Masked, shown);
         Assert.True(shown.Any(w => w.Contains("probe-said-no", StringComparison.Ordinal)), $"The Details tab does not say what the failing health check printed: {string.Join(" | ", shown)}");
 
-        // The published port is a link the browser opens.
         string published = Docker.Run("compose", "-f", compose, "port", "app", "8080").Split('\n')[0].Trim();
         int port = int.Parse(published[(published.LastIndexOf(':') + 1)..], CultureInfo.InvariantCulture);
         Button link = view.Details.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "detailsPort");

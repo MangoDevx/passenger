@@ -1,6 +1,6 @@
-// Passenger's Prettier runner (Web/Prettier.cs): Reformat Code and a save hand a file's text to the project's own prettier
-// package through it, as Rider's Prettier support runs that package. One request per line on standard input, one answer
-// per line on standard output, in turn, so a process stays warm for a folder and loads each package once:
+// Passenger's Prettier runner (Web/Prettier.cs), through which a file's text reaches the project's own prettier package.
+// One request per line on standard input, one answer per line on standard output, in turn, so a process stays warm for
+// a folder and loads each package once:
 //   { "id": 1, "prettier": "<the package's folder>", "file": "<the file's path>", "text": "...", "cursor": 12,
 //     "ignorePath": "<the nearest .prettierignore>" | null }
 // answered { "id": 1, "formatted": "...", "cursor": 10, "version": "3.9.9" }, or { "id": 1, "ignored": true } for a file
@@ -28,7 +28,7 @@ function load(folder) {
     return prettier;
 }
 
-// The project the package belongs to, from which a configuration's plugins are found as its own CLI finds them.
+// The project the package belongs to, from which a configuration's plugins are found.
 function projectOf(folder, file) {
     const parent = path.dirname(folder);
     return path.basename(parent) === "node_modules" ? path.dirname(parent) : path.dirname(file);
@@ -37,7 +37,7 @@ function projectOf(folder, file) {
 async function answer(request) {
     const prettier = load(request.prettier);
     process.chdir(projectOf(request.prettier, request.file));
-    // Read afresh each time, as the CLI does: a .prettierrc or .editorconfig edited since is in force at once.
+    // Read afresh each time, so a .prettierrc or .editorconfig edited since is in force at once.
     if (typeof prettier.clearConfigCache === "function") {
         await prettier.clearConfigCache();
     }

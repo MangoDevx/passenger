@@ -3,7 +3,7 @@ using Passenger.Text;
 
 namespace Passenger.App.Workspace;
 
-/// <summary>What taking an encoding would do, whichever way it is taken (Rider's EncodingUtil.Magic8).</summary>
+/// <summary>What taking an encoding would do, whichever way it is taken.</summary>
 public enum Safety
 {
     /// <summary>Nothing changes but the name: the bytes read as the text the editor has, or the text writes as the bytes
@@ -17,9 +17,8 @@ public enum Safety
     Unsafe,
 }
 
-/// <summary>What another encoding would do to an open file, weighed as Rider's EncodingUtil weighs it before it asks
-/// Reload or Convert: reading the file's bytes again in it (isSafeToReloadIn), and writing the text in it
-/// (isSafeToConvertTo).</summary>
+/// <summary>What another encoding would do to an open file, weighed before Reload or Convert is asked: reading the
+/// file's bytes again in it, and writing the text in it.</summary>
 public sealed record EncodingChange(FileEncoding To, Safety Reload, Safety Convert, string? Unheld, bool OtherBom)
 {
     /// <summary>Weighs an encoding for a file whose bytes on disk are <paramref name="bytes"/> (null when it has none) and
@@ -31,8 +30,8 @@ public sealed record EncodingChange(FileEncoding To, Safety Reload, Safety Conve
         return new EncodingChange(to, ReloadSafety(bytes, text, current, otherBom, to), ConvertSafety(bytes, text, crBreaks, unheld, to), unheld, otherBom);
     }
 
-    /// <summary>Whether a choice of the same encoding with a BOM or without is all it is, which Rider's Add BOM and Remove
-    /// BOM make without a question.</summary>
+    /// <summary>Whether a choice of the same encoding with a BOM or without is all it is, which Add BOM and Remove BOM
+    /// make without a question.</summary>
     public static bool OnlyBom(Encoding current, FileEncoding to) => current.CodePage == to.CodePage && to.CodePage == 65001;
 
     private static Safety ReloadSafety(byte[]? bytes, string text, Encoding current, bool otherBom, FileEncoding to)
@@ -47,7 +46,7 @@ public sealed record EncodingChange(FileEncoding To, Safety Reload, Safety Conve
         {
             return Safety.Unsafe;
         }
-        // Rider's rule: a file read as UTF-8 because its bytes are UTF-8 is most likely in no other encoding.
+        // A file read as UTF-8 because its bytes are UTF-8 is most likely in no other encoding.
         if (current.CodePage == 65001 && to.CodePage != 65001 && bytes.Any(b => b >= 0x80))
         {
             return Safety.Unsafe;
@@ -68,7 +67,7 @@ public sealed record EncodingChange(FileEncoding To, Safety Reload, Safety Conve
     private static byte[] Written(string text, Encoding encoding, bool bom, bool crBreaks) =>
         [.. bom ? FileText.Preamble(encoding) : [], .. encoding.GetBytes(crBreaks ? LineEndings.In(text, "\r") : text)];
 
-    /// <summary>Each character of a text an encoding cannot hold made '?', as Rider's Convert Anyway writes it.</summary>
+    /// <summary>Each character of a text an encoding cannot hold made '?', as Convert Anyway writes it.</summary>
     public static List<TextEdit> Lost(Encoding encoding, string text)
     {
         List<TextEdit> lost = [];

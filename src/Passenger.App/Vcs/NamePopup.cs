@@ -8,11 +8,10 @@ using Avalonia.Threading;
 
 namespace Passenger.App.Vcs;
 
-/// <summary>Asks for a name, as Rider's Create New Branch does: Enter tries it, and when that fails the reason shows
-/// under the box and the name stays to correct; Escape gives up. With kinds to choose from, as Rider's New Class/Interface
-/// has, they are listed under the box, the first chosen, and Up and Down choose another while the name is typed. With an
-/// option, as Rider's Rename of a file has Rename type, it is a check box under the box, clicked while the keys stay
-/// with the name.</summary>
+/// <summary>Asks for a name: Enter tries it, and when that fails the reason shows under the box and the name stays to
+/// correct; Escape gives up. With kinds to choose from (New Class/Interface), they are listed under the box, the first
+/// chosen, and Up and Down choose another while the name is typed. With an option (a file's Rename type), it is a check
+/// box under the box, clicked while the keys stay with the name.</summary>
 public sealed class NamePopup : UserControl
 {
     private readonly TextBox name;

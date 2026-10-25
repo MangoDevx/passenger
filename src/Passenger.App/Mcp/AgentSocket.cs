@@ -234,10 +234,10 @@ public sealed class AgentConnection(CancellationToken gone, bool attached)
     internal static string NameOf(Implementation? client) =>
         client is not null && (client.Title is { Length: > 0 } title ? title : client.Name) is { Length: > 0 } name ? name : "An agent";
 
-    /// <summary>Lets the agent into a person's window before its call goes on, or says why not: at once while Enable MCP
-    /// Server is on, the folder's Always holds or nobody is at the window; else the person is asked, once for every call
-    /// waiting, for at most the window's limit, the question going away unanswered once none waits, as a tool's does. A no,
-    /// or no answer, is the call's answer, and a later call asks again.</summary>
+    /// <summary>Lets the agent into a person's window before its call goes on, or says why not: at once while Enable
+    /// MCP Server is on, the folder's Always holds or nobody is at the window; else the person is asked, once for every
+    /// call waiting, for at most the window's limit, the question going away unanswered once none waits. A no, or no
+    /// answer, is the call's answer, and a later call asks again.</summary>
     internal async Task<string?> AdmitAsync(MainWindow window, AgentCall call, CancellationToken cancel)
     {
         UiThread.Check();

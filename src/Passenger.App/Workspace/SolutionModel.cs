@@ -366,9 +366,8 @@ public sealed record ProjectModel(
     }
 }
 
-/// <summary>A solution's or project's file read without ever standing in the way of a program writing it: Windows refuses
-/// to let a file be written while a reader holds it without sharing writes, and the folder watcher reads a project the
-/// moment it changes, just as dotnet add package or a checkout goes on to write it again.</summary>
+/// <summary>A solution's or project's file read sharing writes, so the read never stands in the way of a program
+/// writing it (Windows refuses a write while a reader shares none).</summary>
 internal static class SharedRead
 {
     public static XDocument Xml(string path)

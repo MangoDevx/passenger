@@ -31,8 +31,8 @@ public enum XamlContentIndent
 
 /// <summary>How Reformat Code lays out XAML: Rider's XML formatter's options (Settings, Editor, Code Style, XAML), each at
 /// Rider's default and named in .editorconfig by Rider's own key (<c>xml_attribute_style</c>, <c>xml_attribute_indent</c>,
-/// …, <c>max_line_length</c>), with the attribute ordering and empty-element style Rider gets from XAML Styler, off as in
-/// Rider without it (<c>xaml_enable_attribute_reordering</c>, <c>xaml_attribute_ordering_rule_groups</c>,
+/// …, <c>max_line_length</c>), with XAML Styler's attribute ordering and empty-element style, off by default
+/// (<c>xaml_enable_attribute_reordering</c>, <c>xaml_attribute_ordering_rule_groups</c>,
 /// <c>xaml_remove_ending_tag_of_empty_element</c>). The indent itself is the file's (indent_style, indent_size).</summary>
 public sealed record XamlFormatSettings
 {

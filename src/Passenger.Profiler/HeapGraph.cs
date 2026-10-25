@@ -6,7 +6,7 @@ using Microsoft.Diagnostics.Runtime;
 
 namespace Passenger.Profiler;
 
-/// <summary>A kind of GC root, as dotMemory names them.</summary>
+/// <summary>A kind of GC root.</summary>
 public enum RootKind
 {
     StaticReference,
@@ -22,7 +22,7 @@ public enum RootKind
 /// <summary>A GC root: its kind, and what names it (a static field, the method whose local it is).</summary>
 public sealed record GcRoot(RootKind Kind, string Name)
 {
-    /// <summary>The kind as dotMemory writes it, with a handle's flag.</summary>
+    /// <summary>The kind as shown, with a handle's flag.</summary>
     public string KindName => Kind switch
     {
         RootKind.StaticReference => "Static reference",
@@ -52,10 +52,10 @@ internal sealed class HeapTypeInfo(string name, ulong methodTable, int component
     public Dictionary<int, string> Fields { get; } = [];
 }
 
-/// <summary>What a dump's heap held, as dotMemory's snapshot: every object reachable from a GC root, in address order, with
-/// its references and the roots; for each object the shortest path that keeps it (a breadth-first walk from the roots,
-/// statics first) and what it retains (the dominator tree, Lengauer and Tarjan's). Read with ClrMD; arrays rather than
-/// objects, since a heap has millions.</summary>
+/// <summary>What a dump's heap held: every object reachable from a GC root, in address order, with its references and
+/// the roots; for each object the shortest path that keeps it (a breadth-first walk from the roots, statics first) and
+/// what it retains (the dominator tree, Lengauer and Tarjan's). Read with ClrMD; arrays rather than objects, since a
+/// heap has millions.</summary>
 internal sealed class HeapGraph
 {
     /// <summary>A reference held by a dependent handle (ConditionalWeakTable) rather than a field.</summary>
@@ -143,7 +143,7 @@ internal sealed class HeapGraph
         }
         catch (NotSupportedException)
         {
-            // A runtime newer than ClrMD knows (.NET 11's for ClrMD 3) left Get Memory Snapshot saying it was taking one.
+            // ClrMD reads no runtime newer than it knows (.NET 11's for ClrMD 3).
             throw new InvalidOperationException($"the program runs on .NET {clr.Version.Major}.{clr.Version.Minor}, newer than the memory profiler can read");
         }
         if (!heap.CanWalkHeap)
@@ -160,11 +160,9 @@ internal sealed class HeapGraph
         return graph;
     }
 
-    /// <summary>The runtime in a dump, read through the DAC in the program's own runtime folder (ClrMD names it and leaves
-    /// finding it to its caller), which on macOS and Linux stays loaded for the IDE's life. ClrMD unloads the DAC with the
-    /// runtime it read, but the DAC's platform layer leaves a thread-local destructor that the system runs as each thread
-    /// that used it ends: from unmapped memory, once unloaded, which ended the IDE on Linux (SIGSEGV) a while after a
-    /// snapshot, when the thread pool let that thread go.</summary>
+    /// <summary>The runtime in a dump, read through the DAC in the program's own runtime folder, which on macOS and
+    /// Linux stays loaded for the IDE's life: the DAC leaves a thread-local destructor behind, which would run from
+    /// unmapped memory as a thread that used it ends once it was unloaded.</summary>
     private static ClrRuntime Runtime(ClrInfo clr)
     {
         OSPlatform platform = OperatingSystem.IsWindows() ? OSPlatform.Windows : OperatingSystem.IsMacOS() ? OSPlatform.OSX : OSPlatform.Linux;
@@ -184,10 +182,8 @@ internal sealed class HeapGraph
         return clr.CreateRuntime(dac, ignoreMismatch: true);
     }
 
-    /// <summary>ClrMD's file locator for what a dump lacks, which finds nothing: its own downloads from symbol servers,
-    /// with the symbol cache it makes under the person's local application data and the Azure sign-in it brings for them,
-    /// are never needed for a program run here. The Azure assemblies stay carried: on Linux ClrMD's FileLocator getter
-    /// loads Azure.Core even when given a locator, and the snapshot then waits for good.</summary>
+    /// <summary>ClrMD's file locator for what a dump lacks, which finds nothing: a program run here never needs
+    /// downloads from symbol servers, nor the symbol cache and sign-in they would bring.</summary>
     private sealed class NothingDownloaded : IFileLocator
     {
         public static readonly NothingDownloaded Locator = new();
@@ -365,7 +361,7 @@ internal sealed class HeapGraph
             }
             int[] offsets = edgeOffsets.ToArray();
 
-            // Breadth first from the roots, statics first as dotMemory prefers them: each object's shortest path.
+            // Breadth first from the roots, statics first: each object's shortest path.
             int[] root = new int[count];
             Array.Fill(root, -1);
             int[] parent = new int[count];
@@ -404,7 +400,7 @@ internal sealed class HeapGraph
                 }
             }
 
-            // Only what is reachable is kept, in address order, as dotMemory's snapshot after its collection.
+            // Only what is reachable is kept, in address order.
             int[] kept = new int[count];
             Array.Fill(kept, -1);
             int live = 0;

@@ -40,9 +40,9 @@ public readonly record struct Keystroke(Key Key, KeyModifiers Modifiers)
     /// beside the one that types the same character.</summary>
     public bool IsOnKeypad => Keypad(Key) is not null;
 
-    /// <summary>For menus and tooltips: ⌘⇧L on macOS, Ctrl+Shift+L elsewhere, a key named as Rider names it (its Mac
-    /// symbols for Return, Escape, Tab and the keys around them), a keypad key as Rider names the keypad's / (NumPad /, ⌨/
-    /// on macOS): every keypad key so, where Rider's own "." (and macOS's "+" and "-") would read as the main keys'.</summary>
+    /// <summary>For menus and tooltips: ⌘⇧L on macOS, Ctrl+Shift+L elsewhere, a key named as Rider's keymaps name it
+    /// (the Mac symbols for Return, Escape, Tab and the keys around them), and every keypad key as they name the
+    /// keypad's / (NumPad /, ⌨/ on macOS), so none reads as a main key.</summary>
     public string Display()
     {
         bool mac = OperatingSystem.IsMacOS();
@@ -190,13 +190,13 @@ public sealed record Shortcut(Keystroke First, Keystroke? Second = null)
         };
     }
 
-    /// <summary>As Rider shows it: "⌘K, ⌘C" for a chord (Ctrl+K, Ctrl+C elsewhere).</summary>
+    /// <summary>For menus and tooltips: "⌘K, ⌘C" for a chord (Ctrl+K, Ctrl+C elsewhere).</summary>
     public string Display() => Second is { } second ? $"{First.Display()}, {second.Display()}" : First.Display();
 
     public string Notation() => Second is { } second ? $"{First.Notation()} , {second.Notation()}" : First.Notation();
 
-    /// <summary>Whether this is pressed by starting with that, as Rider's Find Actions by Shortcut matches: the same first
-    /// keystroke, and the same second when that names one.</summary>
+    /// <summary>Whether this is pressed by starting with that: the same first keystroke, and the same second when that
+    /// names one.</summary>
     public bool StartsWith(Shortcut prefix) => First == prefix.First && (prefix.Second is null || prefix.Second == Second);
 }
 
@@ -231,7 +231,7 @@ public sealed class Keymap
     }
 
     /// <summary>Gives an action exactly these shortcuts, as a person's keymap does: its own go, and a shortcut another
-    /// action had is taken from it (Rider's "remove other assignments").</summary>
+    /// action had is taken from it.</summary>
     public Keymap Set(string action, IEnumerable<Shortcut> shortcuts)
     {
         if (byAction.TryGetValue(action, out List<Shortcut>? own))
@@ -266,9 +266,9 @@ public sealed class Keymap
 
     public string? ActionFor(Shortcut shortcut) => byShortcut.GetValueOrDefault(shortcut);
 
-    /// <summary>The other actions' shortcuts that clash with one, as Rider's keymap finds them: the same first keystroke
-    /// and, unless either is one keystroke alone, the same second. So a chord clashes with the key that begins it, which
-    /// would run before the chord's second key could be pressed, and a key with every chord it begins.</summary>
+    /// <summary>The other actions' shortcuts that clash with one: the same first keystroke and, unless either is one
+    /// keystroke alone, the same second. So a chord clashes with the key that begins it, which would run before the
+    /// chord's second key could be pressed, and a key with every chord it begins.</summary>
     public IReadOnlyList<(string Action, Shortcut Shortcut)> Conflicts(string action, Shortcut shortcut) =>
         [.. byAction.Where(pair => pair.Key != action).SelectMany(pair => pair.Value
             .Where(theirs => theirs.First == shortcut.First && (theirs.Second is null || shortcut.Second is null || theirs.Second == shortcut.Second))

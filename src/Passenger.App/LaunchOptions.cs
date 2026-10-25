@@ -7,13 +7,13 @@ using Passenger.Text;
 
 namespace Passenger.App;
 
-/// <summary>The command line: <c>passenger [PATH] [--file F]... [--caret L:C] [--theme T] [--look L] [--scheme S]</c>, PATH a folder, a file, or a
-/// solution or project opened as the workspace; a screenshot with the steps before it; or the Model Context Protocol
-/// server: <c>--mcp [PATH]</c> (an IDE with no window, on standard input and output), <c>--mcp-attach [PID] [FOLDER]</c>
-/// (the agent's server, joining the window over the folder at its first call), and <c>--no-mcp</c> (a window that never
-/// lets agents in; a screenshot's lets in only its own <c>--agent</c>); <c>--headless</c> is a test run's person's window
-/// with nobody at it. A flag it does not know, a value it cannot read or out of range, or one the mode does not take is
-/// fatal, never ignored.</summary>
+/// <summary>The command line: <c>passenger [PATH] [--file F]... [--caret L:C] [--theme T] [--look L] [--scheme S]</c>,
+/// PATH a folder, a file, or a solution or project opened as the workspace; a screenshot with the steps before it; or
+/// the Model Context Protocol server: <c>--mcp [PATH]</c> (an IDE with no window, on standard input and output),
+/// <c>--mcp-attach [PID] [FOLDER]</c> (the agent's server, joining the window over the folder at its first call), and
+/// <c>--no-mcp</c> (a window that never lets agents in; a screenshot's lets in only its own <c>--agent</c>);
+/// <c>--headless</c> is a person's window with nobody at it. A flag it does not know, a value it cannot read or out of
+/// range, or one the mode does not take is fatal, never ignored.</summary>
 public sealed record LaunchOptions(string? Folder, IReadOnlyList<string> Files, TextPosition? Caret, ThemeChoice? Theme, ScreenshotOptions? Screenshot)
 {
     /// <summary>The flags that may be given more than once: each is one more file or one more step.</summary>
@@ -28,8 +28,8 @@ public sealed record LaunchOptions(string? Folder, IReadOnlyList<string> Files, 
 
     public McpMode Mcp { get; init; }
 
-    /// <summary><c>--headless</c>: a person's window on the headless platform, which a test run's <c>--mcp-attach</c>
-    /// starts in place of the installed app (<see cref="Mcp.McpProxy.StartVariable"/>).</summary>
+    /// <summary><c>--headless</c>: a person's window on the headless platform, which <c>--mcp-attach</c> starts in
+    /// place of the installed app under <see cref="Mcp.McpProxy.StartVariable"/>.</summary>
     public bool Headless { get; init; }
 
     /// <summary>The process <c>--mcp-attach</c> names, or null for any Passenger's windows.</summary>
@@ -265,9 +265,9 @@ public sealed record LaunchOptions(string? Folder, IReadOnlyList<string> Files, 
         }
     }
 
-    /// <summary>The folder, workspace and files that the path and the <c>--file</c>s name, as full paths, each refused unless
-    /// it exists as what it is named for. A solution or a C# project is the workspace over its folder, as Rider opens one,
-    /// not a file to edit.</summary>
+    /// <summary>The folder, workspace and files that the path and the <c>--file</c>s name, as full paths, each refused
+    /// unless it exists as what it is named for. A solution or a C# project is the workspace over its folder, not a
+    /// file to edit.</summary>
     private static (string? Folder, string? Workspace, List<string> Files) Opened(string? path, List<string> named)
     {
         string? folder = null;
@@ -419,7 +419,7 @@ public sealed record LaunchOptions(string? Folder, IReadOnlyList<string> Files, 
             int.TryParse(part, NumberStyles.None, CultureInfo.InvariantCulture, out value) && value >= 1;
     }
 
-    /// <summary>"cmd+shift+L" or Rider's own "meta shift L".</summary>
+    /// <summary>"cmd+shift+L", or "meta shift L" as keymaps write it.</summary>
     private static Keystroke ParseKey(string text)
     {
         try
@@ -466,8 +466,8 @@ public abstract record ScriptStep
         public MouseButton Button { get; init; } = MouseButton.Left;
     }
 
-    /// <summary>A click at the centre of the control of an x:Name shown in the window, as an agent's app_click finds it by
-    /// name rather than by a point read off a picture.</summary>
+    /// <summary>A click at the centre of the control of an x:Name shown in the window, found by name rather than by a
+    /// point read off a picture.</summary>
     public sealed record ClickNamed(string Name) : ScriptStep;
 
     /// <summary>The left button pressed at one point and moved to another, let go there unless the capture is to show

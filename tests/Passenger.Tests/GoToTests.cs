@@ -8,10 +8,10 @@ using Passenger.Text;
 
 namespace Passenger.Tests;
 
-/// <summary>Rider's Navigate actions past Declaration, on a real project with the language server: Type Declaration, Base
-/// Symbols and Derived Symbols with their choosers, and the places the IDE keeps as a person works: Recent Locations with
-/// each place's code, Last and Next Edit Location, Recently Changed Files. Each test opens its own window, on the server
-/// the last one left running (<see cref="SharedProject"/>).</summary>
+/// <summary>The Navigate actions past Declaration, on a real project with the language server: Type Declaration, Base
+/// Symbols and Derived Symbols with their choosers, and the places the IDE keeps as a person works: Recent Locations
+/// with each place's code, Last and Next Edit Location, Recently Changed Files. Each test opens its own window, on the
+/// server the last one left running (<see cref="SharedProject"/>).</summary>
 public sealed class GoToTests : IClassFixture<GoToTests.Project>
 {
     /// <summary>Lines from zero, as the editor counts them.</summary>
@@ -122,7 +122,6 @@ public sealed class GoToTests : IClassFixture<GoToTests.Project>
         MainWindow window = project.Open("Shapes.cs");
         CodeEditor editor = window.EditorArea.CodeEditor;
 
-        // Rider's Go To submenu, in its order.
         int abstractArea = editor.Document.Snapshot.GetLineStart(7) + "    public abstract double Ar".Length;
         Ui.RightClick(editor, editor.PointOf(abstractArea) + new Vector(1, editor.LineHeight / 2));
         Avalonia.Controls.MenuItem goTo = window.OpenContextMenu!.Items.OfType<Avalonia.Controls.MenuItem>().First(i => (string?)i.Header == "Go To");
@@ -181,7 +180,6 @@ public sealed class GoToTests : IClassFixture<GoToTests.Project>
         Assert.Equal("Program › Main()", call.Member);
         Assert.Equal("Square", popup.Rows[0].Member);
 
-        // Typing narrows them by code; Enter goes to the one chosen.
         window.KeyTextInput("WriteLine");
         Ui.Settle();
         Assert.Equal(["Program.cs"], popup.Rows.Select(r => r.Name));
@@ -190,7 +188,6 @@ public sealed class GoToTests : IClassFixture<GoToTests.Project>
         Assert.Equal("Program.cs", window.EditorArea.Active?.Name);
         Assert.Equal(new TextPosition(6, "        double area = shape.Ar".Length), editor.CaretPosition);
 
-        // Back returns to where Recent Locations was opened.
         Ui.Press(window, Ui.Shortcut(AppActions.Back));
         Assert.Equal("Shapes.cs", window.EditorArea.Active?.Name);
         Assert.Equal(5, editor.CaretPosition.Line);
@@ -225,7 +222,6 @@ public sealed class GoToTests : IClassFixture<GoToTests.Project>
         Assert.Equal("Shapes.cs", window.EditorArea.Active?.Name);
         Assert.Equal(25, editor.CaretPosition.Line);
 
-        // Recently Changed Files: the files edited besides the one shown.
         Ui.Run(window, AppActions.RecentChangedFiles);
         SymbolPopup files = Assert.IsType<SymbolPopup>(window.Popup);
         Ui.WaitFor(() => files.IsSettled, "the files edited");

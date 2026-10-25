@@ -138,9 +138,9 @@ public sealed partial class CodeAssist
         }
     }
 
-    /// <summary>A package id chosen for an item's Include: a reference that names no version takes the feed's latest, as
-    /// Rider adds it; under central package management the reference takes none and Directory.Packages.props a
-    /// PackageVersion for it (unless it has one), both one command undone together.</summary>
+    /// <summary>A package id chosen for an item's Include: a reference that names no version takes the feed's latest;
+    /// under central package management the reference takes none and Directory.Packages.props a PackageVersion for it
+    /// (unless it has one), both one command undone together.</summary>
     private void CommitPackage(MSBuildDocument msbuild, PackageChoice package, TextRange replaced)
     {
         XmlTree tree = msbuild.Tree;
@@ -278,7 +278,7 @@ public sealed partial class CodeAssist
         PlaceBeside(itemCard, completion);
     }
 
-    /// <summary>The badge an MSBuild item shows, by the protocol's kinds Rider's letters follow.</summary>
+    /// <summary>The badge an MSBuild item shows, by the protocol's kinds.</summary>
     private static int KindOf(MSBuildItemKind kind) => kind switch
     {
         MSBuildItemKind.Element or MSBuildItemKind.ClosingTag => 7,

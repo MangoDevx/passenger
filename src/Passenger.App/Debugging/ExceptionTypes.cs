@@ -5,7 +5,7 @@ using Passenger.Core;
 
 namespace Passenger.App.Debugging;
 
-/// <summary>The exception types Add CLR Exception Breakpoints offers as a name is typed, as Rider's dialog lists them: every
+/// <summary>The exception types Add CLR Exception Breakpoints offers as a name is typed: every
 /// public exception of the newest .NET runtime the IDE's dotnet has, read once from its assemblies' metadata, and the
 /// solution's own, its classes named for exceptions as the language server finds them.</summary>
 public static class ExceptionTypes

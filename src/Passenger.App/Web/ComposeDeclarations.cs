@@ -73,7 +73,6 @@ public static partial class ComposeDeclarations
                 null => ComposeAnswer.None(NoDeclaration),
             },
         };
-        // A key of this file is placed in it.
         return answer with { Places = [.. answer.Places.Select(p => p.Path.Length == 0 ? p with { Path = path } : p)] };
     }
 
@@ -174,7 +173,6 @@ public static partial class ComposeDeclarations
             return new ComposeAnswer([new ComposePlace(PathNames.Canonical(env), set, $"{name} in .env")], null, $"The variable {name}");
         }
         IEnumerable<DocumentSymbol> services = outline.FirstOrDefault(s => s.Name == "services")?.Children ?? [];
-        // The service the variable is used in first, then the rest.
         foreach (DocumentSymbol service in services.OrderBy(s => chain.Count > 1 && chain[1] == s ? 0 : 1))
         {
             if (service.Children?.FirstOrDefault(c => c.Name == "env_file") is not { } envFile)
@@ -372,8 +370,8 @@ public static partial class ComposeDeclarations
         return null;
     }
 
-    /// <summary>An image's page on its registry: Docker Hub's for a name with no registry, else the registry's own, as the
-    /// Dockerfile server links a FROM's image.</summary>
+    /// <summary>An image's page on its registry: Docker Hub's for a name with no registry, else the registry's
+    /// own.</summary>
     private static ComposeAnswer Image(string image)
     {
         if (RegistryPage(image) is not { } page)

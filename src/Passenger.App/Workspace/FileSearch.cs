@@ -37,7 +37,7 @@ public sealed record FilesReplaced(IReadOnlyList<string> Converted, IReadOnlyLis
 /// Replace All changes an open file as an edit (so it undoes) and writes a closed one in its own encoding.</summary>
 public static class FileSearch
 {
-    /// <summary>The most matches listed, as Rider stops at a thousand and says so.</summary>
+    /// <summary>The most matches listed.</summary>
     public const int MostMatches = TextSearch.MaxMatches;
 
     private const long LargestFile = 4 * 1024 * 1024;

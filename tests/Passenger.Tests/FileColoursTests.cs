@@ -13,11 +13,10 @@ using Passenger.Text;
 
 namespace Passenger.Tests;
 
-/// <summary>The files beside the C# in colour, as Rider colours them: a project file, settings with comments, a CI
-/// workflow, a README and a script each open with their tokens in their kinds' colours, in either theme; typing keeps
-/// the colours right however far a comment or a code fence it opens or closes reaches; Comment with Line Comment and
-/// with Block Comment write each language's own comments; and a tag's name lights up with its pair's. How long a key in a
-/// long file takes is FileColoursResponsivenessTests'.</summary>
+/// <summary>The files beside the C# in colour: a project file, settings with comments, a CI workflow, a README and a
+/// script each open with their tokens in their kinds' colours, in either theme; typing keeps the colours right however
+/// far a comment or a code fence it opens or closes reaches; Comment with Line Comment and with Block Comment write
+/// each language's own comments; and a tag's name lights up with its pair's.</summary>
 public sealed class FileColoursTests : FileColoursFolder
 {
     private const string Project = """
@@ -175,7 +174,7 @@ public sealed class FileColoursTests : FileColoursFolder
         editor = Open(window, Path.Combine(".github", "workflows", "ci.yml"), Workflow);
         Assert.Equal(TokenKind.Comment, KindOf(editor, "# Builds and tests every push."));
         Assert.Equal(TokenKind.YamlKey, KindOf(editor, "runs-on"));
-        // A workflow's first key reads as YAML 1.1's boolean, but it is a key, as Rider colours it.
+        // A workflow's first key reads as YAML 1.1's boolean, but it is a key.
         Assert.Equal(TokenKind.YamlKey, KindOf(editor, "on:"[..2]));
         Assert.Equal(TokenKind.Text, KindOf(editor, "ubuntu-latest"));
         Assert.Equal(TokenKind.Text, KindOf(editor, "30"));
@@ -191,7 +190,6 @@ public sealed class FileColoursTests : FileColoursFolder
         Assert.Equal(TokenKind.Link, KindOf(editor, ".NET SDK"));
         Assert.Equal(TokenKind.LinkDestination, KindOf(editor, "https://dot.net/download"));
         Assert.Equal(TokenKind.Quote, KindOf(editor, "Areas are in square units."));
-        // A fenced block in a language with a grammar is coloured as that language.
         Assert.Equal(TokenKind.String, KindOf(editor, "\"Category!=Slow\""));
 
         editor = Open(window, "pack.sh", Script);
@@ -244,9 +242,8 @@ public sealed class FileColoursTests : FileColoursFolder
     }
 
     /// <summary>SCSS and Less coloured by their own grammars, as CSS is, with their variables, mixins and nesting, and
-    /// commented with <c>//</c>, where both opened with no colours; an Avalonia file of the old extension (.paml) as the
-    /// XAML it is, where it opened as plain text. A Less variable ends with its value, where the grammar's identifiers
-    /// read as every character had the first take the rest of the file.</summary>
+    /// commented with <c>//</c>; an Avalonia file of the old extension (.paml) as the XAML it is. A Less variable ends
+    /// with its value.</summary>
     [AvaloniaFact]
     public void A_stylesheet_in_SCSS_or_Less_and_an_Avalonia_paml_file_show_their_tokens_as_their_kinds()
     {
@@ -295,7 +292,6 @@ public sealed class FileColoursTests : FileColoursFolder
         Assert.Equal(TokenKind.Entity, KindOf(editor, "&amp;"));
         Assert.Equal(TokenKind.Tag, KindOf(editor, "</Window>"));
         LineComment(window, editor, "  <TextBlock Text=\"Hello\" />\n", "  <!--<TextBlock Text=\"Hello\" />-->\n");
-        // A line begun inside the window's start tag, over two lines, goes in a level under the tag, not under its attribute.
         Ui.PlaceAfter(editor, "areas\">");
         Ui.Press(window, "ENTER");
         Assert.Contains("areas\">\n  \n  <TextBlock", editor.Document.Snapshot.ToString(), StringComparison.Ordinal);
@@ -389,7 +385,6 @@ public sealed class FileColoursTests : FileColoursFolder
         CodeEditor editor = Open(window, "Shapes.csproj", Project);
         editor.Focus();
 
-        // A word typed in a tag's name keeps the tag's colour at once, before the grammar has read the line again.
         int name = Project.IndexOf("OutputType", StringComparison.Ordinal) + "Output".Length;
         editor.Selections = SelectionSet.Single(name);
         window.KeyTextInput("X");
@@ -397,7 +392,6 @@ public sealed class FileColoursTests : FileColoursFolder
         Ui.Settle();
         Assert.Equal(TokenKind.Tag, KindOf(editor, "<OutputXType>"));
 
-        // A comment opened above the property group reaches down to the end of the file, then closed after it, ends there.
         int group = editor.Document.Snapshot.ToString().IndexOf("  <PropertyGroup>", StringComparison.Ordinal);
         editor.Selections = SelectionSet.Single(group);
         window.KeyTextInput("<!--");
@@ -414,7 +408,6 @@ public sealed class FileColoursTests : FileColoursFolder
         Assert.Equal(TokenKind.Tag, KindOf(editor, "</Project>"));
         Assert.Equal(Colours(editor), Colours(Open(window, "Fresh.csproj", editor.Document.Snapshot.ToString())));
 
-        // A code fence opened in a README makes code of what follows; closing it gives the rest its own colours again.
         editor = Open(window, "README.md", Readme);
         editor.Focus();
         int heading = Readme.IndexOf("## Getting started", StringComparison.Ordinal);
@@ -467,7 +460,6 @@ public sealed class FileColoursTests : FileColoursFolder
         Ui.Run(window, EditorActions.ToggleLineComment);
         Assert.Equal(Project, editor.Document.Snapshot.ToString());
 
-        // Block Comment wraps the selection in <!-- -->, and takes the comment off the selection it is.
         int output = Project.IndexOf("<OutputType>Exe</OutputType>", StringComparison.Ordinal);
         editor.Selections = SelectionSet.Single(new Selection(output, output + "<OutputType>Exe</OutputType>".Length));
         Ui.Run(window, EditorActions.ToggleBlockComment);
@@ -478,7 +470,6 @@ public sealed class FileColoursTests : FileColoursFolder
         Ui.Run(window, EditorActions.ToggleBlockComment);
         Assert.Equal(Project, editor.Document.Snapshot.ToString());
 
-        // With nothing selected it puts an empty comment at the caret, the caret inside, and again takes it off.
         int text = Project.IndexOf("Shapes &amp;", StringComparison.Ordinal);
         editor.Selections = SelectionSet.Single(text);
         Ui.Run(window, EditorActions.ToggleBlockComment);
@@ -499,7 +490,6 @@ public sealed class FileColoursTests : FileColoursFolder
         int start = Project.IndexOf("<ItemGroup>", StringComparison.Ordinal) + 1;
         int end = Project.IndexOf("</ItemGroup>", StringComparison.Ordinal) + 2;
 
-        // In the start tag's name, at its start or end, the end tag's name lights up with it, and the other way round.
         Assert.Equal((start, end), PairAt(editor, start + 4));
         Assert.Equal((start, end), PairAt(editor, start));
         Assert.Equal((end, start), PairAt(editor, end + "ItemGroup".Length));
@@ -508,14 +498,12 @@ public sealed class FileColoursTests : FileColoursFolder
         Assert.Equal(lit, Ui.Pixel(window, InBox(window, editor, start + 1)));
         Assert.Equal(lit, Ui.Pixel(window, InBox(window, editor, end + 1)));
 
-        // An element pairs with its own end; a tag that closes itself, a comment's words and a value pair with nothing.
         int none = Project.IndexOf("<None", StringComparison.Ordinal) + 1;
         Assert.Equal((none, Project.IndexOf("</None>", StringComparison.Ordinal) + 2), PairAt(editor, none + 2));
         Assert.Null(PairAt(editor, Project.IndexOf("PackageReference", StringComparison.Ordinal) + 3));
         Assert.Null(PairAt(editor, Project.IndexOf("build:", StringComparison.Ordinal) + 2));
         Assert.Null(PairAt(editor, Project.IndexOf("Serilog", StringComparison.Ordinal) + 2));
 
-        // Move Caret to Matching Brace goes from a tag's name to its pair's, and back.
         editor.Selections = SelectionSet.Single(start + 4);
         Ui.Run(window, EditorActions.MatchBrace);
         Assert.Equal(end, editor.Selections.Primary.Caret);
@@ -532,11 +520,10 @@ public sealed class FileColoursTests : FileColoursFolder
         window.Close();
     }
 
-    /// <summary>The caret moved onto a tag's name finds its pair by reading the tags between them where they stand, near the
-    /// caret only, as every move asks: onto the root element's start tag or its end tag in 1,900 lines of XML, a move and
-    /// the pair it lights up allocate on the UI thread what they do in a hundred lines, where every tag read on the way made
-    /// a string of its name and copied its line two or three times more. In 20,000 lines the root's pair is too far to
-    /// light up, where each move read the whole file; Move Caret to Matching Brace, asked once, still goes there and back.</summary>
+    /// <summary>The caret moved onto a tag's name finds its pair by reading the tags between them where they stand,
+    /// near the caret only: onto the root element's start tag or its end tag in 1,900 lines of XML, a move and the pair
+    /// it lights up allocate on the UI thread what they do in a hundred lines. In 20,000 lines the root's pair is too
+    /// far to light up; Move Caret to Matching Brace, asked once, still goes there and back.</summary>
     [AvaloniaFact]
     public void Moving_the_caret_onto_a_tags_name_reads_only_the_tags_near_it_and_Matching_Brace_goes_as_far_as_its_pair()
     {
@@ -566,11 +553,11 @@ public sealed class FileColoursTests : FileColoursFolder
         window.Close();
     }
 
-    /// <summary>The caret moved onto a bracket finds its pair among the lines near it, as every move asks: onto the brace that
-    /// opens a JSON file of 30,000 items, or after the one that closes it, a move reads no more than the 2,000 lines beside
-    /// it and allocates on the UI thread what a move onto one in 100 items does, where it read every line to its pair. That
-    /// pair is too far to light up; an item's braces still light up together, and Move Caret to Matching Brace, asked once,
-    /// still goes from the first brace to the last and back.</summary>
+    /// <summary>The caret moved onto a bracket finds its pair among the lines near it: onto the brace that opens a JSON
+    /// file of 30,000 items, or after the one that closes it, a move reads no more than the 2,000 lines beside it and
+    /// allocates on the UI thread what a move onto one in 100 items does. That pair is too far to light up; an item's
+    /// braces still light up together, and Move Caret to Matching Brace, asked once, still goes from the first brace to
+    /// the last and back.</summary>
     [AvaloniaFact]
     public void Moving_the_caret_onto_a_bracket_reads_only_the_lines_near_it_and_Matching_Brace_goes_as_far_as_its_pair()
     {
@@ -636,7 +623,6 @@ public sealed class FileColoursResponsivenessTests : FileColoursFolder
                 + $"{readLong:F2} ms off it reading {lines:F1} lines; opening it read {colours.Worked.Lines:N0} lines");
         }
 
-        // A comment opened at the top of the XML reaches its last line once the pass lands, read in one key's passes.
         CodeEditor editor = window.EditorArea.CodeEditor;
         Open(window, "Large.props", large);
         TextMateHighlighter highlighter = (TextMateHighlighter)window.EditorArea.Active!.Highlighter!;
@@ -651,10 +637,9 @@ public sealed class FileColoursResponsivenessTests : FileColoursFolder
         window.Close();
     }
 
-    /// <summary>A key typed at the end of 20,000 <c>//</c> lines costs the UI thread about what one at the end of as many
-    /// lines inside one <c>/* */</c> does (#434): the run of comments is the leading trivia of the one token after it, and
-    /// the screen's lines take only the comments they cover, where each range asked took every comment of the run. The
-    /// comments are still coloured as comments, on screen and far from it.</summary>
+    /// <summary>A key typed at the end of 20,000 <c>//</c> lines costs the UI thread about what one at the end of as
+    /// many lines inside one <c>/* */</c> does, and the comments are still coloured as comments, on screen and far from
+    /// it.</summary>
     [AvaloniaFact]
     public void A_key_at_the_end_of_twenty_thousand_line_comments_costs_what_it_does_in_one_block_comment()
     {
@@ -695,9 +680,9 @@ public sealed class FileColoursResponsivenessTests : FileColoursFolder
         }
     }
 
-    /// <summary>The parse a key starts classifies the lines on screen on its worker, and its landing hands them to the screen
-    /// (#441): the frame after it classifies nothing again on the UI thread, where it classified every line drawn. A key
-    /// classifies again at most the line it changed, counted in the characters classified there, not a time.</summary>
+    /// <summary>The parse a key starts classifies the lines on screen on its worker, and its landing hands them to the
+    /// screen: the frame after it classifies nothing again on the UI thread. A key classifies again at most the line it
+    /// changed, counted in the characters classified there, not a time.</summary>
     [AvaloniaFact]
     public void A_parse_landing_after_a_key_hands_the_screen_the_colours_its_worker_read()
     {

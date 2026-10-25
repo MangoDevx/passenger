@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.Simplification;
 
 namespace Passenger.Roslyn.Extension;
 
-/// <summary>Rider's Move to Another File and Move to Namespace for a type declared in a namespace or at a file's top: the
+/// <summary>Move to Another File and Move to Namespace for a type declared in a namespace or at a file's top: the
 /// type taken into a new file beside its own with the usings it needs, or into another namespace, every file that uses
 /// it given a using of that namespace (or its qualified name changed) and the type a using of the one it left where it
 /// still uses that one's types.</summary>
@@ -125,7 +125,6 @@ internal static class TypeMoves
             }
         }
 
-        // Then the declaration itself, in a namespace of the new name: its own when it is the only thing there.
         own.ReplaceNode(declaration, (current, _) => current.WithAdditionalAnnotations(moved));
         Solution solution = before;
         foreach ((DocumentId id, DocumentEditor editor) in editors)
@@ -168,7 +167,6 @@ internal static class TypeMoves
             renamed = apart.WithDocumentSyntaxRoot(created.Id, Retargeted(createdRoot, there, target));
         }
 
-        // Usings of the namespace left that no longer name one go, and the qualified names get their usings, shortened.
         renamed = await WithoutLostUsingsAsync(renamed, from, cancel).ConfigureAwait(false);
         foreach (DocumentId id in renamed.GetChanges(before).GetProjectChanges().SelectMany(p => p.GetChangedDocuments(onlyGetDocumentsWithTextChanges: true).Concat(p.GetAddedDocuments())).ToList())
         {
@@ -219,14 +217,12 @@ internal static class TypeMoves
         List<SyntaxNode> others = [.. TopLevelTypes(marked).Where(t => t != moving), .. marked.DescendantNodes(n => n is CompilationUnitSyntax or BaseNamespaceDeclarationSyntax)
             .OfType<DelegateDeclarationSyntax>(), .. marked.AttributeLists, .. marked.Members.OfType<GlobalStatementSyntax>()];
         CompilationUnitSyntax alone = marked.RemoveNodes(others, SyntaxRemoveOptions.KeepNoTrivia)!;
-        // Block namespaces left empty go too.
         alone = alone.RemoveNodes(alone.DescendantNodes().OfType<NamespaceDeclarationSyntax>().Where(n => !n.DescendantNodes().OfType<MemberDeclarationSyntax>().Any(m => m.HasAnnotation(kept))),
             SyntaxRemoveOptions.KeepNoTrivia)!;
         // Alone, it is spaced from what holds it as the first member there was.
         BaseTypeDeclarationSyntax lone = alone.GetAnnotatedNodes(kept).OfType<BaseTypeDeclarationSyntax>().Single();
         alone = alone.ReplaceNode(lone, Changes.WithBlankLinesOf(lone, declaration.Parent!.ChildNodes().OfType<MemberDeclarationSyntax>().First()));
 
-        // The old file less the type, and what came after it no longer led by a blank line when the type came first.
         SyntaxNode? next = declaration.Parent!.ChildNodes().OfType<MemberDeclarationSyntax>().SkipWhile(m => m != declaration).Skip(1).FirstOrDefault();
         bool first = declaration.Parent!.ChildNodes().OfType<MemberDeclarationSyntax>().First() == declaration;
         CompilationUnitSyntax left = root.TrackNodes(next is null ? [declaration] : [declaration, next]);

@@ -8,19 +8,18 @@ using Passenger.Core;
 namespace Passenger.Host;
 
 /// <summary>MSBuild's own evaluation of projects (conditions, imports, wildcards, Directory.Build.props and central
-/// package management all as a build sees them), many at once on one shared context, as the static graph evaluates a
-/// solution. Every project's outer evaluation comes first, in the order asked, so each shows as soon as it can; a
-/// multi-targeted project's frameworks, which cost it as much again each and change little of what it shows, follow once
-/// every outer one is in.</summary>
+/// package management all as a build sees them), many at once on one shared context. Every project's outer evaluation
+/// comes first, in the order asked, so each shows as soon as it can; a multi-targeted project's frameworks, which cost it
+/// as much again each and change little of what it shows, follow once every outer one is in.</summary>
 internal static class Evaluation
 {
-    /// <summary>As Roslyn's build host loads a project: a missing or broken import is no failure, an unknown SDK is.</summary>
+    /// <summary>A missing or broken import is no failure, an unknown SDK is.</summary>
     internal const ProjectLoadSettings Settings = ProjectLoadSettings.IgnoreMissingImports | ProjectLoadSettings.IgnoreEmptyImports
         | ProjectLoadSettings.IgnoreInvalidImports | ProjectLoadSettings.RejectCircularImports
         | ProjectLoadSettings.DoNotEvaluateElementsWithFalseCondition | ProjectLoadSettings.FailOnUnresolvedSdk;
 
-    /// <summary>The item types that are a project's files, as Visual Studio's and Rider's trees show them, beside the ones
-    /// a project's own targets add (AvailableItemName, the item types an IDE offers as a file's build action).</summary>
+    /// <summary>The item types that are a project's files, beside the ones a project's own targets add (AvailableItemName,
+    /// the item types offered as a file's build action).</summary>
     private static readonly string[] FileItemTypes =
         ["Compile", "None", "Content", "EmbeddedResource", "AdditionalFiles", "Page", "Resource", "ApplicationDefinition", "Folder"];
 
@@ -115,9 +114,9 @@ internal static class Evaluation
         }
     }
 
-    /// <summary>What the Solution view shows of evaluations of one project (its outer one, or each framework's), and its
-    /// inputs: the project file stamped as it was read, the imports outside the SDK and package folders, and the folders
-    /// its files come from.</summary>
+    /// <summary>One project read from its evaluations (its outer one, or each framework's), with its inputs: the project
+    /// file stamped as it was read, the imports outside the SDK and package folders, and the folders its files come
+    /// from.</summary>
     private static EvaluatedProject Read(string path, IReadOnlyList<Project> each, IReadOnlyList<string> frameworks, IReadOnlyList<string?> named, Stamp file, IReadOnlyList<Stamp> folders)
     {
         Project first = each[0];
@@ -141,8 +140,7 @@ internal static class Evaluation
 
     /// <summary>The files evaluations of a project read, stamped, each once: the project file as it was read, the imports
     /// outside the SDK and package folders (<see cref="OutsideRoots"/>), and <paramref name="also"/> (what else the caller
-    /// read, and what it looks for above the project, <see cref="LookedFor"/>). Evaluate's, a design-time build's and
-    /// inspect's alike.</summary>
+    /// read, and what it looks for above the project, <see cref="LookedFor"/>).</summary>
     internal static IReadOnlyList<Stamp> Inputs(Stamp file, IEnumerable<Project> evaluations, IReadOnlyCollection<string> outside, IEnumerable<Stamp> also) =>
         [file, .. evaluations
             .SelectMany(p => p.Imports.Select(i => i.ImportedProject.FullPath))
@@ -166,8 +164,7 @@ internal static class Evaluation
             .Select(Stamps.Folder)];
     }
 
-    /// <summary>One evaluation of a project, of one framework when <paramref name="framework"/> is given: evaluate's, a
-    /// design-time build's and inspect's alike.</summary>
+    /// <summary>One evaluation of a project, of one framework when <paramref name="framework"/> is given.</summary>
     internal static Project Load(string path, ProjectCollection collection, EvaluationContext context, IReadOnlyDictionary<string, string> properties, string? framework)
     {
         Dictionary<string, string> global = new(properties, StringComparer.OrdinalIgnoreCase);
@@ -187,7 +184,7 @@ internal static class Evaluation
     private static string? NonEmpty(string value) => value.Length > 0 ? value : null;
 
     /// <summary>The carried properties (<see cref="CarriedProperties.Names"/>) that have a value, each with whether the
-    /// element that last set it lies in the project's own files, outside the SDK and the package folders: the SDK now turns
+    /// element that last set it lies in the project's own files, outside the SDK and the package folders: the SDK turns
     /// EnableSdkContainerSupport on for every executable, which asks for nothing.</summary>
     private static Dictionary<string, EvaluatedProperty> Carried(Project project, HashSet<string> excluded)
     {

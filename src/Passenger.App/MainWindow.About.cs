@@ -2,8 +2,8 @@ using Avalonia.Controls;
 
 namespace Passenger.App;
 
-/// <summary>About Passenger, where Rider has it: the application menu's first item on macOS, Help's last elsewhere, after
-/// Check for Updates.</summary>
+/// <summary>About Passenger: the application menu's first item on macOS, Help's last elsewhere, after Check for
+/// Updates.</summary>
 public partial class MainWindow
 {
     private void AddAbout() =>
@@ -21,12 +21,12 @@ public partial class MainWindow
         return dialog;
     }
 
-    /// <summary>macOS's application menu, as Rider's: About Passenger and Check for Updates, then Settings (Cmd+,); the
-    /// system adds Services, Hide and Quit after them. The process has the one, made from its first window, and each item
-    /// runs in the window in front.</summary>
+    /// <summary>macOS's application menu: About Passenger and Check for Updates, then Settings (Cmd+,); the system adds
+    /// Services, Hide and Quit after them. The process has the one, made from its first window, and each item runs in
+    /// the window in front.</summary>
     public NativeMenu ApplicationMenu()
     {
-        // Each item is its action, titled as the action is; macOS's application menu names the application after About.
+        // macOS's application menu names the application after About.
         NativeMenuItem about = new($"{actions![AppActions.About]!.Title} Passenger") { Command = new MenuCommand(() => InFront().Request(AppActions.About)) };
         NativeMenuItem updates = new(actions[AppActions.CheckForUpdates]!.Title) { Command = new MenuCommand(() => InFront().Request(AppActions.CheckForUpdates)) };
         NativeMenuItem settings = new(actions[AppActions.ShowSettings]!.Title)

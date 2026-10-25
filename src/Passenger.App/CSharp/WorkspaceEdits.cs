@@ -32,10 +32,9 @@ public static class WorkspaceEdits
     public static readonly TimeSpan Catching = TimeSpan.FromSeconds(2);
 
     /// <summary>Why an edit the language server worked out must not be applied to the files not open it changes, found
-    /// before any is written: one written on disk since the request was sent (<paramref name="since"/>) or a moment before
-    /// it (an agent's write, a checkout), which the server may not have read again, or one whose text the server holds is
-    /// not the disk's (a change it never heard of). The server's lines and columns place its edit in the text it read, so
-    /// in another they land elsewhere. Null when each is as the server read it. An agent's call tells its
+    /// before any is written: one written on disk since the request was sent (<paramref name="since"/>) or a moment
+    /// before it, which the server may not have read again, or one whose text the server holds is not the disk's, where
+    /// its lines and columns would land elsewhere. Null when each is as the server read it. An agent's call tells its
     /// <paramref name="patience"/>, which works the edit out again once the server has read them.</summary>
     public static Task<string?> StaleAsync(EditorArea editors, LspDocument? server, JsonElement edit, DateTime? since, Patience? patience = null) =>
         StaleAsync(editors, server is null ? null : paths => server.HeldTextsAsync(paths), edit, since, patience);
@@ -159,9 +158,9 @@ public static class WorkspaceEdits
         return files;
     }
 
-    /// <summary>The edit applied as one command of <see cref="EditorArea.Commands"/> under a name (a fix all's title): the
-    /// files not open that it writes or makes are followed, so Undo takes all of it back at once, as Rider's global undo
-    /// does, where they could otherwise come back only from Local History. The number of files changed.</summary>
+    /// <summary>The edit applied as one command of <see cref="EditorArea.Commands"/> under a name (a fix all's title):
+    /// the files not open that it writes or makes are followed, so Undo takes all of it back at once, where they could
+    /// otherwise come back only from Local History. The number of files changed.</summary>
     public static int ApplyAsCommand(EditorArea editors, JsonElement edit, string name, Asked? asked = null, List<string>? dropped = null)
     {
         using CommandHistory.Recording recording = editors.Commands.Record(name);
@@ -291,8 +290,7 @@ public static class WorkspaceEdits
         {
             case "create" when !exists || resource.Option("overwrite"):
             {
-                // Written as a save writes, in the charset its .editorconfig names: what an overwrite replaced is given
-                // to Local History, and a read-only file is refused.
+                // Written as a save writes, in the charset its .editorconfig names.
                 FileEncoding charset = EditorConfig.For(resource.Path).Charset ?? FileEncoding.Utf8;
                 FileText.Save(resource.Path, string.Empty, charset.Encoding, charset.Bom);
                 editors.Documents.FirstOrDefault(d => d.Path == resource.Path)?.Reload(overUnsaved: true);

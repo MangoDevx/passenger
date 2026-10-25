@@ -28,11 +28,11 @@ public sealed record StatusPlace(string Name, Action Go)
 /// <summary>Says something in the window's status bar, with where a click on it shows more (none when null).</summary>
 public delegate void StatusSay(string said, StatusPlace? more = null);
 
-/// <summary>The window's status bar, as Rider's: what the last action came to (an error's or a warning's marked with its
-/// icon, as Rider's status bar shows a notification's, until something else is said, and a link to where it has more to
-/// see while it has a place, its whole text on hover), and the file shown's place (its path while nothing is said), caret,
-/// line separator, encoding, indent and language with the language server's state. It says what it is told; what an
-/// operation came to is the operation's own answer, never read back from here. A UI-thread object of the window.</summary>
+/// <summary>The window's status bar: what the last action came to (an error's or a warning's marked with its icon until
+/// something else is said, and a link to where it has more to see while it has a place, its whole text on hover), and
+/// the file shown's place (its path while nothing is said), caret, line separator, encoding, indent and language with
+/// the language server's state. It says what it is told; what an operation came to is the operation's own answer, never
+/// read back from here. A UI-thread object of the window.</summary>
 public sealed class StatusBar
 {
     private readonly Button message;

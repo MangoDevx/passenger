@@ -37,7 +37,7 @@ public sealed class FindRow(string label, string? detail, int depth, Usage? usag
     }
 }
 
-/// <summary>Rider's Find window: a search's usages grouped by what they do (declaration, write, read, invocation,
+/// <summary>The Find window: a search's usages grouped by what they do (declaration, write, read, invocation,
 /// import), then project, then file, with the chosen usage's code beside the tree. Each search is a tab to come back
 /// to. Enter, F4 or a double-click goes to a usage; Right and Left open and close a group.</summary>
 public sealed class FindView : DockPanel

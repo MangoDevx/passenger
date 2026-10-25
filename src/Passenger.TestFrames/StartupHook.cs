@@ -3,10 +3,9 @@ using System.Runtime.Loader;
 using Passenger.Core;
 using Passenger.TestFrames;
 
-/// <summary>The runtime calls this before the test program's Main, as DOTNET_STARTUP_HOOKS names this assembly: only in a
-/// test run Passenger started, never in the project as built. Nothing here touches Avalonia, which the tests have not set
-/// up yet: the hook takes itself out of the environment (so nothing the tests start loads it), checks the project's
-/// Avalonia, and starts watching for failures in a context of its own. Nothing it does can stop the tests.</summary>
+/// <summary>Run before the test program's Main, as DOTNET_STARTUP_HOOKS names this assembly, only in a test run
+/// Passenger started. Nothing here touches Avalonia, which the tests have not set up yet, and nothing it does can stop
+/// the tests.</summary>
 internal static class StartupHook
 {
     public static void Initialize()
@@ -16,8 +15,7 @@ internal static class StartupHook
             Unlist();
             return;
         }
-        // VSTest's test host runs an xunit v3 project's tests in the project's own program, which it starts: that program
-        // inherits the hook from it, so here the hook stays listed and does nothing.
+        // The tests run in the project's own program, which a test host starts: that program takes the hook from here.
         if (Assembly.GetEntryAssembly()?.GetName().Name is { } entry && entry.StartsWith("testhost", StringComparison.OrdinalIgnoreCase))
         {
             return;

@@ -43,9 +43,7 @@ public sealed class MigrationsPostgresTests
             string? refused = Ui.Await(window.RunAsync(), "the compose run to come up", TimeSpan.FromMinutes(5));
             Assert.True(refused is null, $"{refused}{Ui.BuildErrors(window)}\n{ContainerRunsTests.Run(window)}");
 
-            // Refreshed with the run up, its plan read and the project built, dotnet ef reaches the run's Postgres where
-            // Compose published it (once the window's own listing, which may have begun as the run came up, has ended): a new
-            // database, whose history table EF looks for and does not find, has no migration applied.
+            // A new database, whose history table EF does not find, has no migration applied.
             window.ShowToolWindow(ToolWindowIds.Migrations);
             Ui.WaitFor(() => window.Migrations.Busy is null && window.Perform(AppActions.MigrationsRefresh), "Refresh Migrations to run");
             Ui.WaitFor(() => window.Migrations.Listed && window.Migrations.Busy is null && window.Migrations.Database is not null,
@@ -67,9 +65,7 @@ public sealed class MigrationsPostgresTests
             string applied = Docker.Run("compose", "-p", project, "exec", "-T", "db", "psql", "-U", "postgres", "-d", "shop", "-tAc", "select \"MigrationId\" from \"__EFMigrationsHistory\"");
             Assert.EndsWith("_Initial", applied.Trim(), StringComparison.Ordinal);
 
-            // The run's connection string reached dotnet ef as the environment web's configuration reads, never on a command
-            // line, which any process on the machine can read: not dotnet ef's, nor any other Passenger ran, nor the IDE's log
-            // of each, nor the Build window's echo of them.
+            // The connection string goes to dotnet ef through the environment, never a command line any process can read.
             string[] commands;
             lock (ran)
             {

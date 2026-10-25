@@ -35,10 +35,10 @@ public sealed class SchemaElement(string name, string? documentation, IReadOnlyL
     public SchemaElement? Child(string name) => Children.FirstOrDefault(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
 }
 
-/// <summary>MSBuild's own schemas (Microsoft.Build.Core.xsd and Microsoft.Build.CommonTypes.xsd from dotnet/msbuild, MIT),
-/// which the app carries since the .NET SDK does not: read once, on first use, into the structural elements reached from
-/// Project, and the properties, item types (with their metadata) and tasks each substitution group declares. A few the
-/// schemas lack (central package management's, the SDK's own items) are Passenger's, as Rider knows them.</summary>
+/// <summary>MSBuild's own schemas (Microsoft.Build.Core.xsd and Microsoft.Build.CommonTypes.xsd from dotnet/msbuild,
+/// MIT), carried since the .NET SDK does not: read once, on first use, into the structural elements reached from
+/// Project, and the properties, item types (with their metadata) and tasks each substitution group declares, with a few
+/// the schemas lack (central package management's, the SDK's own items).</summary>
 public sealed partial class MSBuildSchema
 {
     private static readonly XNamespace Xs = "http://www.w3.org/2001/XMLSchema";

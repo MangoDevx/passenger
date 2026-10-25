@@ -13,8 +13,8 @@ namespace Passenger.App.Debugging;
 /// <summary>A stop's values as rows of a <see cref="VariablesTree"/>: the one list the Debug window's Variables view and the
 /// debugger's hover card both are. A row's chevron, Right or Enter opens it (its members asked of the debugger the first
 /// time) and Left closes it; a double-click opens what has members and sets what has none (an EF Core query's SQL, read,
-/// opens in a tab); F2 types a new value in its row; Delete takes a watch away; and its menu is Rider's Variables and Watches
-/// menu. What a row asks for it raises, for the debugger to do.</summary>
+/// opens in a tab); F2 types a new value in its row; Delete takes a watch away; and its menu is the Variables and
+/// Watches menu. What a row asks for it raises, for the debugger to do.</summary>
 public sealed class VariablesList : ListBox
 {
     // Styled as the ListBox it is, so the theme's ListBox.tree reaches it.
@@ -28,7 +28,7 @@ public sealed class VariablesList : ListBox
         ItemTemplate = new FuncDataTemplate<VariableNode>((node, _) => Row(node), supportsRecycling: false);
         DoubleTapped += (_, _) =>
         {
-            // A double-click opens what has members, and sets what has none, as in Rider; a query's SQL opens its text.
+            // A double-click opens what has members, and sets what has none; a query's SQL opens its text.
             if (SelectedItem is VariableNode node && node.HasChildren)
             {
                 _ = Toggle(node);
@@ -42,7 +42,7 @@ public sealed class VariablesList : ListBox
                 EditSelectedValue();
             }
         };
-        // Ahead of the list's own keys, which took Right and Left before a handler of its rows heard them.
+        // Ahead of the list's own keys, which take Right and Left before a handler of its rows hears them.
         AddHandler(KeyDownEvent, OnKey, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         // The menu is made again as the choice moves: each one made says as it closes.
         PropertyChanged += (_, e) =>
@@ -100,7 +100,7 @@ public sealed class VariablesList : ListBox
     /// <summary>Whether a row's value is being typed over (Set Value), or its menu is open: the list is in use.</summary>
     public bool IsInUse => Tree.Rows.Any(r => r.IsEditing) || ContextMenu?.IsOpen == true;
 
-    /// <summary>Starts typing over the selected row's value, as F2 does: Rider's Set Value.</summary>
+    /// <summary>Starts typing over the selected row's value, as F2 does (Set Value).</summary>
     public bool EditSelectedValue()
     {
         if (SelectedItem is not VariableNode { Expression: not null } node)
@@ -183,9 +183,9 @@ public sealed class VariablesList : ListBox
         }
     }
 
-    /// <summary>Rider's Variables and Watches menu: Set Value, Copy Value and Copy Name, Add to Watches, Inspect (the
-    /// value evaluated on its own, to open), Remove Watch for a watch, and last, as Rider adds it, Set Data Breakpoint
-    /// (Remove Data Breakpoint on a member watched), greyed with why where it cannot be set. A query's SQL opens first.</summary>
+    /// <summary>The Variables and Watches menu: Set Value, Copy Value and Copy Name, Add to Watches, Inspect (the value
+    /// evaluated on its own, to open), Remove Watch for a watch, and last Set Data Breakpoint (Remove Data Breakpoint on a
+    /// member watched), greyed with why where it cannot be set. A query's SQL opens first.</summary>
     private IReadOnlyList<Control> Menu()
     {
         if (SelectedItem is not VariableNode node)
@@ -257,8 +257,7 @@ public sealed class VariablesList : ListBox
             }
         };
         PathIcon icon = new() { Margin = new Thickness(0, 0, 6, 0) };
-        // Rider's own marks for what the debugger adds to a frame's values: a call's value, and the exception stopped at; and
-        // a database's for the SQL an EF Core query would run.
+        // Marks for what the debugger adds to a frame's values: a call's value, the exception stopped at, a query's SQL.
         string iconKey = node switch
         {
             { Role: VariableRole.Watch } => "Icon.Evaluate",

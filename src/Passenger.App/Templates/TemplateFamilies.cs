@@ -1,8 +1,7 @@
 namespace Passenger.App.Templates;
 
 /// <summary>A row of New Project's list: related templates as one, each a Type of it (Unit Test's xUnit, NUnit and MSTest,
-/// Web's Web App, Web API and Blazor Web App), as Rider's New Solution lists its project types; a family of one template
-/// has no Type to choose.</summary>
+/// Web's Web App, Web API and Blazor Web App); a family of one template has no Type to choose.</summary>
 public sealed record TemplateFamily(string Name, IReadOnlyList<ProjectTemplate> Types)
 {
     /// <summary>Whether none of it is installed yet: every Type comes with a package dotnet new has not got.</summary>
@@ -30,17 +29,17 @@ public sealed record TemplateFamily(string Name, IReadOnlyList<ProjectTemplate> 
 }
 
 /// <summary>How templates become families, from their own metadata: a template group (a groupIdentity's templates, its
-/// languages the Language option) is a Type, which joins the first of Rider's project types its classifications name
+/// languages the Language option) is a Type, which joins the first project type its classifications name
 /// (<see cref="Kinds"/>) whoever made it (TUnit's is a Unit Test). Those none takes go by their short name's family
-/// (avalonia.app and avalonia.mvvm are Avalonia's), named by the words their names begin with, or stand alone. Rider's
-/// types come in Rider's order, then the rest by name.</summary>
+/// (avalonia.app and avalonia.mvvm are Avalonia's), named by the words their names begin with, or stand alone. The
+/// project types come in their order, then the rest by name.</summary>
 public static class TemplateFamilies
 {
-    /// <summary>Rider's project types, in the order a template is tried against them: a product's first (an Aspire test
+    /// <summary>The project types, in the order a template is tried against them: a product's first (an Aspire test
     /// project is Aspire's), then what it is for (a test tagged Desktop and Web is a test). Web leaves workers and cloud
-    /// templates to the others, as Rider's does; Desktop is WPF and Windows Forms, not all tagged Desktop (Avalonia's).
-    /// The words cut from a Type's name are Rider's; the leading short names the one order metadata cannot give (the plain
-    /// template first, the test frameworks as Rider lists them, an Aspire app's starter before its single projects).</summary>
+    /// templates to the others; Desktop is WPF and Windows Forms, not all tagged Desktop (Avalonia's). The leading short
+    /// names give the one order metadata cannot (the plain template first, the test frameworks' order, an Aspire app's
+    /// starter before its single projects).</summary>
     private static readonly Kind[] Kinds =
     [
         new("AI Extensions", c => c.Contains("AI"), [], []),
@@ -55,12 +54,9 @@ public static class TemplateFamilies
         new("Console", c => c.Contains("Console"), [], []),
     ];
 
-    /// <summary>Rider's order of its project types in New Solution, which sorts them by their order, then by name: the .NET
-    /// group's (Console 10, Class Library 20, Desktop 30, Web 40, AI Extensions and Services 50, Unit Test 70), then the
-    /// Other group's (Aspire, Azure Functions and MAUI, each 90).</summary>
     private static readonly string[] RiderOrder = ["Console", "Class Library", "Desktop", "Web", "AI Extensions", "Services", "Unit Test", "Aspire", "Azure Functions", "MAUI"];
 
-    /// <summary>The families of these templates, in Rider's order, each one's Types in its order.</summary>
+    /// <summary>The families of these templates, in the project types' order, each one's Types in its order.</summary>
     public static IReadOnlyList<TemplateFamily> Of(IEnumerable<ProjectTemplate> templates)
     {
         Dictionary<Kind, List<ProjectTemplate>> kinds = [];
@@ -144,7 +140,7 @@ public static class TemplateFamilies
         return string.Join(' ', words[0].Take(count));
     }
 
-    /// <summary>One of Rider's project types: its name, the classifications that make a template one, the words cut from
-    /// a template's name for its Type's, and the short names whose templates lead its Types.</summary>
+    /// <summary>A project type: its name, the classifications that make a template one, the words cut from a template's
+    /// name for its Type's, and the short names whose templates lead its Types.</summary>
     private sealed record Kind(string Name, Func<IReadOnlySet<string>, bool> Takes, string[] Cut, string[] Lead);
 }

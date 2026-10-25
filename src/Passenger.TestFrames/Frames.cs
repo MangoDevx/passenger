@@ -13,11 +13,9 @@ using Avalonia.Threading;
 
 namespace Passenger.TestFrames;
 
-/// <summary>A failing test's windows, drawn into its result. The moment an exception leaves an xunit v3 test on the Avalonia
-/// headless session's thread (thrown again in xunit's own frames, which call the test method), each window the headless
-/// platform shows is rendered as Avalonia.Headless's CaptureRenderedFrame renders it, the popups open over it drawn where
-/// they are, and added to the test's attachments as a PNG, which xunit carries into the result for VSTest and the Testing
-/// Platform alike. That is before the test's cleanup (its Dispose) closes them, and for a test that fails alone.</summary>
+/// <summary>A failing test's windows, drawn into its result: the moment an exception leaves an xunit v3 test on the
+/// Avalonia headless session's thread, each window shown, with the popups open over it drawn where they are, is added
+/// to the test's attachments as a PNG, before the test's cleanup closes them.</summary>
 public static class Frames
 {
     /// <summary>What a failing test's output says when its headless app draws nothing to take a frame of.</summary>
@@ -164,8 +162,8 @@ public static class Frames
         return png.ToArray();
     }
 
-    /// <summary>The headless platform's frame of a window or popup as CaptureRenderedFrame renders it: the jobs queued run
-    /// and the render timer ticked until it is still, so it shows what the test left, not the last frame some step drew.</summary>
+    /// <summary>The headless platform's frame of a window or popup, rendered anew so it shows what the test left, not
+    /// the last frame some step drew.</summary>
     private static WriteableBitmap? Capture(TopLevel top) => Headless("CaptureRenderedFrame", top) as WriteableBitmap;
 
     /// <summary>One of Avalonia.Headless's extensions of a window, called by name: the hook is compiled against no

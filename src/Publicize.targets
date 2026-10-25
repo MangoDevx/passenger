@@ -4,17 +4,16 @@
        references the package itself.
 
        The publicizer's own target, unhooked here, writes each assembly straight to its place in obj and takes any file
-       there as finished, so two builds of a project at once (a build and the design-time build a language server starts
-       when a restore rewrites obj) gave the compiler a file still being written: CS0009, then CS0246 for every type. Each
-       build runs the task in a folder of its own, started from the finished assemblies, and moves only whole files into
-       place. -->
+       there as finished, so a second build at once (the design-time build a restore starts) could compile against one
+       still being written. Each build runs the task in a folder of its own, started from the finished assemblies, and
+       moves only whole files into place. -->
   <PropertyGroup>
     <PublicizeBeforeTargets />
   </PropertyGroup>
 
   <!-- Copies (or moves) the files From has and To lacks, each one whole: a move never replaces a file, so of two builds
        placing the same assembly the first one's stays. Done here rather than by MSBuild's Copy and Move, which on Windows
-       refuse a path past 260 characters, as an assembly's publicized path is in a folder as deep as CI's. -->
+       refuse a path past 260 characters, as an assembly's publicized path in a deep folder is. -->
   <UsingTask TaskName="PublicizedFiles" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
     <ParameterGroup>
       <From Required="true" />

@@ -52,9 +52,9 @@ public sealed class TextDocument
     /// changed on the UI thread alone.</summary>
     public event EventHandler<DocumentChangedEventArgs>? Changed;
 
-    /// <summary>Raised for each change before <see cref="Changed"/>, for what keeps a view of the text in step with it (an
-    /// editor's soft wraps), so a handler of Changed that asks the view where a line is drawn finds it carried through the
-    /// change rather than made again for the whole text.</summary>
+    /// <summary>Raised for each change before <see cref="Changed"/>, for what keeps a view of the text in step with it,
+    /// so a handler of Changed that asks the view where a line is drawn finds it carried through the change rather than
+    /// made again for the whole text.</summary>
     public event EventHandler<DocumentChangedEventArgs>? ChangedFirst;
 
     public TextSnapshot Snapshot { get; private set; }

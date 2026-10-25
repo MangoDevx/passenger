@@ -21,8 +21,8 @@ public partial class MainWindow
     /// <summary>The menu bar's menus, as macOS shows them.</summary>
     public NativeMenu MenuBar => menuBar!;
 
-    /// <summary>Whether the system shows the main menu in a menu bar of its own (macOS's), so the toolbar has neither the
-    /// menu button nor the bar; read as a window is made. A test sets it to drive the toolbar's menus on macOS too.</summary>
+    /// <summary>Whether the system shows the main menu in a menu bar of its own (macOS's), so the toolbar has neither
+    /// the menu button nor the bar; read as a window is made.</summary>
     public static bool SystemMenuBar { get; set; } = OperatingSystem.IsMacOS();
 
     private void AddMainMenu()
@@ -65,8 +65,8 @@ public partial class MainWindow
 
     private bool IsBarStop(object? focused) => focused is Button button && MainMenuPlace.ShowsBar && BarStops().Contains(button);
 
-    /// <summary>Alt tapped alone takes the bar's first title, as a menu bar's does (its menus then opened by the keys), or
-    /// gives the keys back when the bar has them. F10 stays Step Over, as Rider's Visual Studio keymap has it.</summary>
+    /// <summary>Alt tapped alone takes the bar's first title (its menus then opened by the keys), or gives the keys
+    /// back when the bar has them. F10 stays Step Over, as the Visual Studio keymap has it.</summary>
     private void OnBarKeyUp(object? sender, KeyEventArgs e)
     {
         if (e.Key is not (Key.LeftAlt or Key.RightAlt) || !altAlone || !MainMenuPlace.ShowsBar)
@@ -213,8 +213,8 @@ public partial class MainWindow
             && t.TranslatePoint(default, this) is { } corner && new Rect(corner, t.Bounds.Size).Contains(at));
     }
 
-    /// <summary>While one of the bar's menus is open, the pointer moving over another title opens that one, as a menu bar
-    /// does. The open menu holds the pointer, so its moves are followed from the menu's own popup as well as the window.</summary>
+    /// <summary>While one of the bar's menus is open, the pointer moving over another title opens that one. The open
+    /// menu holds the pointer, so its moves are followed from the menu's own popup as well as the window.</summary>
     private void FollowBarPointer(object? sender, PointerEventArgs e)
     {
         if (barMenu is not { IsOpen: true } || sender is not Visual root)
@@ -257,7 +257,6 @@ public partial class MainWindow
             }
         }
         (barMenu, barMenuFrom, barMenuContext) = (flyout, title, context);
-        // Shown pressed while its menu is open, as a menu bar's title is.
         title.Classes.Add("open");
         Action release = KeepKeys(title, () => flyout.IsOpen ? flyout.Items.OfType<Control>().FirstOrDefault()?.FindLogicalAncestorOfType<MenuBase>() : null);
         AddHandler(PointerMovedEvent, FollowBarPointer, RoutingStrategies.Tunnel, handledEventsToo: true);
@@ -294,9 +293,9 @@ public partial class MainWindow
         };
     }
 
-    /// <summary>The menus again, with the shortcuts in force now (after Settings changed the keymap). The window keeps the
-    /// one menu bar it was first given and only its items change: macOS's menu exporter refuses a second NativeMenu for
-    /// the same window ("The menu being updated does not match") and ended Passenger at start.</summary>
+    /// <summary>The menus again, with the shortcuts in force now (after Settings changed the keymap). The window keeps
+    /// the one menu bar it was first given and only its items change, since macOS's menu exporter refuses a second
+    /// NativeMenu for the same window.</summary>
     private void BuildMenuBar()
     {
         bool first = menuBar is null;
@@ -551,8 +550,7 @@ public partial class MainWindow
         if (context.Focused is Terminal.TerminalView terminal && actions!.MenuBarGesture(action) is { } keys
             && (!keys.KeyModifiers.HasFlag(KeyModifiers.Meta) || actions[action] is { InEditor: true }))
         {
-            // The terminal takes every key but the IDE's Cmd ones (its own copy and paste included): the menu only caught
-            // it on its way there.
+            // The terminal takes every key but the IDE's Cmd ones; the menu only caught it on its way there.
             terminal.RaiseEvent(new KeyEventArgs { RoutedEvent = KeyDownEvent, Key = keys.Key, KeyModifiers = keys.KeyModifiers, Source = terminal });
             return true;
         }

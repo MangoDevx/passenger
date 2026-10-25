@@ -1,8 +1,7 @@
 namespace Passenger.App.Telemetry;
 
-/// <summary>Where a run's structured logs and traces are read: an Aspire dashboard's telemetry API on this machine (an
-/// AppHost's own, or the one a container run that collects them runs beside its services) and its API key, which
-/// <see cref="Aspire.AspireTelemetry"/> reads for the Telemetry view and an agent's <c>telemetry</c> alike.</summary>
+/// <summary>Where a run's structured logs and traces are read: an Aspire dashboard's telemetry API on this machine and
+/// its API key.</summary>
 public sealed record TelemetrySource(Uri Endpoint, string ApiKey)
 {
     /// <summary>Whether a record is the resource or Compose service named: by its service's name alone, or by the resource
@@ -18,8 +17,8 @@ public sealed record TelemetrySource(Uri Endpoint, string ApiKey)
     public static bool Said(Exception error) => error is IOException or InvalidDataException or TimeoutException or NotSupportedException
         or System.Net.Http.HttpRequestException;
 
-    /// <summary>What a dashboard's failed read says, wherever it is read (the Telemetry view, an agent's <c>telemetry</c>),
-    /// every kind of run's in the same words: what failed, its key and any secret masked, one line of 512 characters at most.</summary>
+    /// <summary>What a dashboard's failed read says, in the same words wherever it is read: what failed, its key and any
+    /// secret masked, one line of 512 characters at most.</summary>
     public string Unread(Exception error)
     {
         string reason = Containers.ContainerSecrets.InValue(error.Message.Replace(ApiKey, Containers.ContainerSecrets.Masked, StringComparison.Ordinal))

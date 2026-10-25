@@ -9,9 +9,9 @@ namespace Passenger.App.Run;
 
 /// <summary>A child process whose output and errors stream into a console as they arrive, through its sink: read off the
 /// UI thread, colour codes taken out, standard error in the error colour. A program run (not a build) reads what the
-/// person types into the console, as in Rider; a build's input is closed, so a step that reads ends rather than waits.
-/// Stopping kills the whole process tree, as a run's Stop button does. The console is the window's; a runner lets go of it
-/// when disposed, its folder left, and another folder's runner writes there.</summary>
+/// person types into the console; a build's input is closed, so a step that reads ends rather than waits. Stopping kills
+/// the whole process tree. The console is the window's; a runner lets go of it when disposed, its folder left, and
+/// another folder's runner writes there.</summary>
 public sealed class ProcessRunner : IDisposable
 {
     private readonly StringBuilder partialLine = new();
@@ -293,7 +293,7 @@ public sealed class ProcessRunner : IDisposable
     /// program never runs on in the console; one out of the kill's reach is let go, what it writes dropped.</summary>
     private async Task LandAsync(Process started, Task outputs, CancellationTokenSource letGo, ConsoleInput? input, TaskCompletionSource<int> ending, Landing landing)
     {
-        // Off the UI thread from here on, whose dispatcher a test ends: a program still running holds nothing.
+        // Off the UI thread from here on, whose dispatcher may end first: a program still running holds nothing.
         await started.WaitForExitAsync().ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
         // However its reads end, a failed one included, they are over.
         Task read = outputs.ContinueWith(_ => { }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);

@@ -24,13 +24,11 @@ internal static class CSharpClassifier
 
     private static readonly TokenKind[] Braces = [TokenKind.Brace1, TokenKind.Brace2, TokenKind.Brace3];
 
-    /// <summary>The spans of the tokens (and the trivia) that reach into <paramref name="range"/>,
-    /// sorted. A comment or an excluded block that starts before the range is included whole. It
-    /// finds the first token by position and walks token by token, never through a list of siblings,
-    /// so a class with ten thousand members costs what the lines on screen cost, and of a token's
-    /// trivia it takes only those in the range (<see cref="AddTrivia"/>). A bracket's depth is
-    /// counted on from the first token's (<see cref="DepthBefore"/>): an opener at the depth it opens
-    /// at, its closer at the same, a stray closer at none below the outermost.</summary>
+    /// <summary>The spans of the tokens (and the trivia) that reach into <paramref name="range"/>, sorted; a comment or
+    /// an excluded block that starts before the range is included whole. It finds the first token by position and walks
+    /// token by token, never through a list of siblings, so a class with ten thousand members costs what the lines on
+    /// screen cost. A bracket's depth is counted on from the first token's (<see cref="DepthBefore"/>): an opener at
+    /// the depth it opens at, its closer at the same, a stray closer at none below the outermost.</summary>
     public static List<SyntaxSpan> Classify(SyntaxNode root, TextSpan range)
     {
         List<SyntaxSpan> spans = [];

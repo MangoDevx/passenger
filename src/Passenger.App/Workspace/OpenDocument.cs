@@ -116,9 +116,8 @@ public sealed class OpenDocument : Observable
 
     private void ReadAt(DiskStamp? stamp) => readAt = stamp is { } found ? (found, Text.Version) : null;
 
-    /// <summary>The largest file opened as text or as its bytes, as an image's preview is bounded too: plain text that size
-    /// opens in a moment and takes keys at once, but the editor holds about six and a half times a file's size (a 100 MB
-    /// log, 850 MB), and .NET holds no string past a billion characters.</summary>
+    /// <summary>The largest file opened as text or as its bytes: the editor holds about six and a half times a file's
+    /// size, and .NET holds no string past a billion characters.</summary>
     public const long LargestText = 64 * 1024 * 1024;
 
     /// <summary>Decodes the asset off the UI thread, the one shown (the stand-in at first) kept until the new one lands;
@@ -334,8 +333,8 @@ public sealed class OpenDocument : Observable
 
     private string? notice;
 
-    /// <summary>What the editor's banner says of the file beyond where it comes from: why its language server cannot run
-    /// for it (no Node.js), as Rider's editor notifications say it; null for nothing.</summary>
+    /// <summary>What the editor's banner says of the file beyond where it comes from: why its language server cannot
+    /// run for it (no Node.js); null for nothing.</summary>
     public string? Notice
     {
         get => notice;
@@ -591,7 +590,7 @@ public sealed class OpenDocument : Observable
         }
     }
 
-    /// <summary>The line separator widget's tip, Rider's, with what the .editorconfig says of it.</summary>
+    /// <summary>The line separator widget's tip, with what the .editorconfig says of it.</summary>
     public string SeparatorTip
     {
         get
@@ -608,7 +607,7 @@ public sealed class OpenDocument : Observable
         }
     }
 
-    /// <summary>The encoding widget's tip, Rider's, with what the .editorconfig says of it.</summary>
+    /// <summary>The encoding widget's tip, with what the .editorconfig says of it.</summary>
     public string EncodingTip
     {
         get
@@ -625,9 +624,9 @@ public sealed class OpenDocument : Observable
         }
     }
 
-    /// <summary>Rider's Line Separators: every break made <paramref name="to"/>'s and the file written so, as one undoable
-    /// step whose undo and redo write it too, and which a save keeps over the .editorconfig's <c>end_of_line</c>.
-    /// An asset preview is left unchanged.</summary>
+    /// <summary>Line Separators: every break made <paramref name="to"/>'s and the file written so, as one undoable step
+    /// whose undo and redo write it too, and which a save keeps over the .editorconfig's <c>end_of_line</c>. An asset
+    /// preview is left unchanged.</summary>
     public void ConvertLineSeparators(LineSeparator to)
     {
         if (Asset is not null)
@@ -658,8 +657,8 @@ public sealed class OpenDocument : Observable
         return EncodingChange.Weigh(bytes, Text.Snapshot.ToString(), Encoding, crBreaks, to);
     }
 
-    /// <summary>Rider's Reload: the file's bytes read again in the encoding replace the text, as one undoable step; the
-    /// file is left as it is. An asset preview is left unchanged.</summary>
+    /// <summary>Reload: the file's bytes read again in the encoding replace the text, as one undoable step; the file is
+    /// left as it is. An asset preview is left unchanged.</summary>
     public void ReloadIn(FileEncoding to)
     {
         if (Asset is not null)
@@ -673,8 +672,9 @@ public sealed class OpenDocument : Observable
         Change(LineDiff.Edits(Text.Snapshot.ToString(), read.Text), Current with { Encoding = to.Encoding, Bom = bom, Separator = separator, EncodingChosen = true }, write: false);
     }
 
-    /// <summary>Rider's Convert: the text written in the encoding, as one undoable step whose undo and redo write it too.
-    /// A character it cannot hold, converted anyway, becomes '?' in the text as on disk. Asset previews are unchanged.</summary>
+    /// <summary>Convert: the text written in the encoding, as one undoable step whose undo and redo write it too. A
+    /// character it cannot hold, converted anyway, becomes '?' in the text as on disk. Asset previews are
+    /// unchanged.</summary>
     public void ConvertTo(FileEncoding to) =>
         Change(EncodingChange.Lost(to.Encoding, Text.Snapshot.ToString()), Current with { Encoding = to.Encoding, Bom = to.Bom, EncodingChosen = true }, write: true);
 
@@ -696,9 +696,9 @@ public sealed class OpenDocument : Observable
         Change(LineDiff.Edits(text, version.Text), stored ? Current with { Separator = separator } : Current with { Encoding = version.Encoding, Bom = version.HasBom, Separator = separator }, write: true);
     }
 
-    /// <summary>Rider's change and forget: an encoding that reads the file's bytes as the text it has and writes the text as
-    /// the bytes it has (an ASCII file) is taken with nothing read or written, as one undoable step. Asset previews
-    /// are left unchanged.</summary>
+    /// <summary>An encoding taken as it is: one that reads the file's bytes as the text it has and writes the text as
+    /// the bytes it has (an ASCII file) is taken with nothing read or written, as one undoable step. Asset previews are
+    /// left unchanged.</summary>
     public void TakeEncoding(FileEncoding to) =>
         Change([], Current with { Encoding = to.Encoding, Bom = to.Bom, EncodingChosen = true }, write: false);
 
@@ -915,8 +915,7 @@ public sealed class OpenDocument : Observable
     }
 
     /// <summary>Whether the language server made this file from an assembly's metadata (Go to Declaration on a
-    /// library's symbol): Roslyn decompiles it, or takes its source from Source Link or the PDB, into a folder of its
-    /// own, and nothing typed there would reach the library.</summary>
+    /// library's symbol), where nothing typed would reach the library.</summary>
     public bool IsDecompiled => Path.Contains($"{System.IO.Path.DirectorySeparatorChar}MetadataAsSource{System.IO.Path.DirectorySeparatorChar}", StringComparison.Ordinal);
 
     /// <summary>Whether the editor shows it read-only, under a bar that says why: decompiled, the licence, notices or release
@@ -1207,13 +1206,12 @@ public sealed class OpenDocument : Observable
     }
 }
 
-/// <summary>A link the editor's banner offers after its notice, as Rider's editor notifications offer theirs: its words and
-/// what it does.</summary>
+/// <summary>A link the editor's banner offers after its notice: its words and what it does.</summary>
 public sealed record NoticeAction(string Text, Action Run);
 
 /// <summary>What the editor needs to know about a file's language before any language server answers: its name (which
-/// <see cref="Languages.Highlighters"/> colours it by), its comments and how it indents. A language with no line comment
-/// of its own comments a line with its block comment, as IntelliJ's do (<c>&lt;!-- --&gt;</c> in XML).</summary>
+/// <see cref="Languages.Highlighters"/> colours it by), its comments and how it indents. A language with no line
+/// comment of its own comments a line with its block comment (<c>&lt;!-- --&gt;</c> in XML).</summary>
 public sealed record Language(string Name, string? LineComment, int IndentSize = 4, string? BlockStart = null, string? BlockEnd = null)
 {
     public static readonly Language PlainText = new("Text", null);
@@ -1249,7 +1247,7 @@ public sealed record Language(string Name, string? LineComment, int IndentSize =
     public static Language ForPath(string path)
     {
         string name = System.IO.Path.GetFileName(path);
-        // By name before extension, as the Dockerfile server is chosen: Dockerfile.dev, Containerfile.prod, .env.local.
+        // By name before extension: Dockerfile.dev, Containerfile.prod, .env.local.
         if (Web.WebLanguages.IsDockerfile(name))
         {
             return new Language("Dockerfile", "#");

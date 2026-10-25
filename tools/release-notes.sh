@@ -1,12 +1,10 @@
 #!/bin/sh
-# A release's notes (#56), for `gh release create --notes-file`: `tools/release-notes.sh [vX.Y.Z]` writes to standard
-# output the version's own notes, docs/release-notes/X.Y.Z.md, which the app carries and shows as What's New (#416), so
-# the release and the app say the same; the version is the tag's, else VERSION's (a dry run from a branch). A version
-# with none takes the tag's own message when it is an annotated tag that says more than its name, else the first line of
-# each commit since the previous vX.Y.Z tag (every commit, for the first release); with no tag, the commits since the
-# last tag up to HEAD. GitHub keeps at most 125,000 characters of notes, so a longer list is cut, ending with a link to
-# the rest. Notes that are still the stand-in (their "<!-- Stand-in" line) fail a release PUBLISH=true publishes, and
-# only warn otherwise.
+# A release's notes, for `gh release create --notes-file`: `tools/release-notes.sh [vX.Y.Z]` writes to standard output
+# the version's own notes, docs/release-notes/X.Y.Z.md, so the release and the app's What's New say the same; the
+# version is the tag's, else VERSION's (a dry run from a branch). A version with none takes an annotated tag's message
+# when it says more than its name, else the first line of each commit since the previous vX.Y.Z tag (every commit, for
+# the first release), cut to GitHub's 125,000 characters with a link to the rest. Notes still the stand-in (their
+# "<!-- Stand-in" line) fail a release PUBLISH=true publishes, and only warn otherwise.
 set -eu
 fail() {
     echo "release-notes: $*" >&2

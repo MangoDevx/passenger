@@ -6,9 +6,9 @@ using Avalonia.Interactivity;
 namespace Passenger.App.ToolWindows;
 
 /// <summary>A tool window's toolbar down its left (the Debug window's): its buttons from the top while they fit, and in a
-/// window too short for them all the last ones behind More at its foot, as IntelliJ's toolbar puts what has no room behind
-/// its expand button. Worked out in the layout from the buttons' own sizes, so hiding none asks for another pass; a button
-/// its window hides (Detach while launched) takes no room and is never listed.</summary>
+/// window too short for them all the last ones behind More at its foot. Worked out in the layout from the buttons' own
+/// sizes, so hiding none asks for another pass; a button its window hides (Detach while launched) takes no room and is
+/// never listed.</summary>
 public sealed class ToolColumn : Panel
 {
     private readonly Button more;

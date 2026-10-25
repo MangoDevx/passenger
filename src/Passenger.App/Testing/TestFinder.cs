@@ -6,11 +6,10 @@ using Passenger.Editor;
 
 namespace Passenger.App.Testing;
 
-/// <summary>The tests the test projects' code declares, found before any build, as Rider's Unit Tests window shows them
-/// once a solution opens: each test project's C# files read off the UI thread with Roslyn's parser, an open file from
-/// its own parse as it is typed (the gutter's read of it, never a parse of its own), and a file another program
-/// changed read again when the folder watcher says so. What it finds is told a project at a time, only when it changed.
-/// A UI-thread object.</summary>
+/// <summary>The tests the test projects' code declares, found before any build: each test project's C# files read off
+/// the UI thread with Roslyn's parser, an open file from its own parse as it is typed (the gutter's read of it, never a
+/// parse of its own), and a file another program changed read again when the folder watcher says so. What it finds is
+/// told a project at a time, only when it changed. A UI-thread object.</summary>
 public sealed class TestFinder
 {
     /// <summary>The test frameworks' own packages: a project referencing one holds tests, adapter or not.</summary>

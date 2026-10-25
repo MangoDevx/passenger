@@ -5,13 +5,12 @@ using Avalonia.Media;
 
 namespace Passenger.App;
 
-/// <summary>Asks which of several ways to go on, as Rider's Reload or Convert does: what each does, a button for each and
-/// Cancel after them, laid out as Rider's dialogs are (DialogFooter.Listed), closing with the words of the button chosen,
-/// or null for Cancel. Escape cancels.</summary>
+/// <summary>Asks which of several ways to go on: what each does, a button for each and Cancel after them
+/// (DialogFooter.Listed), closing with the words of the button chosen, or null for Cancel. Escape cancels.</summary>
 public sealed class ChoiceDialog : Window
 {
-    /// <param name="chosen">The choice Enter takes, or null for Cancel, as Rider's Reload or Convert has it, since either
-    /// answer may change the file.</param>
+    /// <param name="chosen">The choice Enter takes, or null for Cancel, since either answer may change the
+    /// file.</param>
     public ChoiceDialog(string title, string text, IReadOnlyList<string> choices, string? chosen)
     {
         Title = title;

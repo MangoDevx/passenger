@@ -12,19 +12,19 @@ using Passenger.Text;
 
 namespace Passenger.App.Aspire;
 
-/// <summary>A resource of the Aspire window's list at its depth: a parent's children are listed under it, opened and closed
-/// by its chevron as the Containers window's rows are.</summary>
+/// <summary>A resource of the Aspire window's list at its depth: a parent's children are listed under it, opened and
+/// closed by its chevron.</summary>
 public sealed record AspireRow(AspireResource Resource, int Depth, bool Expands, bool Expanded)
 {
     /// <summary>Whether its run left it unstarted, as its configuration says Don't start: Not started, never a failure.</summary>
     public bool LeftUnstarted { get; init; }
 }
 
-/// <summary>The Aspire window, the Containers window's parts over an AppHost's resources: an icon toolbar of the window's
-/// actions, the resources as rows (<see cref="RunRows"/>: a chevron over a parent's children, the state's dot, health's tag
-/// and addresses as links), the chosen one's Details (<see cref="AspireDetailsPane"/>), the resources' consoles merged
-/// (<see cref="MergedLog"/>), the dashboard's structured logs and traces (<see cref="TelemetryView"/>'s pages), and the
-/// AppHost's own console. A view of the session's <see cref="AspireModel"/>, built as the window is first shown.</summary>
+/// <summary>The Aspire window over an AppHost's resources: an icon toolbar of the window's actions, the resources as rows
+/// (<see cref="RunRows"/>: a chevron over a parent's children, the state's dot, health's tag and addresses as links), the
+/// chosen one's Details (<see cref="AspireDetailsPane"/>), the resources' consoles merged (<see cref="MergedLog"/>), the
+/// dashboard's structured logs and traces (<see cref="TelemetryView"/>'s pages), and the AppHost's own console. A view of
+/// the session's <see cref="AspireModel"/>, built as the window is first shown.</summary>
 public sealed class AspireView : DockPanel, IDisposable
 {
     private const string LogTab = AspireModel.LogTab;
@@ -61,8 +61,7 @@ public sealed class AspireView : DockPanel, IDisposable
         AutomationProperties.SetName(AppSelector, "Aspire AppHost");
         ToolTip.SetTip(AppSelector, "Running AppHost (every request uses its absolute project path)");
         StackPanel bar = new() { Orientation = Orientation.Horizontal, Spacing = 2, Margin = new Thickness(6, 0), VerticalAlignment = VerticalAlignment.Center, Children = { AppSelector } };
-        // Its Refresh, then the service actions as every list of a run's services groups them (titled once bound), then the
-        // resource's own.
+        // Its Refresh, then the service actions (titled once bound), then the resource's own.
         foreach ((string action, string icon, string tip) in (ReadOnlySpan<(string, string, string)>)[
             (AppActions.AspireDiscover, "Icon.Search", "Discover running Aspire AppHosts"),
             (AppActions.AspireRefresh, "Icon.Rerun", "Refresh resources"),
@@ -173,7 +172,7 @@ public sealed class AspireView : DockPanel, IDisposable
     public Editors.FindBar Find => Log.Find;
     public OutputView Console => Log.Console;
 
-    /// <summary>The AppHost's structured logs and traces, the Telemetry view every kind of run shows them in.</summary>
+    /// <summary>The AppHost's structured logs and traces.</summary>
     public TelemetryView Telemetry { get; }
     public ListBox StructuredLogs => Telemetry.StructuredLogs;
     public ListBox TraceList => Telemetry.TraceList;
@@ -449,7 +448,7 @@ public sealed class AspireView : DockPanel, IDisposable
     /// A resource that comes, or restarts (another generation), has its own stream started and its lines added after those
     /// shown, one that goes has its stream ended, and the rest stream on; the console is cleared and every stream read again
     /// from its start only when it was stopped (hidden, another tab, Refresh) or <paramref name="again"/> (a toggle turned)
-    /// asks, as a project's merged log does, so one resource's restart never reads the others' backlogs again.</summary>
+    /// asks, so one resource's restart never reads the others' backlogs again.</summary>
     private void UpdateConsole(bool again = false)
     {
         UiThread.Check();
@@ -568,8 +567,8 @@ public sealed class AspireView : DockPanel, IDisposable
         consoleStatus.Text = string.Empty;
     }
 
-    /// <summary>A resource's row as every list of what runs draws one (<see cref="RunRows"/>): its state's dot, what it runs
-    /// after its name, its health's tag and its addresses as links.</summary>
+    /// <summary>A resource's row (<see cref="RunRows"/>): its state's dot, what it runs after its name, its health's tag and
+    /// its addresses as links.</summary>
     private static RunRow Row(AspireRow row)
     {
         AspireResource resource = row.Resource;
@@ -597,8 +596,8 @@ public sealed class AspireView : DockPanel, IDisposable
         _ => RunState.Stopped,
     };
 
-    /// <summary>A row's menu, in the order every list of a run's services gives one: the service actions first (greyed with
-    /// why on a resource that is no .NET service), then its commands, then its address, source and container.</summary>
+    /// <summary>A row's menu: the service actions first (greyed with why on a resource that is no .NET service), then its
+    /// commands, then its address, source and container.</summary>
     private IReadOnlyList<Control> RowMenu()
     {
         if (model.Selection is not { } selected || actionItem is not { } made)

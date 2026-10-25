@@ -9,8 +9,8 @@ public static class AppActions
 {
     public const string Open = "app.open";
 
-    /// <summary>A folder to open: the system's panel takes files or folders, not both as Rider's does, so Open takes the
-    /// solution or project files and this the folder. Rider's keymaps have no keys for it.</summary>
+    /// <summary>A folder to open: the system's panel takes files or folders, not both, so Open takes the solution or
+    /// project files and this the folder. Rider's keymaps have no keys for it.</summary>
     public const string OpenFolder = "app.openFolder";
 
     /// <summary>Rider's New Solution (RiderNewSolution), which its keymaps give no keys.</summary>
@@ -68,20 +68,20 @@ public static class AppActions
     public const string CheckForUpdates = "app.checkForUpdates";
     public const string RestartToUpdate = "app.restartToUpdate";
 
-    // The running version's release notes, as Rider's What's New in Rider: no key of Rider's.
+    // The running version's release notes: no key of Rider's.
     public const string WhatsNew = "app.whatsNew";
     public const string ShowNuGet = "app.showNuGet";
     public const string Profile = "app.profile";
     public const string ShowProfiler = "app.showProfiler";
 
-    // dotTrace's attach to a running process, for the program Run or Debug started: no key of Rider's.
+    // Attach the profiler to the program Run or Debug started: no key of Rider's.
     public const string AttachProfiler = "app.profiler.attach";
 
-    // The Live Visual Tree of an Avalonia app being debugged, as Visual Studio's for WPF: no key of Rider's or VS's.
+    // The Live Visual Tree of an app being debugged: no key of Rider's or Visual Studio's.
     public const string ShowLiveTree = "app.showLiveTree";
     public const string SelectElement = "app.liveTree.selectElement";
 
-    // Rider's Endpoints window over the folder's .http files, and its Test of the request chosen there: no key of Rider's.
+    // The Endpoints window over the folder's .http files, and Test of the request chosen there: no key of Rider's.
     public const string ShowEndpoints = "app.showEndpoints";
     public const string TestEndpoint = "app.endpoints.test";
 
@@ -151,12 +151,11 @@ public static class AppActions
     public const string FindPrevious = "app.findPrevious";
     public const string FocusExplorer = "app.focusExplorer";
 
-    // The Explorer's own actions, on the row its menu opened on or the one chosen while it has the keys: Rider's Project
-    // view's NewFile, NewDir, Class/Interface, the solution's own (New Solution Folder, Existing Project, Existing Item),
-    // Add Reference, Docker Support and Compose, Aspire Orchestration, NuGet, Manage User Secrets (no keys of Rider's), Edit
-    // Project File, Unload and Reload Project, Compare Files (CompareTwoFiles, off macOS sharing the editor's Duplicate keys),
-    // Copy Path (CopyPaths), Reveal in Finder (RevealIn) and Open in Terminal. Rename and Delete are Rename's and the editor's Delete, as Rider's RenameElement and
-    // $Delete are one action wherever they are pressed.
+    // The Explorer's own actions, on the row its menu opened on or the one chosen while it has the keys: NewFile, NewDir,
+    // Class/Interface, the solution's own, Add Reference, Docker Support and Compose, Aspire Orchestration, NuGet, Manage
+    // User Secrets (no keys of Rider's), Edit Project File, Unload and Reload Project, Compare Files (CompareTwoFiles, off
+    // macOS sharing the editor's Duplicate keys), Copy Path (CopyPaths), Reveal in Finder (RevealIn) and Open in Terminal.
+    // Rename and Delete are Rename's and the editor's Delete, one action wherever they are pressed.
     public const string NewFile = "app.explorer.newFile";
     public const string NewFolder = "app.explorer.newFolder";
     public const string NewType = "app.explorer.newType";
@@ -220,7 +219,7 @@ public static class AppActions
     public const string Back = "app.back";
     public const string Forward = "app.forward";
 
-    // Code actions: what the language server answers, run by CodeAssist on the active editor.
+    // Code actions, on the active editor.
     public const string Complete = "app.code.complete";
     public const string QuickFix = "app.code.quickFix";
     public const string Rename = "app.code.rename";
@@ -260,8 +259,8 @@ public static class AppActions
     public const string IntroduceParameter = "app.code.introduceParameter";
     public const string EncapsulateField = "app.code.encapsulateField";
 
-    // Rider's ChangeSignature, ExtractInterface, Move, MembersPullUp and MemberPushDown, the refactorings that ask their
-    // options in a dialog, computed by Passenger's extension in the language server.
+    // Rider's ChangeSignature, ExtractInterface, Move, MembersPullUp and MemberPushDown, the refactorings that ask
+    // their options in a dialog.
     public const string ChangeSignature = "app.code.changeSignature";
     public const string ExtractInterface = "app.code.extractInterface";
     public const string Move = "app.code.move";
@@ -276,7 +275,7 @@ public static class AppActions
     public const string PreviousError = "app.code.previousError";
     public const string FocusEditor = "app.focusEditor";
 
-    // The debugger's: run by the Debugger on the active editor and the session.
+    // The debugger's, on the active editor and the session.
     public const string ToggleBreakpoint = "app.debug.toggleBreakpoint";
     public const string ToggleBreakpointEnabled = "app.debug.toggleBreakpointEnabled";
     public const string MuteBreakpoints = "app.debug.muteBreakpoints";
@@ -306,7 +305,7 @@ public static class AppActions
     public const string AddToWatches = "app.debug.addToWatches";
     public const string ShowContextMenu = "app.contextMenu";
 
-    // Unit tests: run where the caret or the Unit Tests window's selection is, as Rider's context actions do.
+    // Unit tests, run where the caret or the Unit Tests window's selection is.
     public const string RunTests = "app.tests.run";
     public const string DebugTests = "app.tests.debug";
     public const string RunAllTests = "app.tests.runAll";
@@ -347,8 +346,7 @@ public static class AppActions
     public const string DecreaseFontSize = "app.editor.decreaseFontSize";
     public const string ResetFontSize = "app.editor.resetFontSize";
 
-    // The XAML previewer beside the editor, under View; Rider's Avalonia previewer is the editor's own split, with no action
-    // of its keymaps.
+    // The XAML previewer beside the editor, under View: no action of Rider's keymaps.
     public const string XamlPreview = "app.editor.xamlPreview";
 
     // A Markdown file's preview beside its editor, under View and on the editor's tab strip: the Visual Studio keymaps and
@@ -361,7 +359,7 @@ public static class AppActions
     public const string CloseSolution = "app.closeSolution";
     public const string RestoreDefaultLayout = "app.window.restoreDefaultLayout";
 
-    // The terminal: Rider's, a shell per tab in the open folder.
+    // The terminal: a shell per tab in the open folder.
     public const string ShowTerminal = "app.showTerminal";
 
     // The tool windows' frame.
@@ -372,7 +370,7 @@ public static class AppActions
     public const string EditBreakpoint = "app.breakpoints.edit";
     public const string ViewBreakpoints = "app.breakpoints.view";
 
-    // Version control: Rider's Git actions over the open folder's working tree.
+    // Version control: Git over the open folder's working tree.
     public const string ShowCommit = "app.vcs.showCommit";
     public const string Commit = "app.vcs.commit";
     public const string Push = "app.vcs.push";
@@ -414,8 +412,8 @@ public static class AppActions
     public static KeymapPreset Preset { get; private set; }
 
     /// <summary>The person's own shortcuts over the chosen keymap's, by action (an empty list unbinds it), as Settings
-    /// keeps them for that keymap. The process's, as Rider's keymap is the application's: every window has the one keymap,
-    /// which the settings' store puts in force (<see cref="Settings.SettingsStore"/>).</summary>
+    /// keeps them for that keymap. The process's: every window has the one keymap, which the settings' store puts in
+    /// force (<see cref="Settings.SettingsStore"/>).</summary>
     public static IReadOnlyDictionary<string, string[]> UserShortcuts { get; private set; } = new Dictionary<string, string[]>();
 
     private static Keymap? inForce;
@@ -428,9 +426,8 @@ public static class AppActions
         inForce = null;
     }
 
-    /// <summary>The keymap in force: the chosen keymap with the person's shortcuts over it. Made once until those change
-    /// (the profiler found every tooltip and menu parsing the whole keymap again at startup); a caller reads it and never
-    /// binds into it.</summary>
+    /// <summary>The keymap in force: the chosen keymap with the person's shortcuts over it, made once until those
+    /// change, since every tip and menu reads it; a caller reads it and never binds into it.</summary>
     public static Keymap Keymap() => inForce ??= Keymap(Preset, UserShortcuts);
 
     /// <summary>The Visual Studio keymap with these shortcuts over it.</summary>
@@ -500,8 +497,7 @@ public static class AppActions
                 .Bind(FindNext, "F3", "meta alt PAGE_DOWN")
                 .Bind(FindPrevious, "shift F3", "meta alt PAGE_UP")
                 .Bind(FocusExplorer, "meta 1", "meta alt L")
-                // Rider's CopyPaths and CompareTwoFiles, $default's Ctrl+Shift+C and Ctrl+D as Mac OS X 10.5+ takes them (its
-                // Duplicate is Ctrl+D here, Windows' Ctrl+D the editor's Duplicate, which Compare Files shares there); RevealIn has none.
+                // CopyPaths and CompareTwoFiles: $default's Ctrl+Shift+C and Ctrl+D as Mac OS X 10.5+ takes them; RevealIn has none.
                 .Bind(CopyPath, "meta shift C")
                 .Bind(CompareFiles, "meta D")
                 .Bind(Build, "meta shift B")

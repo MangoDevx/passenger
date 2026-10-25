@@ -5,10 +5,10 @@ using Passenger.Text;
 
 namespace Passenger.Editor;
 
-/// <summary>Inlay hints, as Rider's parameter and type name hints: a label on a chip inside a line, part of no document.
-/// The line is drawn in pieces, each moved right by the hints before it, so every column's x and every x's column go
-/// through <see cref="XWith"/> and <see cref="ColumnWith"/>. As in IntelliJ, the hints at an offset are a place of their
-/// own for the caret (<see cref="leaning"/>). An input method's composition is one more gap, where the primary caret
+/// <summary>Inlay hints (parameter and type names): a label on a chip inside a line, part of no document. The line is
+/// drawn in pieces, each moved right by the hints before it, so every column's x and every x's column go through
+/// <see cref="XWith"/> and <see cref="ColumnWith"/>. The hints at an offset are a place of their own for the caret
+/// (<see cref="leaning"/>). An input method's composition is one more gap, where the primary caret
 /// stands, so the text after it moves aside as typed text would.</summary>
 public sealed partial class CodeEditor
 {
@@ -23,7 +23,7 @@ public sealed partial class CodeEditor
     /// <summary>What the next <see cref="SetSelections"/> leaves in <see cref="leaning"/>: set by a step across hints.</summary>
     private HashSet<int>? nextLeaning;
 
-    /// <summary>Whether parameter name hints are drawn (Settings' parameter name hints); off, the lines stand as typed.</summary>
+    /// <summary>Whether parameter name hints are drawn; off, the lines stand as typed.</summary>
     public bool ShowParameterHints
     {
         get => showParameterHints;
@@ -39,7 +39,7 @@ public sealed partial class CodeEditor
         }
     }
 
-    /// <summary>Whether type name hints are drawn (Settings' type name hints).</summary>
+    /// <summary>Whether type name hints are drawn.</summary>
     public bool ShowTypeHints
     {
         get => showTypeHints;
@@ -228,10 +228,10 @@ public sealed partial class CodeEditor
         return leaning.Contains(offset) ? !natural : natural;
     }
 
-    /// <summary>Left or Right, as IntelliJ steps over inlays and soft wraps: the hints at an offset are one place of their
-    /// own, and so is the end of a row a line wraps after, so a caret before them steps to after them (Right) and back
-    /// (Left) without moving in the text, and one stepping onto such an offset stands on the near side of them. Where a
-    /// row wraps, the end of the row before comes first, then the next row's start, then its hints.</summary>
+    /// <summary>Left or Right over hints and soft wraps: the hints at an offset are one place of their own, and so is
+    /// the end of a row a line wraps after, so a caret before them steps to after them (Right) and back (Left) without
+    /// moving in the text, and one stepping onto such an offset stands on the near side of them. Where a row wraps, the
+    /// end of the row before comes first, then the next row's start, then its hints.</summary>
     private void StepHorizontally(TextSnapshot text, bool forward, bool extend)
     {
         document.BreakUndoGroup();
@@ -404,8 +404,7 @@ public sealed partial class CodeEditor
 
     /// <summary>A line with hints: its text in pieces between them, each moved right by the hints before it, and
     /// each hint's label on its chip in the room left. Each of the line's runs is drawn once, in the piece it is in; only
-    /// a run a hint stands inside (a stretch of one colour) is drawn in each piece it spans, clipped to it, where the whole
-    /// line was drawn once for each piece.</summary>
+    /// a run a hint stands inside (a stretch of one colour) is drawn in each piece it spans, clipped to it.</summary>
     private void DrawWithHints(DrawingContext context, LineView layout, Gap[] gaps, double left, double y)
     {
         double top = y + (metrics.LineHeight - layout.Height) / 2;
@@ -481,7 +480,7 @@ public sealed partial class CodeEditor
     {
         if (gap.Composing)
         {
-            // Underlined until the input method commits it, as the system's own text fields show a composition.
+            // Underlined until the input method commits it.
             gap.Label.Draw(context, new Point(x, y + (metrics.LineHeight - gap.Label.Height) / 2));
             context.FillRectangle(palette.Preedit, new Rect(x, y + metrics.LineHeight - 2, gap.Width, 1));
             return;

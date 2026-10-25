@@ -8,11 +8,10 @@ using Microsoft.CodeAnalysis.FindSymbols;
 
 namespace Passenger.Roslyn.Extension;
 
-/// <summary>The calls an update would leave on a deleted body. Roslyn applies a member whose signature changed (a parameter
-/// added, a type changed) as the old member deleted, its body made to throw HotReloadException, and a new one added; only the
-/// members whose own code changed are compiled again, so a caller whose text is as it was (a parameter added with a default
-/// leaves it compiling) still calls the old member, and the program fails there on its next call. Each member so left is a
-/// rude edit at its new declaration, as Roslyn's own for deleting a member (ENC0033) is, so the change waits for a restart.</summary>
+/// <summary>The calls an update would leave on a deleted body: a member whose signature changed is applied as the old one
+/// deleted (its body made to throw) and a new one added, and a caller whose own code is as it was is not compiled again,
+/// so it still calls the old one. Each member so left is a rude edit (ENC0033's) at its new declaration, so the change
+/// waits for a restart.</summary>
 internal static class StaleCallers
 {
     /// <summary>Roslyn's rude edit for a member deleted, which is what the update does to the old member.</summary>

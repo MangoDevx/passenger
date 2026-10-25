@@ -5,10 +5,10 @@ using System.Windows.Media;
 
 namespace Passenger.Inspector.Wpf;
 
-/// <summary>Select Element, as Visual Studio's Live Visual Tree has it: while it is on, the element under the pointer in any
-/// of the app's windows is outlined, and a click chooses it (the app never sees that click) and ends it; Escape ends it
-/// choosing nothing. The element chosen in Passenger is outlined the same way: an adorner of the inspector's own, in colours of
-/// its own, since Passenger's theme tokens are not the app's.</summary>
+/// <summary>Select Element: while it is on, the element under the pointer in any of the app's windows is outlined, and
+/// a click chooses it (the app never sees that click) and ends it; Escape ends it choosing nothing. The element chosen
+/// in Passenger is outlined the same way: an adorner of the inspector's own, in colours of its own, since Passenger's
+/// theme tokens are not the app's.</summary>
 internal sealed class Picker(Inspector inspector, Connection connection)
 {
     private readonly List<(UIElement Top, MouseEventHandler Moved, MouseButtonEventHandler Pressed, MouseButtonEventHandler Released, KeyEventHandler Keys)> hooked = [];

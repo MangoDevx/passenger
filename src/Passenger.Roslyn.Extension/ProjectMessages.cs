@@ -4,8 +4,8 @@ namespace Passenger.Roslyn.Extension;
 
 // How Passenger gives Roslyn's server its projects, compiled into both: the server loads the projects Passenger names,
 // each from what Passenger's project host built of it at design time (Roslyn's own ProjectFileInfo, one a target
-// framework, as Roslyn's build host writes them), rather than building them itself. A project Passenger names without
-// them, or one the server finds changed later, the server asks Passenger for.
+// framework), rather than building them itself. A project Passenger names without them, or one the server finds changed
+// later, the server asks Passenger for.
 
 public static class ProjectMethods
 {
@@ -40,8 +40,7 @@ public sealed record ProjectInfoResult(
     [property: JsonPropertyName("problem")] string? Problem,
     [property: JsonPropertyName("diagnostics")] IReadOnlyList<ProjectDiagnostic>? Diagnostics = null);
 
-/// <summary>An error or warning a project's design-time build logged, which the server reports as it would its own build
-/// host's: an error leaves the project unloaded.</summary>
+/// <summary>An error or warning a project's design-time build logged: an error leaves the project unloaded.</summary>
 public sealed record ProjectDiagnostic(
     [property: JsonPropertyName("error")] bool Error,
     [property: JsonPropertyName("message")] string Message,

@@ -14,11 +14,12 @@ using Passenger.Xaml.Syntax;
 
 namespace Passenger.App.Xaml;
 
-/// <summary>A WPF file's design view, drawn by Passenger's own previewer (src/Passenger.WpfPreview, under <c>wpfpreview/</c>
-/// on Windows) run through ChildProcesses by the machine's dotnet on the project's runtime configuration (the previewer's
-/// own, rolling forward, for a class library or a project before .NET 8) and dependencies, from a copy of its last build
-/// (the state's <c>previews/</c>, as Visual Studio's shadow cache, so a build never meets its assemblies locked). Text goes
-/// as JSON lines with App.xaml's; a frame comes back as a PNG with its elements' boxes. A UI-thread object.</summary>
+/// <summary>A WPF file's design view, drawn by Passenger's own previewer (src/Passenger.WpfPreview, under
+/// <c>wpfpreview/</c> on Windows) run through ChildProcesses by the machine's dotnet on the project's runtime
+/// configuration (the previewer's own, rolling forward, for a class library or a project before .NET 8) and
+/// dependencies, from a copy of its last build (the state's <c>previews/</c>, so a build never meets its assemblies
+/// locked). Text goes as JSON lines with App.xaml's; a frame comes back as a PNG with its elements' boxes. A UI-thread
+/// object.</summary>
 internal sealed class WpfPreviewHost : IPreviewHost
 {
     private readonly XamlPreview preview;
@@ -89,8 +90,8 @@ internal sealed class WpfPreviewHost : IPreviewHost
         }
     }
 
-    /// <summary>The previewer started on the copy, its fork off the window's thread (#441), held as background work so a
-    /// screenshot waits for the frame it draws.</summary>
+    /// <summary>The previewer started on the copy, its fork off the window's thread, held as background work until the
+    /// frame it draws.</summary>
     private async Task RunAsync(ProjectInputs inputs)
     {
         string name = Path.GetFileNameWithoutExtension(assembly);
@@ -282,7 +283,7 @@ internal sealed class WpfPreviewHost : IPreviewHost
     }
 
     /// <summary>The previewer's boxes on the elements of the text it drew: a box's line and column are its element's name
-    /// (or its '<'), as an XML reader places it, a lone '\r' ending a line (<see cref="Lsp.ServerLines.OfXml"/>).</summary>
+    /// (or its '&lt;'), as an XML reader places it, a lone '\r' ending a line (<see cref="Lsp.ServerLines.OfXml"/>).</summary>
     private static List<PreviewElement> Place(TextSnapshot text, IReadOnlyList<WpfPreviewBox> boxes)
     {
         XmlTree tree = XmlTree.Parse(text.ToString());

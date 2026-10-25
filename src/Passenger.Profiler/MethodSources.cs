@@ -6,9 +6,9 @@ using Passenger.Core;
 
 namespace Passenger.Profiler;
 
-/// <summary>Where profiled methods are written, from their modules' portable PDBs (beside the module or embedded in it):
-/// a method's file and the line of its first sequence point, as the debugger places a frame at a method's start. Each
-/// module is read once, and let go with this.</summary>
+/// <summary>Where profiled methods are written, from their modules' portable PDBs (beside the module or embedded in
+/// it): a method's file and the line of its first sequence point. Each module is read once, and let go with
+/// this.</summary>
 public sealed class MethodSources : IDisposable
 {
     private readonly Dictionary<string, (PEReader Module, MetadataReaderProvider? Pdb)?> read = new(StringComparer.Ordinal);
@@ -52,10 +52,10 @@ public sealed class MethodSources : IDisposable
         }
     }
 
-    /// <summary>Where some of a snapshot's methods are written, those found: from their modules' PDBs here, or, for a run
-    /// of a program in a container (<see cref="Snapshot.Place"/>), there by Passenger's tools (<c>sources</c>), which read
-    /// the modules the trace names where they are, each document then made this machine's by the place's map. Off the
-    /// caller's thread; a container gone, or tools that fail, find none.</summary>
+    /// <summary>Where some of a snapshot's methods are written, those found: from their modules' PDBs here, or, for a
+    /// run of a program in a container (<see cref="Snapshot.Place"/>), there by Passenger's tools (<c>sources</c>),
+    /// each document then made this machine's by the place's map. Off the caller's thread; a container gone, or tools
+    /// that fail, find none.</summary>
     public static async Task<IReadOnlyDictionary<MethodCode, (string File, int Line)>> FindAsync(Snapshot snapshot, IEnumerable<MethodCode> codes,
         CancellationToken cancel = default)
     {

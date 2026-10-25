@@ -8,7 +8,7 @@ using Passenger.App.Navigation;
 
 namespace Passenger.App.ToolWindows;
 
-/// <summary>Rider's Bookmarks window: every bookmark with its file, line and the line's text, in the order they were
+/// <summary>The Bookmarks window: every bookmark with its file, line and the line's text, in the order they were
 /// set; a double-click or Enter goes there, Delete takes it away. It shows the open folder's (<see cref="Bind"/>).</summary>
 public sealed class BookmarksView : DockPanel
 {

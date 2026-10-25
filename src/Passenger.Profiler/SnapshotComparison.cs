@@ -1,16 +1,16 @@
 namespace Passenger.Profiler;
 
-/// <summary>A type in a comparison of two snapshots, as dotMemory's comparison lists it: the difference in its objects and
-/// bytes, and its objects created since the older snapshot (new), collected since (dead), and in both (survived).</summary>
+/// <summary>A type in a comparison of two snapshots: the difference in its objects and bytes, and its objects created
+/// since the older snapshot (new), collected since (dead), and in both (survived).</summary>
 public sealed record TypeDelta(string Name, int ObjectsDelta, long BytesDelta, int NewObjects, long NewBytes, int DeadObjects, long DeadBytes,
     int SurvivedObjects, long SurvivedBytes)
 {
     internal ulong MethodTable { get; init; }
 }
 
-/// <summary>Two snapshots of a run compared object by object, as dotMemory's Snapshots comparison: an object of the older
-/// is the same object in the newer when the run's collections moved it there (the GC's own reports of what it moved),
-/// so new and dead objects are those, not a difference in counts.</summary>
+/// <summary>Two snapshots of a run compared object by object: an object of the older is the same object in the newer
+/// when the run's collections moved it there (the GC's own reports of what it moved), so new and dead objects are
+/// those, not a difference in counts.</summary>
 public sealed class SnapshotComparison
 {
     private readonly Identity identity;

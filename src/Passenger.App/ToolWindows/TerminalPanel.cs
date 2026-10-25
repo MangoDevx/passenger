@@ -38,7 +38,7 @@ public sealed class TerminalTab(TerminalSession session, string name, Run.Termin
     }
 }
 
-/// <summary>Rider's Terminal window: a shell per tab in the open folder, the first started when the window is first
+/// <summary>The Terminal window: a shell per tab in the open folder, the first started when the window is first
 /// shown, + for another; a tab whose shell ends closes, and the window hides with its last. A run configuration that uses
 /// the terminal runs its program in a tab of its own (<see cref="RunAsync"/>), which stays once it ends.</summary>
 public sealed class TerminalPanel : DockPanel
@@ -52,7 +52,7 @@ public sealed class TerminalPanel : DockPanel
     public TerminalPanel(Func<string> folder)
     {
         this.folder = folder;
-        // The shells' tabs are in the window's header, after its title, then New Session, as Rider's Terminal has them.
+        // The shells' tabs are in the window's header, after its title, then New Session.
         ItemsControl strip = new()
         {
             ItemsSource = tabs,
@@ -80,7 +80,7 @@ public sealed class TerminalPanel : DockPanel
     /// <summary>The window header's own tools: New Session.</summary>
     public Control HeaderTools { get; }
 
-    /// <summary>The shell to start in place of the user's, and its arguments (tests start a plain one).</summary>
+    /// <summary>The shell to start in place of the user's, and its arguments.</summary>
     public (string App, string[] Arguments)? Shell { get; set; }
 
     public TerminalView View => view;

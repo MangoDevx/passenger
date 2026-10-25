@@ -270,7 +270,7 @@ public partial class ManagedDebugger
             ChannelReader<CorDebugManagedCallbackEventArgs> reader = _runtimeEventChannel.Reader;
             while (await reader.WaitToReadAsync())
             {
-                // If a Dap request has obtained the lock, we will pause here. It will drain runtime events, and our TryRead may return false, which is fine
+                // A request holding the lock drains the events itself, so the read below may find none.
                 using (await DapRequestAndRuntimeEventLock.LockAsync())
                 {
                     if (reader.TryRead(out CorDebugManagedCallbackEventArgs? callbackEvent) is false)
@@ -521,7 +521,7 @@ public partial class ManagedDebugger
 
     private void SendAllBreakpointEvents()
     {
-        // Send a breakpoint changed event with verified false for every breakpoint, so the IDE can mark the BP as unverified, until it receives our later BP events when we bind them
+        // Every breakpoint is unverified until it binds again.
         foreach (BreakpointManager.BreakpointInfo bp in _breakpointManager.GetAllBreakpoints())
         {
             OnBreakpointChanged?.Invoke(bp);
@@ -671,8 +671,8 @@ public partial class ManagedDebugger
     private static StackRange? RangeOf(ICorDebugFrame frame) =>
         frame.TryGetStackRange(out CORDB_ADDRESS start, out CORDB_ADDRESS end) is Cor.S_OK ? new StackRange(start, end) : null;
 
-    /// <summary>Steps out of the frame of a handler outside the user's code, Just My Code: the step ends where the user's
-    /// code goes on, as Visual Studio's does from an exception that code left unhandled, rather than in the handler.</summary>
+    /// <summary>Steps out of the frame of a handler outside the user's code, Just My Code: the step ends where the
+    /// user's code goes on, rather than in the handler.</summary>
     private void StepOutOfHandler(ICorDebugThread thread, ICorDebugFrame handler) =>
         BeginStep(handler.CreateStepper(), thread, handler, justMyCode: true, stepper => stepper.StepOut());
 
@@ -771,8 +771,7 @@ public partial class ManagedDebugger
                 return false;
             }
 
-            // The module whose symbols name the file best: the very path over a document recorded
-            // under another root, never just a file of the same name (SourcePaths).
+            // The module whose symbols name the file best, never just a file of the same name (SourcePaths).
             ModuleInfo? targetModule = null;
             ModuleMetadataReader.ResolvedBreakpoint? resolved = null;
 
@@ -793,15 +792,13 @@ public partial class ManagedDebugger
 
             if (targetModule is null || resolved is null)
             {
-                // No module found with symbols for this file
                 bp.Verified = false;
                 bp.Message = "The breakpoint will not currently be hit. No symbols have been loaded for this document.";
                 _logger?.Invoke($"Breakpoint at {bp.FilePath}:{bp.Line} - no symbols found");
                 return false;
             }
 
-            // Visual Studio's rule: Just My Code never stops in a method its code says is not the user's, and
-            // no debugger stops in a [DebuggerHidden] one (upstream #54).
+            // No stop in a method its code says is not the user's (Just My Code), nor in a [DebuggerHidden] one.
             if (targetModule.MetadataReader.IsHidden(resolved.MethodToken)
                 || (_justMyCode && targetModule.IsUserCode && targetModule.MetadataReader.IsNonUserCode(resolved.MethodToken)))
             {
@@ -810,11 +807,9 @@ public partial class ManagedDebugger
                 return false;
             }
 
-            // Get the function from the method token
             ICorDebugFunction function = targetModule.Module.GetFunctionFromToken(resolved.MethodToken);
             ICorDebugCode ilCode = function.ILCode;
 
-            // Create a breakpoint at the resolved IL offset
             ICorDebugFunctionBreakpoint corBreakpoint = TryGetEntryBreakpoint(targetModule.BaseAddress, resolved.MethodToken, resolved.BindOffset)
                 ?? ilCode.CreateBreakpoint(resolved.BindOffset);
             if (corBreakpoint != _entryBreakpoint?.CorBreakpoint)
@@ -822,7 +817,6 @@ public partial class ManagedDebugger
                 corBreakpoint.Activate(true);
             }
 
-            // Update breakpoint info
             bp.CorBreakpoint = corBreakpoint;
             bp.Verified = true;
             bp.Line = resolved.StartLine;
@@ -855,7 +849,6 @@ public partial class ManagedDebugger
         {
             if (TryBindBreakpoint(bp))
             {
-                // Notify that the breakpoint changed (became verified)
                 OnBreakpointChanged?.Invoke(bp);
             }
         }
@@ -944,7 +937,7 @@ public partial class ManagedDebugger
 
     internal ICorDebugFrame GetFrameForThreadIdAndStackDepth(ThreadId threadId, FrameStackDepth stackDepth)
     {
-        // We need to re-obtain the frame in case it has been neutered
+        // Found again, as an evaluation may have neutered the frame.
         ICorDebugThread thread = _process!.GetThread(threadId.Value);
         ICorDebugFrame frame = EnumerateFramesForThread(thread).ElementAt(stackDepth.Value);
         return frame;
@@ -1055,8 +1048,7 @@ public partial class ManagedDebugger
         {
             inDispatch.Insert(0, stopped);
         }
-        // How long the client gives the let-go, from now; and where each held thread stands before anything below runs it,
-        // so one the wait for an evaluation runs off its stop is seen to have moved on.
+        // The client's time for the let-go, and where each held thread stands before anything below runs it.
         long? letGoBy = within is { } given ? Stopwatch.GetTimestamp() + (long)(given.TotalSeconds * Stopwatch.Frequency) : null;
         Dictionary<int, ThreadPlace?> heldAt = [];
         if (!exited && letGo && _process is { } measured)
@@ -1074,7 +1066,6 @@ public partial class ManagedDebugger
         }
         _modules.Clear();
 
-        // Deactivate all breakpoints
         if (_entryBreakpoint is { } entryBreakpoint && !exited)
         {
             entryBreakpoint.CorBreakpoint.TryActivate(false);
@@ -1158,12 +1149,9 @@ public partial class ManagedDebugger
         }
         _frameReferenceManager.Clear();
 
-        // Unsubscribe from callbacks to avoid any further event dispatch
         _callbacks.OnAnyEvent -= QueueEvent;
         _runtimeEventChannel.Writer.Complete();
-        // ProcessRuntimeEventQueue is blocked on DapRequestAndRuntimeEventLock (which we hold) and would
-        // never complete if we waited on it here — that is the deadlock. Read and discard remaining events ourselves,
-        // then let the processor exit once the lock is released.
+        // The event loop waits on the lock held here: what it has left is read and dropped here, not waited for.
         while (_runtimeEventChannel.Reader.TryRead(out CorDebugManagedCallbackEventArgs? unhandled))
         {
             if (runsOff && DispatchThread(unhandled) is int thread)
@@ -1273,8 +1261,8 @@ internal sealed class EvalStatus
     /// <summary>The engine's log, for what becomes of an evaluation past its time.</summary>
     internal Action<string>? Log { get; init; }
 
-    /// <summary>Why code the debugger would run of itself (a getter, a ToString, a proxy) is not run, until the program
-    /// next runs on, as Visual Studio and Rider stop running it once an evaluation has timed out.</summary>
+    /// <summary>Why code the debugger would run of itself (a getter, a ToString, a proxy) is not run, once an
+    /// evaluation has timed out, until the program next runs on.</summary>
     internal string? ImplicitOff { get; set; }
 
     /// <summary>Set while an evaluation asked for by name runs (the Evaluate window, a watch), which runs code regardless.</summary>

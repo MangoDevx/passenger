@@ -10,14 +10,14 @@ using Passenger.App.Vcs;
 
 namespace Passenger.App.ToolWindows;
 
-/// <summary>Rider's Git window, its Log: every branch's commits newest first beside the graph that joins them, each
-/// with its branches and tags, author and date, narrowed by text or hash; the chosen commit's files and its message
-/// beside the list. A double-click on a file shows what the commit did to it. Given a <see cref="HistoryScope"/> it is a
-/// Show History tab: the commits from HEAD that changed a file (under each name it had), a folder or some lines, each
-/// listing what it did there; for a file or lines, a double-click or Enter on a commit shows what it did to the file.
-/// The Log has Rider's branches panel at its left, a branch chosen there filtering it to that branch's commits (its Branch
-/// filter, cleared by its x); given a <see cref="LogRange"/> it lists the commits of one branch another lacks, as Compare
-/// with Current does.</summary>
+/// <summary>The Git window's Log: every branch's commits newest first beside the graph that joins them, each with its
+/// branches and tags, author and date, narrowed by text or hash; the chosen commit's files and its message beside the
+/// list. A double-click on a file shows what the commit did to it. Given a <see cref="HistoryScope"/> it is a Show
+/// History tab: the commits from HEAD that changed a file (under each name it had), a folder or some lines, each listing
+/// what it did there; for a file or lines, a double-click or Enter on a commit shows what it did to the file. The Log has
+/// the branches panel at its left, a branch chosen there filtering it to that branch's commits (its Branch filter,
+/// cleared by its x); given a <see cref="LogRange"/> it lists the commits of one branch another lacks (Compare with
+/// Current).</summary>
 public sealed class GitLogView : DockPanel
 {
     private const double LaneWidth = 12;
@@ -117,7 +117,7 @@ public sealed class GitLogView : DockPanel
         filter = new TextBox { Classes = { "search" }, PlaceholderText = "Text or hash", Width = 240, Margin = new Thickness(8, 0) };
         filter.TextChanged += (_, _) => Filter();
         Button refresh = ToolButtons.Of("Icon.Rerun", "Refresh", () => _ = LoadAsync());
-        // Rider's Branch filter, shown while the log is filtered to a branch, its x showing every branch again.
+        // The Branch filter, shown while the log is filtered to a branch, its x showing every branch again.
         branchFilterText = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
         PathIcon clearGlyph = new() { Classes = { "small" } };
         clearGlyph.Bind(PathIcon.DataProperty, clearGlyph.GetResourceObservable("Icon.Close"));
@@ -209,7 +209,7 @@ public sealed class GitLogView : DockPanel
     /// <summary>The branch filter as the Log's toolbar shows it.</summary>
     public string? BranchFilterName { get; private set; }
 
-    /// <summary>Rider's Update Branch Filter in Log: the Log lists a branch's commits alone (HEAD's for null), or every
+    /// <summary>Update Branch Filter in Log: the Log lists a branch's commits alone (HEAD's for null), or every
     /// branch's again with <paramref name="all"/>.</summary>
     public void FilterBranch(BranchInfo? branch, bool all = false)
     {
@@ -320,7 +320,6 @@ public sealed class GitLogView : DockPanel
         placeholder.IsVisible = rows.Count == 0;
         if (Scope is not null && list.SelectedIndex < 0 && rows.Count > 0)
         {
-            // A history opens on its newest commit, as Rider's does.
             list.SelectedIndex = 0;
         }
     }
@@ -427,7 +426,7 @@ public sealed class GitLogView : DockPanel
         DockPanel subject = new() { VerticalAlignment = VerticalAlignment.Center, ClipToBounds = true };
         foreach (string label in row.Commit.Refs)
         {
-            // A long branch's name ends in an ellipsis, and leaves the subject room, where a narrow log cut it mid-letter.
+            // A long branch's name ends in an ellipsis and leaves the subject room.
             TextBlock text = new() { Text = label, FontSize = 11, TextTrimming = TextTrimming.CharacterEllipsis };
             text.Bind(TextBlock.ForegroundProperty, text.GetResourceObservable("Passenger.Vcs.RefText"));
             ToolTip.SetTip(text, label);
@@ -437,7 +436,7 @@ public sealed class GitLogView : DockPanel
         }
         if (FileChangeOf(row.Commit) is { } change && change.Path != Scope!.Path && vcs.Repository is { } repository)
         {
-            // Under another name then, as Rider's history names the path a commit had the file at.
+            // Under another name then: the path the commit had the file at.
             TextBlock then = Muted(repository.Relative(change.Path));
             then[DockProperty] = Dock.Right;
             then.MaxWidth = 280;
@@ -469,7 +468,7 @@ public sealed class GitLogView : DockPanel
         }
     }
 
-    /// <summary>Rider's dates: Today and Yesterday by the time, older ones by the date.</summary>
+    /// <summary>Dates: Today and Yesterday by the time, older ones by the date.</summary>
     internal static string When(DateTimeOffset time)
     {
         DateTime local = time.ToLocalTime().DateTime;
@@ -558,6 +557,6 @@ public sealed class GitLogView : DockPanel
     }
 }
 
-/// <summary>The commits of <see cref="To"/> that <see cref="From"/> lacks, as Rider's Compare with Current lists each way:
-/// the two by their full ref names and as they are shown.</summary>
+/// <summary>The commits of <see cref="To"/> that <see cref="From"/> lacks, one way of Compare with Current: the two by
+/// their full ref names and as they are shown.</summary>
 public sealed record LogRange(string FromRef, string From, string ToRef, string To);

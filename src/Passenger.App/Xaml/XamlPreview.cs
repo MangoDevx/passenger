@@ -36,8 +36,8 @@ public sealed class XamlPreview : IDisposable
     /// <summary>The frame, its status, its error or its elements changed; raised on the UI thread.</summary>
     public event EventHandler? Changed;
 
-    /// <summary>The last frame drawn, its pixels at 96 DPI whatever it was drawn at: an image control draws a bitmap's size
-    /// in its own units from its pixels, so one at the screen's DPI shows a quarter of itself enlarged.</summary>
+    /// <summary>The last frame drawn, its pixels at 96 DPI whatever it was drawn at, since an image control draws a
+    /// bitmap's size in its own units from its pixels.</summary>
     public Bitmap? Frame { get; internal set; }
 
     /// <summary>The frame's size in the window's units: its pixels over the scale it was drawn at.</summary>

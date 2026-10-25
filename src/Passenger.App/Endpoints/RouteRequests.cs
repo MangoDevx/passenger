@@ -77,7 +77,7 @@ public static partial class RouteRequests
     /// <summary>The method a route's request is sent with: its first, else GET (POST for a hub's negotiation).</summary>
     public static string MethodOf(WebRoute route) => route.Kind == RouteKinds.SignalR ? "POST" : route.Methods.FirstOrDefault() ?? "GET";
 
-    /// <summary>What the Endpoints window and the gutter call a route: "GET /todos/{id}".</summary>
+    /// <summary>A route's title: "GET /todos/{id}".</summary>
     public static string Title(WebRoute route) =>
         $"{(route.Kind == RouteKinds.SignalR ? "HUB" : route.Methods.Count == 0 ? "ANY" : string.Join("|", route.Methods))} {route.Template}{(route.Query is { } query ? "?" + query : string.Empty)}";
 

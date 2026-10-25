@@ -128,7 +128,7 @@ public sealed class TerminalLine
         Cells[column].Joined = (ushort)graphemes.Count;
     }
 
-    /// <summary>The row's text, trailing blanks and spaces left out, as a terminal's copy leaves them.</summary>
+    /// <summary>The row's text, trailing blanks and spaces left out.</summary>
     public string Text(int from = 0, int to = int.MaxValue)
     {
         System.Text.StringBuilder text = new();

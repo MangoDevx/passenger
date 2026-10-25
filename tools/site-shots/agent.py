@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # The site's agent scene (just site-shots agent): an agent trying out the Greenhouse app it is building, through
 # Passenger's MCP server, each call and the answer it got written to the Terminal tab --agent runs it in. It joins the
-# capture's window as an agent joins a person's, with passenger --mcp-attach, so every call is a real one that the
-# window answers: it debugs the app, finds its button, clicks it and reads the plants' moisture back. Exits 1 on any
-# refusal, which ends the capture without a picture.
+# capture's window with passenger --mcp-attach, so every call is a real one that the window answers: it debugs the app,
+# finds its button, clicks it and reads the plants' moisture back. Exits 1 on any refusal, which ends the capture
+# without a picture.
 import json
 import os
 import subprocess

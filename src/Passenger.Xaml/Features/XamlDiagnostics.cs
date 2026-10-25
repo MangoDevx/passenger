@@ -12,14 +12,14 @@ public enum XamlSeverity
     Warning,
 }
 
-/// <summary>A problem in a XAML file, where it is and in the words Problems shows, and the fixes it offers.</summary>
+/// <summary>A problem in a XAML file, where it is and in a person's words, and the fixes it offers.</summary>
 public sealed record XamlDiagnostic(TextRange Range, XamlSeverity Severity, string Message)
 {
     /// <summary>What puts it right (a theme variant's missing key added), each a quick fix.</summary>
     public IReadOnlyList<XamlFix> Fixes { get; init; } = [];
 
     /// <summary>For a localized string a language lacks (<see cref="XamlLocalization"/>), the key and the file to give it in,
-    /// whose fix, Passenger's own as C#'s is, asks its value.</summary>
+    /// whose fix asks its value.</summary>
     public ResourceGap? Gap { get; init; }
 }
 
@@ -398,8 +398,7 @@ public static class XamlDiagnostics
         {
             return;
         }
-        // A dictionary merged in from a library's assembly may define it, which nothing here can read; and a WPF library's
-        // XAML takes its resources from the application that uses it.
+        // A library's merged dictionary may define it unread, and a WPF library takes its resources from its application.
         if (project.ResourceScopes(own).Any(s => s.ForeignIncludes) || (file.Dialect is WpfDialect && project.Application is null))
         {
             return;
@@ -417,8 +416,8 @@ public static class XamlDiagnostics
 
     /// <summary>A compiled binding's path, read against the data type in scope: each step a property of the one before.
     /// A path from another source (an element, a relative source, a converter's own) is the compiler's to judge. In a
-    /// dialect that compiles no binding (WPF's), a path its data context's known type lacks is warned of, as Rider warns:
-    /// it fails only as the app runs.</summary>
+    /// dialect that compiles no binding (WPF's), a path its data context's known type lacks is warned of: it fails only
+    /// as the app runs.</summary>
     private static void Binding(XamlFile file, XmlAttribute attribute, MarkupExtension binding, List<XamlDiagnostic> found)
     {
         XmlElement element = attribute.Owner;
@@ -455,7 +454,6 @@ public static class XamlDiagnostics
                 {
                     return;
                 }
-                // Rider's create from usage: the property on the type, typed as the binding's target reads it when it is the last step.
                 IReadOnlyList<XamlFix> fixes = CreateFromUsage.Property(file, current, step, attribute, last: i == steps.Length - 1 && binding.Argument("Converter") is null) is { } create
                     ? [create]
                     : [];

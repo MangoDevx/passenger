@@ -48,8 +48,8 @@ internal sealed class MarkdownPage(Action<Uri> follow)
     public Control Picture(string file, string alt) => new MarkdownPicture(file, alt, Load);
 }
 
-/// <summary>A picture of a file in a page, no wider than the page and never enlarged, as an image's preview draws one; its
-/// words in its place until its decode lands off the window's thread, and should it fail.</summary>
+/// <summary>A picture of a file in a page, no wider than the page and never enlarged; its words in its place until its
+/// decode lands off the window's thread, and should it fail.</summary>
 public sealed class MarkdownPicture : Panel
 {
     private readonly Image image;
@@ -94,9 +94,9 @@ public sealed class MarkdownPicture : Panel
     }
 }
 
-/// <summary>Fenced code on the editor's ground in its font, as code to read and copy is drawn (<see cref="CodeBlock"/>),
-/// coloured as the editor colours its language (<see cref="Languages.Highlighters"/>, which work off the window's thread)
-/// once it is shown: a highlighter while it is on screen, let go as it leaves.</summary>
+/// <summary>Fenced code on the editor's ground in its font, coloured as the editor colours its language
+/// (<see cref="Languages.Highlighters"/>) once it is shown: a highlighter while it is on screen, let go as it
+/// leaves.</summary>
 public sealed class MarkdownCode : Border
 {
     private readonly SelectableTextBlock text;
@@ -111,7 +111,7 @@ public sealed class MarkdownCode : Border
         this.code = code;
         Language = language;
         Classes.Add("code");
-        // As the editor draws code, "=>" as written rather than the font's arrow.
+        // "=>" as written rather than the font's arrow.
         text = new SelectableTextBlock
         {
             FontFamily = CodeBlock.Font,
@@ -128,7 +128,7 @@ public sealed class MarkdownCode : Border
     /// <summary>The language the editor colours it as, by the name the IDE gives it; null for none.</summary>
     public string? Language { get; }
 
-    /// <summary>The code as drawn, a run a coloured stretch, for a test to read what a person sees.</summary>
+    /// <summary>The code as drawn, a run a coloured stretch.</summary>
     public IEnumerable<TextRun> Runs => text.Inlines!.OfType<TextRun>();
 
     /// <summary>The language a fence's word names, by the file a person would keep it in: <c>csharp</c> as a .cs file is.</summary>
@@ -205,7 +205,7 @@ public sealed class MarkdownCode : Border
                 runs.Add(new TextRun(code[at..span.Start]));
             }
             TextRun coloured = new(code[span.Start..span.End]);
-            // A kind with no brush is drawn in the code's own colour, as the editor draws it; every theme has the same tokens.
+            // A kind with no brush is drawn in the code's own colour; every theme has the same tokens.
             string brush = $"Passenger.Syntax.{span.Kind}";
             if (span.Kind != TokenKind.Text && this.TryFindResource(brush, ActualThemeVariant, out _))
             {

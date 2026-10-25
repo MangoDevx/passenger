@@ -8,8 +8,8 @@ using Passenger.Text;
 namespace Passenger.App.CSharp;
 
 /// <summary>Live and postfix templates: a shortcut and Tab, or one chosen from completion, becomes its template, its
-/// variables worked out by their macros; a postfix template that could wrap more than one expression asks which, as
-/// Rider's does.</summary>
+/// variables worked out by their macros; a postfix template that could wrap more than one expression asks
+/// which.</summary>
 public sealed partial class CodeAssist
 {
     /// <summary>The templates in force, as Settings leaves them.</summary>
@@ -18,8 +18,8 @@ public sealed partial class CodeAssist
     /// <summary>What the open list of choices is titled ("Select expression to parenthesize"); null with none open.</summary>
     public string? OfferedTitle => layer.Children.OfType<ChoicePopup>().LastOrDefault()?.Title;
 
-    /// <summary>Rider's abbreviation and Tab: the word before the caret, when a live template has it as its
-    /// abbreviation and may go here, becomes the template. Whether one did.</summary>
+    /// <summary>An abbreviation and Tab: the word before the caret, when a live template has it as its abbreviation and
+    /// may go here, becomes the template. Whether one did.</summary>
     private bool TryExpandTemplate()
     {
         if (Current is null || WebCurrent is not null || Editor.Selections.HasMultiple || !Editor.Selections.Primary.IsEmpty)
@@ -60,8 +60,8 @@ public sealed partial class CodeAssist
     }
 
     /// <summary>A postfix template in place of its expression, the dot and the name typed after it. An expression's
-    /// template with more than one expression ending at the dot asks which first, the innermost chosen to start with and
-    /// the one chosen highlighted in the editor as the list moves, as Rider's does.</summary>
+    /// template with more than one expression ending at the dot asks which first, the innermost chosen to start with
+    /// and the one chosen highlighted in the editor as the list moves.</summary>
     private void ExpandPostfix(PostfixTemplate template, PostfixTarget target, int caret)
     {
         if (template.Statement || target.Expressions.Count == 1)
@@ -101,8 +101,8 @@ public sealed partial class CodeAssist
         Show(target.Expressions[0]);
     }
 
-    /// <summary>An expression as Rider's list shows it: on one line, its spaces run together, and past 50 characters
-    /// cut short with an ellipsis.</summary>
+    /// <summary>An expression as the list shows it: on one line, its spaces run together, and past 50 characters cut
+    /// short with an ellipsis.</summary>
     private static string Shown(string expression)
     {
         string line = Regex.Replace(expression.Replace("\r\n", " ", StringComparison.Ordinal).Replace('\n', ' ').Trim(), " {2,}", " ");

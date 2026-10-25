@@ -175,10 +175,9 @@ public sealed record ContainerDetails
 }
 
 /// <summary>A container's Details tab: what <c>docker inspect</c> says of it, read as it is chosen and again each time the
-/// window reads the engine (its events say what changed), laid out in the framed tables every Details tab has
-/// (<see cref="DetailsTables"/>): the container, its health check's last outputs, its ports (links to the browser), the
-/// services it waits for, its environment (secrets masked), mounts and networks. A service's row shows its container's (its
-/// running one, of several).</summary>
+/// window reads the engine (its events say what changed): the container, its health check's last outputs, its ports
+/// (links to the browser), the services it waits for, its environment (secrets masked), mounts and networks. A service's
+/// row shows its container's (its running one, of several).</summary>
 public sealed class ContainerDetailsPane : DetailsTables
 {
     private readonly Func<ContainerEngine> engine;
@@ -322,7 +321,7 @@ public sealed class ContainerDetailsPane : DetailsTables
         ? Link($"{link.Host}:{port.HostPort}", link.ToString(), () => browse(link), "detailsPort")
         : Words($"Host port {port.HostPort}");
 
-    /// <summary>A health check's state as a tag in its colour, as every list of what runs and every Details tab show it.</summary>
+    /// <summary>A health check's state as a tag in its colour.</summary>
     internal static Border HealthTag(string health)
     {
         TextBlock said = new() { Text = health, FontSize = 11, VerticalAlignment = VerticalAlignment.Center };

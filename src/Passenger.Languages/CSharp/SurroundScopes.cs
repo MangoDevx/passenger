@@ -5,9 +5,8 @@ using Passenger.Text;
 
 namespace Passenger.Languages.CSharp;
 
-/// <summary>Where Surround With offers a template, as Rider's surround contexts: around whole statements of one block
-/// (if, try), around an expression (cast), around whole lines (#region, #if), around types where a namespace may go, and
-/// anywhere in code (parentheses, braces).</summary>
+/// <summary>Where Surround With offers a template: around whole statements of one block (if, try), an expression
+/// (cast), whole lines (#region, #if), types where a namespace may go, or anywhere in code (parentheses, braces).</summary>
 [Flags]
 public enum SurroundScope
 {

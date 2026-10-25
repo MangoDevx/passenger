@@ -10,8 +10,8 @@ using Passenger.Text;
 
 namespace Passenger.Tests;
 
-/// <summary>Rider's error stripe on the editor's scrollbar, its problems set as the language server sets them: what a
-/// mark says under the pointer, how it is drawn, and that keeping the marks costs a change, not a frame.</summary>
+/// <summary>The error stripe on the editor's scrollbar, its problems set as the language server sets them: what a mark
+/// says under the pointer, how it is drawn, and that keeping the marks costs a change, not a frame.</summary>
 public sealed class ErrorStripeTests
 {
     private const string Unused = "CS0219: The variable is assigned but its value is never used";
@@ -30,13 +30,11 @@ public sealed class ErrorStripeTests
         List<CodeEditor.StripeMark> warnings = [.. editor.StripeMarks.Where(m => m.Kind == StripeMarkKind.Warning)];
         Assert.Equal(Lines, warnings.Count);
 
-        // Drawn in the warning colour.
         Point middle = editor.TranslatePoint(editor.StripePoint(warnings[Lines / 2]), rig.Window)!.Value;
         Color colour = Ui.Pixel(rig.Window, middle);
         Assert.True(colour.R > 180 && colour.G is > 120 and < 200 && colour.B < 110, $"The warnings' marks are {colour}, not the warning colour");
 
-        // The pointer goes up the stripe (its tooltip opens below), the editor drawing frames between its moves: each
-        // mark under it says what it is.
+        // Up the stripe, since its tooltip opens below the pointer.
         for (int i = Lines - 100; i > 0; i -= 100)
         {
             Point at = editor.TranslatePoint(editor.StripePoint(warnings[i]), rig.Window)!.Value;
@@ -47,7 +45,6 @@ public sealed class ErrorStripeTests
             Ui.Settle();
         }
 
-        // The caret's mark follows the caret on its own.
         editor.Focus();
         for (int i = 0; i < 5; i++)
         {
@@ -72,10 +69,9 @@ public sealed class ErrorStripeTests
             $"The stripe's marks were worked out {editor.StripeMarksBuilt - built - 1} times after a line was put in, not once");
     }
 
-    /// <summary>Keys typed above 4,000 warnings, the warnings set again moved through each as the language server's are, keep
-    /// every mark and allocate on the UI thread under twice what they do above 40, and a click on a mark goes to its warning
-    /// as the text stands: the markers were sorted again and the stripe's marks worked out from every one of them at every
-    /// key.</summary>
+    /// <summary>Keys typed above 4,000 warnings, the warnings set again moved through each as the language server's
+    /// are, keep every mark and allocate on the UI thread under twice what they do above 40, and a click on a mark goes
+    /// to its warning as the text stands.</summary>
     [AvaloniaFact]
     public void Keys_above_four_thousand_warnings_carried_through_them_cost_what_they_do_above_forty()
     {

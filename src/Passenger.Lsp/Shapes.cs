@@ -150,8 +150,6 @@ public static class Shapes
     }
 }
 
-/// <summary>What a workspace edit does to one file: text edits, or a resource operation (create,
-/// rename, delete) as its JSON.</summary>
 /// <summary>A workspace edit's change to one file: its edits (or an operation: create, rename, delete), and the version of
 /// the document they were made for, when the server says.</summary>
 public sealed record FileEdits(string Uri, IReadOnlyList<LspTextEdit> Edits, JsonElement? Operation)

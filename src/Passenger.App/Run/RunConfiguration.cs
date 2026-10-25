@@ -7,8 +7,8 @@ using Passenger.App.Workspace;
 namespace Passenger.App.Run;
 
 /// <summary>Where a run's program reads and writes: the Run or Debug window's console, or a tab of the Terminal window,
-/// which gives it a real terminal (Rider's Use external console; <see cref="TerminalRun"/>). Profile keeps to the Run
-/// window's console either way.</summary>
+/// which gives it a real terminal (<see cref="TerminalRun"/>). Profile keeps to the Run window's console either
+/// way.</summary>
 public enum ConsoleKind
 {
     Internal,
@@ -26,8 +26,7 @@ public enum RunKind
     SdkContainer,
 }
 
-/// <summary>What a Compose configuration does with one .NET service, as Visual Studio's serviceActions say it: run it,
-/// debug it (refused until debugging in containers comes), or leave it unstarted.</summary>
+/// <summary>What a Compose configuration does with one .NET service: run it, debug it, or leave it unstarted.</summary>
 public enum ServiceStart
 {
     Run,
@@ -43,12 +42,12 @@ public enum ContainerMode
     Images,
 }
 
-/// <summary>Something Run, Debug and Profile launch, as Rider's run configurations are: a project (its framework, or the
-/// first), the program's arguments, environment and working directory, whether the project is built first, the console,
-/// and the browser a web project opens; or containers (<see cref="Kind"/>): a Compose application's files, profiles and
-/// services, a Dockerfile, or an SDK container project. Data alone: <see cref="LaunchPlan.ResolveAsync"/> and
-/// <see cref="Containers.ContainerRun"/> work out what it launches. The folder's own are kept with its state; the
-/// generated ones come from its executable projects, their launch profiles and its container files.</summary>
+/// <summary>Something Run, Debug and Profile launch: a project (its framework, or the first), the program's arguments,
+/// environment and working directory, whether the project is built first, the console, and the browser a web project
+/// opens; or containers (<see cref="Kind"/>): a Compose application's files, profiles and services, a Dockerfile, or an
+/// SDK container project. Data alone: <see cref="LaunchPlan.ResolveAsync"/> and <see cref="Containers.ContainerRun"/>
+/// work out what it launches. The folder's own are kept with its state; the generated ones come from its executable
+/// projects, their launch profiles and its container files.</summary>
 public sealed record RunConfiguration
 {
     public string Name { get; init; } = string.Empty;
@@ -71,8 +70,8 @@ public sealed record RunConfiguration
     /// <summary>The launch profile its values came from, if one did.</summary>
     public string LaunchProfile { get; init; } = string.Empty;
 
-    /// <summary>A program run in place of the project's own (an <c>Executable</c> profile's, Rider's Exe path); empty for
-    /// the project's. MSBuild's <c>$(Property)</c> and the environment's <c>%NAME%</c> are expanded, as below.</summary>
+    /// <summary>A program run in place of the project's own (an <c>Executable</c> profile's); empty for the project's.
+    /// MSBuild's <c>$(Property)</c> and the environment's <c>%NAME%</c> are expanded, as below.</summary>
     public string Program { get; init; } = string.Empty;
 
     /// <summary>The program's arguments as one command line.</summary>
@@ -80,16 +79,15 @@ public sealed record RunConfiguration
 
     public Dictionary<string, string> Environment { get; init; } = [];
 
-    /// <summary>Where the program runs, relative to the project's folder; empty for the project's output folder, Rider's
-    /// default for a .NET project.</summary>
+    /// <summary>Where the program runs, relative to the project's folder; empty for the project's output folder.</summary>
     public string WorkingDirectory { get; init; } = string.Empty;
 
     public bool BuildBeforeLaunch { get; init; } = true;
 
     public ConsoleKind Console { get; init; }
 
-    /// <summary>Rider's Open browser, After launch: whether the browser opens at <see cref="BrowserUrl"/> once the program
-    /// listens there, as a launch profile's <c>launchBrowser</c> asks.</summary>
+    /// <summary>Whether the browser opens at <see cref="BrowserUrl"/> once the program listens there, as a launch profile's
+    /// <c>launchBrowser</c> asks.</summary>
     public bool LaunchBrowser { get; init; }
 
     /// <summary>Where the browser opens: a profile's <c>launchUrl</c> against its first <c>applicationUrl</c>; for containers
@@ -124,8 +122,7 @@ public sealed record RunConfiguration
     public bool KeepBackingServices { get; init; }
 
     /// <summary>Whether a container run collects its .NET services' logs and traces: Aspire's dashboard run beside them,
-    /// which they are told to send OpenTelemetry to, read by the Telemetry view and an agent's <c>telemetry</c>. Off unless
-    /// chosen, since its image is pulled the first time.</summary>
+    /// which they are told to send OpenTelemetry to. Off unless chosen, since its image is pulled the first time.</summary>
     public bool Telemetry { get; init; }
 
     /// <summary>The service whose published port fills the browser's <c>{ServicePort}</c>: Visual Studio's
@@ -176,10 +173,10 @@ public sealed record RunConfiguration
             ? AspireAppHosts.SingleFileWhyNot(Project, projects.Select(project => project.Path)) : null)
         ?? (!IsContainer && Program.Length == 0 && projects.FirstOrDefault(p => Core.PathNames.Same(p.Path, Project)) is { } project ? project.RunsOnlyOnWindows(Framework) : null);
 
-    /// <summary>The configurations the folder's executable projects make: one per launch profile, named "Project: profile"
-    /// as Rider names them, and the project itself when none of its profiles runs it here; then single-file AppHosts and
-    /// the container ones the workspace's compose files, Dockerfiles, SDK container projects and Docker Compose projects
-    /// (.dcproj) make (<see cref="Containers.ContainerConfigurations"/>).</summary>
+    /// <summary>The configurations the folder's executable projects make: one per launch profile, named "Project: profile",
+    /// and the project itself when none of its profiles runs it here; then single-file AppHosts and the container ones the
+    /// workspace's compose files, Dockerfiles, SDK container projects and Docker Compose projects (.dcproj) make
+    /// (<see cref="Containers.ContainerConfigurations"/>).</summary>
     public static IReadOnlyList<RunConfiguration> Generate(IEnumerable<ProjectModel> projects, WorkspaceModel? workspace = null,
         IEnumerable<string>? singleFileAppHosts = null)
     {
@@ -309,8 +306,8 @@ public sealed record RunConfiguration
 }
 
 /// <summary>A folder's own run configurations, the person's changes to the generated ones and the one chosen, kept in its
-/// place in the store as Rider keeps them in its workspace.xml. The generated ones are not kept: they are made again from
-/// the projects each time, each one's changes (<see cref="Edits"/>) put over it.</summary>
+/// place in the store. The generated ones are not kept: they are made again from the projects each time, each one's
+/// changes (<see cref="Edits"/>) put over it.</summary>
 public sealed record RunConfigurationsState : IStateDocument<RunConfigurationsState>
 {
     public List<RunConfiguration> Configurations { get; init; } = [];

@@ -8,11 +8,11 @@ using Passenger.Text;
 
 namespace Passenger.App.Vcs;
 
-/// <summary>Rider's side-by-side diff: the last commit's text on the left (read-only), the file as it is on the right
-/// (the open file's own text, so an edit there is an edit to it), each change tinted on both sides and joined by a band
+/// <summary>The side-by-side diff: the last commit's text on the left (read-only), the file as it is on the right (the
+/// open file's own text, so an edit there is an edit to it), each change tinted on both sides and joined by a band
 /// between them, the words that changed inside its lines marked stronger, the two kept level as either scrolls. A band's
-/// arrow puts that change back, as Rider's does; F7 and Shift+F7 go to the next and previous difference; the toolbar's
-/// Settings (Ctrl+Shift+D, Cmd+Shift+D on the Mac) chooses how differences are highlighted, by words at first.</summary>
+/// arrow puts that change back; F7 and Shift+F7 go to the next and previous difference; the toolbar's Settings
+/// (Ctrl+Shift+D, Cmd+Shift+D on the Mac) chooses how differences are highlighted, by words at first.</summary>
 public sealed class DiffView : DockPanel, IOwnKeys
 {
     /// <summary>How long editing pauses before the differences are worked out again.</summary>
@@ -28,12 +28,11 @@ public sealed class DiffView : DockPanel, IOwnKeys
     private int wording;
     private bool following;
 
-    /// <param name="diff">The last commit's text (empty for a file it does not have) compared with the file's, as a
-    /// change bar's comparison or one made off the window's thread.</param>
+    /// <param name="diff">The last commit's text (empty for a file it does not have) compared with the file's.</param>
     /// <param name="mine">The file's text now: the open file's document, or a copy when it is not open.</param>
     /// <param name="editable">Whether the right side is the open file, which can be edited and have changes put back.</param>
     /// <param name="titles">What the sides are, above them: the last commit and the file by default.</param>
-    /// <param name="highlighting">How differences inside changed lines are marked: Rider's words by default.</param>
+    /// <param name="highlighting">How differences inside changed lines are marked: words by default.</param>
     public DiffView(string name, FileDiff diff, TextDocument mine, bool editable, IHighlighter? leftColours = null, IHighlighter? rightColours = null,
         (string Left, string Right)? titles = null, DiffHighlighting highlighting = DiffHighlighting.Words)
     {
@@ -133,7 +132,7 @@ public sealed class DiffView : DockPanel, IOwnKeys
 
     public bool IsEditable { get; }
 
-    /// <summary>How differences are highlighted: Rider's Highlighting Differences, Words at first.</summary>
+    /// <summary>How differences are highlighted (Highlighting Differences), Words at first.</summary>
     public DiffHighlighting Highlighting
     {
         get => highlighting;
@@ -156,7 +155,7 @@ public sealed class DiffView : DockPanel, IOwnKeys
     /// <summary>The words marked inside each side's changed lines, once worked out.</summary>
     public InlineChanges Words => new(Left.InlineChanges, Right.InlineChanges);
 
-    /// <summary>The toolbar's Settings, whose menu is Rider's Highlighting Differences.</summary>
+    /// <summary>The toolbar's Settings, whose menu is Highlighting Differences.</summary>
     public Button SettingsButton => settings;
 
     /// <summary>The differences as they stand.</summary>
@@ -251,8 +250,7 @@ public sealed class DiffView : DockPanel, IOwnKeys
         }
     }
 
-    /// <summary>Rider's diff settings: Highlighting Differences, the way in use ticked. Its Split changes, which divides a
-    /// change into the lines that match up, is not offered.</summary>
+    /// <summary>The diff's settings: Highlighting Differences, the way in use ticked.</summary>
     private ContextMenu SettingsMenu()
     {
         List<Control> items = [new MenuItem { Header = "Highlighting Differences", IsEnabled = false }];
@@ -350,7 +348,7 @@ public sealed class DiffView : DockPanel, IOwnKeys
                 context.DrawGeometry(Find(tint, Brushes.Transparent), new Pen(Find(edge, Brushes.Transparent), 1), band);
                 if (view.IsEditable)
                 {
-                    // Rider's ">>": the left side's lines over the right's.
+                    // ">>": the left side's lines over the right's.
                     Pen arrow = new(Find(edge, Brushes.Transparent), 1.6, lineCap: PenLineCap.Round);
                     double y = leftTop + Math.Min(9, Math.Max(3, (leftBottom - leftTop) / 2));
                     for (int i = 0; i < 2; i++)

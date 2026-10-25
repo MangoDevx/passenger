@@ -10,11 +10,11 @@ using System.Windows.Threading;
 
 namespace Passenger.Inspector.Wpf;
 
-/// <summary>The inspector's work on a WPF app's UI thread, as the Avalonia one's: the windows and their visual trees, an
-/// element looked at closely, Select Element and the outline over the element chosen, a word to Passenger as elements come and
-/// go, and for an agent the windows' pictures and input to them (<see cref="Pictures"/>, <see cref="Driver"/>). Elements are
-/// named by ids that last as long as the element does. A top level is a window or a popup's root, each the root visual of a
-/// presentation source of the app's.</summary>
+/// <summary>The inspector's work on a WPF app's UI thread: the windows and their visual trees, an element looked at
+/// closely, Select Element and the outline over the element chosen, a word to Passenger as elements come and go, and
+/// for an agent the windows' pictures and input to them (<see cref="Pictures"/>, <see cref="Driver"/>). Elements are
+/// named by ids that last as long as the element does. A top level is a window or a popup's root, each the root visual
+/// of a presentation source of the app's.</summary>
 internal sealed class Inspector
 {
     /// <summary>How long the app's elements may come and go before Passenger is told its tree changed, once.</summary>

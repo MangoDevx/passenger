@@ -7,8 +7,8 @@ namespace Passenger.App;
 
 /// <summary>Where the main menu stands on the toolbar when the system has no menu bar of its own: the hamburger button,
 /// or (Settings' Show main menu as a menu bar) its menus' titles side by side, as many as the toolbar has room for, the
-/// button after them holding the rest, as Rider's merged main menu does. Its first child is the button, the rest the
-/// titles in the menus' order; every one is measured, and those not shown are laid out to nothing, unseen.</summary>
+/// button after them holding the rest. Its first child is the button, the rest the titles in the menus' order; every
+/// one is measured, and those not shown are laid out to nothing, unseen.</summary>
 public sealed class MainMenuPlace : Panel, IGivesWayFirst
 {
     /// <summary>Whether the titles are wanted at all; the button alone when not.</summary>

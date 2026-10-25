@@ -4,7 +4,7 @@ using Passenger.Text;
 namespace Passenger.App.Tables;
 
 /// <summary>The cells of a table a query finds, row by row and left to right, each cell's text as the grid shows it
-/// (a workbook's numbers formatted); as the editor's search, a regex that does not parse or runs too long says why.</summary>
+/// (a workbook's numbers formatted); a regex that does not parse or runs too long says why.</summary>
 public sealed record TableSearch(IReadOnlyList<(int Row, int Column)> Matches, bool Truncated, string? Problem)
 {
     public static readonly TableSearch None = new([], false, null);

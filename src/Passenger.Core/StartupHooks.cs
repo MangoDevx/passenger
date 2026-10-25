@@ -2,8 +2,7 @@ namespace Passenger.Core;
 
 /// <summary>The startup hooks Passenger gives a program it starts (the inspectors, the test frames' hook): its own first,
 /// ahead of those the program's configuration or Passenger's own environment name, and taken out again by the hook as it
-/// starts, so nothing the program starts in turn loads it. Framework-free and linked into the hooks, as
-/// <see cref="RuntimeVariables"/> is.</summary>
+/// starts, so nothing the program starts in turn loads it. Framework-free and linked into the hooks.</summary>
 public static class StartupHooks
 {
     /// <summary>The Avalonia Passenger's hooks into an Avalonia program are compiled against; a program on another major

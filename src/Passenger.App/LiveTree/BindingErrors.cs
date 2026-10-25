@@ -132,7 +132,6 @@ public static partial class BindingErrors
         }
         int start = text.GetOffset(AppPlaces.PositionOf(place.File, place.Line, place.Column, text));
         string rest = text.GetText(start, Math.Min(text.Length - start, 64 * 1024));
-        // The element's start tag: from its name to the '>' outside its attributes' quotes.
         int end = -1;
         char quote = '\0';
         for (int i = 0; i < rest.Length && end < 0; i++)

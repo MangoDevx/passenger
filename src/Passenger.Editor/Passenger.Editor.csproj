@@ -7,7 +7,7 @@
 
   <ItemGroup>
     <PackageReference Include="Avalonia" />
-    <!-- InFlight, by which a test run names background work's holds. -->
+    <!-- InFlight, whose watch names background work's holds. -->
     <ProjectReference Include="../Passenger.Core/Passenger.Core.csproj" />
     <ProjectReference Include="../Passenger.Text/Passenger.Text.csproj" />
   </ItemGroup>

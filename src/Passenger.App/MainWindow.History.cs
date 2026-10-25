@@ -7,8 +7,8 @@ using Passenger.Text;
 
 namespace Passenger.App;
 
-/// <summary>Rider's history of a file and the versions it compares with: Show History (a file's commits, renames followed,
-/// or a folder's) and Show History for Selection (the commits that changed some lines) as tabs of the Git window, and
+/// <summary>A file's history and the versions it compares with: Show History (a file's commits, renames followed, or a
+/// folder's) and Show History for Selection (the commits that changed some lines) as tabs of the Git window, and
 /// Compare with Branch or Tag and Compare with Revision, each a version's text beside the file's. They act on the file
 /// shown, or on the Explorer's chosen row while it has the keys.</summary>
 public partial class MainWindow
@@ -82,7 +82,7 @@ public partial class MainWindow
         {
             return null;
         }
-        // Its commits are read as its tab is first shown, which a screenshot and a test wait for.
+        // Its commits are read as its tab is first shown.
         ShowToolWindow(ToolWindowIds.Git);
         return GitWindow.ShowHistory(scope, Path.GetFileName(Path.TrimEndingDirectorySeparator(scope.Path)));
     }

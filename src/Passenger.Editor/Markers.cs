@@ -2,9 +2,8 @@ using Passenger.Text;
 
 namespace Passenger.Editor;
 
-/// <summary>How a marked range is drawn: a wavy underline in the severity's colour, or for code the
-/// compiler calls unnecessary (an unused using, a dead assignment) the text faded instead, as Rider
-/// greys it out.</summary>
+/// <summary>How a marked range is drawn: a wavy underline in the severity's colour, or for code the compiler calls
+/// unnecessary (an unused using, a dead assignment) the text faded instead.</summary>
 public enum MarkerKind
 {
     Error,

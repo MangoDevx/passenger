@@ -12,7 +12,7 @@ namespace Passenger.Tests;
 
 /// <summary>The editor as quick on long text as on short: a line of a million characters (minified code, a program's
 /// output with no breaks) is typed in and moved through at the cost of a short one, as only what is on screen of it is
-/// laid out; carets stop at IntelliJ's thousand, and say so; and the sideways scroll is as wide as what is there.</summary>
+/// laid out; carets stop at a thousand, and say so; and the sideways scroll is as wide as what is there.</summary>
 [Collection(Alone.Name)]
 public sealed class LongTextTests : IDisposable
 {
@@ -69,7 +69,6 @@ public sealed class LongTextTests : IDisposable
         Ui.Settle();
         Assert.Equal(target, rig.Caret);
 
-        // Up and back down keep the column, measured on the long line where it is drawn.
         rig.Press("UP");
         Assert.Equal(new TextPosition(0, 5), rig.Editor.CaretPosition);
         rig.Press("DOWN");
@@ -111,7 +110,6 @@ public sealed class LongTextTests : IDisposable
         // The word the caret was on is among them, as the primary.
         Assert.Equal(new TextPosition(4000, 3), editor.CaretPosition);
 
-        // At the limit, one more occurrence is not added.
         Ui.Press(window, "alt shift PERIOD");
         Assert.Equal(SelectionSet.MaxCount, editor.Selections.Count);
 
@@ -120,9 +118,8 @@ public sealed class LongTextTests : IDisposable
         window.Close();
     }
 
-    /// <summary>A key with a thousand carets costs the UI thread what the carets cost, not the file's length: the
-    /// document's carets and fold regions, carried through the key's thousand edits, each find their place among them by
-    /// halving rather than by walking every edit before it, so eight thousand methods type as quickly as a thousand.</summary>
+    /// <summary>A key with a thousand carets costs the UI thread what the carets cost, not the file's length: eight
+    /// thousand methods type as quickly as a thousand.</summary>
     [AvaloniaFact]
     public void A_key_with_a_thousand_carets_costs_the_same_in_eight_thousand_methods_as_in_a_thousand()
     {

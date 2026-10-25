@@ -21,8 +21,8 @@ namespace Passenger.App.Mcp;
 /// started, at the next call. Resources and prompts are none, here as in the window.</summary>
 public sealed class McpProxy
 {
-    /// <summary>The test run's: <c>headless</c> has a call with no window start this build headless, as its own child, in
-    /// the state PASSENGER_SETTINGS names, never the person's installed Passenger.</summary>
+    /// <summary><c>headless</c> has a call with no window start this build headless, as its own child, in the state
+    /// PASSENGER_SETTINGS names, never the person's installed Passenger.</summary>
     public const string StartVariable = "PASSENGER_START";
 
     /// <summary>What the proxy tells a Passenger it starts for an agent (<c>agent</c>), which takes it out of its own
@@ -61,7 +61,8 @@ public sealed class McpProxy
     /// <summary>The agent's own opens under way on the joined window, which move it on purpose.</summary>
     private int opening;
 
-    /// <summary>The headless Passenger a test run's call started, which ends with this one.</summary>
+    /// <summary>The headless Passenger a call started (<see cref="StartVariable"/>), which ends with this
+    /// one.</summary>
     private Process? headless;
 
     private McpProxy(int? processId, string here)
@@ -113,8 +114,7 @@ public sealed class McpProxy
         StreamServerTransport transport = new(input, output, "passenger");
         McpServer server = McpServer.Create(new PeerTransport(transport), options);
         Task running = server.RunAsync(gone.Token);
-        // The server waits out the calls still going when the agent goes, so its going is watched for here.
-        // The system's request to end it (an agent's client may send SIGTERM a moment after closing the input) ends it so too.
+        // The server waits out calls still going as the agent goes, so its going, or SIGTERM, is watched for here.
         TaskCompletionSource terminated = new(TaskCreationOptions.RunContinuationsAsynchronously);
         using System.Runtime.InteropServices.PosixSignalRegistration? signal = McpHost.EndOnSignal(() => terminated.TrySetResult());
         Task.WaitAny(running, transport.MessageReader.Completion, terminated.Task);
@@ -478,9 +478,9 @@ public sealed class McpProxy
         }
     }
 
-    /// <summary>Starts Passenger on the folder: the installed app this is, through LaunchServices on macOS (which hands it
-    /// to a Passenger already running there), else apart from this process, which it outlives; the test run's headless,
-    /// as a child. Each is told it was started for an agent (<see cref="StartedForVariable"/>).</summary>
+    /// <summary>Starts Passenger on the folder: the installed app this is, through LaunchServices on macOS, else apart
+    /// from this process, which it outlives; under <see cref="StartVariable"/>, this build headless, as a child. Each
+    /// is told it was started for an agent (<see cref="StartedForVariable"/>).</summary>
     private async Task LaunchAsync(CancellationToken cancel)
     {
         string self = Environment.ProcessPath ?? throw new NotJoined("Passenger cannot tell where it is installed, to start it.");
@@ -488,8 +488,7 @@ public sealed class McpProxy
         {
             ProcessStartInfo start = ChildProcesses.Command(self, ["--headless", here], here);
             start.Environment[StartedForVariable] = "agent";
-            // Its input kept: its end, with this process, ends it; its output is never the agent's protocol, nor its error the
-            // agent's to read.
+            // Its input kept, so its end ends it with this process; its output and error are never the agent's.
             start.RedirectStandardInput = true;
             start.RedirectStandardOutput = true;
             start.RedirectStandardError = true;
@@ -537,8 +536,7 @@ public sealed class McpProxy
         {
             Quietly(window).Wait(TimeSpan.FromSeconds(5));
         }
-        // The test run's headless window ends with its input, cleanly: left to this process's end, the watchdog would kill it
-        // before it took its socket away.
+        // The headless window ends with its input, cleanly, before the watchdog would kill it with its socket left.
         if (headless is { HasExited: false } child)
         {
             try

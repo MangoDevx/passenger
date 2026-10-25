@@ -15,12 +15,11 @@ using Passenger.Text;
 
 namespace Passenger.Tests;
 
-/// <summary>Several solutions open at once in one Passenger, a window each, as Rider's frames: each window has its own
-/// Explorer, language server, builds and runs and layout; Open asks This Window or New Window (or follows Settings' Open
-/// project in); the Window menu lists the windows and Next and Previous Solution Window step between them; quitting closes
-/// them all and a start reopens each, while one closed alone stays closed; and the settings are the process's, a change in
-/// one window followed by every other and kept whole in settings.json, another Passenger's too. What another folder opened
-/// in a window ends of the first's is ProjectWindowDebuggingTests', which debugs and so runs alone.</summary>
+/// <summary>Several solutions open at once in one Passenger, a window each: each window has its own Explorer, language
+/// server, builds and runs and layout; Open asks This Window or New Window (or follows Settings' Open project in); the
+/// Window menu lists the windows and Next and Previous Solution Window step between them; quitting closes them all and a
+/// start reopens each, while one closed alone stays closed; and the settings are the process's, a change in one window
+/// followed by every other and kept whole in settings.json, another Passenger's too.</summary>
 public sealed class ProjectWindowsTests : ProjectWindowsFolders
 {
     [AvaloniaFact]
@@ -43,7 +42,6 @@ public sealed class ProjectWindowsTests : ProjectWindowsFolders
         Assert.True(second.ExplorerView.Tree.Rows.Any(r => r.Name == "Beta.csproj") && !second.ExplorerView.Tree.Rows.Any(r => r.Name == "Alpha.csproj"),
             $"The second window's Explorer does not show its own project alone: [{string.Join(", ", second.ExplorerView.Tree.Rows.Select(r => r.Name))}]");
 
-        // A language server each, on its own project, colouring and marking its own file.
         Lsp.RoslynSession alphaServer = first.CSharpService?.Session ?? throw new InvalidOperationException($"No language server for the first window: {first.CSharpService?.State}");
         Lsp.RoslynSession betaServer = second.CSharpService?.Session ?? throw new InvalidOperationException($"No language server for the second window: {second.CSharpService?.State}");
         Assert.NotEqual(alphaServer.Server.ProcessId, betaServer.Server.ProcessId);
@@ -54,7 +52,6 @@ public sealed class ProjectWindowsTests : ProjectWindowsFolders
         Ui.WaitFor(() => Marked(first, "alphaUnused") && Marked(second, "betaUnused"), "each window's warning on its own unused local");
         Assert.False(Marked(first, "betaUnused") || Marked(second, "alphaUnused"), "A window marked the other window's file");
 
-        // A build and a run each, in each window's own Build and Run windows.
         BuildOutcome builtAlpha = Ui.Await(first.BuildAsync(), "the first window's build", TimeSpan.FromMinutes(3));
         BuildOutcome builtBeta = Ui.Await(second.BuildAsync(), "the second window's build", TimeSpan.FromMinutes(3));
         Assert.True(builtAlpha.Status == BuildStatus.Succeeded && builtBeta.Status == BuildStatus.Succeeded, $"{builtAlpha.Message}; {builtBeta.Message}");
@@ -77,38 +74,33 @@ public sealed class ProjectWindowsTests : ProjectWindowsFolders
         string gamma = TestFolders.Create("gamma-");
         MainWindow window = Started(LaunchOptions.Empty with { Folder = alpha });
 
-        // Rider's question; Cancel leaves the window as it was.
         Assert.Null(window.Open(beta));
         OpenProjectDialog asked = Asked(window);
         Assert.Equal($"Where would you like to open the solution '{Path.GetFileName(beta)}'?", asked.Question);
-        // Rider's yes, no and cancel: This Window (the default), New Window, Cancel, the row reversed on macOS.
+        // This Window (the default), New Window, Cancel, the row reversed on macOS.
         string[] order = [OpenProjectDialog.ThisWindow, OpenProjectDialog.NewWindow, "Cancel"];
         Assert.Equal(OperatingSystem.IsMacOS() ? order.Reverse() : order, Buttons(asked).Select(b => (string?)b.Content));
         Assert.Equal(OpenProjectDialog.ThisWindow, (string?)Assert.Single(Buttons(asked), b => b.IsDefault).Content);
         Ui.ClickButton(asked, "Cancel");
         Assert.True(window.Folder == PathNames.Canonical(alpha) && PassengerApp.Windows.Count == 1, "Cancel opened the folder anyway");
 
-        // This Window: the folder takes this one's place.
         window.Open(beta);
         Ui.ClickButton(Asked(window), OpenProjectDialog.ThisWindow);
         Assert.Equal(PathNames.Canonical(beta), window.Folder);
         Assert.Equal([window], PassengerApp.Windows);
 
-        // New Window: the folder in a window of its own, in front, this one keeping its own.
         window.Open(alpha);
         Ui.ClickButton(Asked(window), OpenProjectDialog.NewWindow);
         MainWindow other = Assert.Single(PassengerApp.Windows, w => w != window);
         Assert.Equal((PathNames.Canonical(beta), PathNames.Canonical(alpha)), (window.Folder, other.Folder));
         Assert.Equal(other, PassengerApp.Front);
 
-        // Opened again from either, a folder another window has is brought forward there, unasked.
         PassengerApp.BringForward(window);
         Assert.Null(window.Open(alpha));
         Assert.Null(window.Asking);
         Assert.Equal(other, PassengerApp.Front);
         Assert.Equal(2, PassengerApp.Windows.Count);
 
-        // Don't ask again: the answer is Settings' Open project in, which every window follows, asking no more.
         window.Open(gamma);
         OpenProjectDialog again = Asked(window);
         again.GetVisualDescendants().OfType<CheckBox>().Single(c => (string?)c.Content == "Don't ask again").IsChecked = true;
@@ -120,7 +112,6 @@ public sealed class ProjectWindowsTests : ProjectWindowsFolders
         Assert.Equal(PathNames.Canonical(beta), other.Folder);
         Assert.Equal(2, PassengerApp.Windows.Count);
 
-        // Settings' System Settings shows it, as Rider's Project section does; New window there opens each in its own.
         SettingsDialog dialog = window.ShowSettings();
         Ui.Settle();
         dialog.Query = "open project";
@@ -156,21 +147,18 @@ public sealed class ProjectWindowsTests : ProjectWindowsFolders
         Assert.Equal(Shortcut.Parse(OperatingSystem.IsMacOS() ? "meta alt BACK_QUOTE" : "control alt CLOSE_BRACKET"), AppActions.Keymap().ShortcutsFor(AppActions.NextProjectWindow)[0]);
         Assert.Equal(Shortcut.Parse(OperatingSystem.IsMacOS() ? "meta shift alt BACK_QUOTE" : "control alt OPEN_BRACKET"), AppActions.Keymap().ShortcutsFor(AppActions.PreviousProjectWindow)[0]);
 
-        // The Window menu ends with Rider's group: the steps, then each window open, this one checked.
         NativeMenuItemBase[] items = [.. Ui.Submenu(first.MenuBar, "Window").Items];
         string[] tail = [.. items.TakeLast(5).Select(i => (i as NativeMenuItem)?.Header ?? "-")];
         Assert.Equal(["Next Solution Window", "Previous Solution Window", "-", alphaName, betaName], tail);
         NativeMenuItem[] listed = [.. items.TakeLast(2).Cast<NativeMenuItem>()];
         Assert.True(listed[0].IsChecked && !listed[1].IsChecked, "The Window menu does not check the window it is in");
 
-        // Chosen there, the other window comes in front, and its own menu checks it.
         listed[1].Command!.Execute(null);
         Ui.Settle();
         Assert.Equal(second, PassengerApp.Front);
         NativeMenuItem[] secondListed = [.. Ui.Submenu(second.MenuBar, "Window").Items.TakeLast(2).Cast<NativeMenuItem>()];
         Assert.True(!secondListed[0].IsChecked && secondListed[1].IsChecked, "The second window's Window menu does not check it");
 
-        // Next Solution Window's keys go on round to the first, Previous's back.
         Ui.Run(second, AppActions.NextProjectWindow);
         Assert.Equal(first, PassengerApp.Front);
         Ui.Run(first, AppActions.NextProjectWindow);
@@ -178,7 +166,6 @@ public sealed class ProjectWindowsTests : ProjectWindowsFolders
         Ui.Run(second, AppActions.PreviousProjectWindow);
         Assert.Equal(first, PassengerApp.Front);
 
-        // The toolbar's project widget lists them too, as Rider's Open Solutions.
         ContextMenu widget = first.ShowProjectMenu();
         Ui.Settle();
         string[] shown = [.. widget.Items.OfType<MenuItem>().Select(i => i.Header as string ?? string.Empty)];
@@ -186,7 +173,6 @@ public sealed class ProjectWindowsTests : ProjectWindowsFolders
             $"The project widget does not list the two windows under Open Solutions: [{string.Join(", ", shown)}]");
         widget.Close();
 
-        // With one window left, there is nothing to step to.
         second.Close();
         Assert.False(first.Perform(AppActions.NextProjectWindow));
         first.Close();
@@ -203,13 +189,11 @@ public sealed class ProjectWindowsTests : ProjectWindowsFolders
         second.DockHost.Show(ToolWindowIds.Build);
         Ui.Settle();
 
-        // File, Exit (the application menu's Quit on macOS) closes them all.
         Assert.True(first.Perform(AppActions.Exit));
         Ui.Settle();
         Assert.False(first.IsVisible || second.IsVisible, "Exit left a window open");
         Assert.Empty(PassengerApp.Windows);
 
-        // A start that names nothing reopens both, each in a window of its own on the layout it left.
         MainWindow again = Started(LaunchOptions.Empty);
         MainWindow other = Assert.Single(PassengerApp.Windows, w => w != again);
         Assert.Equal((PathNames.Canonical(alpha), PathNames.Canonical(beta)), (again.Folder, other.Folder));
@@ -219,7 +203,6 @@ public sealed class ProjectWindowsTests : ProjectWindowsFolders
             "The second window's layout did not come back with its folder, or took the first's");
         Assert.Equal(other, PassengerApp.Front);
 
-        // Closed alone while another stays, a window's solution is closed; the last one's is reopened.
         other.Close();
         again.Close();
         MainWindow last = Started(LaunchOptions.Empty);
@@ -227,13 +210,11 @@ public sealed class ProjectWindowsTests : ProjectWindowsFolders
         Assert.Equal(PathNames.Canonical(alpha), last.Folder);
         last.Close();
 
-        // A solution the system hands Passenger as it starts (the Finder's Open) opens in place of what it would reopen.
         PassengerApp.OpenFromSystem([beta]);
         MainWindow handed = Started(LaunchOptions.Empty);
         Assert.Equal([handed], PassengerApp.Windows);
         Assert.Equal(PathNames.Canonical(beta), handed.Folder);
 
-        // Handed one while it runs, the window in front asks where, as Open does.
         PassengerApp.OpenFromSystem([alpha]);
         Ui.ClickButton(Asked(handed), OpenProjectDialog.NewWindow);
         Assert.Equal(PathNames.Canonical(alpha), PassengerApp.Front?.Folder);
@@ -289,7 +270,6 @@ public sealed class ProjectWindowsTests : ProjectWindowsFolders
             MainWindow second = InNewWindow(first, beta);
             EditLocked(second);
 
-            // File, Exit closes the last opened first, which asks; kept open, the quit is given up and both stay.
             Assert.True(first.Perform(AppActions.Exit));
             Ui.ClickButton(Unsaved(second), "Cancel");
             Assert.True(first.IsVisible && second.IsVisible, "Cancel kept the window with the read-only file open, but not every other");
@@ -300,7 +280,7 @@ public sealed class ProjectWindowsTests : ProjectWindowsFolders
             Assert.Equal("class Locked { }\n", File.ReadAllText(locked));
             (MainWindow again, MainWindow other) = Reopened();
 
-            // The application menu's Quit: the system closes each window in the order they opened, as Avalonia's lifetime does.
+            // As the application menu's Quit: the system closes each window in the order they opened.
             EditLocked(other);
             System.Reflection.MethodInfo close = typeof(Window).GetMethod("CloseCore", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
                 ?? throw new InvalidOperationException("Avalonia no longer closes a window for the system's shutdown through Window.CloseCore");
@@ -365,17 +345,14 @@ public sealed class ProjectWindowsTests : ProjectWindowsFolders
             Assert.Equal((17d, 17d), (first.EditorArea.CodeEditor.FontSize, second.EditorArea.CodeEditor.FontSize));
             Assert.Equal(Avalonia.Styling.ThemeVariant.Light, Avalonia.Application.Current!.RequestedThemeVariant);
 
-            // A shortcut changed in one is the other's keymap at once.
             first.ApplySettings(first.Settings with { Shortcuts = new() { [AppActions.GoToFile] = ["meta shift Y"] } });
             Ui.Press(second, "meta shift Y");
             Assert.IsType<GoToFilePopup>(second.Popup);
             Ui.Press(second, "ESCAPE");
 
-            // Written whole: both changes in settings.json.
             Ui.WaitFor(() => ReadNow(file) is { } kept && (double?)kept["editorFontSize"] == 17 && (string?)kept["theme"] == "Light",
                 "both changes in settings.json", TimeSpan.FromSeconds(10));
 
-            // Another Passenger's change to the file is followed by every window here.
             JsonObject changed = Read(file);
             changed["terminalFontSize"] = 21;
             string written = Path.Combine(settings, "settings.json.other.tmp");
@@ -434,7 +411,6 @@ public sealed class ProjectWindowDebuggingTests : ProjectWindowsFolders
             Ui.WaitFor(() => window.Debugger.Session is { State: Passenger.App.Debugging.DebugState.Paused } && window.BottomPanel.Debug.Frames.Count > 0,
                 "the debugged program to stop at its breakpoint", TimeSpan.FromMinutes(2));
 
-            // This Window: the first folder's session ends before the second's begins.
             Assert.Null(window.Open(beta));
             Ui.ClickButton(Asked(window), OpenProjectDialog.ThisWindow);
             Ui.WaitFor(() => window.Folder == PathNames.Canonical(beta), "the second folder to open in the window");
@@ -446,7 +422,6 @@ public sealed class ProjectWindowDebuggingTests : ProjectWindowsFolders
             Assert.Empty(window.BottomPanel.Debug.Frames);
             Assert.Empty(window.BottomPanel.Problems.Problems);
 
-            // Run is the second folder's, which runs at once rather than saying the first's still does.
             Assert.Equal("Beta", window.Configuration?.Name);
             Assert.True(window.Perform(AppActions.RunProgram), "Run could not run in the second folder");
             Ui.WaitFor(() => Output(window).Contains("Process finished", StringComparison.Ordinal), "the second folder's program to run", TimeSpan.FromMinutes(3));

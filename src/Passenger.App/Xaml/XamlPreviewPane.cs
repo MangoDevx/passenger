@@ -6,10 +6,10 @@ using Avalonia.Media;
 
 namespace Passenger.App.Xaml;
 
-/// <summary>The design view beside a XAML file, as Rider's Avalonia previewer shows it: a header naming it and what it is
-/// doing, the previewer's error over the last frame when the XAML did not load, and the frame at its own size on the
-/// editor's background, shrunk to fit when it is larger than the pane. Where the previewer says which element is where
-/// (WPF's), a click on the frame chooses the element under it and the element at the editor's caret is outlined.</summary>
+/// <summary>The design view beside a XAML file: a header naming it and what it is doing, the previewer's error over the
+/// last frame when the XAML did not load, and the frame at its own size on the editor's background, shrunk to fit when
+/// it is larger than the pane. Where the previewer says which element is where (WPF's), a click on the frame chooses
+/// the element under it and the element at the editor's caret is outlined.</summary>
 public sealed class XamlPreviewPane : DockPanel
 {
     private readonly XamlPreview preview;
@@ -42,7 +42,7 @@ public sealed class XamlPreviewPane : DockPanel
                 },
             },
         };
-        // A tool window's ground over the preview's, told apart by shade, as the bar of the error under it is by its tint.
+        // A tool window's ground over the preview's, told apart by shade.
         header.Bind(Border.BackgroundProperty, header.GetResourceObservable("Passenger.Panel"));
         error = new TextBlock { FontSize = 12, TextWrapping = TextWrapping.Wrap };
         error.Bind(TextBlock.ForegroundProperty, error.GetResourceObservable("Passenger.Error"));
@@ -94,10 +94,10 @@ public sealed class XamlPreviewPane : DockPanel
     /// <summary>An element of the file was clicked in the frame; raised on the UI thread.</summary>
     public event EventHandler<PreviewElement>? ElementChosen;
 
-    /// <summary>The frame shown, for tests to find on the window.</summary>
+    /// <summary>The frame shown.</summary>
     public Image Frame => image;
 
-    /// <summary>The outline of the element at the caret, for tests to find on the window.</summary>
+    /// <summary>The outline of the element at the caret.</summary>
     public Control Outline => outline;
 
     /// <summary>The element's box outlined, in the frame's units; null while none is.</summary>
@@ -106,7 +106,7 @@ public sealed class XamlPreviewPane : DockPanel
     /// <summary>How far the outline stands outside the box it outlines.</summary>
     public const double OutlineWidth = 2;
 
-    /// <summary>The error shown over the frame, for tests; null while there is none.</summary>
+    /// <summary>The error shown over the frame; null while there is none.</summary>
     public string? ErrorShown => errorBar.IsVisible ? error.Text : null;
 
     /// <summary>Outlines an element's box in the frame, or none.</summary>

@@ -10,7 +10,7 @@ using Passenger.Text;
 
 namespace Passenger.App.ToolWindows;
 
-/// <summary>Rider's Structure window: the active file's types and members, indented, from the language server's
+/// <summary>The Structure window: the active file's types and members, indented, from the language server's
 /// outline, asked as it is shown and, while it is, following the editor (a moment after typing stops) and choosing the
 /// member the caret is in. A click or Enter goes to a member.</summary>
 public sealed class StructureView : DockPanel
@@ -132,8 +132,8 @@ public sealed class StructureView : DockPanel
         }
     }
 
-    /// <summary>Shown (its stripe button, its action, a layout that has it open), or moved to another place: what Rider's
-    /// Structure shows then is the file shown now.</summary>
+    /// <summary>Shown (its stripe button, its action, a layout that has it open), or moved to another place: what it shows
+    /// then is the file shown now.</summary>
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);

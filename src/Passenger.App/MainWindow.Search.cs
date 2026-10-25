@@ -6,8 +6,8 @@ using Passenger.Text;
 namespace Passenger.App;
 
 /// <summary>The window's Find in Files and Replace in Files, over the folder's index and the open files' own text, in
-/// the scope and under the file mask chosen last: the solution, a project, a directory or a named scope, as Rider's
-/// popup offers them. The scope is kept with the folder and the mask for every folder, as Rider keeps them.</summary>
+/// the scope and under the file mask chosen last: the solution, a project, a directory or a named scope. The scope is
+/// kept with the folder and the mask for every folder.</summary>
 public partial class MainWindow
 {
     internal const string RecentlyViewedScope = "Recently Viewed Files";
@@ -18,7 +18,7 @@ public partial class MainWindow
     private FindSettingsState findSettings = new();
 
     /// <summary>Find in Files (Ctrl+Shift+F) or, with replace, Replace in Files (Ctrl+Shift+H), seeded with the
-    /// selection's word as Rider seeds it, in the scope given (from the Solution view), else the one chosen last.</summary>
+    /// selection's word, in the scope given (from the Solution view), else the one chosen last.</summary>
     public Navigation.FindInFilesPopup? ShowFindInFiles(bool replace, SearchScope? on = null)
     {
         if (Folder is null)
@@ -28,7 +28,7 @@ public partial class MainWindow
         Navigation.FindChoices choices = new(on ?? KeptScope(), Projects, session.FindScope.RecentDirectories, ScopeNames(), findSettings.RecentFileMasks);
         Navigation.FindInFilesPopup popup = new(SearchFiles, TextOf, replace, navigator.SelectedWord(), choices, settings.Ligatures);
         popup.ScopeChanged += (_, scope) => KeepFindScope(scope, closing: false);
-        // However it closes (a match chosen, Escape, a click outside), as Rider keeps its scope when its popup closes.
+        // However it closes: a match chosen, Escape, a click outside.
         popup.DetachedFromVisualTree += (_, _) => KeepFindScope(popup.Scope, closing: true);
         popup.Done += (_, match) =>
         {
@@ -59,10 +59,10 @@ public partial class MainWindow
         return popup;
     }
 
-    /// <summary>The scope Find in Files takes on rows of the Solution view, as Rider's: the solution's, a project's, a
-    /// folder's as a directory, and anything else (a file, a solution folder, several rows) a scope of its own named as
-    /// Rider names it ("Program.cs", "Program.cs and 2 more item(s)"); the rest as kept. Null for rows with no files
-    /// (a project's dependencies), which leave the scope kept.</summary>
+    /// <summary>The scope Find in Files takes on rows of the Solution view: the solution's, a project's, a folder's as
+    /// a directory, and anything else (a file, a solution folder, several rows) a scope of its own named for them
+    /// ("Program.cs", "Program.cs and 2 more item(s)"); the rest as kept. Null for rows with no files (a project's
+    /// dependencies), which leave the scope kept.</summary>
     public SearchScope? ScopeOf(IReadOnlyList<ExplorerNode> rows)
     {
         rows = [.. rows.Where(r => r.Path is not null && r.Kind is NodeKind.File or NodeKind.Folder or NodeKind.Project or NodeKind.Solution
@@ -106,8 +106,8 @@ public partial class MainWindow
         return kept with { Kind = SearchScopeKind.Scope, Named = name };
     }
 
-    /// <summary>The scope kept, as Rider opens its popup on it: the project and directory chosen last when that is the
-    /// scope, else the active file's, ready for a switch to them.</summary>
+    /// <summary>The scope kept, which the popup opens on: the project and directory chosen last when that is the scope,
+    /// else the active file's, ready for a switch to them.</summary>
     private SearchScope KeptScope()
     {
         string? active = Editors.Active?.Path;
@@ -120,7 +120,8 @@ public partial class MainWindow
         return new SearchScope(last.Scope, project, directory, findSettings.Recursive, named, findSettings.FileMask);
     }
 
-    /// <summary>The named scopes, in Rider's order, the Solution view's rows Find in Files was opened on last at the end.</summary>
+    /// <summary>The named scopes, in their order, the Solution view's rows Find in Files was opened on last at the
+    /// end.</summary>
     private IReadOnlyList<string> ScopeNames() =>
         [RecentlyViewedScope, OpenFilesScope, CurrentFileScope, .. session.ChosenScope is { } chosen ? [chosen.Name] : Array.Empty<string>()];
 
@@ -239,8 +240,8 @@ public partial class MainWindow
     }
 
     /// <summary>Recent Files (Ctrl+,): the files opened last, the latest first, narrowed as a name is typed; a file
-    /// opens where its caret was left, as Rider's does. Its Show edited only lists the files edited, the latest first,
-    /// which is what Recently Changed Files opens it on.</summary>
+    /// opens where its caret was left. Its Show edited only lists the files edited, the latest first, which is what
+    /// Recently Changed Files opens it on.</summary>
     public Navigation.SymbolPopup ShowRecentFiles(bool editedOnly = false)
     {
         string root = Folder ?? string.Empty;

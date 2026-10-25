@@ -3,7 +3,7 @@ namespace Passenger.App.ToolWindows;
 /// <summary>What the two windows that list a run's services (Containers, Aspire) share of their layout, decided once: one
 /// vocabulary of the chosen row's tabs in one order, Log first and shown at first, each window showing those it has; and the
 /// actions on a .NET service of a run in one order, their toolbars' group after their Refresh and their rows' menus' first
-/// group, as the gutter's menu beside a running service lists them.</summary>
+/// group.</summary>
 public static class RunWindows
 {
     /// <summary>The row's log: a container's, a project's or AppHost's merged, a resource's console merged with the rest.</summary>

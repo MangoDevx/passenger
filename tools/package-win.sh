@@ -1,17 +1,14 @@
 #!/bin/sh
 # Passenger's Windows installer: `just package-win [win-x64|win-arm64]`, on Windows (through Git's sh) or macOS, makes
-# artifacts/package/Passenger-windows-x64.exe (or -arm64), the names a release keeps from one to the next (#56). The
-# Release publish (self-contained, ReadyToRun, the debugger and Roslyn's server beside it) is packed by Velopack's vpk,
-# at the version dotnet-tools.json pins, into a Setup.exe that installs for the person alone, with no administrator,
-# into %LocalAppData%\PassengerIDE, adds a Start menu entry and an entry in Settings > Apps that uninstalls it, and runs
-# Passenger.exe's install hook, which registers .sln, .slnx and .csproj (Installation.cs). Velopack's release (the full
-# package and the feed its updates read, #35) stays in artifacts/package/<rid>/velopack.
+# artifacts/package/Passenger-windows-x64.exe (or -arm64), a name each release keeps: the Release publish packed by
+# Velopack's vpk into a Setup.exe that installs for the person alone, with no administrator, into
+# %LocalAppData%\PassengerIDE, adds a Start menu entry and an uninstall entry in Settings > Apps, and runs
+# Passenger.exe's install hook. Velopack's release (the full package and its channel's feed) stays in
+# artifacts/package/<rid>/velopack.
 #
-# Signed only on Windows, with signtool, when one of these is set, and otherwise unsigned (SmartScreen then asks once,
-# More info > Run anyway): PASSENGER_SIGNTOOL_PARAMS, signtool sign's parameters for a certificate (/f or /sha1, /fd
-# sha256, /tr and /td sha256 for its timestamp); or PASSENGER_ARTIFACT_SIGNING_METADATA, the metadata.json of an Azure
-# Artifact Signing account (Endpoint, CodeSigningAccountName, CertificateProfileName), whose identity Azure's own
-# credential reads from the environment (AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET) or an `az login`.
+# Signed only on Windows, by signtool, when one is set: PASSENGER_SIGNTOOL_PARAMS, signtool sign's parameters (/f or
+# /sha1, /fd sha256, /tr and /td sha256), or PASSENGER_ARTIFACT_SIGNING_METADATA, an Azure Artifact Signing account's
+# metadata.json, its identity from AZURE_TENANT_ID, AZURE_CLIENT_ID and AZURE_CLIENT_SECRET or an `az login`.
 set -eu
 fail() {
     echo "package-win: $*" >&2
@@ -22,8 +19,7 @@ case $rid in
     win-x64 | win-arm64) ;;
     *) fail "'$rid' is not a Windows system Passenger ships for: win-x64 or win-arm64" ;;
 esac
-# Git for Windows' sh rewrites an argument it takes for one of its own paths (signtool's /fd) on the way to a Windows
-# program; every path here is made Windows' own (C:/...) instead, by its cygpath, so nothing is rewritten.
+# Git's sh would rewrite signtool's /fd as one of its paths; every path here is made Windows' own by cygpath instead.
 export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'
 root=$(cd "$(dirname "$0")/.." && pwd)
 if command -v cygpath >/dev/null 2>&1; then
@@ -51,7 +47,7 @@ if [ -n "$signing_metadata" ]; then
     signing_metadata=$(cygpath -m "$signing_metadata")
 fi
 
-# The version as tools/package-mac.sh takes it: a vX.Y.Z tag on this commit, else Directory.Build.props' Version.
+# A vX.Y.Z tag on this commit, else Directory.Build.props' Version.
 version=$(git -C "$root" describe --tags --exact-match --match 'v[0-9]*' 2>/dev/null | sed 's/^v//' || true)
 [ -n "$version" ] || version=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' "$root/Directory.Build.props" | head -n 1)
 if ! echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
@@ -62,10 +58,7 @@ rm -rf "$work" "$installer"
 dotnet publish "$root/src/Passenger.App" -c Release -r "$rid" --self-contained -p:PublishReadyToRun=true -p:Version="$version" \
     -o "$publish" -nologo -v quiet
 
-# The pack id names the install's folder, which Velopack's uninstaller empties: not Passenger, whose folder in
-# %LocalAppData% is the person's settings and state, which outlive an uninstall as Rider's do. Each system's channel is
-# its own, so one release can carry both feeds. SkiaSharp's and HarfBuzzSharp's native symbols (a hundred megabytes) stay
-# out; Passenger's own symbols stay in, for the line numbers in its log's stack traces.
+# The pack id is not Passenger: the uninstaller empties its folder, and %LocalAppData%\Passenger is the person's state.
 set -- --packId PassengerIDE --packVersion "$version" --packTitle Passenger --packAuthors Passenger \
     --packDir "$publish" --mainExe Passenger.exe --icon "$root/src/Passenger.App/Assets/Passenger.ico" \
     --runtime "$rid" --channel "$rid" --shortcuts StartMenuRoot --noPortable \

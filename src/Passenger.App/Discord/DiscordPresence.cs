@@ -21,7 +21,7 @@ public sealed class DiscordPresence(DiscordIpc ipc, Action<string> log)
     /// <summary>The application's art asset of Passenger's 1024-pixel icon.</summary>
     public const string LargeImage = "passenger-1024";
 
-    // Passenger's own words, the site's, wherever the activity names nothing of the work.
+    // Passenger's own words, wherever the activity names nothing of the work.
 
     /// <summary>The icon's hover text, whatever the activity names.</summary>
     public const string LargeText = "Passenger: an IDE for C# and .NET, open to your coding agent";
@@ -49,7 +49,6 @@ public sealed class DiscordPresence(DiscordIpc ipc, Action<string> log)
     {
         lock (gate)
         {
-            // The same activity again (the window's title followed something else) wakes nothing.
             if (closing || (worker is not null && activity == wanted))
             {
                 return;
@@ -81,7 +80,7 @@ public sealed class DiscordPresence(DiscordIpc ipc, Action<string> log)
             }
             catch (TimeoutException)
             {
-                // A Discord that takes nothing in time is let go of: the connection's end clears the activity too.
+                // The connection's end clears the activity too.
             }
         }
         await ending.CancelAsync().ConfigureAwait(false);
@@ -148,7 +147,6 @@ public sealed class DiscordPresence(DiscordIpc ipc, Action<string> log)
                     await WaitAsync(Timeout.InfiniteTimeSpan, end).ConfigureAwait(false);
                     continue;
                 }
-                // A change waits a quarter of the pause for the next, and the pause from the update before.
                 TimeSpan settle = ipc.Pause / 4;
                 TimeSpan since = lastSent == 0 ? TimeSpan.MaxValue : Stopwatch.GetElapsedTime(lastSent);
                 if (!await WaitAsync(since < ipc.Pause - settle ? ipc.Pause - since : settle, end).ConfigureAwait(false))

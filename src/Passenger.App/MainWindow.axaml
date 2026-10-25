@@ -30,8 +30,8 @@
              a double click on it maximizes, while what is on it takes its own clicks (the role User, where Windows asks). -->
         <Border Name="Toolbar" Classes="titleBar" Grid.Row="0" Height="40" PointerPressed="OnToolbarPressed">
             <DockPanel Name="ToolbarContent" Margin="8,0">
-                <!-- The window's buttons at the bar's right, Rider's on Windows and Linux; macOS's own stand at its left.
-                     Their roles make Windows treat them as its caption buttons (its snap layouts on the maximize one). -->
+                <!-- The window's buttons at the bar's right on Windows and Linux; macOS's own stand at its left. Their
+                     roles make Windows treat them as its caption buttons (its snap layouts on the maximize one). -->
                 <StackPanel Name="WindowButtons" DockPanel.Dock="Right" Orientation="Horizontal" Margin="10,0,0,0" IsVisible="False">
                     <Button Name="MinimizeButton" Classes="windowButton" ToolTip.Tip="Minimize" AutomationProperties.Name="Minimize"
                             WindowDecorationProperties.ElementRole="MinimizeButton" Click="OnMinimizeClicked">
@@ -47,9 +47,9 @@
                     </Button>
                 </StackPanel>
 
-                <!-- The run widget and the icons at the right keep their room as the window narrows, as Rider's main toolbar
-                     does: the project's and branch's names give way first, ending in an ellipsis (the end group is laid
-                     out before the start one). -->
+                <!-- The run widget and the icons at the right keep their room as the window narrows: the project's and
+                     branch's names give way first, ending in an ellipsis (the end group is laid out before the start
+                     one). -->
                 <StackPanel Name="ToolbarEnd" DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center"
                             WindowDecorationProperties.ElementRole="User">
                     <Button Name="BuildButton" Classes="tool" ToolTip.Tip="Build solution">
@@ -88,9 +88,10 @@
 
                 <app:ShrinkingRow Name="ToolbarStart" DockPanel.Dock="Left" HorizontalAlignment="Left" VerticalAlignment="Center"
                            WindowDecorationProperties.ElementRole="User">
-                    <!-- Rider's main menu, where the system has no menu bar of its own: behind a button, or as a bar of its
-                         menus' titles (Settings' Show main menu as a menu bar), those the toolbar has no room for behind the
-                         button after them. The titles are added after the button as Settings asks for them. -->
+                    <!-- The main menu, where the system has no menu bar of its own: behind a button, or as a bar of its
+                         menus' titles (Settings' Show main menu as a menu bar), those the toolbar has no room for
+                         behind the button after them. The titles are added after the button as Settings asks for
+                         them. -->
                     <app:MainMenuPlace Name="MainMenuPlace" Margin="0,0,2,0">
                         <Button Name="MenuButton" Classes="tool" ToolTip.Tip="Main menu" Click="OnMenuClicked">
                             <PathIcon Data="{StaticResource Icon.Menu}" />
@@ -117,7 +118,7 @@
             </DockPanel>
         </Border>
 
-        <!-- Tool windows round the editor, in IntelliJ's places: stripes of their buttons down both edges. -->
+        <!-- Tool windows round the editor: stripes of their buttons down both edges. -->
         <docking:DockHost Name="Dock" Grid.Row="1">
             <docking:DockHost.Center>
                 <editors:EditorArea Name="Editors" />
@@ -159,8 +160,8 @@
                         </StackPanel>
                     </Button>
                     <TextBlock Name="CaretText" Classes="status" />
-                    <!-- Rider's line separator and encoding widgets: a click offers the others. Their frames reach into
-                         the spacing, so their words stand where the other items' do. -->
+                    <!-- The line separator and encoding widgets: a click offers the others. Their frames reach into the
+                         spacing, so their words stand where the other items' do. -->
                     <Button Name="LineSeparatorButton" Classes="statusItem" Margin="-6,0" Focusable="False" IsVisible="False" Click="OnLineSeparatorClicked">
                         <TextBlock Name="LineEndingText" Classes="status" />
                     </Button>
@@ -170,7 +171,7 @@
                     <TextBlock Name="IndentText" Classes="status" />
                     <TextBlock Name="LanguageText" Classes="status" />
                 </StackPanel>
-                <!-- Cut where the widgets begin: a deep file's path in a narrow window ran on under them. -->
+                <!-- Cut where the widgets begin, so a deep file's path never runs on under them. -->
                 <StackPanel Name="BreadcrumbHost" DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center" ClipToBounds="True" />
                 <!-- What the status bar says, with whether it is an error or a warning (a project's load) while it says it;
                      a link to where it has more to see while it has a place (StatusBar.Say), its whole text on hover. -->

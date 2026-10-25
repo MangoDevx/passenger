@@ -5,8 +5,8 @@ using Passenger.App;
 
 namespace Passenger.Tests;
 
-/// <summary>An agent's Hot Reload, as Apply Hot Reload Changes is a person's: the edits it made in the editor applied to the
-/// program it debugs, and an edit the runtime cannot take named at its line, the program restarted for it only when asked.</summary>
+/// <summary>An agent's Hot Reload: the edits it made in the editor applied to the program it debugs, and an edit the
+/// runtime cannot take named at its line, the program restarted for it only when asked.</summary>
 [Collection(Alone.Name)]
 public sealed class McpHotReloadTests : McpRig, IClassFixture<RestoredFolders>
 {
@@ -15,10 +15,10 @@ public sealed class McpHotReloadTests : McpRig, IClassFixture<RestoredFolders>
     {
     }
 
-    /// <summary>An agent's debugging with no window, its tools' answers each checked once (the window's own steps are
-    /// DebuggerTests' and HotReloadTests'): an exception breakpoint on a type, listed as Rider sets one and stopping where
-    /// that type is thrown; Run to Cursor and Set Next Statement; and Hot Reload of an edit made while paused, then of one
-    /// the runtime cannot take, named at its line and the program restarted for it only when asked.</summary>
+    /// <summary>An agent's debugging with no window, its tools' answers each checked once: an exception breakpoint on a type,
+    /// listed and stopping where that type is thrown; Run to Cursor and Set Next Statement; and Hot Reload of an edit made
+    /// while paused, then of one the runtime cannot take, named at its line and the program restarted for it only when
+    /// asked.</summary>
     [Fact]
     public async Task An_agent_stops_at_an_exception_type_runs_to_a_line_moves_back_and_applies_hot_reload_changes_told_each_rude_edit_at_its_line()
     {
@@ -29,14 +29,13 @@ public sealed class McpHotReloadTests : McpRig, IClassFixture<RestoredFolders>
         Write("Helper.cs", "static class Helper\n{\n    static int calls;\n\n    public static int Twice(int value)\n    {\n        calls++;\n        return value * 2;\n    }\n}\n");
         await using McpClient client = await Start(["--mcp", Folder]);
         await Call(client, "breakpoint_set", new() { ["exception"] = "System.InvalidOperationException" });
-        // Listed with Rider's "Any exception", the new one in every scenario as Rider sets one on a type.
+        // Listed with "Any exception", the new one in every scenario.
         JsonElement[] exceptions = [.. (await Call(client, "breakpoints")).EnumerateArray()
             .Where(b => b.TryGetProperty("exception", out JsonElement type) && type.ValueKind == JsonValueKind.String)];
         Assert.Equal(["Any exception", "System.InvalidOperationException"], exceptions.Select(b => b.GetProperty("exception").GetString()));
         Assert.Equal(["thrownInUserCode", "thrownInExternalCode", "handledInUserCode", "handledInExternalCode", "unhandled"],
             exceptions[1].GetProperty("scenarios").EnumerateArray().Select(s => s.GetString()));
 
-        // Run on to a line, then moved back to do a line again.
         await Call(client, "breakpoint_set", new() { ["path"] = "Program.cs", ["line"] = 2 });
         Assert.StartsWith("Program.cs:2:", (await Call(client, "debug_start")).GetProperty("location").GetString(), StringComparison.Ordinal);
         await Call(client, "breakpoint_set", new() { ["path"] = "Program.cs", ["line"] = 2, ["remove"] = true });
@@ -59,7 +58,6 @@ public sealed class McpHotReloadTests : McpRig, IClassFixture<RestoredFolders>
         Assert.True(looped.GetProperty("location").GetString()!.StartsWith("Program.cs:12:", StringComparison.Ordinal) && Local(looped, "total") == "121",
             $"With the exception breakpoint removed, the program did not run on to the loop, line 3 done twice: {looped}");
 
-        // An edit to a method's body, made while the program is paused, is applied at once and runs from the next call.
         await Call(client, "open", new() { ["path"] = "Helper.cs", ["line"] = 8, ["column"] = 25 });
         await Call(client, "app_type", new() { ["app"] = "ide", ["text"] = " + 1" });
         JsonElement applied = await Call(client, "hot_reload");
@@ -68,8 +66,7 @@ public sealed class McpHotReloadTests : McpRig, IClassFixture<RestoredFolders>
             $"The edit to Twice's body was not applied: {applied}");
         Assert.Equal("124", Local(await Call(client, "debug_continue"), "total"));
 
-        // A field's type the runtime cannot change: named at its line, nothing applied, and with restart false the program
-        // goes on in the code it has, still paused where it was.
+        // The runtime cannot change a field's type; with restart false the program stays paused in the code it has.
         await Call(client, "open", new() { ["path"] = "Helper.cs", ["line"] = 3, ["column"] = 12 });
         await Call(client, "app_type", new() { ["app"] = "ide", ["text"] = "u" });
         JsonElement rude = await Call(client, "hot_reload", new() { ["restart"] = false });
@@ -81,7 +78,6 @@ public sealed class McpHotReloadTests : McpRig, IClassFixture<RestoredFolders>
         JsonElement still = await Call(client, "debug_state");
         Assert.True(still.GetProperty("state").GetString() == "paused" && Local(still, "total") == "124", $"The program did not stay where it was: {still}");
 
-        // Asked to, it restarts the program with the edits built, which stops at the breakpoint again and runs them.
         JsonElement restarted = await Call(client, "hot_reload", new() { ["restart"] = true });
         Assert.True(restarted.GetProperty("restarted").GetBoolean() && restarted.GetProperty("debugger").GetProperty("state").GetString() == "paused"
             && restarted.GetProperty("debugger").GetProperty("location").GetString()!.StartsWith("Program.cs:12:", StringComparison.Ordinal),
@@ -91,8 +87,7 @@ public sealed class McpHotReloadTests : McpRig, IClassFixture<RestoredFolders>
     }
 
     /// <summary>An agent's hot_reload on the person's window is the window's own Apply Hot Reload Changes: it shows as that
-    /// action's work while it applies, and its outcome is the window's last apply, where the tool decided again for itself
-    /// what to apply and restarted in its own order, unseen.</summary>
+    /// action's work while it applies, and its outcome is the window's last apply.</summary>
     [AvaloniaFact]
     public void An_agents_hot_reload_on_the_persons_window_is_its_apply_hot_reload_changes_shown_as_its_work()
     {
@@ -152,7 +147,7 @@ public sealed class McpHotReloadTests : McpRig, IClassFixture<RestoredFolders>
         File.WriteAllText(Path.Combine(Folder, "Program.cs"),
             "while (true)\n{\n    Console.WriteLine(Talk.Say());\n    Thread.Sleep(200);\n}\n\nstatic class Talk\n{\n    public static string Say() => \"before the edit\";\n}\n");
         await using McpClient client = await Start(["--mcp", Folder]);
-        // Never built, as on CI, where run comes first: the output folder the design-time build made goes, for dotnet watch's to make.
+        // As where run comes first, never built: the design-time build's output folder goes, for dotnet watch to make.
         Assert.Contains((await Call(client, "find_symbol", new() { ["query"] = "Talk" })).EnumerateArray(), s => s.GetProperty("path").GetString() == "Program.cs");
         TestFolders.Delete(Path.Combine(Folder, "bin"));
         Assert.True((await Call(client, "run", new() { ["waitSeconds"] = 0, ["hotReload"] = true })).GetProperty("stillRunning").GetBoolean());

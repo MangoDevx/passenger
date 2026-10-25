@@ -20,15 +20,15 @@ namespace Passenger.App.Navigation;
 public sealed record FindChoices(SearchScope Start, IReadOnlyList<ProjectModel> Projects, IReadOnlyList<string> Directories,
     IReadOnlyList<string> Scopes, IReadOnlyList<string> Masks);
 
-/// <summary>Rider's Find in Files (and Replace in Files): the query with Match case, Words and Regex (Alt+C, Alt+O,
-/// Alt+X), the scope (Solution, Project, Directory with Recursively, or a named Scope: Alt+U, Alt+P, Alt+D, Alt+S,
-/// Alt+Y) and the file mask (Alt+K), the matches as they are found with each one's file and line, the chosen one's file
-/// previewed below; Enter or a double-click goes to it, Escape closes. In Replace mode a replacement and Replace All.</summary>
+/// <summary>Find in Files (and Replace in Files): the query with Match case, Words and Regex (Alt+C, Alt+O, Alt+X), the
+/// scope (Solution, Project, Directory with Recursively, or a named Scope: Alt+U, Alt+P, Alt+D, Alt+S, Alt+Y) and the
+/// file mask (Alt+K), the matches as they are found with each one's file and line, the chosen one's file previewed
+/// below; Enter or a double-click goes to it, Escape closes. In Replace mode a replacement and Replace All.</summary>
 public sealed class FindInFilesPopup : UserControl
 {
     private static readonly TimeSpan Pause = TimeSpan.FromMilliseconds(250);
 
-    /// <summary>Rider's scopes for a solution, in its order, with the letter of each one's Alt key.</summary>
+    /// <summary>The scopes for a solution, with the letter of each one's Alt key.</summary>
     private static readonly (SearchScopeKind Kind, string Name, Key Key)[] Kinds =
     [
         (SearchScopeKind.Solution, "Solution", Key.U),
@@ -66,7 +66,7 @@ public sealed class FindInFilesPopup : UserControl
 
     private Task? searching;
 
-    /// <param name="ligatures">Settings' Enable ligatures, which the matched lines and the preview follow as the editor does.</param>
+    /// <param name="ligatures">Settings' Enable ligatures, which the matched lines and the preview follow.</param>
     public FindInFilesPopup(Func<SearchQuery, SearchScope, CancellationToken, Task<IReadOnlyList<SearchMatch>>> search, Func<string, TextSnapshot?> textOf,
         bool replace, string? initial, FindChoices choices, bool ligatures)
     {
@@ -75,7 +75,6 @@ public sealed class FindInFilesPopup : UserControl
         projects = choices.Projects;
         Width = PopupFrame.Widest;
         query = new TextBox { Classes = { "search" }, PlaceholderText = "Text to find", Text = initial ?? string.Empty };
-        // The find bar's own marks for the same options, where letters of their own told them apart.
         matchCase = Option(OptionGlyph("Icon.MatchCase"), "Match case (Alt+C)");
         words = Option(OptionGlyph("Icon.WholeWord"), "Words (Alt+O)");
         regex = Option(new TextBlock { Text = ".*", FontFamily = CSharp.Fonts.Mono, FontWeight = FontWeight.Bold, FontSize = 12 }, "Regex (Alt+X)");
@@ -85,7 +84,6 @@ public sealed class FindInFilesPopup : UserControl
         find.Children.Add(toggles);
         find.Children.Add(query);
 
-        // The mask sits at the header's right, as in Rider: a check that turns it on, and the masks used lately.
         maskOn = new CheckBox { Content = "File mask:", IsChecked = choices.Start.Mask is not null, FontSize = 12, MinHeight = 0, VerticalAlignment = VerticalAlignment.Center };
         ToolTip.SetTip(maskOn, "File mask (Alt+K)");
         maskBox = Field(choices.Masks.Count > 0 ? choices.Masks : ["*.cs"], editable: true);
@@ -172,7 +170,6 @@ public sealed class FindInFilesPopup : UserControl
             Classes = { "popup" },
             Child = new StackPanel { Children = { top, results, previewFrame } },
         };
-        // A pause in typing searches, held as background work so a screenshot waits for the matches it brings.
         typing = new Debounce(Pause, () => searching = Refresh());
         query.TextChanged += (_, _) => Retype();
         foreach (ToggleButton option in new[] { matchCase, words, regex })
@@ -277,7 +274,7 @@ public sealed class FindInFilesPopup : UserControl
         }
     }
 
-    /// <summary>The matches' number as Rider says it: a thousand and more past the limit.</summary>
+    /// <summary>The matches' number: a thousand and more past the limit.</summary>
     private static string Count(int found) =>
         found >= FileSearch.MostMatches ? $"{FileSearch.MostMatches}+ matches" : Plural.Of(found, "match", "matches");
 
@@ -325,12 +322,12 @@ public sealed class FindInFilesPopup : UserControl
         return searching;
     }
 
-    /// <summary>The search under way, if any (for a test to wait on).</summary>
+    /// <summary>The search under way, if any.</summary>
     public Task Searching => searching ?? Task.CompletedTask;
 
-    /// <summary>Replace All, on the matches of the query and scope as they stand. Those shown may be the last search's for a
-    /// moment (a key or the scope changed within the pause before the next), so they are searched again first: Replace All
-    /// pressed as the scope changed to the current file replaced in every file the solution's search had found.</summary>
+    /// <summary>Replace All, on the matches of the query and scope as they stand: those shown may be the last search's
+    /// for a moment (a key or the scope changed within the pause before the next), so they are searched again
+    /// first.</summary>
     public void RequestReplace() => _ = ReplaceAsync();
 
     private async Task ReplaceAsync()

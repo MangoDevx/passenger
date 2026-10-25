@@ -6,9 +6,9 @@ using Passenger.App.CSharp;
 
 namespace Passenger.App.Settings;
 
-/// <summary>Rider's Edit variables: the template's variables down the left in the order Tab visits them, Up and Down to
-/// move one; for the one chosen, its macro (or "No macro selected"), the macro's argument when it takes one, whether it
-/// is Editable, and Change macro to choose another. Done hands them back.</summary>
+/// <summary>Edit variables: the template's variables down the left in the order Tab visits them, Up and Down to move
+/// one; for the one chosen, its macro (or "No macro selected"), the macro's argument when it takes one, whether it is
+/// Editable, and Change macro to choose another. Done hands them back.</summary>
 public sealed class TemplateVariablesDialog : Window
 {
     private readonly List<TemplateVariable> variables;
@@ -121,7 +121,7 @@ public sealed class TemplateVariablesDialog : Window
 
     private void List() => names.ItemsSource = (string[])[.. variables.Select(v => v.Name)];
 
-    /// <summary>Rider's Choose macro, for the chosen variable: none keeps it empty, to be typed.</summary>
+    /// <summary>Choose macro, for the chosen variable: none keeps it empty, to be typed.</summary>
     private async Task ChangeMacro()
     {
         if (Chosen is not { } chosen)
@@ -157,7 +157,7 @@ public sealed class TemplateVariablesDialog : Window
 
 }
 
-/// <summary>Rider's Choose macro: "(No macro)" and every macro by what it does; OK, or a double click, chooses.</summary>
+/// <summary>Choose macro: "(No macro)" and every macro by what it does; OK, or a double click, chooses.</summary>
 public sealed class ChooseMacroDialog : Window
 {
     /// <summary>What "(No macro)" is called in the list.</summary>

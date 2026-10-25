@@ -13,19 +13,14 @@ using Microsoft.Extensions.Logging;
 
 namespace Passenger.Roslyn.Extension;
 
-// Passenger's own project loading in Roslyn's server: the server's LanguageServerProjectLoader, which keeps each loaded
-// project in step with what it is given (its documents, references, options, a project a target framework), watches its
-// files and asks for it again when they change, with what it is given coming from Passenger's project host rather than
-// the build host the server would start. These are the server's internal types, reached through the publicized
-// assemblies the extension is compiled against (Passenger.Roslyn.Extension.csproj), as the server's own MEF parts are:
-// the server composes the extension's assembly with its own.
+// The server's internal types, reached through the publicized assemblies the extension is compiled against.
 
 /// <summary>Projects loaded from the design-time builds Passenger gives (<see cref="Load"/>) or, for a project it names
 /// without them or one the server finds changed, asks it for (<see cref="ProjectMethods.Info"/>).</summary>
 internal sealed class PassengerProjectLoader : LanguageServerProjectLoader, ILspService
 {
-    /// <summary>Each project's design-time builds as given, read as its load takes them: the server loads a batch's projects
-    /// at once (its RunParallelAsync), so their reading is spread over them, never one after another in the notification.</summary>
+    /// <summary>Each project's design-time builds as given, read as its load takes them, so a batch's reading is spread over
+    /// the server's parallel loads rather than done one after another in the notification.</summary>
     private readonly ConcurrentDictionary<string, (string Infos, IReadOnlyList<ProjectDiagnostic>? Logged)> given = new(StringComparer.Ordinal);
     private readonly IClientLanguageServerManager client;
 
@@ -52,14 +47,12 @@ internal sealed class PassengerProjectLoader : LanguageServerProjectLoader, ILsp
             // One loaded already loads again with what it was given; one just begun is the same work, done once.
             _projectsToReload.AddWork(new Microsoft.CodeAnalysis.LanguageServer.HostWorkspace.ProjectToLoad(project.Path, null, ReportTelemetry: false));
         }
-        // As the server's own solution/open does.
         await WaitForProjectsToFinishLoadingAsync().ConfigureAwait(false);
         await ProjectInitializationHandler.SendProjectInitializationCompleteNotificationAsync(client).ConfigureAwait(false);
     }
 
-    /// <summary>What a load restores, as the server's own solution loader chooses it: the projects of the solution open
-    /// restored with the solution (whose restore leaves its MSBuild nodes with the server, the server's own), the rest
-    /// on their own.</summary>
+    /// <summary>What a load restores: the projects of the solution open restored with the solution, whose restore leaves
+    /// its MSBuild nodes with the server, and the rest on their own.</summary>
     public override async ValueTask<ImmutableArray<string>> GetPathsToRestoreAsync(ImmutableArray<string> projectsThatNeedRestore, CancellationToken cancellationToken)
     {
         if (_workspaceFactory.HostProjectFactory.SolutionPath is not { } solution)
@@ -96,7 +89,7 @@ internal sealed class PassengerProjectLoader : LanguageServerProjectLoader, ILsp
         return Result(projectPath, Read(answer.Infos), Logged(answer.Diagnostics));
     }
 
-    /// <summary>What the builds logged, as the server's build host would have given it.</summary>
+    /// <summary>What the builds logged, as the server's log items.</summary>
     private static DiagnosticLogItem[] Logged(IReadOnlyList<ProjectDiagnostic>? logged) =>
         [.. (logged ?? []).Select(d => new DiagnosticLogItem(d.Error ? DiagnosticLogItemKind.Error : DiagnosticLogItemKind.Warning, d.Message, d.Project))];
 
@@ -114,7 +107,7 @@ internal sealed class PassengerProjectLoader : LanguageServerProjectLoader, ILsp
         ActualBuildHostKind = BuildHostProcessKind.NetCore,
     };
 
-    /// <summary>Design-time builds as Roslyn's build host writes them, which is how Passenger's host writes them too.</summary>
+    /// <summary>Design-time builds read from the JSON Passenger's host writes (Roslyn's ProjectFileInfo).</summary>
     private static ProjectFileInfo[] Read(string json) => JsonSerializer.Deserialize<ProjectFileInfo[]>(json, JsonSettings.SingleLineSerializerOptions) ?? [];
 }
 
@@ -140,7 +133,7 @@ internal sealed class PassengerProjectLoaderFactory : ILspServiceFactory
 }
 
 /// <summary><see cref="ProjectMethods.Load"/>: loads the projects named, through <see cref="PassengerProjectLoader"/>, its
-/// progress reported to the client as the server's own project/open reports it.</summary>
+/// progress reported to the client.</summary>
 [Method(ProjectMethods.Load)]
 internal sealed class LoadProjectsHandler(PassengerProjectLoader loader, WorkDoneProgressManager progress) : ILspServiceNotificationHandler<LoadProjectsParams>
 {

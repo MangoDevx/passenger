@@ -470,8 +470,8 @@ public static class XamlNavigation
         }
     }
 
-    /// <summary>What a name is, as the card the pointer rests on says it: a type with its base, a member with its type and
-    /// declaring type, a resource with what makes it (and its colour), an element with its type.</summary>
+    /// <summary>What a name is, in words: a type with its base, a member with its type and declaring type, a resource with
+    /// what makes it (and its colour), an element with its type.</summary>
     public static string Describe(XamlFile file, XamlSymbol symbol)
     {
         XamlTarget target = symbol.Targets[0];

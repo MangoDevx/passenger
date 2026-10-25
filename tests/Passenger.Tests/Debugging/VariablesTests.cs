@@ -80,7 +80,7 @@ public class VariablesTests(ITestOutputHelper testOutputHelper)
             .WithStackTraceRequest(stoppedEvent2.ThreadId!.Value, out StackTraceResponse? stackTraceResponse2)
             .WithScopesRequest(stackTraceResponse2.StackFrames!.First().Id, out ScopesResponse? scopesResponse2)
             .WithVariablesRequest(scopesResponse2.Scopes.Single().VariablesReference, out List<DapVariable>? variables2);
-        // Assert the variables reference count resets on continue, by asserting the variables are the same as the first time (code is in a while loop)
+        // The code is in a loop, so the same variables after a continue mean the references were numbered afresh.
         variables2.ShouldBeEquivalentToDebuggerVariables(expectedVariables);
     }
 }
@@ -193,8 +193,7 @@ file static class TestExtensions
         intListVariables.ShouldBeEquivalentToDebuggerVariables(expectedVariables);
     }
 
-    // An entry is named by its key and shows its value, as its [DebuggerDisplay("{Value}", Name = "[{Key}]")]
-    // asks and Visual Studio shows it (upstream kept both in the value, #53).
+    // An entry is named by its key and shows its value, as its [DebuggerDisplay("{Value}", Name = "[{Key}]")] asks.
     public static void AssertDictionaryVariables(this DebugSession debugProtocolHost, int variablesReference)
     {
         List<DapVariable> expectedVariables =

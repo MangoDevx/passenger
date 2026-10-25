@@ -84,8 +84,8 @@ public partial class MainWindow
 
     private string? NeedsFolder(ActionContext _) => Folder is null ? Refusals.NoFolder : null;
 
-    /// <summary>The scope of the rows chosen in the Explorer while it has the keys, as Rider's Find in Files takes the
-    /// Solution view's selection; null elsewhere, for the scope kept.</summary>
+    /// <summary>The scope of the rows chosen in the Explorer while it has the keys; null elsewhere, for the scope
+    /// kept.</summary>
     private Workspace.SearchScope? ExplorerScope(ActionContext context) =>
         context.ToolWindow?.Id == ToolWindowIds.Explorer && Explorer.SelectedNodes is { Count: > 0 } rows ? ScopeOf(rows) : null;
 
@@ -94,7 +94,6 @@ public partial class MainWindow
     {
         actions = new ActionRegistry(Context, () => keys.Keymap, work);
         Dock.Actions = actions;
-        // The toolbar's buttons run their actions as their keys do, each showing its action's work while it is under way.
         foreach ((Button button, string id) in (ReadOnlySpan<(Button, string)>)[(BuildButton, A.Build), (RunButton, A.RunProgram), (DebugButton, A.Debug),
             (ProfileButton, A.Profile), (HotReloadButton, A.ApplyHotReloadChanges), (StopButton, A.Stop), (SearchButton, A.GoToEverything), (SettingsButton, A.ShowSettings)])
         {
@@ -110,11 +109,11 @@ public partial class MainWindow
         actions.Add(new IdeAction(A.RecentFiles, "Recent Files", "IDE", _ => ShowRecentFiles()) { Menus = [new("File", 0, 4), new("View", 2, 0)] });
         Add(A.Save, "Save", "IDE", context => _ = SaveExplicitly(all: false), Refusals.NeedsFile, ("File", 1, 0));
         Add(A.SaveAll, "Save All", "IDE", context => _ = SaveExplicitly(all: true), _ => Editors.Documents.Any(d => d.IsModified) ? null : "Every file is saved", ("File", 1, 1));
-        // Quit is the application menu's on macOS; either closes every window, as Rider's does.
+        // Quit is the application menu's on macOS; either closes every window.
         Add(A.Exit, "Exit", "IDE", _ => PassengerApp.Quit(), menu: OperatingSystem.IsMacOS() ? null : ("File", 4, 0));
         Add(A.FindAction, "Find Action…", "IDE", _ => ShowFindAction(), menu: ("Help", 0, 0));
 
-        // Rider's Unit Tests window takes Find's keys for its search while it has them.
+        // The Unit Tests window takes Find's keys for its search while it has them.
         Add(A.Find, "Find", "IDE", c =>
         {
             if (c.ToolWindow?.Id == ToolWindowIds.Tests)
@@ -181,7 +180,7 @@ public partial class MainWindow
 
         AddTabActions();
 
-        // The tool windows' frame: run from the terminal too, as the windows' own shortcuts are.
+        // The tool windows' frame, run from the terminal too.
         actions.Add(new IdeAction(A.MaximizeToolWindow, "Maximize Tool Window", "Tool Windows", _ => Dock.ToggleMaximize()) { Menus = [new("View", 3, 0)], FromTerminal = true });
         actions.Add(new IdeAction(A.HideAllToolWindows, "Hide All Tool Windows", "Tool Windows", _ => Dock.ToggleHideAll()) { Menus = [new("View", 3, 1)], FromTerminal = true });
         actions.Add(new IdeAction(A.HideToolWindow, "Hide Active Tool Window", "Tool Windows", _ => HideToolWindow()) { Menus = [new("View", 3, 2)], FromTerminal = true });
@@ -210,7 +209,6 @@ public partial class MainWindow
             [E.ToggleBlockComment] = [new("Code", 2, 1)],
             [E.MoveLineUp] = [new("Edit", 4, 1)],
             [E.MoveLineDown] = [new("Edit", 4, 2)],
-            // Rider's Folding, in its order: expanding, collapsing, the doc comments, the toggle.
             [E.Unfold] = [new("Code/Folding", 0, 0)],
             [E.UnfoldAll] = [new("Code/Folding", 0, 1)],
             [E.Fold] = [new("Code/Folding", 1, 0)],
@@ -271,10 +269,9 @@ public partial class MainWindow
 
         Add(A.RunProgram, "Run", "Run", _ => RunSelected(), _ => Unconfigured("run"), ("Run", 0, 0));
         Add(A.Debug, "Debug", "Run", _ => DebugSelected(), _ => Unconfigured("debug"), ("Run", 0, 1));
-        // Rider's Run menu has it after Run, Debug and Attach to Process, with no key in its Visual Studio keymaps.
+        // No key in Rider's Visual Studio keymaps.
         Add(A.EditConfigurations, "Edit Configurations…", "Run", _ => ShowRunConfigurations(), NeedsFolder, ("Run", 0, 5));
-        // Rerun runs the last session again, under the debugger when that is how it runs, attached again when it was attached:
-        // as Rider's, one still running is stopped first, where Run said it was already running.
+        // Rerun runs the last session again, as it ran; one still running is stopped first.
         Add(A.Rerun, "Rerun", "Run", c =>
         {
             if (session.Debug.Session is { } debugged && debugged == attachSession)
@@ -300,7 +297,7 @@ public partial class MainWindow
             IReadOnlyList<Debugging.LineBreakpoint> here = session.Debug.Breakpoints.In(c.File!.Path);
             if ((here.FirstOrDefault(b => b.Line == line && b.Attribute == attribute) ?? here.FirstOrDefault(b => b.Line == line)) is not { } editing)
             {
-                // Alt+F9 on a line with none sets one to edit, as Rider's Edit Breakpoint does: on an XAML attribute, its own.
+                // Edit Breakpoint on a line with none sets one to edit: on an XAML attribute, its own.
                 if (attribute is not null)
                 {
                     session.Debug.Breakpoints.ToggleAttribute(c.File.Path, line, attribute);
@@ -338,7 +335,7 @@ public partial class MainWindow
         string? NoTestHere(ActionContext context) => NeedsFolder(context)
             ?? (ChosenTests(context) is null && ChosenProjects(context) is null && TestAtCaret(context) is null ? "No test is at the caret" : null);
 
-        // Rider's Stop is disabled with no run to end, its toolbar's button and its menu item alike.
+        // Stop is disabled with no run to end, its toolbar's button and its menu item alike.
         string? NothingRunning(ActionContext context) => NeedsFolder(context) ?? (session.Tests.IsBusy ? null : "No unit tests are running");
     }
 

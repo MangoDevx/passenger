@@ -37,17 +37,15 @@ public sealed record ComposeGap(string Compose, string Service, string Name, str
     public bool Same(ComposeGap other) => this with { ReadIn = [] } == other with { ReadIn = [] } && ReadIn.SequenceEqual(other.ReadIn, PathNames.Comparer);
 }
 
-/// <summary>The connection strings a compose file's .NET services read that their environments do not set, as Compose's
-/// own model has their environments (environment, env_file, what it interpolated) and as the Roslyn extension reads what
-/// each service's project reads (<see cref="Handlers.ConnectionReads"/>, Aspire's one reading of them), each marked on the
-/// service's name where the file declares it: one the project's own settings never give either (appsettings.json, or
-/// appsettings.{environment}.json for the environment the service runs in, Development by default), a warning; one they
-/// give at this machine's own host (<see cref="BackingService.LocalHost"/>), which in the container is the container
-/// itself, a weaker one; one they give elsewhere, nothing. Passenger's own fix sets the variable in its environment
-/// (<see cref="ComposeFixes.SetVariable"/>): to the backing service's connection string where the file runs the one it
-/// reaches, else, for one never given, to a value the person fills in. Each is also a <see cref="ComposeGap"/>, whose reads
-/// the service's code is marked at, from the same answer. A service is .NET when its build's Dockerfile builds one of the
-/// solution's projects (<see cref="Web.ComposeDeclarations.Built"/>).</summary>
+/// <summary>The connection strings a compose file's .NET services read that their environments do not set, by Compose's
+/// own model of their environments (environment, env_file, what it interpolated) and the reads
+/// <see cref="Handlers.ConnectionReads"/> finds in each service's project, each marked on the service's name where the file
+/// declares it: one the project's own settings never give either (appsettings.json, or appsettings.{environment}.json for
+/// the environment the service runs in, Development by default), a warning; one they give at this machine's own host
+/// (<see cref="BackingService.LocalHost"/>), which in the container is the container itself, a weaker one; one they give
+/// elsewhere, nothing. Its fix sets the variable in the service's environment (<see cref="ComposeFixes.SetVariable"/>).
+/// Each is also a <see cref="ComposeGap"/> for the code that reads it. A service is .NET when its build's Dockerfile
+/// builds one of the solution's projects (<see cref="Web.ComposeDeclarations.Built"/>).</summary>
 internal static class ComposeConnections
 {
     /// <summary>The missing connection strings of the services the file declares, from Compose's model of it
@@ -127,8 +125,7 @@ internal static class ComposeConnections
                     .Select(r => r.Path).Distinct(PathNames.Comparer)];
                 if (runs is not null && BackingService.Configured(runs.Folder, name, environmentName) is { } given)
                 {
-                    // Given by its settings, which its build carries: worth saying only when it names this machine, which in
-                    // the container is the container itself.
+                    // Given by its settings: worth saying only when it names this machine, in the container the container itself.
                     if (BackingService.LocalHost(given.Value) is not { } local)
                     {
                         continue;

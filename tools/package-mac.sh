@@ -1,12 +1,13 @@
 #!/bin/sh
 # Passenger's macOS disk image: `just package-mac [osx-arm64] [--dry-run]` makes
-# artifacts/package/Passenger-macos-arm64.dmg (Apple Silicon only: no Intel Mac build ships), the name a release keeps from one to the next (#56). The
-# Release publish (self-contained, ReadyToRun, the debugger and Roslyn's server beside it) becomes Passenger.app, signed
-# under the hardened runtime with the entitlements below: by PASSENGER_SIGN_IDENTITY (a Developer ID Application
-# identity), else ad hoc, which Apple Silicon needs to run it at all and which a person opens once through System
-# Settings > Privacy & Security > Open Anyway. With PASSENGER_NOTARY_PROFILE (a notarytool keychain profile) the app is
-# notarized and stapled, then the image signed, notarized and stapled too. --dry-run writes the Developer ID's and the
-# notary's commands to a file instead of running them, and signs ad hoc. The image is then mounted read-only and checked.
+# artifacts/package/Passenger-macos-arm64.dmg (Apple Silicon only: no Intel Mac build ships), a name each release keeps.
+# The Release publish (self-contained, ReadyToRun, the debugger and Roslyn's server beside it) becomes Passenger.app,
+# signed under the hardened runtime with the entitlements below: by PASSENGER_SIGN_IDENTITY (a Developer ID
+# Application identity), else ad hoc, which Apple Silicon needs to run it at all and which a person opens once through
+# System Settings > Privacy & Security > Open Anyway. With PASSENGER_NOTARY_PROFILE (a notarytool keychain profile) the
+# app is notarized and stapled, then the image signed, notarized and stapled too. --dry-run writes the Developer ID's
+# and the notary's commands to a file instead of running them, and signs ad hoc. The image is then mounted read-only
+# and checked.
 set -eu
 fail() {
     echo "package-mac: $*" >&2
@@ -47,9 +48,7 @@ app="$stage/Passenger.app"
 mount="$work/mount"
 commands="$work/dry-run.txt"
 image="$out/Passenger-macos-$arch.dmg"
-# The version is a vX.Y.Z tag on this commit, else the Version every project carries (Directory.Build.props), and
-# the assemblies are built with it too, so the app says the version its bundle does. The build number counts the
-# commits, so each package's is higher than the last; a shallow clone would count only the ones it has.
+# A vX.Y.Z tag on this commit, else Directory.Build.props' Version; the build number counts the commits, so each rises.
 version=$(git -C "$root" describe --tags --exact-match --match 'v[0-9]*' 2>/dev/null | sed 's/^v//' || true)
 [ -n "$version" ] || version=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' "$root/Directory.Build.props" | head -n 1)
 if ! echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
@@ -68,8 +67,7 @@ attach() {
     mounted=1
 }
 detach() {
-    # Spotlight or XProtect can hold a volume just made for a moment; the last tries force it, the very last saying why
-    # and what holds it (-quiet closes stderr, which left a failure here with no word on CI).
+    # Spotlight or XProtect can hold a volume just made a moment: the last tries force it, the very last without -quiet.
     for try in 1 2 3 4 5; do
         force=
         if [ "$try" -gt 3 ]; then
@@ -90,8 +88,8 @@ detach() {
     fi
     mounted=
 }
-# hdiutil create and convert now and then fail on a CI runner ("Resource busy", the system's scanners on what was just
-# written), and -quiet closes stderr: tried three times, a moment apart, the last one saying why. OUT is removed first.
+# hdiutil create and convert now and then fail ("Resource busy", the system's scanners on what was just written), and
+# -quiet closes stderr: tried three times, a moment apart, the last one saying why. OUT is removed first.
 retry_hdiutil() {
     out=$1
     shift
@@ -113,8 +111,7 @@ trap 'exit 1' HUP INT TERM
 if [ -d "$mount" ]; then
     hdiutil detach "$mount" -force -quiet 2>/dev/null || true
 fi
-# A mount of the image being replaced (Finder's, from opening it) reads the new file's bytes by its path as its own, and
-# Finder then calls its Passenger.app damaged: such a mount is ejected first, or the package stops saying so.
+# A mount of the image being replaced reads the new file as its own and calls its app damaged, so it is ejected first.
 if [ -f "$image" ]; then
     for disk in $(hdiutil info -plist | python3 -I -c '
 import os, plistlib, sys
@@ -130,19 +127,15 @@ fi
 rm -rf "$work" "$image"
 mkdir -p "$work"
 
-# Only the packages the lock files pin, as CI restores; and no MSBuild node is left running once it is done.
+# Only the packages the lock files pin, and no MSBuild node left running once it is done.
 dotnet publish "$root/src/Passenger.App" -c Release -r "$rid" --self-contained -p:PublishReadyToRun=true -p:Version="$version" \
     -p:RestoreLockedMode=true -nodeReuse:false -o "$publish" -nologo -v quiet
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp -R "$publish/." "$app/Contents/MacOS/"
-# The web language servers are no code of the bundle's, and codesign takes a folder in Contents/MacOS named with a dot (a
-# package's .github, yaml's dist/schema/yaml-1.1) for a nested bundle and refuses the app: Resources holds them, where
-# WebLanguages.Carried finds them.
+# The web servers go in Resources, since codesign takes a dotted folder under Contents/MacOS for a nested bundle.
 mv "$app/Contents/MacOS/web" "$app/Contents/Resources/web"
 cp "$root/src/Passenger.App/Assets/Passenger.icns" "$app/Contents/Resources/Passenger.icns"
-# The document types are what the Finder's Open With and a drop on the Dock's icon offer Passenger: solutions and C#
-# projects (by extension, having no system type) and folders, never claimed as their default. macOS hands them to the
-# Passenger running, which opens each in a window (PassengerApp.OpenFromSystem), rather than starting another.
+# The document types Open With and the Dock offer Passenger: solutions, C# projects and folders, never as default.
 cat > "$app/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -184,12 +177,7 @@ cat > "$app/Contents/Info.plist" <<EOF
 </plist>
 EOF
 
-# The JIT writes code, and the native libraries (Skia, dbgshim, the pseudo-terminal's shim) are not signed by
-# Passenger's team. No debugger entitlement (com.apple.security.cs.debugger): the debugger's adapter runs under the
-# machine's dotnet, whose signature is Microsoft's, and reaches a program's runtime, launched or attached to, through the
-# pipes the runtime opens for a debugger in the user's temporary folder, never through the task port the entitlement
-# guards (the system refuses dotnet the one it asks for each session, and nothing is lost, #17). Never get-task-allow,
-# which lets anything attach to Passenger itself and which Apple's notary refuses.
+# For the JIT and others' natives; no debugger entitlement (the adapter uses the runtime's pipes) nor get-task-allow.
 entitlements="$work/entitlements.plist"
 cat > "$entitlements" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -241,9 +229,7 @@ notarize() {
     fi
 }
 
-# Inside out, then the bundle, which signs its main executable. The bundle's seal takes everything in Contents/MacOS
-# for code, so .NET's DLLs and PDBs are signed too (their signatures kept in extended attributes); the entitlements are
-# only the executables'.
+# Inside out, then the bundle; its seal takes all of Contents/MacOS for code, so .NET's DLLs and PDBs are signed too.
 find "$app/Contents/MacOS" -type f ! -path "$app/Contents/MacOS/Passenger" | while IFS= read -r file; do
     case $(file -b "$file") in
         Mach-O*executable*) sign --entitlements "$entitlements" "$file" ;;
@@ -259,15 +245,11 @@ if [ -n "$profile" ]; then
     developer xcrun stapler staple "$app"
 fi
 
-# Beside the app, a link to /Applications to drag it onto, Passenger's icon for the volume, and the window Finder opens
-# on it (tools/dmg-layout.py). The volume's name carries the version, as the file's name cannot.
+# Beside the app: a link to /Applications and the volume's icon; its name carries the version, as the file's cannot.
 volume_name="Passenger $version"
 ln -s /Applications "$stage/Applications"
 cp "$root/src/Passenger.App/Assets/Passenger.icns" "$stage/.VolumeIcon.icns"
-# The window's picture, an arrow from the app to Applications (#188): tools/dmg-background.svg drawn by sips at its size
-# and at twice it, each from the SVG as `just app-icon` draws the icons, joined by tiffutil into one TIFF that Finder
-# shows at the screen's scale. sips says nothing in its exit status of a file it skipped, so the picture's absence
-# says it.
+# The window's picture at 1x and 2x in one TIFF; sips's exit status ignores a file it skipped, so its absence says it.
 background="$root/tools/dmg-background.svg"
 size=$(sed -n 's/^<svg [^>]*width="\([0-9]*\)" height="\([0-9]*\)".*/\1 \2/p' "$background")
 [ -n "$size" ] || fail "tools/dmg-background.svg names no width and height in pixels on its <svg>"
@@ -287,8 +269,7 @@ retry_hdiutil "$work/image.dmg" create -volname "$volume_name" -srcfolder "$stag
 attach "$work/image.dmg" -readwrite
 # The volume's top folder says it has an icon of its own (Finder's kHasCustomIcon), which hdiutil does not copy.
 xattr -wx com.apple.FinderInfo 0000000000000000040000000000000000000000000000000000000000000000 "$mount"
-# Written on the volume itself, since the picture's alias names the volume's creation date and the catalog IDs the
-# volume gave the picture and its folder, which the compressed image keeps.
+# Written on the volume itself: the picture's alias names its creation date and catalog IDs, which the image keeps.
 python3 -I "$root/tools/dmg-layout.py" write "$mount" "$volume_name"
 detach
 # LZMA: about a quarter smaller than zlib or LZFSE (ULFO) to download; macOS reads it from 10.15, and the app needs 13.
@@ -302,11 +283,7 @@ if [ -n "$profile" ]; then
     developer xcrun stapler staple "$image"
 fi
 
-# The image as a person gets it: compressed and whole, mounted read-only, Passenger.app beside the Applications link
-# under Passenger's icon and over the window's picture, which the .DS_Store names, the app's signature whole and without
-# get-task-allow, its version and the volume's the package's, Roslyn's server, the debugger's adapter, the licence and
-# the notices in it, and every Mach-O file built for the image's processor (a file built only for the other would make
-# macOS run the app through Rosetta, or not at all).
+# Checked as a person gets it; every Mach-O file for its processor, or macOS runs it through Rosetta or not at all.
 hdiutil verify -quiet "$image"
 format=$(hdiutil imageinfo "$image" 2>/dev/null | sed -n 's/^Format: //p')
 [ "$format" = ULMO ] || fail "the image's format is '$format', not ULMO"
@@ -316,8 +293,7 @@ volume=$(diskutil info "$mount" | sed -n 's/^ *Volume Name: *//p')
 [ "$volume" = "$volume_name" ] || fail "the image's volume is named '$volume', not '$volume_name'"
 [ "$(readlink "$mount/Applications")" = /Applications ] || fail "the image has no link to /Applications beside the app"
 xattr -px com.apple.FinderInfo "$mount" | grep -q '^00 00 00 00 00 00 00 00 04' || fail "the image's volume has no icon of its own"
-# The picture in .background, of the window's size and twice it, and the .DS_Store's alias to it naming this volume,
-# its creation date and the picture's catalog IDs and paths, so that Finder finds it once a Mac mounts it in /Volumes.
+# The .DS_Store's alias must name this volume and the picture's IDs and paths, for Finder to find it in /Volumes.
 python3 -I "$root/tools/dmg-layout.py" check "$mount" "$volume_name"
 [ "$(ls -A "$mount/.fseventsd")" = no_log ] || fail "the image carries the event log of its read-write mount"
 codesign --verify --deep --strict "$shipped"
@@ -347,11 +323,7 @@ if [ -n "$profile" ]; then
     developer spctl --assess --type open --context context:primary-signature --verbose "$image"
     developer spctl --assess --type execute --verbose "$shipped"
 fi
-# A run of the app writes nothing inside it: a file added there breaks the seal, and Gatekeeper then calls a downloaded app
-# damaged (#450; Roslyn's server writes its MEF caches beside itself, so it runs from a copy in the state's cache). The
-# app copied out of the image as a person installs it, signed as shipped, opens a small C# project twice headless (each
-# run waiting for the C# server to load it: the first start writes Razor's cache, the next the MEF composition), and
-# must verify still.
+# A run must write nothing inside the app, or its seal breaks and Gatekeeper calls it damaged: run twice, then verified.
 check="$work/check"
 mkdir -p "$check/Sample"
 ditto "$shipped" "$check/Passenger.app"

@@ -23,8 +23,8 @@ public static class BindingValues
     /// <summary>The inspector's own copy's <see cref="Read"/>, set in the startup hook's copy.</summary>
     internal static Func<string, object?[]>? Live { get; set; }
 
-    /// <summary>The read (<see cref="XamlRead"/> as JSON) answered as an array: the <see cref="XamlValues"/> as JSON first, then
-    /// each value shown at its slot, so the debugger shows them as Variables does.</summary>
+    /// <summary>The read (<see cref="XamlRead"/> as JSON) answered as an array: the <see cref="XamlValues"/> as JSON
+    /// first, then each value shown at its slot.</summary>
     public static object?[] Read(string read) => Live is { } live ? live(read) : BindingReader.Serve(read);
 }
 
@@ -179,9 +179,9 @@ internal static class BindingReader
         return shared;
     }
 
-    /// <summary>Of an element's instances, the one nearest the element chosen: the one whose nearest ancestor shared with it is
-    /// nearest it (itself, an ancestor of it, a part of the same template's instance); none when two are as near, or none is
-    /// chosen, as the IDE then says how many there are.</summary>
+    /// <summary>Of an element's instances, the one nearest the element chosen: the one whose nearest ancestor shared
+    /// with it is nearest it (itself, an ancestor of it, a part of the same template's instance); none when two are as
+    /// near, or none is chosen.</summary>
     private static AvaloniaObject? Nearest(List<AvaloniaObject> instances, Visual? chosen)
     {
         if (chosen is null)
@@ -407,8 +407,8 @@ internal static class BindingReader
         return new ShownValue(Format(value), value is not null ? TypeName(value.GetType()) : declared is not null ? TypeName(declared) : "object", slot);
     }
 
-    /// <summary>A value as the debugger writes one: a string or a character quoted, a number as C# writes it, an object that
-    /// says nothing of itself by its type in braces.</summary>
+    /// <summary>A value as C# shows one: a string or a character quoted, a number as C# writes it, an object that says
+    /// nothing of itself by its type in braces.</summary>
     public static string Format(object? value)
     {
         string text = value switch

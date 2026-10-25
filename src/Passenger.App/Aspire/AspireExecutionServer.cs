@@ -60,12 +60,10 @@ public sealed class AspireExecutionServer : IAsyncDisposable
         ["DEBUG_SESSION_INFO"] = SessionInfo
     }.ToImmutableDictionary(StringComparer.Ordinal);
 
-    /// <summary>
-    /// Callbacks marshal to the UI if needed and must observe cancellation. A failed creation must clean up its own runner.
-    /// The creation callback may publish events using the request's instance and session IDs before returning its handle.
-    /// Different resources' creations run at once, one resource's creates and deletes in the order DCP sent them, and a
-    /// session's delete waits for its own creation alone.
-    /// </summary>
+    /// <summary>Callbacks marshal to the UI if needed and must observe cancellation. A failed creation must clean up its own
+    /// runner. The creation callback may publish events using the request's instance and session IDs before returning its
+    /// handle. Different resources' creations run at once, one resource's creates and deletes in the order DCP sent them, and
+    /// a session's delete waits for its own creation alone.</summary>
     public static async Task<AspireExecutionServer> StartAsync(
         Func<AspireProjectLaunch, CancellationToken, Task<AspireProjectSession>> createSession,
         Func<AspireProjectSession, CancellationToken, Task> stopSession,
@@ -513,8 +511,7 @@ public sealed class AspireExecutionServer : IAsyncDisposable
                 context.StatusCode = 204;
                 return;
             }
-            // It waits for its own session's create alone; its resource's next create waits for it, as a restart's start
-            // follows its stop.
+            // It waits for its own session's create alone; its resource's next create (a restart's start) waits for it.
             operation = instance.Begin(session.Resource);
         }
         try

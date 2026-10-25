@@ -20,8 +20,7 @@ public static class DocumentUris
         return PathNames.Canonical(local);
     }
 
-    /// <summary>Each URI's path, made once however many places name it: a path is made canonical by asking the disk, which
-    /// done once a place held the UI thread over a list of thousands.</summary>
+    /// <summary>Each URI's path, made once however many places name it: making a path canonical asks the disk.</summary>
     public static Dictionary<string, string> ToPaths(IEnumerable<string> uris)
     {
         Dictionary<string, string> paths = new(StringComparer.Ordinal);

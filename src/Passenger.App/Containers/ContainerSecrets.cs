@@ -7,9 +7,8 @@ namespace Passenger.App.Containers;
 
 /// <summary>Passenger's one rule for what is a secret, and its one mask: a value whose name says it is one
 /// (<see cref="Secret"/>) shows as the same dots whatever its length; in any other value, a URL's password
-/// (<c>postgres://app:••••••@db</c>) and a connection string's part so named (<c>Password=••••••</c>). The Containers
-/// window's Details tab and Inspect's JSON (written to disk only so) follow it, and so do a compose file's hints. An empty
-/// value hides nothing and shows as it is.</summary>
+/// (<c>postgres://app:••••••@db</c>) and a connection string's part so named (<c>Password=••••••</c>). An empty value
+/// hides nothing and shows as it is.</summary>
 public static partial class ContainerSecrets
 {
     public const string Masked = "••••••";
@@ -81,17 +80,15 @@ public static partial class ContainerSecrets
     private const int ShortestKnown = 4;
 
     /// <summary>What a program said of its failure (the docker CLI's and Compose's errors, the aspire CLI's, a resource
-    /// service's status), as Passenger shows or logs it anywhere (the status bar, Problems, a console's line of what failed,
-    /// an agent's answer, the log): each value it knows to be a secret's (<paramref name="known"/>, this process's
-    /// environment's variables whose names are a secret's, and those of the .env in <paramref name="folder"/>, which Compose
-    /// interpolates) as the dots wherever it stands; then on each line a <c>NAME=value</c> or <c>"NAME": "value"</c> whose
-    /// name is a secret's, an Authorization header, a URL's credentials and a connection string's secret part.</summary>
+    /// service's status), masked wherever it is shown or logged: each value it knows to be a secret's (<paramref name="known"/>,
+    /// this process's environment's variables whose names are a secret's, and those of the .env in <paramref name="folder"/>)
+    /// as the dots wherever it stands; then on each line a <c>NAME=value</c> or <c>"NAME": "value"</c> whose name is a
+    /// secret's, an Authorization header, a URL's credentials and a connection string's secret part.</summary>
     public static string InSaid(string said, string? folder = null, IEnumerable<string>? known = null) => Masking(folder, known)(said);
 
-    /// <summary>A command line as Passenger logs or shows it (<see cref="ChildProcesses.Shown"/>: a child's start and end in
-    /// the log, what ChildProcesses throws, a console's echo): each word masked on its own as <see cref="InSaid"/> masks what
-    /// a program said (so a <c>--password=…</c> masks its value, not the words after it), knowing too the values of the
-    /// child's own environment whose names are a secret's.</summary>
+    /// <summary>A command line as Passenger logs or shows it (<see cref="ChildProcesses.Shown"/>): each word masked on its own
+    /// as <see cref="InSaid"/> masks what a program said (so a <c>--password=…</c> masks its value, not the words after it),
+    /// knowing too the values of the child's own environment whose names are a secret's.</summary>
     public static string CommandLine(System.Diagnostics.ProcessStartInfo start) =>
         ChildProcesses.Display(start, Masking(known: [.. start.Environment.Where(v => v.Value is { Length: > 0 } && Secret(v.Key)).Select(v => v.Value!)]));
 

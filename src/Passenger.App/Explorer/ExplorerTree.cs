@@ -21,22 +21,22 @@ public enum NodeKind
     ProjectReference,
 }
 
-/// <summary>The Explorer's tree, in either of Rider's two views: the Solution (its folders with their files, and projects,
-/// each project's dependencies and its files, a file's dependents nested under it, <see cref="FileNesting"/>) or the File
-/// System. Flattened into the rows currently visible, so a virtualizing list draws only what is on screen; a node's
-/// children are made the first time it opens.</summary>
+/// <summary>The Explorer's tree, in either of its two views: the Solution (its folders with their files, and projects,
+/// each project's dependencies and its files, a file's dependents nested under it, <see cref="FileNesting"/>) or the
+/// File System. Flattened into the rows currently visible, so a virtualizing list draws only what is on screen; a
+/// node's children are made the first time it opens.</summary>
 public sealed class ExplorerTree
 {
     /// <summary>Never listed: version control's own store, which nobody edits by hand (and the system's own files,
-    /// <see cref="PathNames.IsSystemFile"/>). The other folders the walks pass over are listed dimmed, as Rider marks
-    /// excluded folders (<see cref="IgnoredFolders"/>).</summary>
+    /// <see cref="PathNames.IsSystemFile"/>). The other folders the walks pass over are listed dimmed
+    /// (<see cref="IgnoredFolders"/>).</summary>
     private const string GitStore = ".git";
 
     private IReadOnlyDictionary<string, Vcs.ChangeKind> changes = new Dictionary<string, Vcs.ChangeKind>();
 
     public ObservableCollection<ExplorerNode> Rows { get; } = [];
 
-    /// <summary>Colours the files version control says changed, as Rider's Project view does.</summary>
+    /// <summary>Colours the files version control says changed.</summary>
     public void SetChanges(IReadOnlyDictionary<string, Vcs.ChangeKind> changed)
     {
         changes = changed;
@@ -68,7 +68,7 @@ public sealed class ExplorerTree
 
     private HashSet<string> cut = new(PathNames.Comparer);
 
-    /// <summary>Dims what was cut and waits to be pasted, as Rider's Solution view does, and what it holds.</summary>
+    /// <summary>Dims what was cut and waits to be pasted, and what it holds.</summary>
     public void SetCut(IReadOnlyList<string> paths)
     {
         cut = new HashSet<string>(paths, PathNames.Comparer);
@@ -104,8 +104,7 @@ public sealed class ExplorerTree
         Show(root);
     }
 
-    /// <summary>A project opened alone, as Rider opens a project file: the project at the top, its dependencies and files
-    /// under it.</summary>
+    /// <summary>A project opened alone: the project at the top, its dependencies and files under it.</summary>
     public void LoadProject(ProjectModel project)
     {
         IsSolutionView = true;
@@ -383,8 +382,8 @@ public sealed class ExplorerTree
     /// its session keeps.</summary>
     public ISet<string> Unloaded { get; set; } = new HashSet<string>(StringComparer.Ordinal);
 
-    /// <summary>A level of the solution as Rider's Solution view sorts it, whatever order the file declares: its folders,
-    /// then its projects, then the files a folder holds, each by name.</summary>
+    /// <summary>A level of the solution, whatever order the file declares: its folders, then its projects, then the
+    /// files a folder holds, each by name.</summary>
     private List<ExplorerNode> Entries(IEnumerable<SolutionEntry> entries, int depth, string? folder) =>
         [.. entries
             .OrderBy(e => e switch { SolutionFolder => 0, ProjectModel => 1, _ => 2 })
@@ -420,12 +419,12 @@ public sealed class ExplorerTree
         return node;
     }
 
-    /// <summary>Rider's "Show files with the same names as nested": a project's files nest by Rider's rules as well as
-    /// by what the project says they depend on.</summary>
+    /// <summary>"Show files with the same names as nested": a project's files nest by name as well as by what the
+    /// project says they depend on.</summary>
     public bool NestFiles { get; set; } = true;
 
-    /// <summary>How a project's files nest under one another: by its DependentUpon, and by Rider's rules when asked; and
-    /// once it is evaluated, the files it holds.</summary>
+    /// <summary>How a project's files nest under one another: by its DependentUpon, and by name when asked; and once it
+    /// is evaluated, the files it holds.</summary>
     private sealed record Nesting(ProjectModel Project, bool ByName, ProjectFiles? Files = null);
 
     /// <summary>A project's row: once MSBuild has evaluated it, its files are the ones it holds as evaluated
@@ -465,8 +464,8 @@ public sealed class ExplorerTree
             ? $"{why}: Passenger builds {project.Name} here for its code help (EnableWindowsTargeting), and Run, Debug and Profile need Windows"
             : null;
 
-    /// <summary>A project's dependencies as MSBuild evaluates them: for a project of one framework, it with the projects and
-    /// packages it references; for a multi-targeted one, each framework with its own, as Rider shows them.</summary>
+    /// <summary>A project's dependencies as MSBuild evaluates them: for a project of one framework, it with the
+    /// projects and packages it references; for a multi-targeted one, each framework with its own.</summary>
     private ExplorerNode Dependencies(ProjectModel given, int depth) =>
         new(NodeKind.Dependencies, "Dependencies", null, depth, false, node =>
         {
@@ -493,8 +492,8 @@ public sealed class ExplorerTree
             return children;
         }) { Owner = given.Path };
 
-    /// <summary>The projects and packages a project (or one framework of it) references; packages the SDK adds of itself
-    /// are left out, as Rider leaves them.</summary>
+    /// <summary>The projects and packages a project (or one framework of it) references; packages the SDK adds of
+    /// itself are left out.</summary>
     private static IEnumerable<ExplorerNode> Referenced(ProjectModel project, IEnumerable<string> projects, IReadOnlyList<PackageDependency> packages, int depth) =>
         projects.Select(r => Leaf(NodeKind.ProjectReference, Path.GetFileNameWithoutExtension(r), null, depth, project, r))
             .Concat((packages.Count > 0 ? packages.Where(p => !p.Implicit).Select(p => (p.Name, p.Version)) : project.Packages)
@@ -601,8 +600,8 @@ public sealed class ExplorerTree
         return nodes;
     }
 
-    /// <summary>The files nested under each of a folder's files, in the folder's order, grouped once for the folder:
-    /// looking through the whole folder for each file's own held the UI thread 0.7 s opening a folder of 6,000 files.</summary>
+    /// <summary>The files nested under each of a folder's files, in the folder's order, grouped once for the folder
+    /// rather than looked for in the whole folder for each file.</summary>
     private static ILookup<string, string> NestedUnder(IEnumerable<string> files, IReadOnlyDictionary<string, string> parents) =>
         files.Where(parents.ContainsKey).ToLookup(file => parents[file], PathNames.Comparer);
 
@@ -716,8 +715,8 @@ public sealed class ExplorerNode : Observable
     public bool CanRemove => Kind is NodeKind.File or NodeKind.Folder or NodeKind.Project or NodeKind.SolutionFolder
         || Kind == NodeKind.ProjectReference && Referenced is not null;
 
-    /// <summary>What Delete only takes out of the solution or its project, its files staying on disk, as Rider's Remove does:
-    /// a project, a solution folder, a file it lists, a project reference.</summary>
+    /// <summary>What Delete only takes out of the solution or its project, its files staying on disk: a project, a
+    /// solution folder, a file it lists, a project reference.</summary>
     public bool LeavesFilesBehind => Kind is NodeKind.Project or NodeKind.SolutionFolder or NodeKind.ProjectReference || IsSolutionItem;
 
     public bool HasChildren => load is not null;

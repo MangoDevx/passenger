@@ -14,7 +14,7 @@ public static class Programs
             .FirstOrDefault(File.Exists);
     }
 
-    /// <summary>Node.js on the PATH, as Rider finds it when none is set in its settings; null when there is none.</summary>
+    /// <summary>Node.js on the PATH; null when there is none.</summary>
     public static string? Node() => OnPath(OperatingSystem.IsWindows() ? "node.exe" : "node");
 
     /// <summary>Git on the PATH, but not Apple's /usr/bin/git when there are no command line tools behind it: that stub

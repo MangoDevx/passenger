@@ -4,7 +4,7 @@ using Passenger.Languages.CSharp;
 
 namespace Passenger.App.Testing;
 
-/// <summary>The run icons beside the tests and test classes each open C# file declares, as Rider's gutter has them,
+/// <summary>The run icons beside the tests and test classes each open C# file declares,
 /// coloured by how each last ran. A file's tests are read off the UI thread from its own parse as each lands, none made
 /// for them, so typing in one file reads no other; the Unit Tests window's tree takes the same read (<see cref="Read"/>).
 /// The icons follow the Unit Tests window at once when tests are found or a run begins or ends, and at most every 150 ms

@@ -6,12 +6,12 @@ namespace Passenger.App;
 
 /// <summary>Changes made outside the IDE, seen at once: the Explorer, Go to File, Git and the open files follow what
 /// another program does in the folder, a project or solution changed on disk is read again, and an open file with
-/// unsaved edits that changed on disk asks which to keep, as Rider's File Cache Conflict does.</summary>
+/// unsaved edits that changed on disk asks which to keep (File Cache Conflict).</summary>
 public partial class MainWindow
 {
-    /// <summary>How long an open file found gone has to come back before it is taken for deleted. Git's checkout and
+    /// <summary>How long an open file found gone has to come back before it is taken for deleted: Git's checkout and
     /// rollback, and editors and formatters that save so, delete a file and write it anew, and the changes seen may be
-    /// handed over between the two: its tab closed then, once in 160 rollbacks on Windows.</summary>
+    /// handed over between the two.</summary>
     private static readonly TimeSpan ComeBack = TimeSpan.FromMilliseconds(500);
 
     private readonly HashSet<OpenDocument> conflicted = [];
@@ -26,7 +26,7 @@ public partial class MainWindow
         }
     };
 
-    /// <summary>How the folders opened from now on are watched: the system's way, unless a test chooses Linux's.</summary>
+    /// <summary>How the folders opened from now on are watched: the system's way, unless another is chosen.</summary>
     public FolderWatching Watching { get; set; } = FolderWatching.Platform;
 
     /// <summary>The open folder's watcher.</summary>
@@ -194,8 +194,8 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>An open file found gone: back within a moment, it takes the new text; still gone, it was deleted elsewhere
-    /// and its tab goes, as Rider's does, unless it holds edits that would go with it.</summary>
+    /// <summary>An open file found gone: back within a moment, it takes the new text; still gone, it was deleted
+    /// elsewhere and its tab goes, unless it holds edits that would go with it.</summary>
     private void AwaitReturn(OpenDocument document)
     {
         if (document.IsModified || !gone.Add(document))
@@ -226,8 +226,8 @@ public partial class MainWindow
         }, TaskScheduler.Default);
     }
 
-    /// <summary>Rider's File Cache Conflict: the disk's version, or the edits made here, written over the disk's. Until it
-    /// is answered the file is never saved, so the answer is the person's.</summary>
+    /// <summary>File Cache Conflict: the disk's version, or the edits made here, written over the disk's. Until it is
+    /// answered the file is never saved, so the answer is the person's.</summary>
     private async Task ResolveConflictAsync(OpenDocument document)
     {
         try
@@ -248,7 +248,7 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>The question itself: true for Load File System Changes. Tests answer for the person.</summary>
+    /// <summary>The question itself: true for Load File System Changes.</summary>
     public Func<OpenDocument, Task<bool>> AskConflict
     {
         get => askConflict ?? (document => new ConfirmDialog("File Cache Conflict",

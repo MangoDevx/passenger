@@ -7,18 +7,16 @@ namespace Passenger.App.Migrations;
 /// (its <c>data:</c> lines, JSON with <c>--json</c>), its errors and warnings each a line, and every line as written.</summary>
 public sealed record EfOutcome(int ExitCode, string Data, IReadOnlyList<string> Errors, IReadOnlyList<string> Warnings, IReadOnlyList<string> Lines)
 {
-    /// <summary>By its exit code alone: dotnet ef ends with 1 on whatever fails it, while an error EF only logged is one it
-    /// went past (Npgsql's read of the history table a new database lacks, which <c>migrations list</c> takes as none applied).</summary>
+    /// <summary>By its exit code alone: an error EF only logs is one it went past (a new database's missing history
+    /// table).</summary>
     public bool Succeeded => ExitCode == 0;
 
     /// <summary>A command that never ran (no .NET, a folder gone), its reason its one error.</summary>
     public static EfOutcome Unstarted(string why) => new(-1, string.Empty, [why], [], [why]);
 }
 
-/// <summary>Runs <c>dotnet ef</c> through <see cref="ChildProcesses"/>, each line told as it comes (for the Build window) and
-/// read by its prefix: <c>data:</c> is the answer, <c>error:</c> and <c>warn:</c> what it says of itself, <c>info:</c> its
-/// progress (and, when it fails, the stack trace it prints there); a line with none is dotnet's own (a tool not
-/// restored).</summary>
+/// <summary>Runs <c>dotnet ef</c> through <see cref="ChildProcesses"/>, each line told as it comes and read by its prefix
+/// (<c>data:</c>, <c>error:</c>, <c>warn:</c>, <c>info:</c>); a line with none is dotnet's own.</summary>
 public static class EfRun
 {
     /// <summary>The width of every prefix, padded: <c>data:    </c>, <c>error:   </c>, <c>verbose: </c>.</summary>

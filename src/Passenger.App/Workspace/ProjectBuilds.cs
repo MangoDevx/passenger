@@ -296,8 +296,7 @@ public sealed class ProjectBuilds
             // What Roslyn's server gives its own build host, so Razor's generated C# is in the builds as it would be there.
             ["RazorDesignTimeTargets"] = Path.Combine(AppContext.BaseDirectory, "roslyn", "Targets", "Microsoft.NET.Sdk.Razor.DesignTime.targets"),
         };
-        // Not background work: nothing drawn waits on it but the language server's load, which a screenshot does not wait
-        // for either, and a large solution's round takes minutes.
+        // Not background work: only the language server's load waits on it, and a large solution's round takes minutes.
         _ = RoundAsync(generation, folder, round, properties, ending.Token);
     }
 

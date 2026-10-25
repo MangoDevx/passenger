@@ -49,11 +49,11 @@ public sealed class CommitGroup(string name, IReadOnlyList<CommitRow> rows) : Ob
     }
 }
 
-/// <summary>Rider's Commit window: the changed files under Changes and the new ones under Unversioned Files, each
-/// with a box for whether it goes in (changes are in and new files out until chosen, as Rider has them), and files in
-/// conflict above them under Merge Conflicts, with its Resolve link and no box; Amend and the message below (a merge's
-/// own message while one is under way); Commit and Commit and Push. Double-click opens a file's diff, or a conflicted
-/// file's merge; Rollback puts the chosen ones back.</summary>
+/// <summary>The Commit window: the changed files under Changes and the new ones under Unversioned Files, each with a box
+/// for whether it goes in (changes are in and new files out until chosen), and files in conflict above them under Merge
+/// Conflicts, with its Resolve link and no box; Amend and the message below (a merge's own message while one is under
+/// way); Commit and Commit and Push. Double-click opens a file's diff, or a conflicted file's merge; Rollback puts the
+/// chosen ones back.</summary>
 public sealed class CommitView : DockPanel
 {
     private VcsController vcs;
@@ -103,7 +103,7 @@ public sealed class CommitView : DockPanel
             new Separator(),
             ListMenus.Item("Copy Path", null, () => _ = ListMenus.CopyAsync(this, chosen.Change.Path)),
         ]);
-        // Double-click shows the diff and F4 the file, as in Rider's Commit window.
+        // Double-click shows the diff and F4 the file.
         list.DoubleTapped += (_, _) =>
         {
             if (list.SelectedItem is CommitRow row)
@@ -130,7 +130,7 @@ public sealed class CommitView : DockPanel
             }
             if (e.Key == Key.Space && e.KeyModifiers == KeyModifiers.None)
             {
-                // Space flips the chosen rows' boxes, as in Rider's tree.
+                // Space flips the chosen rows' boxes.
                 CommitRow[] selected = [.. list.SelectedItems?.OfType<CommitRow>().Where(r => r.Change.Kind is not ChangeKind.Conflicted) ?? []];
                 bool to = !selected.All(r => r.IsChosen);
                 foreach (CommitRow row in selected)
@@ -173,8 +173,7 @@ public sealed class CommitView : DockPanel
             VerticalContentAlignment = VerticalAlignment.Top,
         };
         message.TextChanged += (_, _) => UpdateButtons();
-        // Ctrl+Enter (Cmd+Enter on the Mac) commits from the message, as in Rider: seen as it tunnels, since the box takes
-        // any Enter as a new line before a handler of its bubbling KeyDown hears of it.
+        // Ctrl+Enter (Cmd+Enter on the Mac) commits, seen as it tunnels: the box takes any Enter as a new line first.
         message.AddHandler(KeyDownEvent, (_, e) =>
         {
             if (e.Key == Key.Enter && e.KeyModifiers == (OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control))
@@ -250,7 +249,7 @@ public sealed class CommitView : DockPanel
     /// <summary>The Merge Conflicts group's Resolve link: the Conflicts dialog.</summary>
     public event EventHandler? ResolveRequested;
 
-    /// <summary>Asks the person to agree (a title, the question, the button that agrees), as the window's Confirm does.</summary>
+    /// <summary>Asks the person to agree (a title, the question, the button that agrees).</summary>
     public Func<string, string, string, Task<bool>>? Confirm { get; set; }
 
     /// <summary>A conflicted file to merge, double-clicked.</summary>
@@ -309,14 +308,14 @@ public sealed class CommitView : DockPanel
         set => amend.IsChecked = value;
     }
 
-    /// <summary>Puts the keys in the message, as Rider's Commit shortcut does.</summary>
+    /// <summary>Puts the keys in the message (the Commit shortcut).</summary>
     public void FocusMessage() => message.Focus();
 
     /// <summary>Commits the chosen files with the message (pushing after when asked), then empties the message. Whether the
     /// commit was made, whatever came of the push.</summary>
     public async Task<bool> CommitAsync(bool push)
     {
-        // A merge's commit takes in every change but those left out, which stay changes, once the person agrees, as Rider asks.
+        // A merge's commit takes in every change but those left out, which stay changes, once the person agrees.
         bool excluding = vcs.Merge.CommitsWhole && !Amend && vcs.Conflicts.Count == 0
             && rows.OfType<CommitRow>().Any(r => !r.IsChosen && r.Change.Kind is not (ChangeKind.Unversioned or ChangeKind.Conflicted));
         if (excluding && Confirm is { } ask
@@ -387,7 +386,7 @@ public sealed class CommitView : DockPanel
         }
         placeholder.Text = vcs.Repository is null ? "The folder is not in a Git repository" : "No changes";
         placeholder.IsVisible = rows.Count == 0;
-        // A merge under way gives the commit that finishes it the message git wrote for it, as Rider does, until it ends.
+        // A merge under way gives the commit that finishes it the message git wrote for it, until it ends.
         string? merging = vcs.Merge.CommitsWhole ? vcs.Merge.Message : null;
         if (merging is not null && Message.Trim().Length == 0 && merging != prefilled)
         {
@@ -486,7 +485,7 @@ public sealed class CommitView : DockPanel
         };
     }
 
-    /// <summary>Rider's Merge Conflicts node: its name, its count, and the Resolve link that opens the Conflicts dialog.</summary>
+    /// <summary>The Merge Conflicts node: its name, its count, and the Resolve link to the Conflicts dialog.</summary>
     private Control ConflictsRow(CommitGroup group)
     {
         TextBlock name = new() { Text = group.Name, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(26, 0, 0, 0) };
@@ -575,8 +574,7 @@ public sealed class CommitView : DockPanel
         return line;
     }
 
-    /// <summary>A changed file's colour by how it changed (modified, added, deleted, new), as Rider tells them apart and the
-    /// Explorer shows them too.</summary>
+    /// <summary>A changed file's colour by how it changed (modified, added, deleted, new).</summary>
     internal static string KindToken(ChangeKind kind) => kind switch
     {
         ChangeKind.Added => "Passenger.Vcs.File.Added",

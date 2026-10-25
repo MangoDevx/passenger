@@ -4,10 +4,9 @@ using System.Text.RegularExpressions;
 
 namespace Passenger.App.Endpoints;
 
-/// <summary>The environments of Rider's HTTP Client: <c>http-client.env.json</c> beside an .http file or in a folder
-/// over it up to the open folder, its <c>http-client.private.env.json</c> (kept out of version control) laid over it, each
-/// an object of environments (<c>{"dev": {"host": "localhost:5000"}}</c>), and Visual Studio's <c>$shared</c> one
-/// that every environment starts from.</summary>
+/// <summary>The environments of an .http file: <c>http-client.env.json</c> beside it or in a folder over it up to the
+/// open folder, its <c>http-client.private.env.json</c> laid over it, each an object of environments
+/// (<c>{"dev": {"host": "localhost:5000"}}</c>), and the <c>$shared</c> one that every environment starts from.</summary>
 public static partial class HttpVariables
 {
     public const string PublicFile = "http-client.env.json";
@@ -133,9 +132,9 @@ public static partial class HttpVariables
         public bool Overflowed => Left < 0;
     }
 
-    /// <summary>Text with its <c>{{name}}</c> replaced, variables that name others followed, and Rider's dynamic ones
-    /// made anew each time ($uuid, $timestamp, $isoTimestamp, $randomInt, $processEnv NAME); the names it could not
-    /// resolve are added to the filling's <see cref="Filling.Unresolved"/> and left as written.</summary>
+    /// <summary>Text with its <c>{{name}}</c> replaced, variables that name others followed, and the dynamic ones made anew
+    /// each time ($uuid, $timestamp, $isoTimestamp, $randomInt, $processEnv NAME); the names it could not resolve are added
+    /// to the filling's <see cref="Filling.Unresolved"/> and left as written.</summary>
     public static string Resolve(string text, IReadOnlyDictionary<string, string> variables, Filling filling, int depth = 0) =>
         Reference().Replace(text, match =>
         {

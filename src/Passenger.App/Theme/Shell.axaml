@@ -6,12 +6,9 @@
          styles come first and a class's style after them says only how it differs. -->
 
     <Styles.Resources>
-        <!-- The radii and the other shapes a theme draws its own way are the theme's (Tokens.axaml, Harbour.axaml): a
-             button, a text field and a combo box alike, a toolbar's buttons and tabs more, a popup's frame most. -->
-        <!-- A button, a field and a drop-down are one height, Rider's 28, so a row of them shares its edges. -->
+        <!-- A button, a field and a drop-down are one height, so a row of them shares its edges. -->
         <x:Double x:Key="Passenger.ControlHeight">28</x:Double>
-        <!-- A check box's row as tall as a field's, so a page's rows are evenly spaced (Fluent's is 32, its box placed in
-             a row of this height). -->
+        <!-- A check box's row as tall as a field's (Fluent's is 32), so a page's rows are evenly spaced. -->
         <StaticResource x:Key="CheckBoxMinHeight" ResourceKey="Passenger.ControlHeight" />
         <!-- A form's drop-down (ComboBox.form): one width for every drop-down in a column, so their edges line up. -->
         <x:Double x:Key="Passenger.DropDownWidth">280</x:Double>
@@ -23,10 +20,10 @@
         <x:Double x:Key="MenuFlyoutSubItemPopupHorizontalOffset">-16</x:Double>
     </Styles.Resources>
 
-    <!-- A button: its content centred (Fluent leaves it at the left of a button wider than it, as a dialog's footer
-         makes each), Rider's height and side padding, the shared radius, and Rider's plain button's ground and edge (white
-         with a field's edge in light). One that reads as text (crumb, link, statusItem) says otherwise in its own style,
-         as the small square ones (tool, tabClose) say their size and ground. -->
+    <!-- A button: its content centred (Fluent leaves it at the left of a button wider than it), the shared height, side
+         padding and radius, and a plain button's ground and edge (white with a field's edge in light). One that reads as
+         text (crumb, link, statusItem) says otherwise in its own style, as the small square ones (tool, tabClose) say their
+         size and ground. -->
     <Style Selector="Button">
         <Setter Property="MinHeight" Value="{DynamicResource Passenger.ControlHeight}" />
         <Setter Property="Padding" Value="14,0" />
@@ -38,8 +35,8 @@
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Foreground" Value="{DynamicResource Passenger.Text}" />
     </Style>
-    <!-- Rider's button keeps its look under the pointer and pressed, where Fluent lightened and shrank it; a class that
-         lights up under the pointer (tool, widget) says so after this. -->
+    <!-- A button keeps its look under the pointer and pressed (Fluent lightens and shrinks it); a class that lights up
+         under the pointer (tool, widget) says so after this. -->
     <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="{Binding $parent[Button].Background}" />
         <Setter Property="BorderBrush" Value="{Binding $parent[Button].BorderBrush}" />
@@ -53,16 +50,15 @@
     <Style Selector="Button:pressed">
         <Setter Property="RenderTransform" Value="none" />
     </Style>
-    <!-- A button that cannot be used now, the default one too: its words and edge dimmed on its own ground, as Rider's
-         (Fluent's grey slab made a disabled default button look like Cancel). -->
+    <!-- A button that cannot be used now, the default one too: its words and edge dimmed on its own ground, since Fluent's
+         grey slab makes a disabled default button look like Cancel. -->
     <Style Selector="Button:disabled /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="{Binding $parent[Button].Background}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Passenger.DisabledBorder}" />
         <Setter Property="Foreground" Value="{DynamicResource Passenger.TextDisabled}" />
     </Style>
-    <!-- A menu's chosen item on a rounded band inset from the menu's rounded frame, as Rider's are, where Fluent's runs
-         square to the frame's edges; a row as tall as every other row (Fluent's were 28). Its colours are Fluent's menu
-         keys, which FluentKeys.axaml gives as tokens. -->
+    <!-- A menu's chosen item on a rounded band inset from the menu's rounded frame; a row as tall as every other row. Its
+         colours are Fluent's menu keys, which FluentKeys.axaml gives as tokens. -->
     <Style Selector="MenuItem">
         <Setter Property="Margin" Value="4,0" />
         <Setter Property="CornerRadius" Value="{DynamicResource Passenger.ControlRadius}" />
@@ -73,7 +69,7 @@
     <Style Selector="MenuItem /template/ ContentPresenter#PART_HeaderPresenter AccessText">
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
     </Style>
-    <!-- The value in force (MenuChoice) is checked with Rider's tick, a radio item's too, where Fluent drew a dot. -->
+    <!-- The value in force (MenuChoice) is checked with a tick, a radio item's too, in place of Fluent's dot. -->
     <Style Selector="MenuItem:checked:radio /template/ ContentControl#PART_ToggleIconPresenter">
         <Setter Property="Content">
             <Template>
@@ -88,9 +84,9 @@
             </Template>
         </Setter>
     </Style>
-    <!-- A menu's frame as Rider's: its rounded edge and Rider's soft shadow, drawn in room round the frame inside the menu's
-         popup, the popup moved back by that room so the frame opens where it would without it (MenuShadow). A submenu's
-         and the menu button's alike. -->
+    <!-- A menu's frame: its rounded edge and a soft shadow, drawn in room round the frame inside the menu's popup, the
+         popup moved back by that room so the frame opens where it would without it (MenuShadow). A submenu's and the menu
+         button's alike. -->
     <Style Selector="ContextMenu /template/ Border">
         <Setter Property="Margin" Value="{DynamicResource Passenger.MenuShadowRoom}" />
         <Setter Property="BoxShadow" Value="{DynamicResource Passenger.PopupShadow}" />
@@ -106,7 +102,7 @@
     <Style Selector="MenuItem /template/ Popup#PART_Popup">
         <Setter Property="VerticalOffset" Value="-16" />
     </Style>
-    <!-- A rule between a menu's groups in the colour of its edge, as Rider's menus draw theirs. -->
+    <!-- A rule between a menu's groups in the colour of its edge. -->
     <Style Selector="ContextMenu Separator">
         <Setter Property="Background" Value="{DynamicResource Passenger.PopupBorder}" />
     </Style>
@@ -114,8 +110,8 @@
         <Setter Property="Background" Value="{DynamicResource Passenger.PopupBorder}" />
     </Style>
     <!-- A drop-down's list as a menu's: each choice on a rounded band inset from the list's rounded frame, as tall as
-         every other row, where Fluent's ran square to the frame's edges. Its colours are Fluent's drop-down keys, which
-         FluentKeys.axaml gives as tokens: the popup's ground, the chosen one a list's chosen row. -->
+         every other row. Its colours are Fluent's drop-down keys, which FluentKeys.axaml gives as tokens: the popup's
+         ground, the chosen one a list's chosen row. -->
     <Style Selector="ComboBoxItem">
         <Setter Property="Margin" Value="4,0" />
         <Setter Property="CornerRadius" Value="{DynamicResource Passenger.ControlRadius}" />
@@ -141,8 +137,8 @@
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Padding" Value="16,10" />
     </Style>
-    <!-- Every window's ground is a tool window's, as every page of Rider's dialogs is its panel's: a dialog is its page,
-         never an editor's background. A window that shows an editor (a diff, a merge) says so itself. -->
+    <!-- Every window's ground is a tool window's: a dialog is its page, never an editor's background. A window that shows
+         an editor (a diff, a merge) says so itself. -->
     <Style Selector="Window">
         <Setter Property="Background" Value="{DynamicResource Passenger.Panel}" />
     </Style>
@@ -217,7 +213,7 @@
     </Style>
 
     <!-- A list, table or text in a page, framed as a field is, on the list's ground (white in light, deeper than the page
-         in dark), as Rider frames its lists: a frame in the divider's colour would vanish on a deep ground in dark. -->
+         in dark): a frame in the divider's colour would vanish on a deep ground in dark. -->
     <Style Selector="Border.framed">
         <Setter Property="BorderBrush" Value="{DynamicResource Passenger.FieldBorder}" />
         <Setter Property="BorderThickness" Value="1" />
@@ -232,8 +228,7 @@
         <Setter Property="Background" Value="{DynamicResource Passenger.Editor.Background}" />
         <Setter Property="Padding" Value="8,6" />
     </Style>
-    <!-- Selected text as the editor shows it, readable in both themes: Fluent's is the system's saturated blue, under
-         black text in light. -->
+    <!-- Selected text readable in both themes: Fluent's is the system's saturated blue, under black text in light. -->
     <Style Selector="TextBox">
         <Setter Property="CornerRadius" Value="{DynamicResource Passenger.ControlRadius}" />
         <Setter Property="SelectionBrush" Value="{DynamicResource Passenger.TextSelection}" />
@@ -255,7 +250,7 @@
         <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
     <!-- A drop-down in a form's column (Settings' options, New Project's, a run configuration's): every one in the column
-         as wide as the others, its edge where theirs is, as Rider's forms line them up. -->
+         as wide as the others, its edge where theirs is. -->
     <Style Selector="ComboBox.form">
         <Setter Property="Width" Value="{DynamicResource Passenger.DropDownWidth}" />
         <Setter Property="HorizontalAlignment" Value="Left" />
@@ -263,8 +258,8 @@
     <Style Selector="ComboBox:pointerover /template/ Border#Background">
         <Setter Property="BorderBrush" Value="{DynamicResource Passenger.FieldBorder}" />
     </Style>
-    <!-- A disabled drop-down or field stands on the page's own ground with its frame and dimmed text, as Rider's does:
-         Fluent's solid grey slab read as a button, in light most of all. -->
+    <!-- A disabled drop-down or field stands on the page's own ground with its frame and dimmed text: Fluent's solid grey
+         slab reads as a button, in light most of all. -->
     <Style Selector="ComboBox:disabled /template/ Border#Background">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderBrush" Value="{DynamicResource Passenger.FieldBorder}" />
@@ -288,7 +283,7 @@
         <Setter Property="MinHeight" Value="0" />
     </Style>
     <!-- The number's text box is part of the one box: no frame or ground of its own when focused, under the pointer or
-         disabled (Fluent drew a second, brighter frame round the number alone), the box's frame taking the accent while
+         disabled (Fluent draws a second, brighter frame round the number alone), the box's frame taking the accent while
          it has the keys; disabled, its buttons stand on the page's ground as the field does. -->
     <Style Selector="NumericUpDown /template/ TextBox#PART_TextBox:focus /template/ Border#PART_BorderElement">
         <Setter Property="Background" Value="Transparent" />
@@ -316,8 +311,8 @@
     <Style Selector="TextBlock.muted">
         <Setter Property="Foreground" Value="{DynamicResource Passenger.TextMuted}" />
     </Style>
-    <!-- What a tool window or a list says while it has nothing to show, as Rider's empty text: muted, centred, wrapping in
-         a narrow pane rather than cut at its edge. -->
+    <!-- What a tool window or a list says while it has nothing to show: muted, centred, wrapping in a narrow pane rather
+         than cut at its edge. -->
     <Style Selector="TextBlock.emptyText">
         <Setter Property="Foreground" Value="{DynamicResource Passenger.TextMuted}" />
         <Setter Property="HorizontalAlignment" Value="Center" />
@@ -328,8 +323,8 @@
     </Style>
     <!-- A sideways scrollbar takes a row of its own under what it scrolls while it shows, so the last row is never under it;
          a text box's upright one a column of its own, so its lines wrap before it rather than running under it. Elsewhere
-         an upright bar lies over what it scrolls, as Rider's do (ControlThemes.axaml). Each matches AllowAutoHide as Fluent's
-         own spans do, since a style with no such trigger ranks below theirs. -->
+         an upright bar lies over what it scrolls (ControlThemes.axaml). Each matches AllowAutoHide as Fluent's own spans
+         do, since a style with no such trigger ranks below theirs. -->
     <Style Selector="ScrollViewer[AllowAutoHide=True] /template/ ScrollContentPresenter#PART_ContentPresenter">
         <Setter Property="Grid.RowSpan" Value="1" />
     </Style>
@@ -345,14 +340,14 @@
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{DynamicResource Passenger.Text}" />
     </Style>
-    <!-- Every popup's title (PopupFrame), one size and weight, as Rider's popup headers are. -->
+    <!-- Every popup's title (PopupFrame), one size and weight. -->
     <Style Selector="TextBlock.popupTitle">
         <Setter Property="FontSize" Value="13" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{DynamicResource Passenger.Text}" />
     </Style>
-    <!-- What the person changed from what it comes as, in the colour Rider's keymap gives one: an action's shortcuts on
-         Settings' Keymap page, a generated run configuration (and each field's label) changed from its launch profile. -->
+    <!-- What the person changed from what it comes as: an action's shortcuts on Settings' Keymap page, a generated run
+         configuration (and each field's label) changed from its launch profile. -->
     <Style Selector="TextBlock.changed">
         <Setter Property="Foreground" Value="{DynamicResource Passenger.Modified}" />
     </Style>
@@ -376,8 +371,8 @@
         <Setter Property="Foreground" Value="{DynamicResource Passenger.Error}" />
     </Style>
 
-    <!-- A test's mark in the Unit Tests window, as Rider's: grey ring not run, blue dot running, green tick passed, red
-         cross failed, grey dash skipped. -->
+    <!-- A test's mark in the Unit Tests window: grey ring not run, blue dot running, green tick passed, red cross failed,
+         grey dash skipped. -->
     <Style Selector="PathIcon.testState">
         <Setter Property="Width" Value="10" />
         <Setter Property="Height" Value="10" />
@@ -408,8 +403,8 @@
         <Setter Property="Foreground" Value="{DynamicResource Passenger.Test.Skipped}" />
     </Style>
 
-    <!-- An outcome filter on the Unit Tests window's toolbar, as Rider's: the outcome's mark and how many tests have it,
-         the ones chosen on a raised band. -->
+    <!-- An outcome filter on the Unit Tests window's toolbar: the outcome's mark and how many tests have it, the ones
+         chosen on a raised band. -->
     <Style Selector="ToggleButton.outcome">
         <Setter Property="Height" Value="24" />
         <Setter Property="MinWidth" Value="0" />
@@ -521,8 +516,8 @@
     <Style Selector="Button.tool:pressed /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource Passenger.Selected}" />
     </Style>
-    <!-- The window's buttons at the merged title bar's right, as Rider draws them on Windows: the bar's height, square
-         corners, thin glyphs, and red under Close. -->
+    <!-- The window's buttons at the merged title bar's right: the bar's height, square corners, thin glyphs, and red under
+         Close. -->
     <Style Selector="Button.windowButton">
         <Setter Property="Width" Value="46" />
         <Setter Property="VerticalAlignment" Value="Stretch" />
@@ -622,7 +617,7 @@
     <Style Selector="ToggleButton.tool:checked /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource Passenger.Selected}" />
     </Style>
-    <!-- An action that cannot run now keeps its place, dimmed, as Rider's toolbars do. -->
+    <!-- An action that cannot run now keeps its place, dimmed. -->
     <Style Selector="Button.tool:disabled /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="Transparent" />
     </Style>
@@ -797,7 +792,7 @@
     <Style Selector="Border.tab:pointerover Button.tabClose">
         <Setter Property="Opacity" Value="1" />
     </Style>
-    <!-- The open tab shows its × as Rider's does, in place of its modified dot. -->
+    <!-- The open tab shows its × in place of its modified dot. -->
     <Style Selector="Border.tab.active Button.tabClose">
         <Setter Property="Opacity" Value="1" />
     </Style>
@@ -854,7 +849,7 @@
         <Setter Property="Background" Value="{DynamicResource Passenger.Field}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Passenger.FieldBorder}" />
     </Style>
-    <!-- Fluent turns a focused field black (white in light); Rider's keeps its own ground and gains the accent edge.
+    <!-- A focused search field keeps its own ground (Fluent turns it black, white in light) and gains the accent edge.
          After the field's own edge, which would otherwise win and leave the focused field's edge grey. -->
     <Style Selector="TextBox.search:focus /template/ Border#PART_BorderElement">
         <Setter Property="Background" Value="{DynamicResource Passenger.Field}" />
@@ -942,14 +937,14 @@
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
-    <!-- A disabled editable drop-down's text has no ground of its own, where Fluent's disabled text box drew a second box
-         inside the drop-down's. Named by its state: a style without it lost to Fluent's disabled one. -->
+    <!-- A disabled editable drop-down's text has no ground of its own, or Fluent's disabled text box draws a second box
+         inside the drop-down's. Named by its state: a style without it ranks below Fluent's disabled one. -->
     <Style Selector="TextBox#PART_EditableTextBox:disabled /template/ Border#PART_BorderElement">
         <Setter Property="Background" Value="Transparent" />
     </Style>
 
-    <!-- A popup over the window (Go to File, Search Everywhere, the code assist popups): the popup's ground and shadow, as
-         the menus have, and its edge, crowned in Passenger's theme with the title bar's blue-to-teal line. -->
+    <!-- A popup over the window (Go to File, Search Everywhere, the code assist popups): the popup's ground, shadow and
+         edge, crowned in Passenger's theme with the title bar's blue-to-teal line. -->
     <Style Selector="Border.popup">
         <Setter Property="Background" Value="{DynamicResource Passenger.Popup}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Passenger.Popup.Edge}" />
@@ -968,9 +963,8 @@
         <Setter Property="Background" Value="Transparent" />
     </Style>
 
-    <!-- Every tool window's tab (ToolTabs), one look as Rider's header tabs have: its name in the text's colour, a band
-         under the pointer, the open one underlined in the accent (ToolWindow.HeaderTab's underline). The underline's room
-         is kept on every tab, so opening one moves no words. -->
+    <!-- Every tool window's tab (ToolTabs), one look: its name in the text's colour, a band under the pointer, the open one
+         underlined in the accent. The underline's room is kept on every tab, so opening one moves no words. -->
     <Style Selector="ToggleButton.panelTab">
         <Setter Property="Height" Value="{DynamicResource Passenger.ControlHeight}" />
         <Setter Property="TextBlock.TextTrimming" Value="CharacterEllipsis" />
@@ -1007,8 +1001,8 @@
         <Setter Property="Background" Value="{DynamicResource Passenger.Hover}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Passenger.Accent}" />
     </Style>
-    <!-- One of a few choices side by side, as Rider's segmented buttons (Find in Files' scopes): the chosen on a raised
-         band. Not a tool window's tab, which is underlined. -->
+    <!-- One of a few choices side by side (Find in Files' scopes): the chosen on a raised band. Not a tool window's tab,
+         which is underlined. -->
     <Style Selector="ToggleButton.segment">
         <Setter Property="Height" Value="24" />
         <Setter Property="TextBlock.TextTrimming" Value="CharacterEllipsis" />
@@ -1046,7 +1040,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource Passenger.Accent}" />
         <Setter Property="Foreground" Value="{DynamicResource Passenger.AccentText}" />
     </Style>
-    <!-- Disabled, the default button is a disabled plain one, as Rider's is: no accent left to say it would run. -->
+    <!-- Disabled, the default button is a disabled plain one: no accent left to say it would run. -->
     <Style Selector="Button.primary:disabled /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource Passenger.Button}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Passenger.DisabledBorder}" />
@@ -1069,7 +1063,7 @@
         <Setter Property="Foreground" Value="{DynamicResource Passenger.Text}" />
     </Style>
 
-    <!-- A link in running text (About's), as Rider draws one: its words in the link colour, nothing behind them. -->
+    <!-- A link in running text (About's): its words in the link colour, nothing behind them. -->
     <Style Selector="Button.link">
         <Setter Property="TextBlock.TextTrimming" Value="CharacterEllipsis" />
         <Setter Property="Background" Value="Transparent" />
@@ -1089,7 +1083,7 @@
         <Setter Property="Foreground" Value="{DynamicResource Passenger.LinkHover}" />
     </Style>
 
-    <!-- A file's name in the colour of how version control says it changed, as Rider's Project view has it. -->
+    <!-- A file's name in the colour of how version control says it changed. -->
     <Style Selector="TextBlock.vcsModified">
         <Setter Property="Foreground" Value="{DynamicResource Passenger.Vcs.File.Modified}" />
     </Style>
@@ -1229,8 +1223,8 @@
         <Setter Property="Margin" Value="16,32" />
     </Style>
 
-    <!-- Release notes the app carries (What's New), rendered in the editor's place: headed as the Welcome screen heads its
-         page, then the notes' Markdown, a control a block (Editors/Markdown.cs). -->
+    <!-- Release notes the app carries (What's New), rendered in the editor's place: a heading, then the notes' Markdown, a
+         control a block (Editors/Markdown.cs). -->
     <Style Selector="ScrollViewer.notes">
         <Setter Property="Background" Value="{DynamicResource Passenger.Editor.Background}" />
         <Setter Property="Foreground" Value="{DynamicResource Passenger.Text}" />
@@ -1319,7 +1313,7 @@
         <Setter Property="Margin" Value="0,4,0,0" />
         <Setter Property="Foreground" Value="{DynamicResource Passenger.TextMuted}" />
     </Style>
-    <!-- GitHub's table: a frame round it, rules between its cells, its header on the hover's tint. -->
+    <!-- A Markdown table: a frame round it, rules between its cells, its header on the hover's tint. -->
     <Style Selector="Border.mdTable">
         <Setter Property="BorderBrush" Value="{DynamicResource Passenger.Separator}" />
         <Setter Property="BorderThickness" Value="1" />

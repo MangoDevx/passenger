@@ -4,19 +4,18 @@ using Passenger.Text;
 namespace Passenger.Editor;
 
 /// <summary>A template's variable as it goes in: its value there, and whether Tab stops at it to be typed over (one not
-/// Editable in Rider's Edit variables is filled in and passed over).</summary>
+/// editable is filled in and passed over).</summary>
 public readonly record struct SnippetVariable(string Name, string Value, bool Stops = true);
 
 /// <summary>A live template made ready to insert: its text, each variable's places in it in the order Tab visits
-/// them, and where the caret ends up (or what is selected at the end, as Rider's try...catch selects its catch's body).</summary>
+/// them, and where the caret ends up (or what is selected at the end, as try...catch's selects its catch's body).</summary>
 public sealed record Snippet(string Text, IReadOnlyList<IReadOnlyList<TextRange>> Fields, TextRange End)
 {
-    /// <summary>Rider's live template syntax: <c>$NAME$</c> a variable (its places one field, each filled with its
-    /// value), <c>$END$</c> where the caret goes after the last, <c>$SELSTART$</c> and <c>$SELEND$</c> what is selected
-    /// there instead, <c>$SELECTION$</c> the text the template wraps, <c>$$</c> a dollar. Tab visits the variables in the
-    /// order given, then any not given (empty) in the order they appear. Lines after the first take the indentation of the
-    /// line it goes on, a tab the indentation's unit, so a template is written once for every style; the wrapped text's
-    /// lines after its first take the indentation of the template's line it is on.</summary>
+    /// <summary>The live template syntax: <c>$NAME$</c> a variable (its places one field, each filled with its value),
+    /// <c>$END$</c> where the caret goes after the last, <c>$SELSTART$</c> and <c>$SELEND$</c> what is selected there
+    /// instead, <c>$SELECTION$</c> the text the template wraps, <c>$$</c> a dollar. Tab visits the variables in the
+    /// order given, then the rest in the order they appear. Lines after the first take the indentation of the line it
+    /// goes on, a tab its unit, as do the wrapped text's lines after its first.</summary>
     public static Snippet Parse(string template, IReadOnlyList<SnippetVariable> variables, string indent, string unit, string selection = "")
     {
         StringBuilder text = new();

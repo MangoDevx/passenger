@@ -253,8 +253,7 @@ public sealed class AssetPreviewTests : IDisposable
         BinaryPrimitives.WriteInt32LittleEndian(huge.AsSpan(22), 10000);
         File.WriteAllBytes(Path.Combine(folder, "huge.bmp"), huge);
         MainWindow window = Open();
-        // What a stat tells is refused at once; what only the decode finds, off the UI thread, closes the tab that said it
-        // was loading, and the status bar says why in the same words.
+        // A stat refuses at once; the decode, off the UI thread, closes the loading tab, the status bar saying why.
         (string File, string Why)[] refused =
         [
             ("broken.png", "image"), ("broken.ttf", "font"), ("empty.otf", "font must be non-empty"),
@@ -267,7 +266,6 @@ public sealed class AssetPreviewTests : IDisposable
             Assert.Empty(window.EditorArea.Documents);
             Assert.Contains(why, error ?? window.Status ?? "", StringComparison.Ordinal);
         }
-        // A binary file of no kind a preview takes opens as its bytes' text, read-only, rather than refused.
         Assert.Null(window.OpenFile("unknown.bin"));
         Ui.Settle();
         Assert.True(window.EditorArea.Active is { Asset: null, IsBinary: true, IsReadOnly: true }, "unknown.bin did not open as its bytes' text, read-only");
@@ -330,8 +328,8 @@ public sealed class AssetPreviewTests : IDisposable
         window.Close();
     }
 
-    /// <summary>A folder renamed elsewhere (mv, git mv, Finder) takes its open files with it: an image's tab follows it as
-    /// a text file's does, known by its bytes, rather than closing as if it had been deleted.</summary>
+    /// <summary>A folder renamed elsewhere (mv, git mv, Finder) takes its open files with it: an image's tab follows
+    /// it, known by its bytes, rather than closing as if it had been deleted.</summary>
     [AvaloniaFact]
     public void An_open_preview_follows_its_folder_renamed_elsewhere()
     {

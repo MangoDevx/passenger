@@ -5,11 +5,12 @@ using Passenger.Core;
 
 namespace Passenger.App;
 
-/// <summary>Rider's New Solution (File, the Welcome screen, the project widget) and New Project (Add on the solution and a
-/// solution folder in the Solution view, and its keys), both in <see cref="NewProjectDialog"/> from the templates dotnet
-/// new has installed and those of the known packages it can install (<see cref="TemplatePacks"/>). A new solution opens as
-/// the workspace through <see cref="Open"/>, kept in Recent Solutions, and builds in the window it opens in; a new project
-/// goes into the open solution, in the solution folder chosen, by <see cref="SolutionEdits"/>.</summary>
+/// <summary>New Solution (File, the Welcome screen, the project widget) and New Project (Add on the solution and a
+/// solution folder in the Solution view, and its keys), both in <see cref="NewProjectDialog"/> from the templates
+/// dotnet new has installed and those of the known packages it can install (<see cref="TemplatePacks"/>). A new
+/// solution opens as the workspace through <see cref="Open"/>, kept in Recent Solutions, and builds in the window it
+/// opens in; a new project goes into the open solution, in the solution folder chosen, by
+/// <see cref="SolutionEdits"/>.</summary>
 public partial class MainWindow
 {
     private void AddNewProjectActions()
@@ -73,9 +74,9 @@ public partial class MainWindow
         return dialog;
     }
 
-    /// <summary>The new solution with its project in it, opened as the workspace and built, as Rider leaves one ready to run:
-    /// by the window it opens in once its session there has begun, since Open may first ask where, open it in another
-    /// window, or leave this one's solution first.</summary>
+    /// <summary>The new solution with its project in it, opened as the workspace and built, ready to run: by the window
+    /// it opens in once its session there has begun, since Open may first ask where, open it in another window, or
+    /// leave this one's solution first.</summary>
     private void OpenNewSolution(string solution, IReadOnlyList<string> projects)
     {
         List<string> refused = [.. projects.Select(project => Change(() => SolutionEdits.AddProject(solution, null, project), Path.GetFileNameWithoutExtension(solution)))
@@ -104,7 +105,7 @@ public partial class MainWindow
         return Directory.Exists(named) ? PathNames.Canonical(named) : root;
     }
 
-    /// <summary>The solution folder chosen in the Solution view, where New Project's keys put a project, as Rider's do.</summary>
+    /// <summary>The solution folder chosen in the Solution view, where New Project's keys put a project.</summary>
     private string? ChosenSolutionFolder() =>
         Explorer.Selected is { Kind: NodeKind.SolutionFolder, SolutionPath: { } path } ? path : null;
 }

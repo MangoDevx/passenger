@@ -8,7 +8,7 @@ namespace Passenger.Xaml.Syntax;
 public sealed class MarkupExtension
 {
     /// <summary>How deep extensions are read inside one another; one deeper holds the rest of the value unread. Far past any
-    /// XAML written by hand, and short of the stack: a value nested a hundred thousand deep ended the IDE.</summary>
+    /// XAML written by hand, and short of the stack.</summary>
     private const int Deepest = 64;
 
     private readonly List<MarkupArgument> arguments = [];

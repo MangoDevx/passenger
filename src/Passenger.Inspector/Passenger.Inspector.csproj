@@ -1,9 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Passenger's inspector inside an Avalonia app it debugs (the Live Visual Tree): the runtime loads it as a startup hook
-       (DOTNET_STARTUP_HOOKS) into a run Passenger launches, never into the app as built or shipped, and it answers over the
-       socket Passenger names, on the app's UI thread. It is compiled against Avalonia 12 and takes the app's own Avalonia
-       assemblies whatever their 12.x version (StartupHook.cs); carried under inspector/ beside Passenger, its own assembly
-       alone, as the app's Avalonia must be the one it uses. -->
+  <!-- Passenger's inspector inside an Avalonia app it debugs (the Live Visual Tree): the runtime loads it as a startup
+       hook (DOTNET_STARTUP_HOOKS) into a run Passenger launches, never into the app as built or shipped, and it answers
+       over the socket Passenger names, on the app's UI thread. Carried under inspector/ beside Passenger, its own
+       assembly alone, as the app's Avalonia must be the one it uses. -->
   <PropertyGroup>
     <!-- The oldest .NET an Avalonia 12 app runs on, so it loads into any of them. -->
     <TargetFramework>net8.0</TargetFramework>
@@ -16,9 +15,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Compiled against Avalonia's implementation assemblies, not the reference ones the package gives a build: those leave
-         out what Avalonia marks [PrivateApi], among it the value store's diagnostics its DevTools read (which frame gave a
-         value, which style it is, whether it is active) and a popup's host. -->
+    <!-- Compiled against Avalonia's implementation assemblies, not the reference ones the package gives a build: those
+         leave out what Avalonia marks [PrivateApi], among it the value store's diagnostics (which frame gave a value,
+         which style it is, whether it is active) and a popup's host. -->
     <PackageReference Include="Avalonia" GeneratePathProperty="true" ExcludeAssets="compile" />
     <Reference Include="$(PkgAvalonia)/lib/net8.0/Avalonia.Base.dll" Private="false" />
     <Reference Include="$(PkgAvalonia)/lib/net8.0/Avalonia.Controls.dll" Private="false" />

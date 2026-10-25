@@ -11,12 +11,12 @@ using Passenger.App.Settings;
 
 namespace Passenger.App;
 
-/// <summary>The toolbar as the window's title bar, as Rider's main toolbar is (<see cref="TitleBars"/> says where): the
-/// window extends into its frame, the bar's empty space moves it and a double click maximizes it, and what is on the bar
-/// keeps its own clicks. Windows is told which part is which by roles (<see cref="WindowDecorationProperties"/>), so its
-/// own move, snap, double click, window menu and the maximize button's snap layouts work on them; macOS's traffic lights
-/// stand at the bar's left, and Windows' and Linux's buttons are the bar's own at its right. The window's title is still
-/// set for the taskbar, Alt+Tab and Mission Control; the bar draws none.</summary>
+/// <summary>The toolbar as the window's title bar (<see cref="TitleBars"/> says where): the window extends into its
+/// frame, the bar's empty space moves it and a double click maximizes it, and what is on the bar keeps its own clicks.
+/// Windows is told which part is which by roles (<see cref="WindowDecorationProperties"/>), so its own move, snap,
+/// double click, window menu and the maximize button's snap layouts work on them; macOS's traffic lights stand at the
+/// bar's left, and Windows' and Linux's buttons are the bar's own at its right. The window's title is still set for the
+/// taskbar, Alt+Tab and Mission Control; the bar draws none.</summary>
 public partial class MainWindow
 {
     /// <summary>Room at the bar's left for macOS's traffic lights (<see cref="TrafficLights"/>).</summary>
@@ -30,7 +30,8 @@ public partial class MainWindow
     /// <summary>Whether the toolbar is the window's title bar.</summary>
     public bool TitleBarMerged { get; private set; }
 
-    /// <summary>Window moves the bar's empty space started: what a test reads, the headless platform moving no window.</summary>
+    /// <summary>Window moves the bar's empty space started, counted, since the headless platform moves no
+    /// window.</summary>
     public int MovesStarted { get; private set; }
 
     private void AddTitleBar()
@@ -45,8 +46,7 @@ public partial class MainWindow
         TitleBarMerged = merged;
         ExtendClientAreaToDecorationsHint = merged;
         ExtendClientAreaTitleBarHeightHint = merged ? Toolbar.Height : -1;
-        // Windows moves the window, snaps it and maximizes it on a double click itself on a caption. X11 would move it on
-        // a press there before the window saw the press, so Linux's double click goes through OnToolbarPressed instead.
+        // Windows handles a caption's press itself; X11 would take it first, so Linux's goes through OnToolbarPressed.
         WindowDecorationProperties.SetElementRole(Toolbar, merged && OperatingSystem.IsWindows() ? WindowDecorationsElementRole.TitleBar : WindowDecorationsElementRole.None);
         // What shows of the window round its content: Linux's edge where Passenger draws the frame.
         background?.Dispose();
@@ -101,7 +101,8 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>Window menus a right press on the bar's empty space asked Linux's window manager for: what a test reads.</summary>
+    /// <summary>Window menus a right press on the bar's empty space asked Linux's window manager for,
+    /// counted.</summary>
     public int WindowMenusAsked { get; private set; }
 
     /// <summary>A press on the bar's empty space moves the window, a double click does what the system's title bar's does,

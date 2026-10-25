@@ -292,11 +292,10 @@ public sealed class RequestLog
     private static bool Logs(string logged, string text) => logged.AsSpan().Contains(text.AsSpan().TrimEnd(), StringComparison.Ordinal);
 }
 
-/// <summary>A command's parameters as EF Core's log of it writes them (<c>[Parameters=[@__id_0='2' (DbType = Int32)], …]</c>):
-/// each value shown as ContainerSecrets shows a value of that name, or as a secret's when the column its command's text has
-/// it fill or meet is named as one (<see cref="Columns"/>: EF names an INSERT's and an UPDATE's parameters <c>@p0</c>,
-/// <c>@p1</c>…, which say nothing of their columns), a secret's as dots with no word of its size, so no secret the app logs
-/// is kept or shown in the clear.</summary>
+/// <summary>A command's parameters as EF Core's log of it writes them (<c>[Parameters=[@__id_0='2' (DbType = Int32)], …]</c>),
+/// each value masked as ContainerSecrets masks a value of that name, or as a secret's when the column it fills or meets is
+/// named as one (<see cref="Columns"/>: EF's <c>@p0</c>, <c>@p1</c>… say nothing of their columns), so no secret the app
+/// logs is kept or shown in the clear.</summary>
 public static partial class CommandParameters
 {
     /// <summary>The parameters a log names, masked, as "@name='value'" apart by commas; empty for a command with none.</summary>
@@ -323,7 +322,7 @@ public static partial class CommandParameters
             columns ??= Columns(TextOf(logged));
             string shown = columns.TryGetValue(name, out string? column) && ContainerSecrets.Secret(column) ? ContainerSecrets.Masked
                 : ContainerSecrets.Shown(name.TrimStart('@', ':', '$'), value);
-            // A secret's size says something of it: its dots stand alone, as they do wherever Passenger masks one.
+            // A secret's size says something of it: its dots stand alone.
             return $"{name}='{shown.Replace("'", "''", StringComparison.Ordinal)}'{(shown == ContainerSecrets.Masked ? Size().Replace(rest, string.Empty) : rest)}";
         });
     }

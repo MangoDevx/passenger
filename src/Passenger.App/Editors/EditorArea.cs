@@ -11,11 +11,11 @@ using Passenger.Text;
 
 namespace Passenger.App.Editors;
 
-/// <summary>The editors, as Rider's: one group of tabs, or several split right and down, one of them active (the one
-/// the person works in, whose editor <see cref="CodeEditor"/> is). A tab dragged onto a group's edge splits it there,
-/// onto its middle or its tab strip moves into it, and out of the editors into a window of its own (<see
-/// cref="EditorWindow"/>), whose groups are the area's too; a group whose last tab closes goes, and its neighbour takes
-/// its room. A file shows in as many groups as it is open in, in any window, over one text.</summary>
+/// <summary>The editors: one group of tabs, or several split right and down, one of them active (the one the person
+/// works in, whose editor <see cref="CodeEditor"/> is). A tab dragged onto a group's edge splits it there, onto its
+/// middle or its tab strip moves into it, and out of the editors into a window of its own (<see cref="EditorWindow"/>),
+/// whose groups are the area's too; a group whose last tab closes goes, and its neighbour takes its room. A file shows
+/// in as many groups as it is open in, in any window, over one text.</summary>
 public sealed partial class EditorArea : UserControl
 {
     private readonly ObservableCollection<OpenDocument> documents = [];
@@ -201,8 +201,8 @@ public sealed partial class EditorArea : UserControl
         return null;
     }
 
-    /// <summary>Shows a file in the window in front: in the active group if it has its tab, else in the group there that
-    /// does, else in a new tab of the active group, as Rider opens a file in the window it was asked for in.</summary>
+    /// <summary>Shows a file in the window in front: in the active group if it has its tab, else in the group there
+    /// that does, else in a new tab of the active group.</summary>
     public void Activate(OpenDocument document)
     {
         EditorGroup group = activeGroup.Has(document) ? activeGroup : ActiveFrame.Groups.FirstOrDefault(g => g.Has(document)) ?? activeGroup;
@@ -213,8 +213,9 @@ public sealed partial class EditorArea : UserControl
         ActiveChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>Closes a file's tabs everywhere, saved first as Rider never asks; false, the file left open, when it could
-    /// not be written. A file something else holds (<see cref="Hold"/>) stays open without a tab until let go.</summary>
+    /// <summary>Closes a file's tabs everywhere, saved first without asking; false, the file left open, when it could
+    /// not be written. A file something else holds (<see cref="Hold"/>) stays open without a tab until let
+    /// go.</summary>
     public bool Close(OpenDocument document) => Close(document, forGood: false);
 
     /// <summary>Closes a file deleted from disk, its edits with it, even while held: what held it hears it closed.</summary>
@@ -338,20 +339,20 @@ public sealed partial class EditorArea : UserControl
         return true;
     }
 
-    /// <summary>Rider's Close Other Tabs: every tab of the group but this one and the pinned ones.</summary>
+    /// <summary>Close Other Tabs: every tab of the group but this one and the pinned ones.</summary>
     public void CloseOthers(EditorGroup group, OpenDocument keep) => CloseTabs(group, (tab, _) => tab.Document != keep);
 
-    /// <summary>Rider's Close All Tabs: every tab of the group but the pinned ones.</summary>
+    /// <summary>Close All Tabs: every tab of the group but the pinned ones.</summary>
     public void CloseAllTabs(EditorGroup group) => CloseTabs(group, (_, _) => true);
 
-    /// <summary>Rider's Close Tabs to the Left or to the Right of a tab, the pinned ones left open.</summary>
+    /// <summary>Close Tabs to the Left or to the Right of a tab, the pinned ones left open.</summary>
     public void CloseToSide(EditorGroup group, OpenDocument of, bool left)
     {
         int at = group.Tabs.Select(t => t.Document).ToList().IndexOf(of);
         CloseTabs(group, (_, index) => left ? index < at : index > at);
     }
 
-    /// <summary>Rider's Close All but Pinned: the group's unpinned tabs, or every group's in every window.</summary>
+    /// <summary>Close All but Pinned: the group's unpinned tabs, or every group's in every window.</summary>
     public void CloseUnpinned(EditorGroup? group)
     {
         foreach (EditorGroup each in group is null ? AllGroups.ToList() : [group])
@@ -392,9 +393,9 @@ public sealed partial class EditorArea : UserControl
     /// <summary>Whether Reopen Closed Tab has a tab to bring back.</summary>
     public bool CanReopen => closedTabs.Count > 0;
 
-    /// <summary>Rider's Reopen Closed Tab: the tab closed last opens again where it stood, in its group if that is still
-    /// there (else the active one), pinned if it was, its caret and scroll as they were. Null once one is open, else why
-    /// not: none was closed, or none of those closed can be read any more.</summary>
+    /// <summary>Reopen Closed Tab: the tab closed last opens again where it stood, in its group if that is still there
+    /// (else the active one), pinned if it was, its caret and scroll as they were. Null once one is open, else why not:
+    /// none was closed, or none of those closed can be read any more.</summary>
     public string? ReopenClosedTab()
     {
         while (closedTabs.Count > 0)
@@ -423,8 +424,8 @@ public sealed partial class EditorArea : UserControl
         return "No closed tab can be opened again";
     }
 
-    /// <summary>Opens a file in a new group beside one (right for horizontal, below for vertical), as Rider's Split
-    /// Right and Split Down; with <paramref name="move"/> its tab leaves the first group.</summary>
+    /// <summary>Opens a file in a new group beside one (right for horizontal, below for vertical); with
+    /// <paramref name="move"/> its tab leaves the first group.</summary>
     public void Split(EditorGroup beside, OpenDocument document, Orientation orientation, bool move, bool before = false)
     {
         EditorFrame frame = FrameOf(beside) ?? main;
@@ -464,7 +465,8 @@ public sealed partial class EditorArea : UserControl
         ActiveChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>Rider's Move to Opposite Group: the tab goes to the group beside its own in its window, if there is one.</summary>
+    /// <summary>Move to Opposite Group: the tab goes to the group beside its own in its window, if there is
+    /// one.</summary>
     public void MoveToOpposite(EditorGroup group, OpenDocument document)
     {
         List<EditorGroup> all = [.. (FrameOf(group) ?? main).Groups];
@@ -530,7 +532,7 @@ public sealed partial class EditorArea : UserControl
         return all;
     }
 
-    /// <summary>Writes a file even over a version on disk newer than its own, as Keep Memory Changes does.</summary>
+    /// <summary>Writes a file even over a version on disk newer than its own, for Keep Memory Changes.</summary>
     public bool SaveOver(OpenDocument document) => TrySave(document, overDisk: true);
 
     /// <summary>Writes a file, unless something else changed it on disk meanwhile; whether it was written.</summary>
@@ -590,7 +592,6 @@ public sealed partial class EditorArea : UserControl
         TitleWindows();
         if (Active is { } shown && move.Documents.Contains(shown))
         {
-            // What names the file shown (the title, the status bar's path, the structure) reads it again.
             ActiveChanged?.Invoke(this, EventArgs.Empty);
         }
     }
@@ -796,8 +797,9 @@ public sealed partial class EditorArea : UserControl
     /// <summary>Whether a group's window of editors is split, so Unsplit has something to join.</summary>
     public bool IsSplit(EditorGroup group) => (FrameOf(group)?.Groups.Count() ?? 0) > 1;
 
-    /// <summary>Rider's Unsplit: the split a group is in goes, the tabs of the other side joining the group's after its
-    /// own, each with its carets and pin; with <paramref name="all"/> (Unsplit All) every split of its window goes so.</summary>
+    /// <summary>Unsplit: the split a group is in goes, the tabs of the other side joining the group's after its own,
+    /// each with its carets and pin; with <paramref name="all"/> (Unsplit All) every split of its window goes
+    /// so.</summary>
     public void Unsplit(EditorGroup group, bool all)
     {
         if (FrameOf(group) is not { } frame || !IsSplit(group))
@@ -843,8 +845,6 @@ public sealed partial class EditorArea : UserControl
         activeGroup.Cycle(step);
         ActiveChanged?.Invoke(this, EventArgs.Empty);
     }
-
-    // Dropping a dragged tab.
 
     private void Drop(EditorFrame frame, EditorGroup from, OpenDocument document, Point at)
     {
@@ -956,8 +956,6 @@ public sealed partial class EditorArea : UserControl
         }
         return null;
     }
-
-    // The split trees.
 
     private EditorGroup NewGroup()
     {

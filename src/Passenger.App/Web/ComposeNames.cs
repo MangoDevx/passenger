@@ -152,7 +152,6 @@ public static partial class ComposeNames
             string full = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path)!, other));
             return texts(full) is { } elsewhere ? [.. ServicesIn(elsewhere).Select(s => new ComposeName(s, kind, other))] : [];
         }
-        // A list's (or a mapping's) other entries, a long entry's source among them.
         HashSet<string> taken = (under.Length == 1 && listed) || spot.Kind == ComposeSpotKind.Key || spot.Key == "source"
             ? Taken(read, text, ["services", service, under[0]], kind, spot.Start) : [];
         if (declares == "services")
@@ -184,7 +183,6 @@ public static partial class ComposeNames
         }
         foreach (ComposeEntry entry in ComposeFixes.Children(read, list))
         {
-            // The entry typed in: its own lines hold the caret (a long entry's source below its dash).
             int first = text.GetLineFromOffset(Math.Min(entry.KeyStart, text.Length));
             int last = read.Entries.Where(e => e.Path.Count >= entry.Path.Count && e.Path.Take(entry.Path.Count).SequenceEqual(entry.Path, StringComparer.Ordinal))
                 .Max(e => text.GetLineFromOffset(Math.Min(Math.Max(e.KeyStart, e.ValueStart), text.Length)));

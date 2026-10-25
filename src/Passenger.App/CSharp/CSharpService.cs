@@ -12,17 +12,17 @@ using Passenger.Xaml.Localization;
 
 namespace Passenger.App.CSharp;
 
-/// <summary>C# for the open folder: Roslyn's language server started on the workspace's solution or
-/// projects, its state for the status bar, and a <see cref="CSharpDocument"/> for every C# file
-/// open in a tab. Files opened before the server is ready are attached once it is. A server that ends
-/// on its own, or stops answering, is started again with the open files, as Rider restarts its backend, a few times at
-/// most. What the server tells the person (a project that did not load or loaded with warnings, and why) is said in the
-/// status bar and logged, each project's load problems kept for Problems, the load's progress shown, and each start's
-/// phases timed. A UI-thread object: what the server says from its threads crosses through <see cref="UiThread"/>.</summary>
+/// <summary>C# for the open folder: Roslyn's language server started on the workspace's solution or projects, its state
+/// for the status bar, and a <see cref="CSharpDocument"/> for every C# file open in a tab. Files opened before the
+/// server is ready are attached once it is. A server that ends on its own, or stops answering, is started again with
+/// the open files, a few times at most. What the server tells the person (a project that did not load or loaded with
+/// warnings, and why) is said in the status bar and logged, each project's load problems kept for Problems, the load's
+/// progress shown, and each start's phases timed. A UI-thread object: what the server says from its threads crosses
+/// through <see cref="UiThread"/>.</summary>
 public sealed class CSharpService : IAsyncDisposable
 {
-    /// <summary>How long after an error the server logged a message it shows can be its reason (Roslyn logs a project's
-    /// failure to load, then shows that there were problems loading it).</summary>
+    /// <summary>How long after an error the server logged a message it shows can be its reason (a project's failure to
+    /// load is logged before the message that there were problems loading it).</summary>
     private static readonly TimeSpan ReasonWindow = TimeSpan.FromSeconds(10);
 
     /// <summary>How many times a server that keeps ending or hanging is started again within <see cref="RestartWindow"/>.</summary>
@@ -80,7 +80,8 @@ public sealed class CSharpService : IAsyncDisposable
     /// Log finds them, and the newest kept as servers start.</summary>
     public static string LogFolder => Path.Combine(IdeErrors.LogFolder, "roslyn");
 
-    /// <summary>The state's cache, where the server runs from a copy when it may not write beside itself in the app (#450).</summary>
+    /// <summary>The state's cache, where the server runs from a copy when it may not write beside itself in the
+    /// app.</summary>
     public static string ServerCache => Path.Combine(Passenger.App.State.StateStore.DefaultRoot, "cache");
 
     public string State { get; private set; } = string.Empty;
@@ -159,7 +160,7 @@ public sealed class CSharpService : IAsyncDisposable
 
     private static readonly TimeSpan RefusedPullsAtMost = TimeSpan.FromSeconds(30);
 
-    /// <summary>Rider's solution-wide analysis: every file's errors and warnings across the solution, kept current as code
+    /// <summary>Solution-wide analysis: every file's errors and warnings across the solution, kept current as code
     /// changes, without a build. Roslyn is asked to analyse every document, and its workspace diagnostics are pulled
     /// again after each change; an open file's are its own pull's, as they are typed.</summary>
     public bool SolutionWide
@@ -342,9 +343,9 @@ public sealed class CSharpService : IAsyncDisposable
         }
     }
 
-    /// <summary>Pulls the workspace's diagnostics from every source the server has for them, each in a loop of its own:
-    /// Roslyn sends what changed since the results it is given and holds the pull open until the source's next change, so
-    /// each pull is the next change. Only the first round is background work a screenshot waits for.</summary>
+    /// <summary>Pulls the workspace's diagnostics from every source the server has for them, each in a loop of its own,
+    /// the server holding each pull open until the source's next change. Only the first round is background
+    /// work.</summary>
     private void StartAnalysis()
     {
         analysing?.Cancel();
@@ -558,8 +559,7 @@ public sealed class CSharpService : IAsyncDisposable
         documents.Clear();
         RoslynSession? ending = session;
         Unhook();
-        // Kept once its projects loaded, with the problems they loaded with, which the window taking it up hears from it;
-        // never in a load under way, whose problems are still coming.
+        // Kept once its projects loaded, never in a load under way, whose problems are still coming.
         if (warm is not null && ending is { IsLoaded: true } && !ending.Server.HasExited && batch.Count == 0)
         {
             return new ValueTask(warm.Keep(ending, ProjectProblems));
@@ -700,7 +700,7 @@ public sealed class CSharpService : IAsyncDisposable
             }
             if (!started.IsLoaded)
             {
-                // A wait with no fault to leave behind: a window gone meanwhile (a test's, its dispatcher with it) never hears its end.
+                // A wait with no fault to leave behind: a window gone meanwhile never hears its end.
                 await Task.WhenAny(loaded.Task, Task.Delay(TimeSpan.FromMinutes(5), cancel));
                 cancel.ThrowIfCancellationRequested();
                 if (!loaded.Task.IsCompleted)
@@ -929,7 +929,6 @@ public sealed class CSharpService : IAsyncDisposable
             return;
         }
         shownWork = progress.Token;
-        // A restore is said by the project it restores ("Restoring App.csproj"), any other work by its title.
         string what = ((work.Title == RestoreTitle ? work.Said : null) ?? work.Title ?? work.Said ?? "Working").TrimEnd('.', '…');
         Progress = progress.Percentage is { } percent ? $"{what}… {percent}%" : $"{what}…";
         StateChanged?.Invoke(this, EventArgs.Empty);
@@ -1028,7 +1027,7 @@ public sealed class CSharpService : IAsyncDisposable
     }
 
     /// <summary>The server stopped answering: it is ended at once, so every request waiting on it fails rather than
-    /// waiting for ever, and replaced as one that ended is, the status bar saying so as Rider's does.</summary>
+    /// waiting for ever, and replaced as one that ended is, the status bar saying so.</summary>
     private void OnNotResponding(RoslynSession hung, string why)
     {
         if (disposed || session != hung || workspace is null)

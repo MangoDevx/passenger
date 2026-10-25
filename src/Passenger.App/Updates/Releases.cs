@@ -8,8 +8,8 @@ using Passenger.App.Packages;
 
 namespace Passenger.App.Updates;
 
-/// <summary>Where Passenger asks for its latest release, GitHub's API unless <c>PASSENGER_RELEASES</c> names another (the
-/// tests' run names a dead address, so nothing in it reaches GitHub), and how long it waits for the answer.</summary>
+/// <summary>Where Passenger asks for its latest release, GitHub's API unless <c>PASSENGER_RELEASES</c> names another, and
+/// how long it waits for the answer.</summary>
 public sealed record ReleaseFeed(Uri Latest, TimeSpan Timeout)
 {
     public const string Variable = "PASSENGER_RELEASES";
@@ -24,11 +24,11 @@ public sealed record ReleaseFeed(Uri Latest, TimeSpan Timeout)
     public static readonly TimeSpan ShortTimeout = TimeSpan.FromSeconds(10);
 
     /// <summary>Where a release's files download from, each under its tag (v0.2.0/SHA256SUMS): GitHub's for GitHub's feed,
-    /// else the same path on the feed's own host, as a test's stand-in serves them.</summary>
+    /// else the same path on the feed's own host.</summary>
     public Uri Downloads => Latest == GitHub ? new Uri("https://github.com/Zaneris/passenger/releases/download/") : new Uri(Latest, "/Zaneris/passenger/releases/download/");
 
     /// <summary>GitHub's, or the one <c>PASSENGER_RELEASES</c> names; a value there that is no http or https URL is
-    /// fatal, as a malformed flag is (Program checks it before the window opens).</summary>
+    /// fatal.</summary>
     public static ReleaseFeed Default => Environment.GetEnvironmentVariable(Variable) is { Length: > 0 } named
         ? new ReleaseFeed(Parse(named), ShortTimeout)
         : new ReleaseFeed(GitHub, ShortTimeout);
@@ -150,8 +150,7 @@ public static partial class Releases
         }
     }
 
-    /// <summary>An absolute http or https URL, or null: what a release's JSON (or a NuGet feed's advisory) names is opened
-    /// only as a web page.</summary>
+    /// <summary>An absolute http or https URL, or null: what a release's JSON names is opened only as a web page.</summary>
     public static Uri? Web(string? text) =>
         Uri.TryCreate(text, UriKind.Absolute, out Uri? uri) && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp) ? uri : null;
 

@@ -89,13 +89,11 @@ public class ModuleInfo : IDisposable
         {
             string normalizedDocPath = docPath.Replace('\\', '/');
 
-            // Try exact match
             if (string.Equals(normalizedPath, normalizedDocPath, StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
 
-            // Try filename match
             string docFileName = Path.GetFileName(normalizedDocPath);
             if (string.Equals(fileName, docFileName, StringComparison.OrdinalIgnoreCase))
             {

@@ -5,11 +5,11 @@ using Passenger.Core;
 
 namespace Passenger.Profiler;
 
-/// <summary>What Passenger's container tools run inside a container for the profiler outside it, over docker exec's standard
-/// input and output: a run's EventPipe stream (<see cref="TraceAsync"/>, the providers a run on this machine asks for), the
-/// heap's snapshots (<see cref="HeapAsync"/>, dumped and read there with the container's own DAC, and followed through the
-/// program's collections as on this machine), and the sources of methods from the modules' PDBs there (<see cref="Sources"/>).
-/// Each reaches the program at the diagnostic port its runtime opens for itself, in the container's temporary folder.</summary>
+/// <summary>What Passenger's container tools run inside a container for the profiler outside it, over docker exec's
+/// standard input and output: a run's EventPipe stream (<see cref="TraceAsync"/>), the heap's snapshots
+/// (<see cref="HeapAsync"/>) and the sources of methods from the modules' PDBs there (<see cref="Sources"/>). Each
+/// reaches the program at the diagnostic port its runtime opens for itself, in the container's temporary
+/// folder.</summary>
 public static class InContainer
 {
     /// <summary>The line <see cref="TraceAsync"/> writes on its error stream once the session has begun (and the program
@@ -19,19 +19,18 @@ public static class InContainer
     /// <summary>The command <see cref="HeapAsync"/> takes a snapshot for, one a line.</summary>
     public const string TakeSnapshot = "snapshot";
 
-    /// <summary>Records a program from now: its EventPipe session written to <paramref name="output"/> as it comes, until
-    /// <paramref name="input"/> ends (the IDE's Get Snapshot, or the IDE gone), when the session is stopped and its rundown
-    /// flushed, or the program ends. With <paramref name="resume"/> a runtime held at its start
-    /// (DOTNET_DefaultDiagnosticPortSuspend=1) is let go once the session has begun, as dotnet-trace's --resume-runtime does,
-    /// and nothing it starts is held so; with <paramref name="requests"/> the session is <see cref="LiveRequests"/>', a web
-    /// app's requests and their commands. Problems go to <paramref name="said"/>; the exit code is 0 once recorded.</summary>
+    /// <summary>Records a program from now: its EventPipe session written to <paramref name="output"/> as it comes,
+    /// until <paramref name="input"/> ends, when the session is stopped and its rundown flushed, or the program ends.
+    /// With <paramref name="resume"/> a runtime held at its start is let go once the session has begun, and nothing it
+    /// starts is held so; with <paramref name="requests"/> the session is <see cref="LiveRequests"/>'. Problems go to
+    /// <paramref name="said"/>; the exit code is 0 once recorded.</summary>
     public static async Task<int> TraceAsync(int processId, bool resume, Stream input, Stream output, TextWriter said, bool requests = false)
     {
         DiagnosticsClient client = new(processId);
         EventPipeSession session;
         try
         {
-            // A web app's requests (the Requests window's) need no rundown: nothing in them is named by address.
+            // A web app's requests need no rundown: nothing in them is named by address.
             session = requests
                 ? await client.StartEventPipeSessionAsync(LiveRequests.Providers, requestRundown: false, circularBufferMB: 64).ConfigureAwait(false)
                 : await client.StartEventPipeSessionAsync(ProfilingSession.Providers, requestRundown: true, circularBufferMB: 512).ConfigureAwait(false);
@@ -48,7 +47,7 @@ public static class InContainer
             {
                 try
                 {
-                    // What it starts runs freely, as a program the profiler starts on this machine leaves its children.
+                    // What it starts runs freely, not held at its start.
                     client.SetEnvironmentVariable(RuntimeVariables.DefaultDiagnosticPortSuspend, "0");
                 }
                 catch (Exception error) when (error is DiagnosticsClientException or IOException)
@@ -127,10 +126,10 @@ public static class InContainer
         }
     }
 
-    /// <summary>Takes a snapshot of the program's heap for each <see cref="TakeSnapshot"/> line on <paramref name="input"/>
-    /// and writes it to <paramref name="output"/> (<see cref="HeapWire"/>), its objects followed from one snapshot to the next
-    /// through the collections between them, as on this machine; one that fails is written as why. Ends with the input.
-    /// Exit code 2 for a line it does not know.</summary>
+    /// <summary>Takes a snapshot of the program's heap for each <see cref="TakeSnapshot"/> line on
+    /// <paramref name="input"/> and writes it to <paramref name="output"/> (<see cref="HeapWire"/>), its objects
+    /// followed from one snapshot to the next through the collections between them; one that fails is written as why.
+    /// Ends with the input. Exit code 2 for a line it does not know.</summary>
     public static async Task<int> HeapAsync(int processId, Stream input, Stream output, TextWriter said)
     {
         await using HeapHistory history = new(processId);

@@ -4,10 +4,10 @@ using Passenger.Text;
 
 namespace Passenger.Editor;
 
-/// <summary>A live template being filled in, as Rider's: each variable in turn has all its places selected, so what
-/// is typed fills every one, Tab (or Enter) goes on to the next and Shift+Tab back, and after the last the caret goes
-/// to the template's end. Escape, a caret that leaves the variable or another document shown ends it. Each place is
-/// boxed while it lasts.</summary>
+/// <summary>A live template being filled in: each variable in turn has all its places selected, so what is typed fills
+/// every one, Tab (or Enter) goes on to the next and Shift+Tab back, and after the last the caret goes to the
+/// template's end. Escape, a caret that leaves the variable or another document shown ends it. Each place is boxed
+/// while it lasts.</summary>
 public sealed partial class CodeEditor
 {
     private Session? snippet;

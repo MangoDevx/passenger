@@ -192,8 +192,8 @@ internal sealed class Inspector
         top.IsVisible,
         top is PopupRoot { ParentTopLevel: { } parent } ? IdOf(parent) : null) { Overlays = Overlays.Of(top) })];
 
-    /// <summary>The app's top levels, each once: its desktop lifetime's windows or its single view's, then every other one
-    /// Avalonia is drawing (a popup's, or every window of an app with no lifetime, as Passenger's own screenshot has).</summary>
+    /// <summary>The app's top levels, each once: its desktop lifetime's windows or its single view's, then every other
+    /// one Avalonia is drawing (a popup's, or every window of an app with no lifetime).</summary>
     public IReadOnlyList<TopLevel> TopLevels() => AllTopLevels();
 
     /// <summary><see cref="TopLevels"/>, for what reads the app without the inspector's own state (an evaluation's read).</summary>

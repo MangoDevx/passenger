@@ -1,7 +1,7 @@
 namespace Passenger.Text;
 
 /// <summary>Text written with other line breaks than a document's, made the document's: a paste, or what a language
-/// server writes, which is the system's break (or .editorconfig's end_of_line) whatever the file has.</summary>
+/// server writes.</summary>
 public static class LineEndings
 {
     /// <summary>Text with each of its breaks ("\r\n" or "\n") written as <paramref name="eol"/>.</summary>

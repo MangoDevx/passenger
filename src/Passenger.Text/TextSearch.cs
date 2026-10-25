@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace Passenger.Text;
 
-/// <summary>What a search looks for: the text, and Rider's three toggles.</summary>
+/// <summary>What a search looks for: the text, and its three toggles.</summary>
 public readonly record struct SearchQuery(string Text, bool MatchCase = false, bool WholeWords = false, bool Regex = false)
 {
     public bool IsEmpty => Text.Length == 0;
@@ -12,7 +12,7 @@ public readonly record struct SearchQuery(string Text, bool MatchCase = false, b
 /// <summary>Finding every match of a query in a snapshot, and the replacement each one takes. A regex
 /// that does not parse, or one that runs too long, finds nothing and says why instead of throwing. The text is
 /// searched with each "\r\n" read as "\n", as the editor's lines are, so `$` finds a CRLF line's end and `\s`
-/// never takes half of its break; `^` is Rider's, every line's start but the empty end after the last break.</summary>
+/// never takes half of its break; `^` is every line's start but the empty end after the last break.</summary>
 public static class TextSearch
 {
     /// <summary>The most matches a search reports, so a one-letter query in a huge file stays quick;
@@ -111,8 +111,8 @@ public static class TextSearch
         return new Regex(pattern, options, RegexLimit);
     }
 
-    /// <summary>The pattern with each `^` anchor read as Rider's (Java's) is: a line's start, but not the empty end after
-    /// the text's last break, so prefixing every line leaves a file's final newline as it was.</summary>
+    /// <summary>The pattern with each `^` anchor read as a line's start, but not the empty end after the text's last
+    /// break, so prefixing every line leaves a file's final newline as it was.</summary>
     private static string RiderCarets(string pattern)
     {
         if (!pattern.Contains('^', StringComparison.Ordinal))

@@ -88,7 +88,6 @@ internal static class Docker
         TimeSpan limit = TimeSpan.FromSeconds(60).Scaled();
         try
         {
-            // Each object's id and the labels that say whose it is.
             foreach ((string kind, string[] list, string[] remove) in (ReadOnlySpan<(string, string[], string[])>)[
                 ("container", ["ps", "-a"], ["rm", "-f"]), ("network", ["network", "ls"], ["network", "rm"]), ("volume", ["volume", "ls"], ["volume", "rm", "-f"])])
             {
@@ -266,8 +265,7 @@ internal static class Docker
                 {
                     Ask(["volume", "rm", "-f", .. kept], TimeSpan.FromSeconds(60).Scaled());
                 }
-                // The run's images (a container run's builds and the tests' own carry the label), never a base image they share
-                // layers with; untagged ones too, since one removed while a container ran is only untagged and stays.
+                // Untagged ones too: one removed while a container ran is only untagged and stays.
                 ChildResult images = Ask(["image", "ls", "-a", "-q", "--filter", $"label={label}"], TimeSpan.FromSeconds(30).Scaled());
                 string[] built = [.. images.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct(StringComparer.Ordinal)];
                 if (built.Length > 0)
@@ -321,8 +319,7 @@ public sealed class ContainersTests
         ContainerPort port = Assert.Single(web.Container.Ports);
         Assert.Equal("8080", port.Inside);
         Assert.Equal(Docker.Image, Docker.Short(Service(view, project, "worker").Container!.Image));
-        // The port is a link the browser opens, on web's row scrolled into view: an engine holding many projects lists it
-        // below the rows the list makes.
+        // Scrolled into view: an engine holding many projects lists web below the rows the list makes.
         Button? link = null;
         Ui.WaitFor(() => view.Choose(r => r.Key == web.Key)
             && (link = view.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "containerPort" && Equals(b.Content, port.ToString()))) is not null,
@@ -330,22 +327,18 @@ public sealed class ContainersTests
         Ui.Click(link!);
         Assert.Contains(new Uri($"http://localhost:{port.HostPort}/"), window.Browsed);
 
-        // Web's row chosen, its log streams into the console, its address a link.
         OutputView console = view.Log.Console;
         Ui.WaitFor(() => Text(console).Contains("web listening on http://localhost:8080/", StringComparison.Ordinal), "web's first line in its log");
         string line = Text(console).Split('\n').First(l => l.Contains("web listening", StringComparison.Ordinal));
         Assert.Contains(console.Links.In(line), l => l.Target is WebLink { Address.Port: 8080 });
 
-        // The project's log merges its services' lines, each service a toggle.
         Assert.True(view.Choose(r => r.Kind == ContainerRowKind.Project && r.Label == project), "The project's row was not listed");
         Ui.WaitFor(() => Text(console).Contains("worker tick", StringComparison.Ordinal) && Text(console).Contains("web listening", StringComparison.Ordinal),
             "both services' lines in the project's log");
         Assert.Equal(["web", "worker"], view.Log.ServiceToggles.Select(t => (string)t.Content!));
-        // Lines go on coming while it is shown.
         int ticks = Ticks(console);
         Ui.WaitFor(() => Ticks(console) > ticks, "the worker's next tick, streamed");
 
-        // Find over the log takes a regular expression, as the editor's does.
         view.Log.OpenFind();
         Ui.Settle();
         view.Log.Find.FindControl<Avalonia.Controls.Primitives.ToggleButton>("UseRegex")!.IsChecked = true;
@@ -374,7 +367,6 @@ public sealed class ContainersTests
         ContainerStatsSample sample = view.Stats.Latest[0];
         Assert.Equal(name, sample.Name);
         Assert.Contains("/", sample.Memory, StringComparison.Ordinal);
-        // Hidden, nothing streams.
         view.ShowTab("Log");
         Ui.Settle();
         Assert.Empty(view.Stats.Latest);
@@ -438,14 +430,12 @@ public sealed class ContainersTests
         view.Toggle(view.Rows.First(r => r.Key == "group:Volumes"));
         Ui.WaitFor(() => view.Choose(r => r.Kind == ContainerRowKind.Volume && r.Label == volume), $"{volume}'s row");
 
-        // Cancelled, the volume stays.
         Assert.True(window.Perform(AppActions.ContainerRemove), "Remove did not run");
         ConfirmDialog asked = DialogButtonsTests.Check(Asked(window));
         Assert.Contains(Texts(asked), t => t.StartsWith($"Remove the volume {volume} and the data it holds?", StringComparison.Ordinal));
         Ui.ClickButton(asked, "Cancel");
         Assert.True(Docker.VolumeExists(volume), "The volume was removed though the question was cancelled");
 
-        // Allowed, it goes.
         Assert.True(window.Perform(AppActions.ContainerRemove), "Remove did not run");
         Ui.ClickButton(Asked(window), "Remove");
         Ui.WaitFor(() => !Docker.VolumeExists(volume) && !view.Rows.Any(r => r.Label == volume),
@@ -523,14 +513,12 @@ public sealed class ContainersTests
         Assert.NotNull(refused.Result);
         Assert.False(File.Exists(escaped), $"A container's made-up file name had Passenger write {escaped}, outside its cache");
 
-        // A file larger than 16 MB is refused at its header.
         Task<string?> big = view.Files.OpenAsync("/big");
         Ui.WaitFor(() => big.IsCompleted, "the large file's answer");
         Assert.Equal("/big is larger than 16 MB", big.Result);
         string cache = Path.Combine(window.StateFolder, "cache", "containers");
         Assert.Empty(Directory.Exists(cache) ? Directory.EnumerateFiles(cache, "*big*", SearchOption.AllDirectories) : []);
 
-        // A file opened again once it changed shows what it holds now, in the tab it has.
         _ = view.Files.ActivateAsync(view.Files.Entries.First(f => f.Path == "/note.txt"));
         Ui.WaitFor(() => window.EditorArea.Active?.Path.EndsWith("note.txt", StringComparison.Ordinal) == true, "note.txt open in the editor");
         Passenger.App.Workspace.OpenDocument note = window.EditorArea.Active!;
@@ -745,7 +733,6 @@ public sealed class ContainersTests
     [AvaloniaFact]
     public void The_status_bar_and_problems_say_when_there_is_no_docker_or_its_engine_is_not_running()
     {
-        // No CLI anywhere: what to install.
         MainWindow none = new() { Width = 1200, Height = 800, Engine = new ContainerEngine(cli: null, search: false) };
         none.Show();
         none.OpenFolder(TestFolders.Create("ctr-none-"));
@@ -758,7 +745,6 @@ public sealed class ContainersTests
         Assert.Equal("see it in Problems, Containers", none.StatusPlace?.Name);
         none.Close();
 
-        // A CLI whose engine does not answer: start it, a click starting Docker Desktop where it is installed (never clicked here).
         string folder = TestFolders.Create("ctr-down-");
         MainWindow down = new() { Width = 1200, Height = 800, Engine = new ContainerEngine(cli: StandInCli(folder)) };
         down.Show();
@@ -787,15 +773,13 @@ public sealed class ContainersTests
             ContainersView view = Shown(window);
             Ui.WaitFor(() => view.HasRead && view.State?.Status == EngineStatus.NotRunning, "the stopped engine's state read");
 
-            // Started, as Docker Desktop is, the window reads it again by itself: a Compose project listed by its containers' labels
-            // though the CLI has no docker compose to list it.
+            // Listed by its containers' labels, though the stand-in CLI has no docker compose to list it.
             File.WriteAllText(state, "up");
             Ui.WaitFor(() => view.State?.Status == EngineStatus.NoCompose && view.Rows.Any(r => r.Kind == ContainerRowKind.Service && r.Project?.Name == "shop" && r.Service == "web"),
                 $"the started engine's Compose project listed, not [{string.Join(", ", view.Rows.Select(r => r.Label))}] ({view.State?.Status})", TimeSpan.FromSeconds(60));
             Assert.Equal("running(1)", view.Rows.Single(r => r.Kind == ContainerRowKind.Project && r.Label == "shop").Detail);
             Assert.StartsWith("Docker Compose v2 (docker compose) is not installed", window.Status, StringComparison.Ordinal);
 
-            // Stopped and started again (Docker Desktop restarted): the window follows both.
             File.WriteAllText(state, "down");
             Ui.WaitFor(() => view.State?.Status == EngineStatus.NotRunning && view.Rows.Count == 0, "the stopped engine's empty window", TimeSpan.FromSeconds(60));
             File.WriteAllText(state, "up");
@@ -830,9 +814,10 @@ public sealed class ContainersTests
         }
     }
 
-    /// <summary>A container its restart policy starts again after each crash, and one that exited with an error, show red as
-    /// failed, as an Aspire resource's failure does, where the first showed green as running and the second grey; one a Stop
-    /// ended (SIGKILL's 137) and one that exited cleanly show stopped, and each dot's tip says the engine's words.</summary>
+    /// <summary>A container its restart policy starts again after each crash, and one that exited with an error, show
+    /// red as failed; one a Stop ended (SIGKILL's 137) and one that exited cleanly show stopped, and each dot's tip
+    /// says the engine's words. A container's menu begins with the service actions, greyed with why while no run of the
+    /// folder's has it as a .NET service.</summary>
     [AvaloniaFact]
     public void A_container_that_keeps_restarting_or_exited_with_an_error_shows_failed_and_one_stopped_shows_stopped()
     {
@@ -863,8 +848,6 @@ public sealed class ContainersTests
                 Assert.Equal($"{name}: {said}", ToolTip.GetTip(dot));
             }
 
-            // A container's menu begins with the service actions, as an Aspire resource's does, greyed with why while no run
-            // of the folder's has it as a .NET service.
             TextBlock crashy = view.GetVisualDescendants().OfType<RunRowView>().Single(r => r.Shown?.Label == "crashy")
                 .GetVisualDescendants().OfType<TextBlock>().First(text => text.Text == "crashy");
             Ui.Click(crashy);
@@ -952,12 +935,11 @@ public sealed class ContainersTests
         }
     }
 
-    /// <summary>A docker of the test's own whose engine is running or not as its <c>state</c> file says ("up" or "down"):
-    /// a Linux server at <paramref name="host"/> with no Compose v2 and no buildx, holding a container of a Compose project
-    /// "shop" (service web, port 8080) and a stopped one of its own whose id begins as web's, whose events go on while it is
-    /// up, whose logs are what <paramref name="logs"/> (a shell command) writes, whose stats what <paramref name="stats"/>
-    /// does, and which lists <paramref name="more"/> containers too (a line of <c>docker ps --format json</c> each). The CLI
-    /// and the state file.</summary>
+    /// <summary>A docker of the test's own whose engine is up or down as its <c>state</c> file says: a Linux server at
+    /// <paramref name="host"/> with no Compose v2 and no buildx, holding a container of a Compose project "shop"
+    /// (service web, port 8080) and a stopped one whose id begins as web's, its events going on while up, its logs and
+    /// stats what <paramref name="logs"/> and <paramref name="stats"/> (shell commands) write, and <paramref
+    /// name="more"/> listed too (<c>docker ps --format json</c> lines). The CLI and the state file.</summary>
     internal static (string Cli, string State) StandInEngine(string folder, bool up, string host = "unix:///nowhere/docker.sock",
         string logs = "echo 'hello from the stand-in web'", string stats = "exit 1", IReadOnlyList<string>? more = null)
     {

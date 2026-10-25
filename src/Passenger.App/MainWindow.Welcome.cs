@@ -6,11 +6,11 @@ using Passenger.Core;
 
 namespace Passenger.App;
 
-/// <summary>Opening a workspace: File, Open (a solution or project) and Open Folder, and the recent folders, solutions and
-/// projects, kept in the store's recentSolutions.json by the window a person uses as each opens, listed by the Welcome
-/// screen (in the editor area while nothing is open), File, Recent Solutions and the toolbar's project widget, and those
-/// open as Passenger quit reopened on a start that names nothing, as Rider's Reopen projects on startup. Each opens here or
-/// in a window of its own (MainWindow.ProjectWindows). Clone Repository is beside them.</summary>
+/// <summary>Opening a workspace: File, Open (a solution or project) and Open Folder, and the recent folders, solutions
+/// and projects, kept in the store's recentSolutions.json by the window a person uses as each opens, listed by the
+/// Welcome screen (in the editor area while nothing is open), File, Recent Solutions and the toolbar's project widget,
+/// and those open as Passenger quit reopened on a start that names nothing. Each opens here or in a window of its own
+/// (MainWindow.ProjectWindows). Clone Repository is beside them.</summary>
 public partial class MainWindow
 {
     private readonly WelcomeView welcome = new();
@@ -39,12 +39,11 @@ public partial class MainWindow
         });
     }
 
-    /// <summary>Opens what File, Open or Open Folder chose (or the recent solutions, the system, a new solution or a clone):
-    /// a solution (.sln, .slnx) or C# project (.csproj) as the workspace over its folder, or a folder, in this window or
-    /// another as Settings says or the person answers (<see cref="Asking"/>); any other file in an editor tab here, in the
-    /// open folder or on its own, as Rider's Open does. Null once it is open or asked where, else why not (it is not there,
-    /// or cannot be read), which the status bar and the Welcome screen say; <paramref name="then"/> is told the window a
-    /// workspace opened in once its session has begun there, whenever that is.</summary>
+    /// <summary>Opens what File, Open or Open Folder chose (or a recent one, the system's, a new solution or a clone):
+    /// a solution (.sln, .slnx) or C# project (.csproj) as the workspace over its folder, or a folder, here or in
+    /// another window as Settings says or the person answers (<see cref="Asking"/>); any other file in a tab here. Null
+    /// once open or asked where, else why not, which the status bar and the Welcome screen say; <paramref name="then"/>
+    /// is told the window a workspace opened in once its session has begun.</summary>
     public string? Open(string path, Action<MainWindow>? then = null)
     {
         string full = PathNames.Canonical(path);
@@ -65,8 +64,8 @@ public partial class MainWindow
         return null;
     }
 
-    /// <summary>File, Open: any file in the system's panel, a solution or project opening as the workspace. Avalonia's panel
-    /// takes files or folders, never both as Rider's does, so a folder is Open Folder's.</summary>
+    /// <summary>File, Open: any file in the system's panel, a solution or project opening as the workspace. The panel
+    /// takes files or folders, never both, so a folder is Open Folder's.</summary>
     private async Task PickWorkspace()
     {
         IReadOnlyList<IStorageFile> picked = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
@@ -94,7 +93,7 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>Rider's project widget: New Solution, Open, Open Folder and Clone Repository, then with another window open
+    /// <summary>The project widget: New Solution, Open, Open Folder and Clone Repository, then with another window open
     /// the Open Solutions (this one checked), then the Recent Solutions to open.</summary>
     public ContextMenu ShowProjectMenu()
     {
@@ -170,9 +169,9 @@ public partial class MainWindow
 
     private void ShowRecent() => welcome.Show(RecentSolutions);
 
-    /// <summary>Started with nothing named, the window that keeps state reopens what was open as Passenger last quit, as
-    /// Rider's Reopen projects on startup does unless the setting says not to: the oldest here and each other in a window of
-    /// its own, the newest last and so in front. One gone from disk is left on the Welcome screen, marked, with why.</summary>
+    /// <summary>Started with nothing named, the window that keeps state reopens what was open as Passenger last quit,
+    /// unless Reopen projects on startup is off: the oldest here and each other in a window of its own, the newest last
+    /// and so in front. One gone from disk is left on the Welcome screen, marked, with why.</summary>
     private void ReopenLast()
     {
         if (!settings.ReopenProjectsOnStartup || !keepsWorkspace)

@@ -5,10 +5,11 @@ using A = Passenger.App.AppActions;
 
 namespace Passenger.App;
 
-/// <summary>Rider's line separator and encoding: the status bar's two widgets, and File, File Encoding and Line Separators.
+/// <summary>The line separator and encoding: the status bar's two widgets, and File, File Encoding and Line Separators.
 /// A line separator chosen converts every break and writes the file. An encoding chosen is taken at once when nothing
-/// changes; otherwise Rider's question, Reload (the file's bytes read again in it) or Convert (the text written in it),
-/// warning before either loses something. Each is one undoable step, its undo and redo reaching the file as it did.</summary>
+/// changes; otherwise a question, Reload (the file's bytes read again in it) or Convert (the text written in it),
+/// warning before either loses something. Each is one undoable step, its undo and redo reaching the file as it
+/// did.</summary>
 public partial class MainWindow
 {
     private void AddFileProperties()
@@ -21,7 +22,7 @@ public partial class MainWindow
         for (int i = 0; i < LineSeparators.All.Count; i++)
         {
             LineSeparator separator = LineSeparators.All[i];
-            // The file's own is checked, as Rider's is (MenuChoice), and choosing it again changes nothing.
+            // The file's own is checked (MenuChoice), and choosing it again changes nothing.
             actions.Add(new IdeAction(LineSeparatorAction(separator), separator.Title(), "Line Separators", context =>
             {
                 if (context.File!.Separator != separator)
@@ -60,10 +61,8 @@ public partial class MainWindow
     private static string? Unchangeable(ActionContext context) =>
         context.File is not { } file ? Refusals.NoFile : file.IsReadOnly ? $"{file.Name} is read-only" : null;
 
-    /// <summary>The status bar's line separator and encoding widgets for the file shown: Rider's names, and tips that say
-    /// what the file's .editorconfig asks.</summary>
 
-    /// <summary>Rider's line separator popup: the Line Separators menu, the file's own checked.</summary>
+    /// <summary>The line separator popup: the Line Separators menu, the file's own checked.</summary>
     private void OnLineSeparatorClicked(object? sender, RoutedEventArgs e)
     {
         ActionContext context = actions!.Context();
@@ -73,8 +72,9 @@ public partial class MainWindow
 
     private void OnEncodingClicked(object? sender, RoutedEventArgs e) => Request(A.FileEncoding);
 
-    /// <summary>Rider's encoding popup over the status bar's widget: the encodings it lists first, then More, the file's own
-    /// checked. Choosing one asks, when it changes anything, whether to reload the file in it or convert the file to it.</summary>
+    /// <summary>The encoding popup over the status bar's widget: the encodings it lists first, then More, the file's
+    /// own checked. Choosing one asks, when it changes anything, whether to reload the file in it or convert the file
+    /// to it.</summary>
     private void ShowEncodingMenu()
     {
         if (Editors.Active is not { } document)
@@ -94,9 +94,9 @@ public partial class MainWindow
         Open(new ContextMenu { ItemsSource = items, Placement = PlacementMode.TopEdgeAlignedRight }, EncodingButton);
     }
 
-    /// <summary>Rider's ChangeFileEncodingAction once an encoding is chosen: taken at once when the bytes read as the same
-    /// text and the text writes as the same bytes, or when only a UTF-8 BOM comes or goes (Add BOM, Remove BOM); otherwise
-    /// Reload or Convert, as the person answers, each warned against first when it would lose something.</summary>
+    /// <summary>An encoding chosen: taken at once when the bytes read as the same text and the text writes as the same
+    /// bytes, or when only a UTF-8 BOM comes or goes (Add BOM, Remove BOM); otherwise Reload or Convert, as the person
+    /// answers, each warned against first when it would lose something.</summary>
     private async Task ChooseEncodingAsync(OpenDocument document, FileEncoding to)
     {
         if (document.IsReadOnly)
@@ -159,8 +159,8 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>Rider's ConvertTo*LineSeparators: the file saved first, as there, then every break made the one chosen and
-    /// the file written so.</summary>
+    /// <summary>Converts the line separators: the file saved first, then every break made the one chosen and the file
+    /// written so.</summary>
     private void ConvertLineSeparators(OpenDocument document, LineSeparator to)
     {
         LineSeparator from = document.Separator;

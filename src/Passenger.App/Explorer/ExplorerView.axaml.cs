@@ -70,7 +70,7 @@ public partial class ExplorerView : UserControl
     /// <summary>The row chosen, if any.</summary>
     public ExplorerNode? Selected => Rows.SelectedItem as ExplorerNode;
 
-    /// <summary>Every row chosen: several with Shift or Cmd (Ctrl), as Rider's Solution view allows.</summary>
+    /// <summary>Every row chosen: several with Shift or Cmd (Ctrl).</summary>
     public IReadOnlyList<ExplorerNode> SelectedNodes => [.. Rows.SelectedItems?.OfType<ExplorerNode>() ?? []];
 
     /// <summary>Chooses rows, as clicks with Cmd (Ctrl) held would.</summary>
@@ -86,7 +86,6 @@ public partial class ExplorerView : UserControl
     /// <summary>Reads the folder again, keeping the folders that were open open and the chosen row chosen.</summary>
     public void Refresh()
     {
-        // A row is known by its path, a solution folder by its path in the solution, the dependencies by where they are.
         static string Key(ExplorerNode row) => (row.Kind == NodeKind.SolutionFolder ? row.SolutionPath : row.Path) ?? $"{row.Depth}/{row.Kind}/{row.Name}";
         List<(int Depth, string Key)> open = [.. Tree.Rows.Where(r => r.IsExpanded).Select(r => (r.Depth, Key(r)))];
         string? chosen = Selected is { } selected ? Key(selected) : null;
@@ -131,7 +130,7 @@ public partial class ExplorerView : UserControl
     private string? folder;
     private Workspace.SolutionModel? solution;
 
-    /// <summary>The project opened alone, as Rider opens a project file, which the Solution view shows at its top.</summary>
+    /// <summary>The project opened alone, which the Solution view shows at its top.</summary>
     private Workspace.ProjectModel? project;
 
     /// <summary>Shows a workspace: its solution's view if it has one (or the project it was opened as), its folder's files
@@ -211,8 +210,8 @@ public partial class ExplorerView : UserControl
         }
     }
 
-    /// <summary>Its view switch, for a tool window's header to carry, and its own title row gone: in a tool window
-    /// the header names it, as Rider's Explorer has its view in its title bar.</summary>
+    /// <summary>Its view switch, for a tool window's header to carry, and its own title row gone: in a tool window the
+    /// header names it.</summary>
     public Control TakeHeaderTools()
     {
         OwnHeader.Children.Remove(ViewSwitch);
@@ -222,8 +221,8 @@ public partial class ExplorerView : UserControl
 
     private void OnViewSwitchClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => Show(!Tree.IsSolutionView);
 
-    /// <summary>Rider's "Show files with the same names as nested": the Solution view nests by Rider's rules as well as
-    /// by DependentUpon; the rows are made again as it changes, those open kept open.</summary>
+    /// <summary>"Show files with the same names as nested": the Solution view nests by name as well as by
+    /// DependentUpon; the rows are made again as it changes, those open kept open.</summary>
     public bool NestFiles
     {
         get => Tree.NestFiles;
@@ -244,8 +243,8 @@ public partial class ExplorerView : UserControl
     /// <summary>File Nesting... chosen in the Explorer's options: the window asks how files nest.</summary>
     public event EventHandler? NestingAsked;
 
-    /// <summary>The Explorer's own items atop its header's options, as Rider's Solution view has them: Appearance, with
-    /// File Nesting... while the Solution view shows (Rider's ConfigureFilesNestingAction, which only it supports).</summary>
+    /// <summary>The Explorer's own items atop its header's options: Appearance, with File Nesting... while the Solution
+    /// view shows.</summary>
     public IReadOnlyList<Control> Options()
     {
         if (!Tree.IsSolutionView)
@@ -257,8 +256,8 @@ public partial class ExplorerView : UserControl
         return [new MenuItem { Header = "Appearance", Items = { nesting } }];
     }
 
-    /// <summary>Gives the tree the keys on its chosen row (the first when none is), as Rider's Project view takes them: the
-    /// view itself cannot take the focus, only a row.</summary>
+    /// <summary>Gives the tree the keys on its chosen row (the first when none is): the view itself cannot take the
+    /// focus, only a row.</summary>
     public void FocusRows()
     {
         if (!Rows.IsVisible || Tree.Rows.Count == 0)

@@ -4,10 +4,10 @@ using Passenger.Core;
 
 namespace Passenger.Tests;
 
-/// <summary>Passenger run as it is installed, where the C# server may not write beside its own assemblies, as it does its
-/// MEF caches: inside a macOS app bundle, whose seal a file added there breaks, after which Gatekeeper calls a downloaded
-/// app damaged (#450), or a system-wide Linux install its user cannot write. It runs from a copy in the state's cache, and
-/// the app's folder is left as it was. `just package-mac` checks the same of the app it signs.</summary>
+/// <summary>Passenger run as it is installed, where the C# server may not write beside its own assemblies, as it does
+/// its MEF caches: inside a macOS app bundle, whose seal a file added there breaks, after which Gatekeeper calls a
+/// downloaded app damaged, or a system-wide Linux install its user cannot write. It runs from a copy in the state's
+/// cache, and the app's folder is left as it was.</summary>
 [Collection(Beside.Name)]
 public sealed class InstalledAppTests : McpRig, IClassFixture<RestoredFolders>
 {
@@ -24,8 +24,7 @@ public sealed class InstalledAppTests : McpRig, IClassFixture<RestoredFolders>
         DeleteAtEnd(bundle);
         string app = Path.Combine(Directory.CreateDirectory(Path.Combine(bundle, "Passenger.app", "Contents")).FullName, "MacOS");
         await CopyBuild(app);
-        // Through dotnet, outside the bundle: macOS takes a program started from inside an app bundle whose seal does not hold
-        // (this clone has none) for a damaged app, and puts its refusal in front of the person.
+        // Through dotnet: macOS takes a program started inside a bundle whose seal fails for a damaged app.
         await RunsFromCopy(app, "wrote inside the app bundle, breaking its seal", throughDotnet: true);
     }
 
@@ -124,11 +123,9 @@ public sealed class InstalledAppTests : McpRig, IClassFixture<RestoredFolders>
             ? await Start([Path.Combine(app, "Passenger.dll"), "--mcp", Folder], executable: Dotnet.Host())
             : await Start(["--mcp", Folder], executable: Path.Combine(app, "Passenger")))
         {
-            // Answered by the server once it has loaded the project.
             Assert.Contains((await Call(client, "diagnostics", new() { ["path"] = "Helper.cs" })).EnumerateArray(),
                 d => d.GetProperty("code").GetString() == "CS0219");
-            // Its MEF caches are written unawaited as it starts (Razor's on a first start, which takes the composition away),
-            // wherever it runs from.
+            // Its MEF caches are written unawaited as it starts, wherever it runs from.
             Assert.True(await Waiting.UntilAsync(() => Copies().Append(roslyn).SelectMany(Caches).Any(), TimeSpan.FromMinutes(1), Cancel),
                 $"The server wrote no MEF cache, in the state's cache or beside itself in the app.{Said()}");
         }

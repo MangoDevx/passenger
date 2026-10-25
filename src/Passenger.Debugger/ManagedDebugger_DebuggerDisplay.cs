@@ -10,11 +10,10 @@ namespace Passenger.Debugger;
 /// gives them.</summary>
 public sealed record DebuggerDisplay(string Value, string? Name, string? Type);
 
-/// <summary>[DebuggerDisplay] as Visual Studio renders it (upstream #51, #53). The format is literal
-/// text and {fragments}, \{ and \} being braces; each fragment is an expression on the value, with
-/// format specifiers after its last top-level comma (",nq" leaves a string unquoted), and is evaluated
-/// on its own, so one that fails says so in its own place and the rest still shows. A fragment's value
-/// is formatted as the debugger formats any value: a string quoted, a value with its own display shown
+/// <summary>[DebuggerDisplay] rendered. The format is literal text and {fragments}, \{ and \} being braces; each
+/// fragment is an expression on the value, with format specifiers after its last top-level comma (",nq" leaves a string
+/// unquoted), and is evaluated on its own, so one that fails says so in its own place and the rest still shows. A
+/// fragment's value is formatted as the debugger formats any value: a string quoted, a value with its own display shown
 /// by it. The attribute is inherited, as it is declared to be.</summary>
 public partial class ManagedDebugger
 {

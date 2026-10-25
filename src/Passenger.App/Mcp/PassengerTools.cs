@@ -91,8 +91,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         {
             throw new FileNotFoundException($"No folder or file at {full}");
         }
-        // A folder without a solution has its projects once the walk for them lands, and each project what MSBuild
-        // evaluates once its evaluation lands.
+        // Projects come once the walk for them lands, and what MSBuild evaluates once each evaluation does.
         await Session.WorkspaceRead.WaitAsync(cancel);
         await Session.AspireFilesRead.WaitAsync(cancel);
         await Task.Yield();
@@ -173,8 +172,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
     {
         if (await DocumentAsync(path, cancel) is { Language.Name: not ("C#" or "Razor") } marked)
         {
-            // Its own checks run after it opens or changes, its markers set as they end; the rest of the IDE's work (a build,
-            // a test run, a busy console) is not waited for.
+            // Its own checks only; the rest of the IDE's work (a build, a test run, a busy console) is not waited for.
             await When(() => !marked.IsChecking, MarkersLimit, cancel, On(h => marked.Checked += h, h => marked.Checked -= h));
             List<Finding> missing = [];
             if (Session.Web is { } web && web.For(marked) is { Lsp: null })
@@ -196,8 +194,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         }
         (OpenDocument document, LspDocument lsp) = await Code(path, cancel);
         (IReadOnlyList<Diagnostic> found, _) = await lsp.DiagnosticsAsync(cancel);
-        // Passenger's own, as the editor marks them: a service's missing references, an AppHost's parameters with no value, a
-        // configuration key nothing gives.
+        // Passenger's own markers too: a service's missing references, unset AppHost parameters and configuration keys.
         if (Session.CSharp?.For(document) is { } csharp)
         {
             found = [.. found, .. await csharp.PassengerFindingsAsync(lsp, cancel)];
@@ -361,7 +358,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         }
         (string Type, IReadOnlyList<string> Files)? named = server.Web is null && Session.CSharp?.Session?.Folder is { } folder
             ? await TypeRename.NamedAsync(Editors, folder, lsp, offset) : null;
-        // The open files as the request went: what is typed meanwhile carries the answer on, as the window's Rename does.
+        // The open files as the request went: what is typed meanwhile carries the answer on.
         using Asked asked = WorkspaceEdits.Track(Editors);
         if (await lsp.RenameAsync(offset, newName) is not { } edit)
         {
@@ -440,7 +437,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         {
             return await ApplyLintFix(server, lint);
         }
-        // Listed now, with any edit the server gives them as it lists them; the open files as they were then, as the window's are.
+        // Listed now, with any edit the server gives them as it lists them; the open files as they were then.
         using Asked asked = WorkspaceEdits.Track(Editors);
         LspDocument lsp = server.Lsp;
         IReadOnlyList<CodeAction> actions = await Actions(server, line, column, endLine, endColumn);
@@ -692,7 +689,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         string status = code is int exit ? BuildRunController.RunEnded(name, exit)
             : app is { State: LiveTree.LiveAppState.Connected } ? $"Running {name}, its UI up: app_windows, app_screenshot and app_click look at it and use it"
             : $"Running {name}";
-        // What an Aspire run said of itself as it started (its HTTPS over HTTP), as a container run's notes are said.
+        // What an Aspire run said of itself as it started (its HTTPS over HTTP).
         if (Session.Configurations.Chosen is { } chosen && Session.Aspire.IsAspire(chosen) && Session.Aspire.FindApp(chosen.Project) is { } aspire)
         {
             status += string.Concat(aspire.Notes.Select(n => $"\nNote: {n}"));
@@ -827,8 +824,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         Task<string?> run = tests.RunAsync(folder, chosen, debug);
         if (debug)
         {
-            // A debugged test that stops is the agent's to look at: the stop comes back, the run goes on after it. Looked at
-            // every 50 ms: the test host's session is made as the run goes, and the debugger tells of no session's pause.
+            // A debugged test's stop comes back to the agent; looked at every 50 ms: no pause of the test host is told.
             await Until(() => run.IsCompleted || Session.Debug.Session is { State: DebugState.Paused }, TimeSpan.FromMinutes(5), cancel);
             if (!run.IsCompleted)
             {
@@ -857,8 +853,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         Testing.TestState? only = state is null ? null
             : named >= 0 ? TestStates[named].State
             : throw new ArgumentException($"No state '{state}'; there are passed, failed, skipped and notRun");
-        // Found from code as the folder opens: an agent's first look waits for that, as the window says it is looking; looked
-        // at every 50 ms, the finder raising nothing as it is done.
+        // Found from code as the folder opens; looked at every 50 ms, as the finder raises nothing as it is done.
         await Until(() => !Session.Tests.IsLooking, TestsLookLimit, cancel);
         return (IReadOnlyList<TestInfoRow>)[.. Session.Tests.Tree.Methods
             .Where(m => (filter is null || (m.FullName ?? m.Name).Contains(filter, StringComparison.Ordinal)) && (only is null || m.State == only))
@@ -967,8 +962,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
                 throw new ArgumentException("A property breakpoint is named by its control and its property, both");
             }
             string wanted = property.Trim();
-            // By the id breakpoints shows (of the debugged app's elements), else the element the query finds now (the app
-            // paused answers no query).
+            // By the id breakpoints shows, else the element the query finds now (the app paused answers no query).
             DebugSession? app = DebugApp() is { } live ? Session.Debug.SessionOf(live) : null;
             PropertyBreakpoint? watched = store.Properties.FirstOrDefault(p => (app is null || p.Session == app) && Id(p.Element) == control.Trim()
                 && p.Property.Equals(wanted, StringComparison.OrdinalIgnoreCase));
@@ -1160,9 +1154,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         await Until(() => !going() || app is { State: not LiveTree.LiveAppState.Waiting }, limit, cancel);
         if (going() && app is { State: LiveTree.LiveAppState.Connected })
         {
-            // The inspector says hello as the app's dispatcher first runs, a moment before the first layout, where a breakpoint
-            // or a failed binding may stop it: that stop is waited for too.
-            // Looked at every 50 ms, as the wait before it is.
+            // A stop in the first layout, just after the inspector's hello, is waited for too; looked at every 50 ms.
             await Until(() => !going(), Min(LaunchSettle, until - DateTime.UtcNow), cancel);
         }
         DebugSnapshot started = await AfterResume(TimeSpan.Zero, cancel);
@@ -1382,8 +1374,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         }
         catch (Exception error) when (error is not (OperationCanceledException or ModelContextProtocol.McpException))
         {
-            // No answer but a fault of the IDE's: logged as one on the window's own thread is, and its words the agent's,
-            // where the SDK would answer only "An error occurred invoking" the tool.
+            // A fault of the IDE's: logged, and its words the agent's, where the SDK would hide them.
             IdeErrors.Report(error);
             throw new ModelContextProtocol.McpException($"{Faulted}{error.GetType().Name}: {error.Message}", error);
         }
@@ -1408,8 +1399,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         {
             return after;
         }
-        // The runner reports the host's results a moment after it ends, or starts the next project's host.
-        // Looked at every 50 ms: another test host's session is made as the run goes, which the debugger tells of nowhere.
+        // The host's results come just after it ends; looked at every 50 ms: the next host's session is told nowhere.
         await Until(() => !Session.Tests.IsBusy || Session.Debug.Session is { State: not DebugState.Ended }, TestsTallyLimit, cancel);
         return Session.Tests.IsBusy ? await AfterResume(TimeSpan.FromSeconds(waitSeconds), cancel) : after with { Tests = TestInfo(Session.Tests) };
     });
@@ -1426,8 +1416,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         }
         DebugSession? going = session ?? Session.Debug.Session;
         await When(() => going is not { State: DebugState.Running or DebugState.Starting }, limit, cancel, StateOf(going));
-        // A stop is read (its frames, the exception it is on) a moment after the state says paused, once its tab is chosen;
-        // looked at every 50 ms, the stop's reading raising nothing as it lands.
+        // A stop is read just after the state says paused; looked at every 50 ms, as its reading raises nothing.
         await Until(() => going is not { State: DebugState.Paused } || Session.Debug.Session == going && Session.Debug.Stop is not null, TimeSpan.FromSeconds(5), cancel);
         return await DebugSnapshotAsync(going);
     }
@@ -1717,8 +1706,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         {
             throw new InvalidOperationException($"This is the C# language server's, which answers for C# and Razor files, not {LanguageOf(document)} ones such as {Path.GetFileName(document.Path)}");
         }
-        // Answers before the server has loaded the solution come from a file it knows alone, and are wrong. Looked at every
-        // 50 ms: a file's server document comes as it opens there, which raises nothing.
+        // Answers before the solution has loaded are wrong; looked at every 50 ms: a server document raises nothing.
         await Until(() => Session.CSharp is not { } csharp || csharp.IsReady && csharp.For(document)?.Lsp is not null, ServerLimit, cancel);
         return (document, Session.CSharp?.For(document)?.Lsp
             ?? throw new TimeoutException($"The language server has not loaded {Path.GetFileName(document.Path)} ({Session.CSharp?.State ?? "none"})"));

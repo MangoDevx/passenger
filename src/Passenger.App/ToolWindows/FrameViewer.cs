@@ -9,10 +9,10 @@ using Avalonia.Media.Imaging;
 
 namespace Passenger.App.ToolWindows;
 
-/// <summary>A test's frame at its size, as Rider's image editor shows a picture: one picture pixel a unit at 100%, scrolled
-/// when it is larger than the window; Zoom In and Zoom Out by Rider's steps (⌘= and ⌘-, Ctrl on Windows and Linux, or the
-/// modifier with the wheel), Actual Size (⌘/) and Fit Zoom to Window; the result's other frames on Left and Right, and
-/// Escape closes it. The IDE's keys work there too, these its own.</summary>
+/// <summary>A test's frame at its size: one picture pixel a unit at 100%, scrolled when it is larger than the window;
+/// Zoom In and Zoom Out by steps (⌘= and ⌘-, Ctrl on Windows and Linux, or the modifier with the wheel), Actual Size
+/// (⌘/) and Fit Zoom to Window; the result's other frames on Left and Right, and Escape closes it. The IDE's keys work
+/// there too, these its own.</summary>
 public sealed class FrameViewer : Window, IOwnKeys
 {
     /// <summary>The zooms Zoom In and Zoom Out step through.</summary>
@@ -131,7 +131,7 @@ public sealed class FrameViewer : Window, IOwnKeys
             image.Width = picture.Size.Width * Zoom;
             image.Height = picture.Size.Height * Zoom;
         }
-        // Enlarged, each pixel is a square of its own colour, as an image editor shows it; reduced, smoothed.
+        // Enlarged, each pixel is a square of its own colour; reduced, smoothed.
         RenderOptions.SetBitmapInterpolationMode(image, Zoom >= 1 ? BitmapInterpolationMode.None : BitmapInterpolationMode.HighQuality);
         zoomText.Text = string.Create(CultureInfo.CurrentCulture, $"{Zoom * 100:0}%");
     }
@@ -183,7 +183,7 @@ public sealed class FrameViewer : Window, IOwnKeys
         };
     }
 
-    /// <summary>The command modifier with the wheel zooms, as in Rider's image editor; the wheel alone scrolls.</summary>
+    /// <summary>The command modifier with the wheel zooms; the wheel alone scrolls.</summary>
     private void OnWheel(object? sender, PointerWheelEventArgs e)
     {
         KeyModifiers command = OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control;

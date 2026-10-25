@@ -26,8 +26,9 @@ internal sealed class SortedEdits : IReadOnlyList<TextEdit>
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    /// <summary>An offset carried through the edits, as <see cref="TextEditing.MapOffset"/> carries it: the edits wholly
-    /// before it are a run from the first (their ends never go back), found by halving.</summary>
+    /// <summary>An offset carried through the edits: inside a replaced range to its start, or its end when
+    /// <paramref name="afterInsertions"/>, which also puts text inserted at it before it. The edits wholly before it
+    /// are a run from the first (their ends never go back), found by halving.</summary>
     public int Map(int offset, bool afterInsertions)
     {
         int[] before = shifts ??= Shifts(edits);

@@ -10,9 +10,7 @@ public partial class ManagedDebugger
     {
         byte[] byteArray = new byte[debuggerBrowsableCustomAttributeSize];
         Marshal.Copy(debuggerBrowsableCustomAttributePointer, byteArray, 0, byteArray.Length);
-        // 2 bytes prolog
-        // 4 bytes data
-        // 2 bytes alignment
+        // 2 bytes of prolog, 4 of data, 2 of alignment.
         Span<byte> byteSpan = byteArray.AsSpan()[2..^2];
         int dataAsInt = BitConverter.ToInt32(byteSpan);
         return dataAsInt;
@@ -35,8 +33,7 @@ public partial class ManagedDebugger
             throw new InvalidOperationException("Invalid custom attribute prolog");
         }
 
-        // 2. Read constructor fixed arguments
-        // DebuggerDisplay has one string ctor arg
+        // 2. The constructor's one fixed argument, DebuggerDisplay's string.
         string? stringCtorArg = reader.ReadSerializedString();
         return stringCtorArg;
     }

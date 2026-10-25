@@ -8,10 +8,8 @@ namespace Passenger.App.Containers;
 
 /// <summary>A container's log, or a Compose project's or service's with every service's lines merged, or an AppHost's with
 /// its containers' merged: <c>docker logs -f</c> (<c>docker compose logs -f</c>; one per container of an AppHost) streamed
-/// into a console through a <see cref="ProcessRunner"/>, whose sink takes colour codes out and whose links (stack frames,
-/// compiler messages, addresses) are the consoles' own, in the merged log every such console is (<see cref="MergedLog"/>).
-/// Timestamps are shown on demand, and a project's services and an AppHost's containers each have a toggle; changing
-/// either streams the log again.</summary>
+/// into a console (<see cref="MergedLog"/>) through a <see cref="ProcessRunner"/>. Timestamps are shown on demand, and a
+/// project's services and an AppHost's containers each have a toggle; changing either streams the log again.</summary>
 public sealed class ContainerLogPane : DockPanel
 {
     /// <summary>How many lines of what came before a stream begins with.</summary>

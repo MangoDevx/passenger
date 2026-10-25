@@ -38,11 +38,11 @@ public sealed class EndHotReload : IExtensionWorkspaceMessageHandler<HotReloadSe
         Task.FromResult(HotReload.End(message.Session));
 }
 
-/// <summary>Edit and Continue through the server's own service (Roslyn's EditAndContinueService, the one dotnet watch and
-/// Visual Studio drive), over the solution the server has open: a session per debugging session, started at its first
-/// edit, each emit comparing the solution now with what was built (an edited file's build text found by its PDB checksum,
-/// <see cref="Originals"/>) and applied since. The debugger is Passenger's: the runtime's capabilities, the modules loaded
-/// and the active statements are as Passenger's last message said them (<see cref="Debugger"/>).</summary>
+/// <summary>Edit and Continue through the server's own service (Roslyn's EditAndContinueService), over the solution the
+/// server has open: a session per debugging session, started at its first edit, each emit comparing the solution now
+/// with what was built (an edited file's build text found by its PDB checksum, <see cref="Originals"/>) and applied
+/// since. The debugger is Passenger's: the runtime's capabilities, the modules loaded and the active statements are as
+/// Passenger's last message said them (<see cref="Debugger"/>).</summary>
 internal static class HotReload
 {
     private static readonly ConcurrentDictionary<int, Session> sessions = new();
@@ -64,7 +64,7 @@ internal static class HotReload
                 solution = solution.WithDocumentText(ids, SourceText.From(original.Text, now.Encoding, now.ChecksumAlgorithm));
             }
         }
-        // Every document's text read now, as dotnet watch's start does: the session compares later snapshots with these.
+        // Every document's text read now: the session compares later snapshots with these.
         await EditAndContinueService.HydrateDocumentsAsync(solution, cancel).ConfigureAwait(false);
         Debugger debugger = new([.. message.Capabilities]);
         Originals originals = new();
@@ -87,8 +87,7 @@ internal static class HotReload
                 return Failed("the last update has not been committed or discarded");
             }
         }
-        // The program's projects: those whose modules it has loaded and what they build on, taken in at every emit, so a
-        // module it loads after an update (a plugin's) takes its edits from then on.
+        // Taken in at every emit, so a module the program loads after an update takes its edits from then on.
         HashSet<Guid> loaded = [.. message.Modules, .. message.Locked.Select(module => module.Module)];
         HashSet<ProjectId> projects = [.. session.Projects ?? []];
         ProjectDependencyGraph graph = session.Committed.GetProjectDependencyGraph();

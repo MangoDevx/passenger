@@ -10,8 +10,7 @@ namespace Passenger.Roslyn.Extension;
 /// receiver was taken from (GetSection chains, followed through a local assigned once), the sections themselves, and the
 /// options classes bound to a section (Configure, AddOptions' Bind and BindConfiguration, ConfigurationBinder's Bind and Get)
 /// with their properties as the binder reads them: nested classes, collections and dictionaries (<c>*</c> for an item or a
-/// key), <c>[ConfigurationKeyName]</c> honoured. A receiver whose sections cannot be proven (a section passed in) reads nothing.
-/// Part of the one reading of what a project reads (<see cref="AspireSource.ConnectionReadsAsync"/>).</summary>
+/// key), <c>[ConfigurationKeyName]</c> honoured. A receiver whose sections cannot be proven (a section passed in) reads nothing.</summary>
 internal static class ConfigurationSource
 {
     private const string Configuration = "Microsoft.Extensions.Configuration.IConfiguration";
@@ -151,7 +150,7 @@ internal static class ConfigurationSource
     }
 
     /// <summary>The properties of an options class the binder sets, as keys under a section: its own and its bases', public,
-    /// read with a public getter, set (or bound into, a class's or a collection's) as .NET's binder does.</summary>
+    /// read with a public getter, and set or (a class's or a collection's) bound into.</summary>
     private static IEnumerable<ConfigurationKey> Properties(string project, string section, ITypeSymbol type, HashSet<ITypeSymbol> holding, Compilation compilation)
     {
         if (holding.Count >= Deepest || !holding.Add(type))

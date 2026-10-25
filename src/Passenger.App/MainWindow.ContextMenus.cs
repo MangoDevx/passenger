@@ -10,9 +10,9 @@ using A = Passenger.App.AppActions;
 
 namespace Passenger.App;
 
-/// <summary>Right-click menus as Rider's: the editor's for what is under the click (the caret goes there first, unless the
-/// click is in the selection), built from the window's actions with the keymap's shortcuts, items that cannot run
-/// disabled; and the menu key (Shift+F10) opening the focused place's menu at its caret or chosen row.</summary>
+/// <summary>Right-click menus: the editor's for what is under the click (the caret goes there first, unless the click
+/// is in the selection), built from the window's actions with the keymap's shortcuts, items that cannot run disabled;
+/// and the menu key (Shift+F10) opening the focused place's menu at its caret or chosen row.</summary>
 public partial class MainWindow
 {
     /// <summary>The context menu open now, if any.</summary>
@@ -24,9 +24,9 @@ public partial class MainWindow
         actions!.Add(new IdeAction(A.ShowContextMenu, "Show Context Menu", "IDE", context => ShowFocusedContextMenu(context.Focused)));
     }
 
-    /// <summary>Rider's editor menu: context actions and the clipboard, Find Usages, Refactor, Go To, Generate and
-    /// Folding, Reformat and Cleanup, the test at the caret, the paused program's actions, breakpoints, Local History and
-    /// Git.</summary>
+    /// <summary>The editor's menu: context actions and the clipboard, Find Usages, Refactor, Go To, Generate and
+    /// Folding, Reformat and Cleanup, the test at the caret, the paused program's actions, breakpoints, Local History
+    /// and Git.</summary>
     private void ShowEditorMenu(CodeEditor editor, Point? at)
     {
         if (Editors.Groups.FirstOrDefault(g => g.Editor == editor) is { } group)
@@ -52,7 +52,6 @@ public partial class MainWindow
                 Item(E.UnfoldDocComments), Item(E.FoldDocComments), separator, Item(E.ToggleFold)),
             separator,
             Item(A.Reformat), Item(A.CodeCleanup));
-        // Rider adds its JavaScript tools' items to the editor's menu for the files they work on.
         if (Web.WebLanguages.LanguageOf(active.Path) is not null || session.Web?.Prettier.PackageFor(active.Path) is not null)
         {
             Add(Item(A.ReformatWithPrettier), Item(A.FixEslintProblems));
@@ -71,7 +70,6 @@ public partial class MainWindow
             Add(Item(A.RunToCursor), Item(A.SetNextStatement), Item(A.Evaluate), Item(A.AddToWatches), separator);
         }
         Add(Item(A.ToggleBreakpoint));
-        // Rider's Local History submenu, before its Git one.
         Add(separator, Sub("Local History", Item(A.ShowLocalHistory), separator, Item(A.ShowProjectHistory), Item(A.RecentChanges), Item(A.PutLabel)));
         if (session.Vcs.Repository is not null)
         {
@@ -81,7 +79,7 @@ public partial class MainWindow
         ContextMenu menu = new() { ItemsSource = items, PlacementTarget = editor };
         if (at is null)
         {
-            // From the keyboard: under the caret's line, as Rider opens it.
+            // From the keyboard: under the caret's line.
             Point caret = editor.PointOf(editor.Selections.Primary.Caret);
             menu.Placement = PlacementMode.BottomEdgeAlignedLeft;
             menu.PlacementRect = new Rect(caret, new Size(1, editor.LineHeight));
@@ -108,8 +106,8 @@ public partial class MainWindow
     }
 
     /// <summary>Opens a context menu, remembering it while it is open, the keys kept in it (<see cref="KeepKeys"/>). A
-    /// widget's (the project's, the branch's, the run configuration's) drops from under it, as Rider's do, where one at
-    /// the pointer covered the widget.</summary>
+    /// widget's (the project's, the branch's, the run configuration's) drops from under it, where one at the pointer
+    /// covered the widget.</summary>
     private void Open(ContextMenu menu, Control target)
     {
         if (target is Button && !menu.IsSet(ContextMenu.PlacementProperty))

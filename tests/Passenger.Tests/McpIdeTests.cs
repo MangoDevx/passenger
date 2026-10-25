@@ -27,7 +27,6 @@ public sealed class McpIdeTests : McpRig, IClassFixture<RestoredFolders>
         Write("Notes.txt", "one two\ntwo three\n");
         await using McpClient client = await Start(["--mcp", Folder]);
 
-        // Find in Files: the folder's files by text, then as its mask, a regex and its scopes narrow them.
         JsonElement found = await Call(client, "find_in_files", new() { ["text"] = "Twice" });
         Assert.Equal(["Helper.cs:3", "Program.cs:4"], Places(found));
         Assert.Equal(["Helper.cs:3"], Places(await Call(client, "find_in_files", new() { ["text"] = "Twice", ["mask"] = "*.cs, !Program.cs" })));
@@ -45,7 +44,6 @@ public sealed class McpIdeTests : McpRig, IClassFixture<RestoredFolders>
             Assert.True(refused.IsError == true && Text(refused).Contains(said, StringComparison.Ordinal), $"find_in_files {JsonSerializer.Serialize(arguments)} answered: {Text(refused)}");
         }
 
-        // Two saves of Helper.cs are its Local History, the newest first, each with what the file held before it.
         await Call(client, "app_type", new() { ["app"] = "ide", ["text"] = "/* a */ " });
         await Call(client, "save_all");
         await Call(client, "app_type", new() { ["app"] = "ide", ["text"] = "/* b */ " });
@@ -57,7 +55,6 @@ public sealed class McpIdeTests : McpRig, IClassFixture<RestoredFolders>
         Assert.True(before.GetProperty("exists").GetBoolean());
         Assert.Equal("/* a */ " + helper, before.GetProperty("text").GetString());
 
-        // A label across the folder's history, then the file put back as it was before its first save.
         Assert.Equal("Label agent was here put", (await Call(client, "local_history_label", new() { ["name"] = "agent was here" })).GetString());
         JsonElement labelled = (await Call(client, "local_history")).GetProperty("rows")[0];
         Assert.Equal(("agent was here", true), (labelled.GetProperty("title").GetString(), labelled.GetProperty("label").GetBoolean()));
@@ -69,7 +66,6 @@ public sealed class McpIdeTests : McpRig, IClassFixture<RestoredFolders>
         CallToolResult unknown = await Result(client, "local_history_revert", new() { ["path"] = "Helper.cs", ["set"] = 999_999 });
         Assert.True(unknown.IsError == true && Text(unknown).Contains("No change set 999999", StringComparison.Ordinal), $"A revert to no change set answered: {Text(unknown)}");
 
-        // The last build's problems are Problems' Build tab, and its MSBuild output the Build window's.
         JsonElement built = await Call(client, "build");
         Assert.False(built.GetProperty("succeeded").GetBoolean());
         JsonElement problems = await Call(client, "problems");
@@ -84,7 +80,6 @@ public sealed class McpIdeTests : McpRig, IClassFixture<RestoredFolders>
         Assert.True(notRun.IsError == true && Text(notRun).Contains("Bad.cs:3:", StringComparison.Ordinal) && Text(notRun).Contains("CS0029", StringComparison.Ordinal),
             $"A run refused for a failed build answered: {Text(notRun)}");
 
-        // Solution-wide analysis turned on through the settings: every file's problems, a file never opened among them.
         JsonElement turnedOn = Assert.Single((await Call(client, "settings_set", new() { ["changes"] = new Dictionary<string, object> { ["solutionWideAnalysis"] = true } })).EnumerateArray());
         Assert.Equal((false, true), (turnedOn.GetProperty("before").GetBoolean(), turnedOn.GetProperty("after").GetBoolean()));
         string[] solution = [.. (await Call(client, "problems")).GetProperty("solution").EnumerateArray().Select(p => $"{p.GetProperty("code").GetString()} {p.GetProperty("path").GetString()}:{p.GetProperty("line").GetInt32()}")];
@@ -92,7 +87,6 @@ public sealed class McpIdeTests : McpRig, IClassFixture<RestoredFolders>
         // A windowless Passenger's settings are its own, kept nowhere.
         Assert.False((await Call(client, "settings")).GetProperty("kept").GetBoolean());
 
-        // Replace in Files: a closed file written, the open one changed in the editor and saved.
         Assert.Equal("Replaced 2 matches in 1 file: Notes.txt",
             (await Call(client, "replace_in_files", new() { ["text"] = "two", ["replacement"] = "2", ["mask"] = "*.txt" })).GetString());
         Assert.Equal("one 2\n2 three\n", File.ReadAllText(Path.Combine(Folder, "Notes.txt")));
@@ -100,7 +94,6 @@ public sealed class McpIdeTests : McpRig, IClassFixture<RestoredFolders>
             (await Call(client, "replace_in_files", new() { ["text"] = "unused", ["replacement"] = "spare", ["scope"] = "currentFile" })).GetString());
         Assert.Equal(helper.Replace("unused", "spare", StringComparison.Ordinal), File.ReadAllText(Path.Combine(Folder, "Helper.cs")));
 
-        // An edit as the editor makes one: found once as written, saved, and the lines it changed said back as they are now.
         string edited = Text(await Call(client, "edit", new() { ["path"] = "Helper.cs", ["oldText"] = "return value * 2;", ["newText"] = "int twice = value * 2;\n        return twice;" }));
         Assert.Equal("Changed Helper.cs at line 6, saved:\n     6\t        int twice = value * 2;\n     7\t        return twice;", edited);
         string spare = helper.Replace("unused", "spare", StringComparison.Ordinal);
@@ -118,7 +111,7 @@ public sealed class McpIdeTests : McpRig, IClassFixture<RestoredFolders>
             Text(await Call(client, "edit", new() { ["path"] = "Helper.cs", ["oldText"] = "twice", ["newText"] = "doubled", ["all"] = true })));
         Assert.Equal(spare.Replace("return value * 2;", "int doubled = value * 2;\n        return doubled;", StringComparison.Ordinal), File.ReadAllText(Path.Combine(Folder, "Helper.cs")));
 
-        // An agent's own file tools write to disk and ask at once: the open file answers with the disk's text, not the text before.
+        // As an agent's own file tools write: the open file must answer with the disk's text at once.
         File.WriteAllText(Path.Combine(Folder, "Helper.cs"), "static class Helper\n{\n    public static int Twice(int value) => value * 3;\n}\n");
         Assert.EndsWith("\t    public static int Twice(int value) => value * 3;",
             (await Call(client, "editor_text", new() { ["path"] = "Helper.cs", ["from"] = 3, ["to"] = 3 })).GetString(), StringComparison.Ordinal);
@@ -140,7 +133,6 @@ public sealed class McpIdeTests : McpRig, IClassFixture<RestoredFolders>
         McpClient client = Await(Task.Run(() => Start(["--mcp-attach", ProcessId])), "the agent attaching");
         try
         {
-            // Read, unasked: what Settings has, with each number's range and each choice.
             JsonElement read = Await(Task.Run(() => Call(client, "settings")), "the agent reading the settings");
             Assert.True(read.GetProperty("kept").GetBoolean(), "The person's window's settings were read as kept nowhere");
             JsonElement font = Setting(read, "editorFontSize");
@@ -148,7 +140,6 @@ public sealed class McpIdeTests : McpRig, IClassFixture<RestoredFolders>
             Assert.Equal(["Always", "ForWarningsOrErrors", "ForErrors", "Never"],
                 Setting(read, "showBuildResults").GetProperty("choices").EnumerateArray().Select(c => c.GetString()!));
 
-            // A change is asked about first, then made as Settings' OK makes it.
             Task<JsonElement> changing = Task.Run(() => Call(client, "settings_set", new()
             {
                 ["changes"] = new Dictionary<string, object> { ["editorFontSize"] = 99, ["showBuildResults"] = "always" },
@@ -164,7 +155,6 @@ public sealed class McpIdeTests : McpRig, IClassFixture<RestoredFolders>
             Assert.Equal(global::Passenger.App.Settings.BuildResultsMode.Always, window.Settings.ShowBuildResults);
             WaitFor(() => Ui.Shared(Path.Combine(OwnState, "settings.json")).Contains("\"editorFontSize\": 48", StringComparison.Ordinal), "settings.json to keep the agent's change");
 
-            // What Settings lacks, or an agent may not change, changes nothing.
             foreach ((Dictionary<string, object> changes, string said) in new (Dictionary<string, object>, string)[]
             {
                 (new() { ["editorFontSise"] = 12, ["editorFontSize"] = 12 }, "Settings has no setting editorFontSise"),
@@ -190,8 +180,8 @@ public sealed class McpIdeTests : McpRig, IClassFixture<RestoredFolders>
             read.GetProperty("settings").EnumerateArray().Single(s => s.GetProperty("name").GetString() == name);
     }
 
-    /// <summary>Razor for an agent, as the editor has it from Roslyn's server with Razor cohosted in it: a component's errors,
-    /// what a name in its markup is, and a method's usages across its markup and its code block.</summary>
+    /// <summary>Razor for an agent: a component's errors, what a name in its markup is, and a method's usages across its
+    /// markup and its code block.</summary>
     [Fact]
     public async Task An_agent_reads_a_razor_components_errors_names_and_usages_through_roslyns_razor()
     {
@@ -248,8 +238,7 @@ public sealed class McpIdeProfilingTests : McpRig, IClassFixture<RestoredFolders
         int spinning = await WrittenId("spin.pid", "the program to start");
         JsonElement profiled = await Call(client, "profile", new() { ["attach"] = true, ["seconds"] = 2 });
         Assert.True(profiled.GetProperty("samples").GetInt32() > 0, $"Attach Profiler sampled nothing: {profiled.GetRawText()}");
-        // The folder's own hot spot says where it is written, from the build's PDB, for the agent to go straight there: the
-        // editor's line 11, which the compiler, ending a line at each of the comment's four breaks, numbered 15.
+        // The editor's line 11, which the compiler, ending a line at each of the comment's four breaks, numbered 15.
         JsonElement turn = Assert.Single(profiled.GetProperty("hotSpots").EnumerateArray(), h => h.GetProperty("method").GetString()!.Contains("Spin.Turn", StringComparison.Ordinal));
         Assert.True(turn.TryGetProperty("source", out JsonElement source) && source.GetString() == "Program.cs:11", $"Spin.Turn's hot spot is not named at its line: {turn}");
         using Process program = Process.GetProcessById(spinning);

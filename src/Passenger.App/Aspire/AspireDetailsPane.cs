@@ -6,11 +6,10 @@ using Passenger.App.ToolWindows;
 
 namespace Passenger.App.Aspire;
 
-/// <summary>A resource's Details tab in the Aspire window, in the framed tables every Details tab has (<see cref="DetailsTables"/>,
-/// the Containers window's too): the resource (its type, state and health, its source, when it started and stopped), its
-/// health reports, its addresses (links to the browser), what it relates to, its environment and properties (a secret's value
-/// masked by <see cref="ContainerSecrets"/>' rule, one the AppHost marks sensitive whatever its name, the rest as it is) and
-/// its volumes. Read from the resource as the window last had it.</summary>
+/// <summary>A resource's Details tab in the Aspire window: the resource (its type, state and health, its source, when it
+/// started and stopped), its health reports, its addresses (links to the browser), what it relates to, its environment
+/// and properties (a secret's value masked by <see cref="ContainerSecrets"/>' rule, one the AppHost marks sensitive
+/// whatever its name) and its volumes. Read from the resource as the window last had it.</summary>
 public sealed class AspireDetailsPane(Action<Uri> browse, Action<string> open) : DetailsTables
 {
     /// <summary>The resource shown, or null.</summary>

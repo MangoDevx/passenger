@@ -9,9 +9,10 @@ using Passenger.Editor;
 
 namespace Passenger.Tests;
 
-/// <summary>Rider's line separator and encoding, changed from the status bar's widgets and from File: a line separator
-/// chosen converts every break and writes the file; an encoding chosen reloads the file's bytes in it or converts the text
-/// to it, as the person answers, and warns before losing a character. Each is one undoable step, undone on disk too.</summary>
+/// <summary>The line separator and encoding, changed from the status bar's widgets and from File: a line separator
+/// chosen converts every break and writes the file; an encoding chosen reloads the file's bytes in it or converts the
+/// text to it, as the person answers, and warns before losing a character. Each is one undoable step, undone on disk
+/// too.</summary>
 public sealed class FilePropertiesTests : IDisposable
 {
     private readonly string folder = TestFolders.Create("properties-");
@@ -24,7 +25,6 @@ public sealed class FilePropertiesTests : IDisposable
         string path = Write("One.cs", "class One\n{\n}\n");
         MainWindow window = Open("One.cs");
 
-        // The status bar's widget offers the others, its own checked (not greyed), as Rider's popup does.
         Click(window, "LineSeparatorButton");
         Assert.Equal(["CRLF - Windows (\\r\\n)", "LF - Unix and macOS (\\n) (checked)", "CR - Classic Mac OS (\\r)"], Items(window.OpenContextMenu!));
         Choose(window, "CRLF - Windows (\\r\\n)");
@@ -33,13 +33,11 @@ public sealed class FilePropertiesTests : IDisposable
         Assert.False(window.EditorArea.Active!.IsModified, "The converted file was written, yet its tab says it has unsaved changes");
         Assert.Equal("Changed Line Separators from LF to CRLF", window.Status);
 
-        // Enter now writes the file's break.
         window.EditorArea.CodeEditor.Selections = Passenger.Text.SelectionSet.Single("class One".Length);
         Ui.Press(window, "ENTER");
         Ui.Press(window, Ui.Shortcut(AppActions.Save));
         Assert.Equal("class One\r\n\r\n{\r\n}\r\n", File.ReadAllText(path));
 
-        // File, Line Separators makes it LF again.
         NativeMenu separators = Ui.Submenu(Ui.Submenu(window.MenuBar, "File"), "Line Separators");
         Assert.Equal(["CRLF - Windows (\\r\\n)", "LF - Unix and macOS (\\n)", "CR - Classic Mac OS (\\r)"], separators.Items.OfType<NativeMenuItem>().Select(i => i.Header));
         NativeMenuItem own = separators.Items.OfType<NativeMenuItem>().First();
@@ -49,7 +47,6 @@ public sealed class FilePropertiesTests : IDisposable
         Assert.Equal("class One\n\n{\n}\n", File.ReadAllText(path));
         Assert.Equal("LF", Shown(window, "LineEndingText"));
 
-        // Undo puts CRLF back, on disk as in the editor; another undo the Enter; another the first conversion.
         window.EditorArea.CodeEditor.Focus();
         Ui.Run(window, EditorActions.Undo);
         Assert.Equal("class One\r\n\r\n{\r\n}\r\n", File.ReadAllText(path));
@@ -61,7 +58,6 @@ public sealed class FilePropertiesTests : IDisposable
         Assert.Equal("class One\n{\n}\n", Text(window));
         Assert.Equal("LF", Shown(window, "LineEndingText"));
 
-        // Redo converts it again.
         Ui.Run(window, EditorActions.Redo);
         Assert.Equal("class One\r\n{\r\n}\r\n", File.ReadAllText(path));
         Assert.Equal("CRLF", Shown(window, "LineEndingText"));
@@ -95,8 +91,7 @@ public sealed class FilePropertiesTests : IDisposable
     [AvaloniaFact]
     public void A_Windows_1252_file_opens_showing_its_letters_and_shows_control_characters_only_once_reloaded_as_ISO_8859_1()
     {
-        // "Œuvre: “café” for 5 €" in Windows-1252, which is not UTF-8 and so reads in the 8-bit encoding a file of no
-        // other is read in: windows-1252 (on Windows the system's code page, 1252 on a Western one).
+        // Windows-1252, not UTF-8, so read in the 8-bit encoding a file of no other is read in.
         string path = Path.Combine(folder, "Menu.txt");
         byte[] bytes = [0x8C, .. "uvre: "u8, 0x93, .. "caf"u8, 0xE9, 0x94, .. " for 5 "u8, 0x80, .. "\n"u8];
         File.WriteAllBytes(path, bytes);
@@ -104,7 +99,6 @@ public sealed class FilePropertiesTests : IDisposable
         Assert.Equal("windows-1252", Shown(window, "EncodingText"));
         Assert.Equal("Œuvre: “café” for 5 €\n", Text(window));
 
-        // Saved, it stays Windows-1252, with no question of a change on disk.
         window.EditorArea.CodeEditor.Selections = Passenger.Text.SelectionSet.Single("Œuvre".Length);
         window.KeyTextInput(" ž");
         Ui.Press(window, Ui.Shortcut(AppActions.Save));
@@ -112,7 +106,6 @@ public sealed class FilePropertiesTests : IDisposable
         byte[] saved = [0x8C, .. "uvre "u8, 0x9E, .. ": "u8, 0x93, .. "caf"u8, 0xE9, 0x94, .. " for 5 "u8, 0x80, .. "\n"u8];
         Assert.Equal(saved, File.ReadAllBytes(path));
 
-        // Latin-1, chosen, reads those bytes as the control characters they are in it, leaving the file as it is.
         Click(window, "EncodingButton");
         Assert.Contains("ISO-8859-1", Items(window.OpenContextMenu!));
         Assert.Contains("windows-1252 (checked)", Items(window.OpenContextMenu!));
@@ -123,7 +116,6 @@ public sealed class FilePropertiesTests : IDisposable
         Assert.False(window.EditorArea.Active!.IsModified, "The file was only read again, yet its tab says it has unsaved changes");
         Assert.Equal(saved, File.ReadAllBytes(path));
 
-        // Undo reads it as it was before: Windows-1252.
         window.EditorArea.CodeEditor.Focus();
         Ui.Run(window, EditorActions.Undo);
         Assert.Equal("windows-1252", Shown(window, "EncodingText"));
@@ -138,7 +130,6 @@ public sealed class FilePropertiesTests : IDisposable
         MainWindow window = Open("Cafe.cs");
         Assert.Equal("UTF-8", Shown(window, "EncodingText"));
 
-        // A BOM comes with no question, as Rider's Add BOM.
         Click(window, "EncodingButton");
         Choose(window, "UTF-8 BOM");
         Assert.Empty(window.OwnedWindows);
@@ -151,7 +142,6 @@ public sealed class FilePropertiesTests : IDisposable
         Assert.Equal("UTF-16 LE", Shown(window, "EncodingText"));
         Assert.False(window.EditorArea.Active!.IsModified);
 
-        // Big-endian from File, File Encoding, which opens the same list over the widget.
         Ui.Submenu(window.MenuBar, "File").Items.OfType<NativeMenuItem>().Single(i => i.Header == "File Encoding").Command!.Execute(null);
         Ui.Settle();
         Choose(window, "UTF-16 BE");
@@ -211,7 +201,6 @@ public sealed class FilePropertiesTests : IDisposable
         Assert.StartsWith("Line Separator: \\r\\n\nThe next save makes it LF, as the .editorconfig asks: end_of_line = lf in ", Tip(window, "LineSeparatorButton"), StringComparison.Ordinal);
         Assert.StartsWith("File Encoding: windows-1252\nThe next save makes it UTF-8, as the .editorconfig asks: charset = utf-8 in ", Tip(window, "EncodingButton"), StringComparison.Ordinal);
 
-        // An 8-bit file its .editorconfig says is Latin-1 is read so, as Rider reads one in the encoding configured for it.
         window.OpenFile("Three.cs");
         Ui.Settle();
         Assert.Equal("// Café\u0080\n", Text(window));
@@ -226,7 +215,6 @@ public sealed class FilePropertiesTests : IDisposable
         Choose(window, "CRLF - Windows (\\r\\n)");
         Assert.StartsWith("Line Separator: \\r\\n\nChosen over the .editorconfig's end_of_line = lf", Tip(window, "LineSeparatorButton"), StringComparison.Ordinal);
 
-        // A save after an edit keeps what the person chose, as Rider leaves a converted file's separator.
         window.EditorArea.CodeEditor.Selections = Passenger.Text.SelectionSet.Single(0);
         window.KeyTextInput("public ");
         Ui.Press(window, Ui.Shortcut(AppActions.Save));
@@ -279,7 +267,7 @@ public sealed class FilePropertiesTests : IDisposable
         Ui.Choose(menu, (string)more.Header!, item);
     }
 
-    /// <summary>Answers Rider's Reload or Convert question, failing unless it was asked as named.</summary>
+    /// <summary>Answers the Reload or Convert question, failing unless it was asked as named.</summary>
     internal static void Answer(MainWindow window, string title, string button)
     {
         Ui.WaitFor(() => window.OwnedWindows.OfType<ChoiceDialog>().Any(), $"the question '{title}'");

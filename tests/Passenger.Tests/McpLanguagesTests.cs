@@ -5,12 +5,12 @@ using Passenger.Core;
 
 namespace Passenger.Tests;
 
-/// <summary>Agents using the code tools on every language Passenger serves, each answered by that language's own service as
-/// the window's commands are: Avalonia's and WPF's XAML through Passenger's own XAML (the galleries of XamlTests and
-/// WpfXamlTests, each in a folder of the test's own, restored), the web languages through their servers with the
-/// project's own ESLint and Prettier (skipped without a Node.js, as WebLanguagesTests are), a compose file and a
-/// Dockerfile through theirs, MSBuild files through Passenger's own evaluation, and saying plainly what a language lacks.
-/// Its Passengers are processes of their own, so it runs beside the window tests (<see cref="Beside"/>).</summary>
+/// <summary>Agents using the code tools on every language Passenger serves, each answered by that language's own service:
+/// Avalonia's and WPF's XAML through Passenger's own XAML (the galleries of XamlTests and WpfXamlTests, each in a folder
+/// of the test's own, restored), the web languages through their servers with the project's own ESLint and Prettier
+/// (skipped without a Node.js), a compose file and a Dockerfile through theirs, MSBuild files through Passenger's own
+/// evaluation, and saying plainly what a language lacks. Its Passengers are processes of their own, so it runs beside the
+/// window tests (<see cref="Beside"/>).</summary>
 [Collection(Beside.Name)]
 public sealed class McpLanguagesTests(McpLanguagesTests.Restored restored) : McpRig, IClassFixture<McpLanguagesTests.Restored>
 {
@@ -31,19 +31,15 @@ public sealed class McpLanguagesTests(McpLanguagesTests.Restored restored) : Mcp
         McpClient client = await Start(["--mcp", gallery]);
         string window = File.ReadAllText(Path.Combine(gallery, "MainWindow.axaml"));
 
-        // A library type the window names, decompiled.
         string decompiled = Assert.Single((await Call(client, "definition", At(window, "MainWindow.axaml", "<StackPan"))).EnumerateArray()).GetProperty("path").GetString()!;
         Assert.EndsWith("Avalonia.Controls.StackPanel.cs", decompiled, StringComparison.Ordinal);
         Assert.False(Directory.Exists(stale), $"The decompiled files of a version unused for two months were kept: {stale}");
         DateTime written = File.GetLastWriteTimeUtc(decompiled);
 
-        // The element tree, each element with what names it.
         string outline = (await Call(client, "outline", new() { ["path"] = "MainWindow.axaml" })).GetString()!;
         Assert.True(outline.StartsWith("Window x:Class=\"Gallery.MainWindow\" x:DataType=\"vm:MainViewModel\" (line 1)\n  StackPanel (line 10)\n", StringComparison.Ordinal)
             && outline.Contains("\n    Button Name=\"Go\" (line 12)", StringComparison.Ordinal), $"The window's outline is not its element tree:\n{outline}");
 
-        // The hover card's words for a tag, and where its names lead: a binding to its view model's property, a resource to
-        // each theme's definition of it.
         Assert.Equal("class Avalonia.Controls.Button : ContentControl", (await Call(client, "symbol_info", At(window, "MainWindow.axaml", "<Butt"))).GetString());
         JsonElement greeting = Assert.Single((await Call(client, "definition", At(window, "MainWindow.axaml", "{Binding Gree"))).EnumerateArray());
         Assert.Equal((Path.Combine("ViewModels", "MainViewModel.cs"), 5), (greeting.GetProperty("path").GetString(), greeting.GetProperty("line").GetInt32()));
@@ -52,7 +48,6 @@ public sealed class McpLanguagesTests(McpLanguagesTests.Restored restored) : Mcp
         Assert.Equal([(Path.Combine("Styles", "Palette.axaml"), 5), (Path.Combine("Styles", "Palette.axaml"), 9)],
             accents.Select(a => (a.GetProperty("path").GetString(), a.GetProperty("line").GetInt32())));
 
-        // The button's name is used in its file and by its code-behind, through the field Avalonia's generator makes.
         string[] uses = [.. (await Call(client, "usages", At(window, "MainWindow.axaml", "Name=\"G"))).EnumerateArray()
             .Select(u => $"{u.GetProperty("path").GetString()}:{u.GetProperty("line").GetInt32()}")];
         Assert.True(uses.Contains("MainWindow.axaml:12") && uses.Contains("MainWindow.axaml:13") && uses.Contains("MainWindow.axaml.cs:10"),
@@ -62,7 +57,6 @@ public sealed class McpLanguagesTests(McpLanguagesTests.Restored restored) : Mcp
         Assert.True(path.IsError == true && Text(path).Contains("finds an element's name or a resource's key", StringComparison.Ordinal),
             $"usages on a binding's path did not say what XAML's Find Usages finds: {Text(path)}");
 
-        // The property the caption binds is marked, and its fix creates it in the view model.
         JsonElement missing = Assert.Single((await Call(client, "diagnostics", new() { ["path"] = "MainWindow.axaml" })).EnumerateArray());
         Assert.Contains("'Subtitle'", missing.GetProperty("message").GetString(), StringComparison.Ordinal);
         Dictionary<string, object?> subtitle = At(window, "MainWindow.axaml", "{Binding Subt");
@@ -70,7 +64,6 @@ public sealed class McpLanguagesTests(McpLanguagesTests.Restored restored) : Mcp
         await Call(client, "apply_code_action", new(subtitle) { ["title"] = "Create property 'Subtitle'" });
         Assert.Contains("public string? Subtitle { get; set; }", File.ReadAllText(Path.Combine(gallery, "ViewModels", "MainViewModel.cs")), StringComparison.Ordinal);
 
-        // The panel's margin to a resource of the window's, under a name of the agent's, among the places the dialog offers.
         Dictionary<string, object?> margin = At(window, "MainWindow.axaml", "<StackPanel Margin=\"1");
         Assert.Equal(["Extract Resource… [refactor.extract], choices: MainWindow.axaml <Window.Resources>; App.axaml <Application.Resources>; Palette.axaml <ResourceDictionary>",
             "Extract Style… [refactor.extract], choices: MainWindow.axaml <Window.Styles>; App.axaml <Application.Styles>"], Strings(await Call(client, "code_actions", margin)));
@@ -80,15 +73,13 @@ public sealed class McpLanguagesTests(McpLanguagesTests.Restored restored) : Mcp
         Assert.True(window.Contains("<Thickness x:Key=\"PanelMargin\">12</Thickness>", StringComparison.Ordinal)
             && window.Contains("<StackPanel Margin=\"{StaticResource PanelMargin}\"", StringComparison.Ordinal), $"Extract Resource did not reach the file on disk:\n{window}");
 
-        // Renamed, the button's name changes in the XAML and the code-behind, both saved.
         string renamed = (await Call(client, "rename", new(At(window, "MainWindow.axaml", "Name=\"G")) { ["newName"] = "Start" })).GetString()!;
         Assert.Equal("Renamed Go to Start in 2 files: MainWindow.axaml, MainWindow.axaml.cs", renamed);
         Assert.Contains("Start.Content = \"Start\";", File.ReadAllText(Path.Combine(gallery, "MainWindow.axaml.cs")), StringComparison.Ordinal);
         Assert.Contains("{Binding #Start.Content}", File.ReadAllText(Path.Combine(gallery, "MainWindow.axaml")), StringComparison.Ordinal);
         await client.DisposeAsync();
 
-        // A second session, as after a restart: the same version's file, not decompiled again. XAML's library sources are
-        // Passenger's own decompiler's, which asks nothing of C#'s server.
+        // A second session, as after a restart: the same version's file, not decompiled again.
         window = File.ReadAllText(Path.Combine(gallery, "MainWindow.axaml"));
         await using (McpClient again = await Start(["--mcp", gallery], languageServer: false))
         {
@@ -99,9 +90,9 @@ public sealed class McpLanguagesTests(McpLanguagesTests.Restored restored) : Mcp
         Assert.Single(Directory.GetDirectories(Path.Combine(OwnState, "MetadataAsSource", "Decompiled", "Avalonia.Controls")));
     }
 
-    /// <summary>Aspire's code help for an agent as the window's: a service's connection string to the AppHost line declaring
-    /// the resource, an AppHost's parameter with no value marked and set through its fix with the value given as name (in the
-    /// run's own user secrets, never said back), and a resource renamed in the AppHost and the service that reads it.</summary>
+    /// <summary>Aspire's code help for an agent: a service's connection string to the AppHost line declaring the resource, an
+    /// AppHost's parameter with no value marked and set through its fix with the value given as name (in the run's own user
+    /// secrets, never said back), and a resource renamed in the AppHost and the service that reads it.</summary>
     [Fact]
     public async Task An_agent_goes_to_sets_and_renames_aspire_resources_as_the_window_does()
     {
@@ -154,16 +145,13 @@ public sealed class McpLanguagesTests(McpLanguagesTests.Restored restored) : Mcp
             (await Call(client, "symbol_info", At(window, "MainWindow.xaml", "<StackPanel Margin=\"12\">\n        <TextBl"))).GetString());
         JsonElement accent = Assert.Single((await Call(client, "definition", At(window, "MainWindow.xaml", "{StaticResource Acc"))).EnumerateArray());
         Assert.Equal((Path.Combine("Themes", "Brushes.xaml"), 4), (accent.GetProperty("path").GetString(), accent.GetProperty("line").GetInt32()));
-        // WPF's own TextBlock, decompiled from WindowsDesktop's reference assembly.
         JsonElement library = Assert.Single((await Call(client, "definition", At(window, "MainWindow.xaml", "<StackPanel Margin=\"12\">\n        <TextBl"))).EnumerateArray());
         Assert.EndsWith("System.Windows.Controls.TextBlock.cs", library.GetProperty("path").GetString(), StringComparison.Ordinal);
 
-        // A resource key, wherever the project's XAML uses or defines it.
         string[] keyed = [.. (await Call(client, "usages", At(window, "MainWindow.xaml", "{StaticResource Acc"))).EnumerateArray()
             .Select(u => $"{u.GetProperty("path").GetString()}:{u.GetProperty("line").GetInt32()}")];
         Assert.True(keyed.Contains("App.xaml:12") && keyed.Contains("MainWindow.xaml:30") && keyed.Contains($"{Path.Combine("Themes", "Brushes.xaml")}:4"),
             $"The brush's key was not found where the project's XAML uses and defines it: {string.Join(", ", keyed)}");
-        // The button's name, used through the field MarkupCompile makes.
         string[] named = [.. (await Call(client, "usages", At(window, "MainWindow.xaml", "x:Name=\"G"))).EnumerateArray().Select(u => u.GetProperty("text").GetString()!)];
         Assert.True(named.Any(u => u.Contains("Go.Content = \"Start\";", StringComparison.Ordinal)) && named.Any(u => u.Contains("ElementName=Go", StringComparison.Ordinal)),
             $"The button's name was not found where its file and its code-behind use it: {string.Join(" | ", named)}");
@@ -171,7 +159,6 @@ public sealed class McpLanguagesTests(McpLanguagesTests.Restored restored) : Mcp
         Dictionary<string, object?> margin = At(window, "MainWindow.xaml", "<StackPanel Margin=\"1");
         Assert.Contains("Extract Resource… [refactor.extract], choices: MainWindow.xaml <Window.Resources>; App.xaml <Application.Resources>; Brushes.xaml <ResourceDictionary>",
             Strings(await Call(client, "code_actions", margin)));
-        // A choice the action does not offer is refused, naming those it does.
         CallToolResult nowhere = await Result(client, "apply_code_action", new(margin) { ["title"] = "Extract Resource…", ["choice"] = "Elsewhere" });
         Assert.True(nowhere.IsError == true && Text(nowhere).Contains("it can go in: MainWindow.xaml <Window.Resources>", StringComparison.Ordinal),
             $"Extract Resource to a place it does not offer answered: {Text(nowhere)}");
@@ -187,9 +174,9 @@ public sealed class McpLanguagesTests(McpLanguagesTests.Restored restored) : Mcp
     }
 
     /// <summary>A script, a stylesheet and a package.json, with the project's own ESLint and Prettier (the tests' packages
-    /// copied into its node_modules): each tool through the file's language server as the window asks it, ESLint's fix
-    /// first among the actions, Prettier formatting what it covers, and JSON's Go to Declaration and Rename, which its server
-    /// lacks, Passenger's own; its lack of usages said plainly.</summary>
+    /// copied into its node_modules): each tool through the file's language server, ESLint's fix first among the actions,
+    /// Prettier formatting what it covers, and JSON's Go to Declaration and Rename, which its server lacks, Passenger's own;
+    /// its lack of usages said plainly.</summary>
     [Fact]
     public async Task An_agent_reads_navigates_renames_fixes_and_formats_the_web_languages_through_their_servers_eslint_and_prettier()
     {
@@ -219,7 +206,6 @@ public sealed class McpLanguagesTests(McpLanguagesTests.Restored restored) : Mcp
         string app = Path.Combine("src", "app.js");
         string script = File.ReadAllText(Path.Combine(web, app));
 
-        // TypeScript's server on the script: its outline, its card, where a call's function is declared and every use of it.
         string outline = (await Call(client, "outline", new() { ["path"] = app })).GetString()!;
         Assert.True(outline.Contains("greet (function, line 1)", StringComparison.Ordinal) && outline.Contains("total (variable, line 4)", StringComparison.Ordinal),
             $"The script's outline is not its server's:\n{outline}");
@@ -229,7 +215,6 @@ public sealed class McpLanguagesTests(McpLanguagesTests.Restored restored) : Mcp
         Assert.Equal((app, 1), (declared.GetProperty("path").GetString(), declared.GetProperty("line").GetInt32()));
         Assert.Equal([1, 4], (await Call(client, "usages", call)).EnumerateArray().Select(u => u.GetProperty("line").GetInt32()).Order());
 
-        // ESLint's problem is among the file's, and its fix comes first among the line's actions and is made by ESLint.
         JsonElement problem = Assert.Single((await Call(client, "diagnostics", new() { ["path"] = app })).EnumerateArray(),
             d => d.GetProperty("message").GetString()!.Contains("(prefer-const)", StringComparison.Ordinal));
         Assert.Equal(("error", 4), (problem.GetProperty("severity").GetString(), problem.GetProperty("line").GetInt32()));
@@ -245,19 +230,15 @@ public sealed class McpLanguagesTests(McpLanguagesTests.Restored restored) : Mcp
         Assert.True(written.Contains("function welcome(name)", StringComparison.Ordinal) && written.Contains("welcome('Ada')", StringComparison.Ordinal),
             $"The rename did not reach the script on disk:\n{written}");
 
-        // The project's Prettier formats what it covers, by its .prettierrc.
         Assert.StartsWith("Prettier: formatted ", (await Call(client, "format", new() { ["path"] = Path.Combine("src", "format.js") })).GetString(), StringComparison.Ordinal);
         Assert.Equal("const label = { name: 'tea', price: 3 }\nconsole.log(label)\n", File.ReadAllText(Path.Combine(web, "src", "format.js")));
 
-        // CSS's server: a custom property's declaration from its use, and its rename through the stylesheet.
         string css = Path.Combine("styles", "site.css");
         string sheet = File.ReadAllText(Path.Combine(web, css));
         Assert.Equal(2, Assert.Single((await Call(client, "definition", At(sheet, css, "var(--acc"))).EnumerateArray()).GetProperty("line").GetInt32());
         await Call(client, "rename", new(At(sheet, css, "var(--acc")) { ["newName"] = "--brand" });
         Assert.Equal(":root {\n  --brand: #3574f0;\n}\n\n.cart {\n  color: var(--brand);\n}\n", File.ReadAllText(Path.Combine(web, css)));
 
-        // JSON's server has no usages, and says so; a dependency leads to its installed package, and a script's rename
-        // takes the scripts that run it along.
         string manifest = File.ReadAllText(Path.Combine(web, "package.json"));
         CallToolResult none = await Result(client, "usages", At(manifest, "package.json", "\"bui"));
         Assert.True(none.IsError == true && Text(none).Contains("JSON has no usages", StringComparison.Ordinal), $"usages in package.json answered: {Text(none)}");
@@ -283,11 +264,10 @@ public sealed class McpLanguagesTests(McpLanguagesTests.Restored restored) : Mcp
                 + "    <Product>$(Company) Shop</Product>\n  </PropertyGroup>\n  <Target Name=\"Greet\" AfterTargets=\"Build\">\n    <Message Text=\"$(Product)\" />\n  </Target>\n"
                 + "  <Target Name=\"Wave\" DependsOnTargets=\"Greet\" />\n</Project>\n");
         });
-        // MSBuild files' help is Passenger's own evaluation, which asks nothing of C#'s server.
+        // MSBuild files' help asks nothing of C#'s server.
         await using McpClient client = await Start(["--mcp", shop], languageServer: false);
         string project = File.ReadAllText(Path.Combine(shop, "Shop.csproj"));
 
-        // A property's value as evaluated, and where it was set: in the Directory.Build.props the SDK imports.
         Dictionary<string, object?> company = At(project, "Shop.csproj", "$(Comp");
         // The hover card's lines end as the system's do (Windows' "\r\n").
         string said = (await Call(client, "symbol_info", company)).GetString()!.ReplaceLineEndings("\n");
@@ -298,7 +278,6 @@ public sealed class McpLanguagesTests(McpLanguagesTests.Restored restored) : Mcp
         Assert.Equal("<Company>Passenger</Company>", set.GetProperty("text").GetString());
         JsonElement target = Assert.Single((await Call(client, "definition", At(project, "Shop.csproj", "DependsOnTargets=\"Gre"))).EnumerateArray());
         Assert.Equal(("Shop.csproj", 6), (target.GetProperty("path").GetString(), target.GetProperty("line").GetInt32()));
-        // The SDK's own files, outside the folder, which the editor opens read-only.
         string[] sdk = [.. (await Call(client, "definition", At(project, "Shop.csproj", "Sdk=\"Microsoft.NE"))).EnumerateArray().Select(p => p.GetProperty("path").GetString()!)];
         Assert.True(sdk.Length > 0 && sdk.All(Path.IsPathRooted) && sdk.Any(p => p.EndsWith("Sdk.props", StringComparison.Ordinal)),
             $"The SDK's definition is not its own files: {string.Join(", ", sdk)}");
@@ -307,7 +286,6 @@ public sealed class McpLanguagesTests(McpLanguagesTests.Restored restored) : Mcp
         Assert.Equal($"Project Sdk=\"Microsoft.NET.Sdk\" (line 1)\n  PropertyGroup (line 2)\n    TargetFramework = {TestProjects.Framework} (property, line 3)\n"
             + "    Product = $(Company) Shop (property, line 4)\n  Target Name=\"Greet\" (target, line 6)\n    Message (task, line 7)\n  Target Name=\"Wave\" (target, line 9)", outline);
 
-        // What MSBuild files have no command for is said, with what they have.
         foreach ((string tool, Dictionary<string, object?> arguments) in new (string, Dictionary<string, object?>)[]
         {
             ("usages", company),
@@ -462,8 +440,8 @@ public sealed class McpLanguagesTests(McpLanguagesTests.Restored restored) : Mcp
 
     /// <summary>An agent on a compose file and a Dockerfile: their servers' outline and problems, Passenger's own declarations
     /// in the compose file (a service's, a build's Dockerfile), an image's registry page said, Passenger's own Rename of a
-    /// service (a name taken refused) and the YAML server's layout, saved. Skipped, as DockerFilesTests' are, without a
-    /// Node.js that runs the YAML server.</summary>
+    /// service (a name taken refused) and the YAML server's layout, saved. Skipped without a Node.js that runs the YAML
+    /// server.</summary>
     [Fact]
     public async Task An_agent_reads_a_compose_files_declarations_and_problems_renames_a_service_and_formats_it_through_the_yaml_server()
     {
@@ -476,7 +454,6 @@ public sealed class McpLanguagesTests(McpLanguagesTests.Restored restored) : Mcp
         });
         await using McpClient client = await Start(["--mcp", compose]);
 
-        // Passenger's declarations: the service depends_on names, and the build's Dockerfile.
         JsonElement service = Assert.Single((await Call(client, "definition", At(Compose, "compose.yaml", "[ap"))).EnumerateArray());
         Assert.Equal(("compose.yaml", 6, 3), (service.GetProperty("path").GetString(), service.GetProperty("line").GetInt32(), service.GetProperty("column").GetInt32()));
         JsonElement dockerfile = Assert.Single((await Call(client, "definition", At(Compose, "compose.yaml", "build: ."))).EnumerateArray());
@@ -484,13 +461,11 @@ public sealed class McpLanguagesTests(McpLanguagesTests.Restored restored) : Mcp
         CallToolResult image = await Result(client, "definition", At(Compose, "compose.yaml", "image:   ngi"));
         Assert.True(image.IsError == true && Text(image).Contains("https://hub.docker.com/_/nginx", StringComparison.Ordinal), $"definition on an image answered: {Text(image)}");
 
-        // The YAML server's outline, and the Dockerfile server's problem.
         string outline = (await Call(client, "outline", new() { ["path"] = "compose.yaml" })).GetString()!;
         Assert.True(outline.Contains("web (", StringComparison.Ordinal) && outline.Contains("depends_on (", StringComparison.Ordinal), $"The compose file's outline is not its server's:\n{outline}");
         JsonElement problem = Assert.Single((await Call(client, "diagnostics", new() { ["path"] = "Dockerfile" })).EnumerateArray());
         Assert.Contains("Unknown instruction: FROMM", problem.GetProperty("message").GetString(), StringComparison.Ordinal);
 
-        // Passenger's own Rename of a service, where the file declares and uses it, saved; a name taken refused, saying why.
         string renamed = (await Call(client, "rename", new(At(Compose, "compose.yaml", "[ap")) { ["newName"] = "backend" })).GetString()!;
         Assert.Equal("Renamed the service api to backend in 1 file: compose.yaml", renamed);
         string written = Compose.Replace("api", "backend", StringComparison.Ordinal);
@@ -498,7 +473,6 @@ public sealed class McpLanguagesTests(McpLanguagesTests.Restored restored) : Mcp
         CallToolResult taken = await Result(client, "rename", new(At(written, "compose.yaml", "  back")) { ["newName"] = "web" });
         Assert.True(taken.IsError == true && Text(taken).EndsWith(": compose.yaml has a service named web already", StringComparison.Ordinal), $"A rename to a name taken answered: {Text(taken)}");
 
-        // The YAML server's layout, saved.
         Assert.StartsWith("Reformatted", (await Call(client, "format", new() { ["path"] = "compose.yaml" })).GetString(), StringComparison.Ordinal);
         Assert.Equal("services:\n  web:\n    image: nginx:1.27\n    ports: [\"8080:80\"]\n    depends_on: [backend]\n  backend:\n    build: .\n", File.ReadAllText(Path.Combine(compose, "compose.yaml")));
     }

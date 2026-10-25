@@ -71,7 +71,6 @@ public sealed class ProjectEvaluationTests : IDisposable
         Assert.Equal(["Words.cs"], Children(window, "Text"));
         Assert.Equal([(TestProjects.Framework, null), ("Humanizer.Core", "2.14.1"), ("Serilog", "4.0.0")],
             Children(window, "Dependencies").Select(name => (name, Row(window, null, name).Detail)));
-        // The linked files open from where they are.
         Assert.Equal(PathNames.Canonical(Path.Combine(folder, "Shared", "Text", "Words.cs")), Row(window, NodeKind.File, "Words.cs").Path);
         window.Close();
     }
@@ -90,8 +89,7 @@ public sealed class ProjectEvaluationTests : IDisposable
     }
 
     /// <summary>A host whose answer does not read, as one of another build's could write, is ended and the evaluation asked
-    /// of it fails, where its reader stopped and that evaluation, and every one after it, waited for good; the next change
-    /// is evaluated by a host started anew.</summary>
+    /// of it fails; the next change is evaluated by a host started anew.</summary>
     [AvaloniaFact]
     public void A_project_host_whose_answer_does_not_read_is_ended_and_the_next_change_is_evaluated_by_a_new_one()
     {
@@ -130,7 +128,7 @@ public sealed class ProjectEvaluationTests : IDisposable
         second.Show();
         second.KeepLayout();
         second.OpenFolder(Path.Combine(folder, "Shop.slnx"));
-        // The cache is read off the window's thread, its tree shown as it lands; no project was evaluated for it.
+        // The cache is read off the window's thread, its tree shown as it lands.
         Ui.Settle();
         Assert.True(second.Session.Models.Evaluations == 0,
             $"Opened again with nothing changed, the folder had {second.Session.Models.Evaluations} project(s) evaluated again rather than shown from the cache");
@@ -197,15 +195,13 @@ public sealed class ProjectEvaluationTests : IDisposable
     [AvaloniaFact]
     public void A_project_holding_folder_links_back_up_its_own_tree_keeps_its_real_folders_alone_as_what_its_evaluation_and_build_read()
     {
-        // Links to the folder each is in and to those above it, at the project's top and inside it: a walk that followed
-        // them would go round the tree until its limit, stamping the same folders thousands of times over.
+        // Links to the folder each is in and to those above it: a walk that followed them would go round the tree.
         string app = Path.Combine(folder, "App");
         Directory.CreateDirectory(Path.Combine(app, "Legacy", "Deep"));
         TestFolders.LinkFolder(Path.Combine(app, "self"), app);
         TestFolders.LinkFolder(Path.Combine(app, "up"), folder);
         TestFolders.LinkFolder(Path.Combine(app, "Legacy", "here"), Path.Combine(app, "Legacy"));
         TestFolders.LinkFolder(Path.Combine(app, "Legacy", "Deep", "up"), Path.Combine(app, "Legacy"));
-        // The project's own folders, and those of the files it takes in from ../Shared.
         string[] real = [.. new[] { "App", "App/Legacy", "App/Legacy/Deep", "Shared", "Shared/Text" }
             .Select(f => Path.Combine(folder, f.Replace('/', Path.DirectorySeparatorChar))).Order(StringComparer.Ordinal)];
 
@@ -247,7 +243,6 @@ public sealed class ProjectEvaluationTests : IDisposable
         window.OpenFolder(Path.Combine(folder, "Shop.slnx"));
         window.OpenFile(Path.Combine(folder, "App", "Program.cs"));
         // The order the server took them in, as its log says it finished (or failed) each: unrestored, they load with errors.
-        // What is checked is the log once it tells of all four, not the file's analysis and colours that follow the load.
         string[] projects = ["App", "Core", "Reports", "Admin"];
         string log = string.Empty;
         Ui.PumpUntil(() => window.CSharpService?.Session is { } session && (log = ServerLog(session.Server.ProcessId)) is var read

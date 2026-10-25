@@ -198,7 +198,7 @@ public sealed class AspireApp : SharedProject
         http["environmentVariables"]!["ASPIRE_VERSION_CHECK_DISABLED"] = "true";
         // Where the AppHost keeps its record of running AppHosts (aspire ps's), the run's own, never the person's ~/.aspire.
         http["environmentVariables"]!["HOME"] = AspireCli.Home;
-        // Under obj, as DCP's record is (ConnectionInfoPath), so a run leaves the project's own files as written.
+        // Under obj, so a run leaves the project's own files as written.
         string dashboardData = Path.Combine(hostFolder, "obj", "passenger-dashboard");
         if (OperatingSystem.IsWindows())
         {
@@ -334,11 +334,11 @@ public sealed class AspireApp : SharedProject
         ChildProcesses.RunAsync(ChildProcesses.DotnetCommand(arguments, folder), limit: TimeSpan.FromMinutes(3).Scaled())).GetAwaiter().GetResult();
 }
 
-/// <summary>The run's own aspire CLI, and the home it and the AppHosts the tests run take in place of the person's: an AppHost
-/// and the CLI keep their record of running AppHosts (which aspire ps and stop read, and ps's own clean-up ends) in
-/// $HOME/.aspire/cli/bch whatever ASPIRE_HOME says, so the run gives them a HOME of its own. On macOS and Linux the run's PATH
-/// starts with a wrapper named aspire that runs the CLI the build downloaded (Passenger.Tests.csproj) in that home, or
-/// refuses where it downloaded none, so the IDE and the tests never run the person's.</summary>
+/// <summary>The run's own aspire CLI, and the home it and the tests' AppHosts take in place of the person's, since both
+/// keep their record of running AppHosts (which aspire ps and stop read) in $HOME/.aspire/cli/bch whatever ASPIRE_HOME
+/// says. On macOS and Linux the run's PATH starts with a wrapper named aspire that runs the CLI the build downloaded
+/// (Passenger.Tests.csproj) in that home, or refuses where it downloaded none, so the IDE and the tests never run the
+/// person's.</summary>
 public static class AspireCli
 {
     /// <summary>The CLI the build downloaded for this machine, null where it downloaded none (PassengerAspireRuntime off,

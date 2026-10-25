@@ -31,10 +31,10 @@ public sealed class RetentionRow(RetentionNode node, int depth, ObservableCollec
     }
 }
 
-/// <summary>The profiler window's Memory page, as dotMemory's in Rider: the run's memory snapshots on the left; on the
-/// right the chosen one's types, a comparison of two (Compare with…), or an object set opened from either, with its
-/// objects, Shortest Paths to Roots and Key Retention Paths; above it the trail of what was opened, to go back along.
-/// What takes a while on a large heap (a comparison, an object set's paths) is worked out off the UI thread.</summary>
+/// <summary>The profiler window's Memory page: the run's memory snapshots on the left; on the right the chosen one's
+/// types, a comparison of two (Compare with…), or an object set opened from either, with its objects, Shortest Paths to
+/// Roots and Key Retention Paths; above it the trail of what was opened, to go back along. What takes a while on a large
+/// heap (a comparison, an object set's paths) is worked out off the UI thread.</summary>
 public sealed class MemoryView : DockPanel
 {
     private const double NumberWidth = 104;
@@ -382,7 +382,7 @@ public sealed class MemoryView : DockPanel
         }
     }
 
-    /// <summary>The paths' steps, the set's most retaining path open down to its root, as dotMemory opens it.</summary>
+    /// <summary>The paths' steps, the set's most retaining path open down to its root.</summary>
     private void ShowPaths(RetentionNode top)
     {
         pathRows.Clear();
@@ -557,7 +557,6 @@ public sealed class MemoryView : DockPanel
         TextBlock text = Cell(row.Node.Text);
         if (row.Node.Root is { } root)
         {
-            // A root as dotMemory writes one: its kind, then what names it.
             text.Text = null;
             text.Inlines = new Avalonia.Controls.Documents.InlineCollection { new Avalonia.Controls.Documents.Run(root.KindName) { FontWeight = FontWeight.SemiBold } };
             if (root.Name.Length > 0)
@@ -618,7 +617,7 @@ public sealed class MemoryView : DockPanel
         return block;
     }
 
-    /// <summary>Bytes as dotMemory shows them: plain under a kilobyte, then KB and MB.</summary>
+    /// <summary>Bytes, plain under a kilobyte, then in KB and MB.</summary>
     public static string Size(long bytes) => bytes switch
     {
         < 1024 => $"{bytes:N0} B",

@@ -47,8 +47,7 @@ public sealed class FileTests : IDisposable
     [AvaloniaFact]
     public void A_Windows_1252_file_shows_its_quotes_dashes_and_euro_and_a_character_it_cannot_hold_is_warned_of_then_saved_as_UTF_8()
     {
-        // "// “Café” – 5 € — prices" in Windows-1252: its quotes, dashes and euro are bytes 0x80–0x9F, which Latin-1
-        // reads as control characters.
+        // Windows-1252's quotes, dashes and euro are bytes 0x80–0x9F, which Latin-1 reads as control characters.
         string path = Path.Combine(folder, "Prices.cs");
         File.WriteAllBytes(path, [.. "// "u8, 0x93, .. "Caf"u8, 0xE9, 0x94, .. " "u8, 0x96, .. " 5 "u8, 0x80, .. " "u8, 0x97, .. " prices\nclass Prices { }\n"u8]);
         MainWindow window = Open();
@@ -57,7 +56,6 @@ public sealed class FileTests : IDisposable
         Assert.Equal("// “Café” – 5 € — prices\nclass Prices { }\n", window.EditorArea.CodeEditor.Document.Snapshot.ToString());
         Assert.Equal("windows-1252", EncodingShown(window));
 
-        // A character it holds leaves the file Windows-1252, byte for byte where it was not edited.
         window.EditorArea.CodeEditor.Selections = Text.SelectionSet.Single("// “Café”".Length);
         window.KeyTextInput(" señor");
         Ui.Settle();
@@ -66,7 +64,6 @@ public sealed class FileTests : IDisposable
         Assert.Equal([.. "// "u8, 0x93, .. "Caf"u8, 0xE9, 0x94, .. " se"u8, 0xF1, .. "or "u8, 0x96, .. " 5 "u8, 0x80, .. " "u8, 0x97, .. " prices\nclass Prices { }\n"u8], File.ReadAllBytes(path));
         Assert.Equal("windows-1252", EncodingShown(window));
 
-        // One it cannot hold is said over the editor before any save, as the save will write the file as UTF-8.
         window.KeyTextInput(" → 🚀");
         Ui.Settle();
         Assert.Equal("windows-1252 cannot hold '→': the next save writes Prices.cs as UTF-8", window.EditorArea.ActiveGroup.BannerText);
@@ -102,8 +99,8 @@ public sealed class FileTests : IDisposable
         window.Close();
     }
 
-    /// <summary>A file past what the editor opens as text or bytes (64 MB) is refused at once, nothing of it read, with why in
-    /// the status bar, as a preview past its limit is: opened, a file holds about six and a half times its size.</summary>
+    /// <summary>A file past what the editor opens as text or bytes (64 MB) is refused at once, nothing of it read, with
+    /// why in the status bar: opened, a file holds about six and a half times its size.</summary>
     [AvaloniaFact]
     public void A_file_too_large_to_open_as_text_or_bytes_is_refused_with_why_in_the_status_bar()
     {
@@ -125,7 +122,6 @@ public sealed class FileTests : IDisposable
         Assert.Empty(window.EditorArea.Documents);
         Assert.True(allocated < 16 << 20, $"Refusing huge.log allocated {allocated >> 20} MB on the UI thread: it was read first");
 
-        // Through File, Open too, with nothing open.
         window.Close();
         MainWindow front = new() { Width = 1200, Height = 800 };
         front.Show();
@@ -135,8 +131,8 @@ public sealed class FileTests : IDisposable
         front.Close();
     }
 
-    /// <summary>A binary file's tab shows its bytes drawn as signs, none of the file's text: what reads or changes a file's
-    /// text leaves it alone, as it leaves a preview, or an agent's replace would write the signs over its bytes.</summary>
+    /// <summary>A binary file's tab shows its bytes drawn as signs, none of the file's text: what reads or changes a
+    /// file's text leaves it alone, or an agent's replace would write the signs over its bytes.</summary>
     [AvaloniaFact]
     public void A_binary_files_bytes_are_no_text_for_the_status_bar_an_agent_replace_in_files_or_a_bookmark()
     {
@@ -253,8 +249,8 @@ public sealed class FileTests : IDisposable
         Assert.Empty(Directory.EnumerateFiles(folder, "*" + Passenger.App.Workspace.FileText.SaveSuffix));
     }
 
-    /// <summary>A save writes its temporary file under a name of its own, made new: a link a cloned repository carries
-    /// under the name a save once used (One.cs.passenger-save) took the save to whatever it pointed at.</summary>
+    /// <summary>A save writes its temporary file under a name of its own, made new, so a link a cloned repository
+    /// carries under a fixed name (One.cs.passenger-save) never takes the save elsewhere.</summary>
     [AvaloniaFact]
     public void A_save_never_writes_through_a_link_left_where_its_temporary_file_would_go()
     {
@@ -388,20 +384,17 @@ public sealed class FileTests : IDisposable
         Assert.Equal(["Clear Read-Only Status: Locked.cs is read-only, so its changes cannot be saved. Make it writable? [Make Writable]"], asked);
         Assert.Equal("Locked.cs is read-only: its changes are not saved", window.Status);
 
-        // Kept read-only, a save leaves the file as it was, and asks again.
         Ui.Press(window, Ui.Shortcut(AppActions.Save));
         Ui.WaitFor(() => asked.Count == 2, "Save to ask again");
         Assert.Equal("class Locked { }\n", File.ReadAllText(path));
         Assert.True(new FileInfo(path).IsReadOnly, "The save made the read-only file writable");
         Assert.True(window.EditorArea.Active!.IsModified, "The read-only file's changes were taken for saved");
 
-        // An agent's save_all is told the file was not saved, rather than that it was.
         Task<string> saving = new Passenger.App.Mcp.PassengerTools(window).SaveAll();
         Ui.WaitFor(() => saving.IsCompleted, "save_all's answer");
         Assert.Equal("Saved 0 of 1 files; not saved: Locked.cs (read-only)", Assert.IsType<ModelContextProtocol.McpException>(saving.Exception?.InnerException).Message);
         Assert.Equal("class Locked { }\n", File.ReadAllText(path));
 
-        // Made writable, it is saved.
         agree = true;
         Ui.Press(window, Ui.Shortcut(AppActions.Save));
         Ui.WaitFor(() => !window.EditorArea.Active!.IsModified, "the save once the file is writable");
@@ -417,7 +410,6 @@ public sealed class FileTests : IDisposable
         File.WriteAllText(path, "class Locked { }\n");
         File.SetAttributes(path, FileAttributes.ReadOnly);
 
-        // Closed without saving: the file stays as it was, read-only.
         MainWindow window = Open();
         window.Confirm = (_, _, _) => Task.FromResult(false);
         Edit(window, "Locked.cs", "public ");
@@ -432,7 +424,6 @@ public sealed class FileTests : IDisposable
         Assert.Equal("class Locked { }\n", File.ReadAllText(path));
         Assert.True(new FileInfo(path).IsReadOnly);
 
-        // Made writable: saved as the window closes.
         window = Open();
         window.Confirm = (_, _, _) => Task.FromResult(false);
         Edit(window, "Locked.cs", "public ");

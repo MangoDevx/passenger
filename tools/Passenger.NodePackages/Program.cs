@@ -134,8 +134,7 @@ public static class Packages
             Directory.Delete(staging, recursive: true);
         }
         Directory.CreateDirectory(staging);
-        // Downloaded a few at a time, then unpacked in the lock file's order, so a package's folder is made before a
-        // package nested under it (vscode-langservers-extracted/node_modules/typescript) is unpacked into it.
+        // Unpacked in the lock file's order, so a package's folder is there before one nested in it is unpacked.
         using SemaphoreSlim downloads = new(6);
         string[] tarballs = await Task.WhenAll(packages.Select(async package =>
         {

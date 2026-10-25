@@ -6,14 +6,15 @@ using Passenger.Text;
 
 namespace Passenger.App.Editors;
 
-/// <summary>Rider's undo of a command that changed more than one file, moved, made one or changed more than files (a
-/// <see cref="Part"/>), as a rename or Write to Launch Profile does: Undo where it is the last change (an editor of one of its
-/// files, or the Solution view) takes all of it back at once, the files it moved going back, every file's text as it was and
-/// the files it made gone, and Redo makes all of it again, each only while every file is still as the command left it. One
-/// that changed one open file's text alone is that file's own undo step; one file not open, with no undo of its own, is one.</summary>
+/// <summary>Undo of a command that changed more than one file, moved, made one or changed more than files (a
+/// <see cref="Part"/>), as a rename or Write to Launch Profile does: Undo where it is the last change (an editor of one
+/// of its files, or the Solution view) takes all of it back at once, the files it moved going back, every file's text
+/// as it was and the files it made gone, and Redo makes all of it again, each only while every file is still as the
+/// command left it. One that changed one open file's text alone is that file's own undo step; one file not open, with
+/// no undo of its own, is one.</summary>
 public sealed class CommandHistory
 {
-    /// <summary>The most commands kept, the oldest going first, as IntelliJ's registry has undo.globalUndoLimit.</summary>
+    /// <summary>The most commands kept, the oldest going first.</summary>
     public const int Limit = 10;
 
     private readonly EditorArea editors;
@@ -41,8 +42,8 @@ public sealed class CommandHistory
         undone.Clear();
     }
 
-    /// <summary>Why a command cannot be taken back (or made again) now, naming the first file changed or moved since, as
-    /// Rider says the files affected that have been changed; null when it can.</summary>
+    /// <summary>Why a command cannot be taken back (or made again) now, naming the first file changed or moved since;
+    /// null when it can.</summary>
     public string? Blocked(Command command, bool redo)
     {
         foreach ((string from, string to) in command.Moves)

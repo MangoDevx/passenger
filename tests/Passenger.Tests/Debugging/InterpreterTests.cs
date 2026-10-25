@@ -24,7 +24,6 @@ public class InterpreterTests(ITestOutputHelper testOutputHelper)
             .WaitForInitializedEvent();
         host.WithBreakpointsRequest([Line(bumper), Line(interpreter)], Debuggees.Source("PassengerCases", "Program.cs")).WithConfigurationDoneRequest();
 
-        // A constrained call on a struct argument changes the argument.
         int frame = await StoppedAt(host, bumper);
         Evaluate(host, frame, "item.Bump()");
         Assert.Equal("1", Evaluate(host, frame, "((Bumped)(object)item).N").Value);
@@ -38,14 +37,12 @@ public class InterpreterTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("2", Evaluate(host, frame, "new Counter[2].Length").Value);
         // A Pair<int> in a box is not a Pair<string>.
         Assert.Contains("InvalidCast", Evaluate(host, frame, "((Pair<string>)boxedPair).Value").Value, StringComparison.Ordinal);
-        // A method called on a local struct changes the local.
         Evaluate(host, frame, "counter.Increment()");
         Assert.Equal("1", Evaluate(host, frame, "counter.Count").Value);
         // An assignment is its new value, even of a struct a constructor made in the program (which neuters the frame).
         Assert.Equal("10", Evaluate(host, frame, "price = 10m").Value);
         Assert.Equal("10", Evaluate(host, frame, "price").Value);
 
-        // Set Value assigns what an expression names and answers with it; one of the wrong type is refused.
         SetExpressionResponse set = host.Request<SetExpressionResponse>("setExpression", new SetExpressionArguments("pairOfInt.Value", "40 + 2", frame));
         Assert.Equal("42", set.Value);
         Assert.Equal("42", Evaluate(host, frame, "pairOfInt.Value").Value);
@@ -53,20 +50,16 @@ public class InterpreterTests(ITestOutputHelper testOutputHelper)
         Assert.NotEmpty(refused.Reason);
         Assert.Equal("5", Evaluate(host, frame, "myInt").Value);
 
-        // A multi-dimensional array's element read, set, and its member set where it lies, as a watch and Set Value reach
-        // them; the runtime makes such an array's Get, Set and Address, which no metadata defines, and each had failed with
-        // a TypeLoadException.
+        // A multi-dimensional array's Get, Set and Address are the runtime's, which no metadata defines.
         Assert.Equal(("4", "int"), Evaluate(host, frame, "grid[1, 1]"));
         Assert.Equal("11", Evaluate(host, frame, "grid[2, 0] + grid[2, 1]").Value);
         SetExpressionResponse element = host.Request<SetExpressionResponse>("setExpression", new SetExpressionArguments("grid[0, 1]", "40 + 2", frame));
         Assert.Equal("42", element.Value);
         Assert.Equal("42", Evaluate(host, frame, "grid[0, 1]").Value);
-        // A struct's member set in place, not on a copy of the element.
         Assert.Equal("7", Evaluate(host, frame, "pairGrid[1, 0].Value = 7").Value);
         Assert.Equal("7", Evaluate(host, frame, "pairGrid[1, 0].Value").Value);
         Assert.Contains("IndexOutOfRange", Evaluate(host, frame, "grid[3, 0]").Value, StringComparison.Ordinal);
 
-        // A checked conversion out of range throws the overflow the program would, and a store keeps the bits that fit:
         // myInt is 5 and myUInt 7, each out of its target's range by its sign or by its size.
         foreach (string expression in (string[])["checked((ulong)(myInt - 6))", "checked((nuint)(myInt - 6))", "checked((byte)(myInt + 251))",
             "checked((sbyte)(myUInt + 121))", "checked((nint)(myInt * 1e30))", "checked((ulong)(myInt - 6.5))"])
@@ -115,7 +108,6 @@ public class InterpreterTests(ITestOutputHelper testOutputHelper)
         Assert.True(await Waiting.Within(evaluating, TimeSpan.FromSeconds(60), cancelled),
             "An expression that loops without end was still evaluating after 60 s, holding the debugger until it ends, which it never does");
         Assert.Contains("The expression took too long to evaluate", (await evaluating).Result, StringComparison.Ordinal);
-        // The program is as it was, and evaluates on.
         Assert.Equal("5", Evaluate(host, frame, "myInt + 1").Value);
     }
 

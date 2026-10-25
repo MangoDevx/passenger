@@ -52,10 +52,9 @@ internal sealed class Connection : IDisposable
         writer.Start();
     }
 
-    /// <summary>Has System.Text.Json make every type the wire carries ready now, before the app's Main, rather than on its
-    /// first use, which it does under one lock for all of them. The writer, stopped there by the debugger as it sent the
-    /// failure the app stopped at, held it from the binding values evaluated at that stop (BindingValues.Read), which then
-    /// waited on it until the app went on, and showed nothing.</summary>
+    /// <summary>Has System.Text.Json make every type the wire carries ready now, before the app's Main, rather than on
+    /// first use under its one lock, which the writer, stopped there by the debugger, would hold from the binding
+    /// values evaluated at the stop.</summary>
     private static void Configure()
     {
         foreach (PropertyInfo property in typeof(WireJson).GetProperties(BindingFlags.Public | BindingFlags.Instance))

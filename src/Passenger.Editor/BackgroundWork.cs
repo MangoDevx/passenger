@@ -4,13 +4,13 @@ using Passenger.Core;
 
 namespace Passenger.Editor;
 
-/// <summary>Counts background work still to land on the UI thread, so a screenshot can wait for it
-/// rather than capture a half-finished frame. Anything that runs off the UI thread and changes what
-/// is drawn enters here, best through <see cref="Scope"/>, <see cref="Track"/> or <see cref="Run{T}(Func{T}, CancellationToken, string, int)"/>,
-/// which no path out can forget. The process's, as its one UI thread is: with several windows a screenshot or a test
-/// waits for all of their work, which can only make it wait longer, never take a frame half-finished. While
-/// <see cref="InFlight.Watched"/> (a test run), each hold is named by the file and line that took it, for a wait that
-/// gives up to say what never finished (<see cref="Held"/>).</summary>
+/// <summary>Counts background work still to land on the UI thread, so a screenshot can wait for it rather than capture
+/// a half-finished frame. Anything that runs off the UI thread and changes what is drawn enters here, best through
+/// <see cref="Scope"/>, <see cref="Track"/> or <see cref="Run{T}(Func{T}, CancellationToken, string, int)"/>, which no
+/// path out can forget. The process's, as its one UI thread is: with several windows a screenshot or a test waits for
+/// all of their work, which can only make it wait longer, never take a frame half-finished. While
+/// <see cref="InFlight.Watched"/>, each hold is named by the file and line that took it, for a wait that gives up to
+/// say what never finished (<see cref="Held"/>).</summary>
 public static class BackgroundWork
 {
     /// <summary>The count of holds in the low half, and in the high half the generation they belong to, which
@@ -81,9 +81,8 @@ public static class BackgroundWork
         }
     }
 
-    /// <summary>Lets go of every hold, for a UI thread that is gone: what would have ended them (a callback, an await's
-    /// continuation) was to run on its dispatcher, which never runs again, as a headless test's once the test is over.
-    /// A test starts with this, so work an earlier one left can never hold it; a running IDE has one dispatcher.</summary>
+    /// <summary>Lets go of every hold, for a UI thread that is gone (a headless test's, once it is over): what would have
+    /// ended them (a callback, an await's continuation) was to run on its dispatcher, which never runs again.</summary>
     public static void Forget()
     {
         lock (Scopes)

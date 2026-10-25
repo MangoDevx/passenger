@@ -40,7 +40,7 @@ public class AsyncEvalTests(ITestOutputHelper testOutputHelper)
 
         TestVariablesEval(stackTraceResponse.StackFrames!.First().Id);
 
-        // Continue, so we hit the breakpoint after the async suspension point
+        // To the breakpoint after the async suspension point.
         debugProtocolHost.WithContinueRequest();
 
         StoppedEvent stoppedEvent2 = await debugProtocolHost.WaitForStoppedEvent();

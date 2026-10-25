@@ -4,9 +4,10 @@ using Avalonia.Controls;
 namespace Passenger.App;
 
 /// <summary>A row whose children take their own widths while they fit and, when the row is narrower, give way from the
-/// last one back, each down to its MinWidth (its Width when it has one, its item's when it holds a list's): a list's row (a frame's place before its
-/// method's name, a branch's upstream before its name) or Rider's main toolbar narrowing (the branch's name before the
-/// project's). Its words end in an ellipsis (Shell.axaml), so none is cut mid-letter.</summary>
+/// last one back, each down to its MinWidth (its Width when it has one, its item's when it holds a list's): a list's
+/// row (a frame's place before its method's name, a branch's upstream before its name) or the main toolbar narrowing
+/// (the branch's name before the project's). Its words end in an ellipsis (Shell.axaml), so none is cut
+/// mid-letter.</summary>
 public sealed class ShrinkingRow : Panel
 {
     private double[] widths = [];
@@ -23,8 +24,7 @@ public sealed class ShrinkingRow : Panel
             total += widths[i];
         }
         double excess = double.IsInfinity(availableSize.Width) ? 0 : total - availableSize.Width;
-        // A child that gives way first does so before any other gives a pixel, down to its least, and before the row takes
-        // the room it leaves free beside the row.
+        // One that gives way first does so before any other gives a pixel, and before the row takes the room it frees.
         double free = Children.OfType<IGivesWayFirst>().Sum(c => c.LeavesFree);
         double before = double.IsInfinity(availableSize.Width) ? 0 : total - Math.Max(0, availableSize.Width - free);
         for (int i = Children.Count - 1; i >= 0 && before > 0; i--)
@@ -47,8 +47,7 @@ public sealed class ShrinkingRow : Panel
             widths[i] -= give;
             excess -= give;
         }
-        // A child is told the room the row has left over as well as its own, so one that grows by itself (a tab strip given
-        // another tab) is measured again within it and the row hears, where measured at its own width it kept to that.
+        // Told the room left over too, so a child that grows by itself (a tab strip) is measured again within it.
         double slack = double.IsInfinity(availableSize.Width) ? 0 : Math.Max(0, availableSize.Width - widths.Sum());
         double height = 0;
         for (int i = 0; i < Children.Count; i++)

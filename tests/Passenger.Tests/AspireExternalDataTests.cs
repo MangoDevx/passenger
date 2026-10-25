@@ -29,7 +29,7 @@ public sealed class AspireExternalDataTests(AspireApp project) : IClassFixture<A
             $".WithEnvironment(\"{Variable}\", \"{Secret}\").WithHttpHealthCheck(\"/health\")", StringComparison.Ordinal));
         string cli = Assert.IsType<string>(Programs.OnPath("aspire"));
         Assert.True(PathNames.IsUnder(cli, TestRun.Root), $"The aspire on the run's PATH is {cli}, not the run's own");
-        // By the real paths its references name its services by (the fixture restored them so), as the IDE's own builds go.
+        // By real paths, which the fixture restored its references by.
         ProcessStartInfo start = ChildProcesses.Command(cli, ["run", "--apphost", PathNames.Canonical(project.Host), "--non-interactive", "--nologo"],
             PathNames.Canonical(project.Folder));
         start.RedirectStandardOutput = true;
@@ -44,7 +44,7 @@ public sealed class AspireExternalDataTests(AspireApp project) : IClassFixture<A
         int[] listed = [];
         try
         {
-            // Before any window, asked of the CLI every two seconds as a person would look: the AppHost builds, then starts.
+            // Asked every two seconds, as a person would look, while the AppHost builds and starts.
             Assert.True(Waiting.Until(() => (listed = Listed(cli, project.Host)).Length > 0 || run.HasExited, TimeSpan.FromMinutes(3), TimeSpan.FromSeconds(2)),
                 $"aspire run brought up no AppHost that aspire ps lists:\n{Said(said)}");
             Assert.False(run.HasExited, $"aspire run ended (exit {(run.HasExited ? run.ExitCode : 0)}):\n{Said(said)}");
@@ -56,14 +56,13 @@ public sealed class AspireExternalDataTests(AspireApp project) : IClassFixture<A
             ChooseApp(window, PathNames.Canonical(project.Host));
             bool Read() => window.Aspire.ResourceSnapshots.Any(resource => resource.DisplayName == "apiservice"
                 && resource.Data.TryGetProperty("environment", out JsonElement environment) && environment.TryGetProperty(Variable, out _));
-            // Each Refresh is the CLI asked again, its answer landed before the press settles; the API may still be starting.
+            // The API may still be starting: each Refresh asks the CLI again.
             for (int refresh = 0; !Read() && refresh < 30; refresh++)
             {
                 FindAction(window, "Refresh Aspire Resources");
             }
             Assert.True(Read(), $"The Aspire window never read the external API's environment through the CLI ({window.Aspire.Status})");
             AspireResource api = Assert.Single(window.Aspire.ResourceSnapshots, resource => resource.DisplayName == "apiservice");
-            // A secret's by its name, masked as Containers' Details mask one.
             Assert.Equal(Passenger.App.Containers.ContainerSecrets.Masked, api.Data.GetProperty("environment").GetProperty(Variable).GetString());
             Assert.DoesNotContain(Secret, api.Data.GetRawText(), StringComparison.Ordinal);
             Assert.DoesNotContain(window.AspireWindow.GetVisualDescendants().OfType<TextBlock>(), text => text.Text?.Contains(Secret, StringComparison.Ordinal) == true);
@@ -74,7 +73,6 @@ public sealed class AspireExternalDataTests(AspireApp project) : IClassFixture<A
         finally
         {
             window?.Close();
-            // The CLI's run, with the AppHost, its orchestrator and services it started, which aspire run leads as a process group.
             ChildProcesses.Kill(run);
             // The orchestrator and the services it started are no children of the CLI's: each follows the AppHost's end.
             int[] ended = [run.Id, .. listed];

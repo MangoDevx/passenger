@@ -4,9 +4,9 @@ namespace Passenger.Debugger.ExpressionEvaluator.Cil;
 
 internal sealed class CilValue
 {
-    /// <summary>The debuggee's pointer size, for native integers: its runtime's, set when CoreLib loads,
-    /// not the debugger's own (a 32-bit program under a 64-bit debugger). A static of the adapter's process, which
-    /// debugs one program: each debug session, in any window, starts an adapter of its own.</summary>
+    /// <summary>The debuggee's pointer size, for native integers: its runtime's, set when CoreLib loads, not the
+    /// debugger's own (a 32-bit program under a 64-bit debugger). A static of the adapter's process, which debugs one
+    /// program.</summary>
     public static int PointerSize { get; set; } = IntPtr.Size;
 
     private CilValue(object? value, ICorDebugValue? corValue, ICilLocation? location = null, ICilLocation? sourceLocation = null)
@@ -258,9 +258,7 @@ internal sealed class CorDebugLocation(ICorDebugValue value) : IDebuggeeLocation
         ICorDebugValue storage = GetStorageValue();
         ICorDebugValue destination = storage.UnwrapDebugValue();
 
-        // Value-typed storage. Value-type locations may be surfaced as an ICorDebugReferenceValue (e.g. enum
-        // locals), so the discriminating signal is the dereferenced destination being a value-type generic,
-        // not whether storage itself is a reference.
+        // Value-typed storage, told by the destination: an enum local may come as a reference value.
         if (destination is ICorDebugGenericValue destinationGeneric && IsValueType(destinationGeneric.Type))
         {
             if (source.CorValue?.UnwrapDebugValue() is ICorDebugGenericValue sourceGeneric)
@@ -309,10 +307,7 @@ internal sealed class CorDebugLocation(ICorDebugValue value) : IDebuggeeLocation
             throw new NotSupportedException("The CIL value cannot be stored in this debuggee location");
         }
 
-        // Reference-typed location (string/class/object/array local, field or element). The value is written
-        // into the slot itself - never into the dereferenced target - and null zeroes the slot. The dereferenced
-        // destination for a non-null string slot is the string's data (generic STRING), which must never be
-        // written to as bytes, which is why the slot is handled here rather than above.
+        // A reference-typed slot is written itself, never its target (a string's is its data); null zeroes it.
         if (storage is ICorDebugReferenceValue destinationReference)
         {
             if (source.IsNull)

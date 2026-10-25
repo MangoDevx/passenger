@@ -5,10 +5,10 @@ using System.Windows.Markup;
 
 namespace Passenger.WpfPreview.Design;
 
-/// <summary>The designer's <c>d:DesignInstance</c>, as Visual Studio's designer gives it: an instance of the type when it
-/// is design-time creatable (its parameterless constructor run), else a stand-in with the type's properties at their
-/// defaults, so bindings resolve against its shape without running its code; a list of three when <see cref="CreateList"/>.
-/// The previewer reads a <c>d:DataContext</c> with the designer's prefix mapped here.</summary>
+/// <summary>The designer's <c>d:DesignInstance</c>: an instance of the type when it is design-time creatable (its
+/// parameterless constructor run), else a stand-in with the type's properties at their defaults, so bindings resolve
+/// against its shape without running its code; a list of three when <see cref="CreateList"/>. The previewer reads a
+/// <c>d:DataContext</c> with the designer's prefix mapped here.</summary>
 [MarkupExtensionReturnType(typeof(object))]
 public sealed class DesignInstanceExtension : MarkupExtension
 {

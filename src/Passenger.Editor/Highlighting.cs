@@ -39,18 +39,18 @@ public enum TokenKind
     /// <summary>What a program wrote to standard error, in a console.</summary>
     ErrorOutput,
 
-    /// <summary>What a person typed into a console for the program's input, in italics as Rider draws it.</summary>
+    /// <summary>What a person typed into a console for the program's input, in italics.</summary>
     UserInput,
 
-    /// <summary>A link in a console (a file's location, a web address), in Rider's hyperlink colour.</summary>
+    /// <summary>A link in a console (a file's location, a web address), in the link colour.</summary>
     Link,
 
-    /// <summary>A bracket at a nesting depth, the three colours taking turns: Rider's rainbow braces.</summary>
+    /// <summary>A bracket at a nesting depth, the three colours taking turns (rainbow braces).</summary>
     Brace1,
     Brace2,
     Brace3,
 
-    /// <summary>An XML or HTML tag: its brackets and name (Rider's XML_TAG and XML_TAG_NAME).</summary>
+    /// <summary>An XML or HTML tag: its brackets and name.</summary>
     Tag,
     AttributeName,
     AttributeValue,
@@ -58,10 +58,10 @@ public enum TokenKind
     /// <summary>A character or entity reference: <c>&amp;amp;</c>.</summary>
     Entity,
 
-    /// <summary>A JSON object's property name (Rider's JSON.PROPERTY_KEY).</summary>
+    /// <summary>A JSON object's property name.</summary>
     JsonKey,
 
-    /// <summary>A YAML mapping's key (Rider's YAML_SCALAR_KEY).</summary>
+    /// <summary>A YAML mapping's key.</summary>
     YamlKey,
 
     /// <summary>A Markdown heading's text, drawn bold.</summary>
@@ -119,10 +119,10 @@ public interface IBraceMatcher
     /// <paramref name="far"/> (Move Caret to Matching Brace, asked once).</summary>
     BracePair? PairAt(TextSnapshot text, int offset, bool far = false);
 
-    /// <summary>The name of the XML or HTML tag a caret is in or at the end of, and the name of the tag it pairs with (a
-    /// start tag's end tag, an end tag's start tag), as IntelliJ highlights them; null outside a tag's name, for a tag
-    /// with no pair, or in a language without tags. The pair is looked for near the caret, as every caret move asks for
-    /// it, unless <paramref name="far"/> (Move Caret to Matching Brace, asked once).</summary>
+    /// <summary>The name of the XML or HTML tag a caret is in or at the end of, and the name of the tag it pairs with
+    /// (a start tag's end tag, an end tag's start tag); null outside a tag's name, for a tag with no pair, or in a
+    /// language without tags. The pair is looked for near the caret, as every caret move asks for it, unless
+    /// <paramref name="far"/> (Move Caret to Matching Brace, asked once).</summary>
     BracePair? TagPairAt(TextSnapshot text, int caret, bool far = false) => null;
 }
 

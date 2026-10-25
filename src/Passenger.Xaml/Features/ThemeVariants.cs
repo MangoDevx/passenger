@@ -5,8 +5,7 @@ namespace Passenger.Xaml.Features;
 
 /// <summary>Resources kept per theme variant (a <c>ThemeDictionaries</c>' Dark and Light dictionaries): a key one variant
 /// defines and another does not is a warning where it is defined and where it is used, with a fix that adds it to the
-/// variant missing it, as a copy of the other's definition to change. Passenger's own rule, every token in both Dark and
-/// Light, is this check.</summary>
+/// variant missing it, as a copy of the other's definition to change.</summary>
 public static class ThemeVariants
 {
     /// <summary>The file's definitions missing from a variant of their group, and its uses of keys missing so anywhere.</summary>

@@ -6,8 +6,8 @@ namespace Passenger.App.Endpoints;
 
 /// <summary>The question a request asks before it takes something from the person's computer to a host: the host, and
 /// each environment variable (one not set said so, as it goes empty) and file outside the folder it reads. Allow (the
-/// default) or Don't allow, as a question's answers stand, and Always for this folder at the footer's left, as the agents'
-/// question has it, which keeps an Allow in the folder's state (never a no). Escape and closing answer no.</summary>
+/// default) or Don't allow, and Always for this folder at the footer's left, which keeps an Allow in the folder's state
+/// (never a no). Escape and closing answer no.</summary>
 public sealed class EndpointQuestionDialog : Window
 {
     public const string Allow = "Allow";

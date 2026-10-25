@@ -31,8 +31,8 @@ public partial class ModuleMetadataReader : IDisposable
     internal int PointerSize => _peReader?.PEHeaders.PEHeader?.Magic == PEMagic.PE32Plus ? 8 : 4;
 
     /// <summary>The methods a module's own code says are not the user's: marked [DebuggerNonUserCode],
-    /// [DebuggerStepThrough] or [DebuggerHidden], or declared in a type (or a type nested in one) marked
-    /// with either of the first two. Just My Code leaves them out, as Visual Studio and Rider do.</summary>
+    /// [DebuggerStepThrough] or [DebuggerHidden], or declared in a type (or a type nested in one) marked with either of
+    /// the first two. Just My Code leaves them out.</summary>
     internal HashSet<int> NonUserCodeMethodTokens() => _nonUserCode ??= [.. FindNonUserCodeMethodTokens()];
 
     /// <summary>Whether the module's own code says a method is not the user's.</summary>
@@ -267,7 +267,6 @@ public partial class ModuleMetadataReader : IDisposable
             peReader = new PEReader(assemblyStream, PEStreamOptions.PrefetchEntireImage);
             ModuleMetadataReader result = new ModuleMetadataReader(peReader);
 
-            // Look for debug directory entries
             DebugDirectoryEntry codeViewEntry = default;
             DebugDirectoryEntry embeddedPdbEntry = default;
 
@@ -275,7 +274,6 @@ public partial class ModuleMetadataReader : IDisposable
             {
                 if (entry.Type == DebugDirectoryEntryType.CodeView)
                 {
-                    // Check for Portable PDB magic number
                     const ushort PortableCodeViewVersionMagic = 0x504d;
                     if (entry.MinorVersion == PortableCodeViewVersionMagic)
                     {
@@ -288,13 +286,11 @@ public partial class ModuleMetadataReader : IDisposable
                 }
             }
 
-            // Try CodeView (external PDB file) first
             if (codeViewEntry.DataSize != 0)
             {
                 result.TryLoadFromCodeView(codeViewEntry, assemblyPath);
             }
 
-            // Try embedded PDB
             if (embeddedPdbEntry.DataSize != 0)
             {
                 result.TryLoadEmbeddedPdb(embeddedPdbEntry);
@@ -317,7 +313,6 @@ public partial class ModuleMetadataReader : IDisposable
             CodeViewDebugDirectoryData codeViewData = _peReader!.ReadCodeViewDebugDirectoryData(codeViewEntry);
             string pdbPath = codeViewData.Path;
 
-            // Try PDB in same directory as assembly
             string? assemblyDir = Path.GetDirectoryName(assemblyPath);
             if (assemblyDir is not null)
             {
@@ -335,7 +330,6 @@ public partial class ModuleMetadataReader : IDisposable
             provider = MetadataReaderProvider.FromPortablePdbStream(pdbStream);
             MetadataReader reader = provider.GetMetadataReader();
 
-            // Validate PDB matches assembly
             BlobContentId pdbId = new BlobContentId(reader.DebugMetadataHeader!.Id);
             BlobContentId expectedId = new BlobContentId(codeViewData.Guid, codeViewEntry.Stamp);
 
@@ -345,7 +339,6 @@ public partial class ModuleMetadataReader : IDisposable
                 return true;
             }
 
-            // PDB doesn't match, dispose and return null
             provider.Dispose();
             return false;
         }
@@ -453,7 +446,6 @@ public partial class ModuleMetadataReader : IDisposable
                 }
             }
         }
-        // TODO: I wonder if it is faster to pass a class token of the containing class from the metadata side rather than looking it up here
         MethodDefinition methodDef = _peMetadataReader.GetMethodDefinition(methodHandle);
         TypeDefinitionHandle typeDef = methodDef.GetDeclaringType();
         TypeDefinition typeDefObj = _peMetadataReader.GetTypeDefinition(typeDef);
@@ -479,7 +471,6 @@ public partial class ModuleMetadataReader : IDisposable
         {
             LocalScope scope = reader.GetLocalScope(scopeHandle);
 
-            // Only consider scopes that are active at the current IL offset
             if (currentIlOffset < scope.StartOffset || currentIlOffset >= scope.StartOffset + scope.Length)
             {
                 continue;
@@ -538,7 +529,6 @@ public partial class ModuleMetadataReader : IDisposable
 
     public (int ilStartOffset, int ilEndOffset)? GetStartAndEndSequencePointIlOffsetsForIlOffset(int methodToken, int ip, int? version = null)
     {
-        // Get valid, ordered sequence points
         List<Point?> points = Points(methodToken, version)
             .Where(sp => sp.StartLine != 0 && sp.IsHidden is false)
             .OrderBy(sp => sp.Offset)
@@ -550,10 +540,8 @@ public partial class ModuleMetadataReader : IDisposable
             return null;
         }
 
-        // Find the last point at or before the IP
         Point? startPoint = points.LastOrDefault(sp => sp!.Value.Offset <= ip); // e.g. ip = 0, it is possible that there is no matching sequence point
 
-        // Find the first point after the IP
         Point? endPoint = points.FirstOrDefault(sp => sp!.Value.Offset > ip);
 
         int ilStartOffset = startPoint?.Offset ?? ip;
@@ -602,12 +590,8 @@ public partial class ModuleMetadataReader : IDisposable
     // https://github.com/dotnet/roslyn/blob/afd10305a37c0ffb2cfb2c2d8446154c68cfa87a/src/Dependencies/CodeAnalysis.Debugging/PortableCustomDebugInfoKinds.cs#L13
     private static readonly Guid _asyncMethodSteppingInformationBlob = new("54FD2AC5-E925-401A-9C2A-F94F171072F8");
 
-    /// <summary>
-    /// Get async method stepping information for a method.
-    /// This includes await block yield/resume offsets and last user code IL offset.
-    /// </summary>
-    /// <param name="methodToken">Method token</param>
-    /// <returns>Async method stepping info if method has await blocks, null otherwise</returns>
+    /// <summary>A method's async stepping information: its awaits' yield and resume offsets, and the last IL offset of
+    /// its user code; null for a method without awaits.</summary>
     public AsyncMethodSteppingInfo? GetAsyncMethodSteppingInfo(int methodToken, int? version = null)
     {
         if (DebugOf(methodToken, version) is not { Reader: { } reader } debug)
@@ -645,10 +629,8 @@ public partial class ModuleMetadataReader : IDisposable
             return null;
         }
 
-        // Find last IL offset for user code in this method
         foreach (Point sp in Points(methodToken, version))
         {
-            // Skip hidden sequence points and invalid lines
             if (sp.StartLine == 0 || sp.IsHidden || sp.Offset < 0)
             {
                 continue;

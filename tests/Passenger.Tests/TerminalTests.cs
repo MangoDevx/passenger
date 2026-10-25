@@ -19,8 +19,7 @@ namespace Passenger.Tests;
 /// them, typed commands and keys taken ahead of the IDE; floods of output and stuck pastes never hold the window, pastes
 /// stay text, accents and emoji take the columns the shell counts, lines reflow as it resizes, and a place or a selection
 /// holds as output streams. A run configuration that uses the terminal runs its program in a tab of its own, which reads
-/// what is typed there and draws as it likes, and which Stop ends with all it started. How soon the window answers through
-/// a flood, a stuck paste and a busy pool is TerminalResponsivenessTests'.</summary>
+/// what is typed there and draws as it likes, and which Stop ends with all it started.</summary>
 public sealed class TerminalTests
 {
     [AvaloniaFact]
@@ -39,8 +38,7 @@ public sealed class TerminalTests
         Run(window, "echo before");
         WaitForLine(shell, "before", "the line before the program");
 
-        // As vim or less draw: the alternate screen, the cursor moved about, rows erased in part and whole, a scroll
-        // region that moves only its own rows, colours in each of xterm's forms, and a wide character at the right edge.
+        // As vim or less draw: the alternate screen, cursor moves, partial erases, a scroll region, colours, a wide character.
         string draw = "printf '\\033[?1049h\\033[H\\033[2J"
             + "1111111111\\r\\n2222222222\\r\\n3333333333\\r\\n4444444444\\033[2;3H\\033[K\\033[3;5H\\033[1K\\033[4;1H\\033[2K!"
             + "\\033[5;1Htop\\r\\na\\r\\nb\\r\\nc\\r\\nbottom\\033[6;8r\\033[8;1H\\nd\\033[r"
@@ -63,7 +61,6 @@ public sealed class TerminalTests
         Assert.True((screen.Lines[11].Cells[0].Width, screen.Lines[11].Cells[1].Width) == (2, 0),
             "the wide character at the edge was split across the rows rather than taken whole to the next");
 
-        // Its end gives the shell's screen back as it was, the prompt where the program left it.
         Ui.Press(window, "ENTER");
         WaitForScreen(window, shell, s => !s.IsAlternate && s.CursorColumn > 0 && s.Lines[s.CursorRow].Text().Trim().Length > 0, "the shell's screen back with its prompt");
         Assert.Contains("before", Lines(screen));
@@ -81,8 +78,7 @@ public sealed class TerminalTests
             return;
         }
         (MainWindow window, TerminalSession shell) = Open(TestFolders.Create("terminal-"), "/bin/bash");
-        // Where the cursor is, as a program asks before drawing (.NET's Console.GetCursorPosition among them), and what
-        // the terminal is, each answer read back by the program from its input.
+        // Where the cursor is, as a program asks before drawing, and what the terminal is, each answer read back.
         Run(window, "stty -echo; printf '\\033[5;10H\\033[6n'; IFS= read -r -d R at; printf '\\033[c'; IFS= read -r -d c is; stty echo; "
             + "echo; echo \"at ${at#??} is ${is#??}\"");
         WaitForLine(shell, "at 5;10 is ?62;22", "the program's answers");
@@ -109,7 +105,6 @@ public sealed class TerminalTests
         Ui.Press(window, "control C");
         WaitForScreen(window, shell, s => s.CursorColumn > 0, "the prompt after cat");
 
-        // A program that asks for the application cursor keys, as less and vim do, gets them.
         Run(window, "printf '\\033[?1h'; cat -v");
         WaitForScreen(window, shell, s => s.ApplicationCursorKeys && s.CursorColumn == 0, "cat to wait in the application cursor mode");
         Ui.Press(window, "UP");
@@ -159,22 +154,18 @@ public sealed class TerminalTests
             TerminalSession shell = window.TerminalPanel.Active!;
             Ui.WaitFor(() => window.TerminalPanel.View.IsFocused, "the keys to go to the terminal");
 
-            // Typed into the view, the command runs in the folder, its answer on the screen.
             window.KeyTextInput(OperatingSystem.IsWindows() ? "echo %CD%" : "pwd");
             Ui.Press(window, "ENTER");
             string where = PathNames.Canonical(folder);
             Ui.WaitFor(() => Screen(shell).Contains(where, StringComparison.Ordinal), $"the folder on the screen:\n{Screen(shell)}");
 
-            // The view's size is the shell's: it fills the window, in whole cells.
             Assert.True(shell.Screen.Columns > 80, $"{shell.Screen.Columns} columns");
 
-            // Shift+Escape is still the IDE's: it hides the window. The terminal's shortcut brings it back.
             Ui.Press(window, "shift ESCAPE");
             Assert.False(window.DockHost.IsShown(ToolWindowIds.Terminal));
             Ui.Run(window, AppActions.ShowTerminal);
             Assert.True(window.DockHost.IsShown(ToolWindowIds.Terminal));
 
-            // The shell's own exit closes its tab, and with the last one the window.
             Ui.WaitFor(() => window.TerminalPanel.View.IsFocused, "the terminal focused again");
             window.KeyTextInput("exit");
             Ui.Press(window, "ENTER");
@@ -195,8 +186,7 @@ public sealed class TerminalTests
         try
         {
             (MainWindow window, TerminalSession _) = Open(folder, OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh");
-            // Run, Git and Bookmarks by their one-key shortcuts: Alt+4, Alt+9 and Ctrl+` in Visual Studio's keymap, Cmd+4,
-            // Cmd+9 and Ctrl+` in its macOS one. Rider's terminal lets every tool window's shortcut through.
+            // Run, Git and Bookmarks by their one-key shortcuts (Alt+4, Alt+9 and Ctrl+`; Cmd+4, Cmd+9 and Ctrl+` on macOS).
             foreach ((string action, string shown) in new[] { (AppActions.ShowRun, "run"), (AppActions.ShowGit, "git"), (AppActions.ShowBookmarks, "bookmarks") })
             {
                 window.ShowToolWindow(ToolWindowIds.Terminal);
@@ -291,7 +281,6 @@ public sealed class TerminalTests
             Assert.True(row.TextOf(1) == "e\u0301" && row.Cells[2].Rune == 's' && row.Cells[9].Rune == 'f',
                 $"Résumé.pdf took other columns than its ten letters, so text after an accent drifts from where the shell counts it: [{string.Join("|", Enumerable.Range(0, 12).Select(row.TextOf))}]");
 
-            // Dragged over and copied, it is what was printed.
             Drag(window, line, 0, line, 9);
             Ui.Press(window, CopyKey);
             Assert.Equal(name, Ui.Clipboard(window));
@@ -371,7 +360,6 @@ public sealed class TerminalTests
             Ui.Press(window, "ENTER");
             WaitForLine(shell, "kept", "the command typed before the resizes to run");
 
-            // A program laying itself out reads the size the terminal has, narrowed again.
             dock.Move(dock[ToolWindowIds.Terminal]!, ToolAnchor.RightTop);
             Ui.WaitFor(() => screen.Columns < wide, "the terminal to narrow again");
             Run(window, "stty size");
@@ -446,7 +434,6 @@ public sealed class TerminalTests
             Run(window, "while [ ! -e go ]; do sleep 0.05; done; seq 20001 20100");
             Ui.WaitFor(() => screen.Lines[screen.CursorRow].Text().Length == 0, "the loop to start waiting");
 
-            // The person drags over seq's last line, and output streams in, each line now dropping the oldest.
             long chosen = WaitForLine(shell, text, "seq's last line");
             Drag(window, chosen, 0, chosen, text.Length - 1);
             Assert.Equal(text, window.TerminalPanel.View.SelectedText);
@@ -463,10 +450,10 @@ public sealed class TerminalTests
         }
     }
 
-    /// <summary>A run configuration that uses the terminal (Rider's Use external console) runs its program in a tab of the
-    /// Terminal window named for it, a real terminal: the program clears the screen and writes in colour where it puts the
-    /// cursor, reads a key and then a line typed into the view, and its tab, kept once it ends, says so with its exit code,
-    /// as the status bar does; the toolbar's Stop shows while it runs.</summary>
+    /// <summary>A run configuration that uses the terminal runs its program in a tab of the Terminal window named for it, a
+    /// real terminal: the program clears the screen and writes in colour where it puts the cursor, reads a key and then a line
+    /// typed into the view, and its tab, kept once it ends, says so with its exit code; the toolbar's Stop shows while it
+    /// runs.</summary>
     [AvaloniaFact]
     public void A_program_run_in_the_terminal_reads_a_key_and_a_line_typed_there_and_draws_in_colour_where_it_puts_the_cursor()
     {
@@ -525,9 +512,9 @@ public sealed class TerminalTests
         window.Close();
     }
 
-    /// <summary>The terminal's links as Rider's terminal has them: an address is a link a click opens (a drag from it
-    /// selects instead) and so does Cmd+click (Ctrl+click elsewhere), wrapped across rows or not; a file's path is text
-    /// until Cmd or Ctrl is held over it, and Cmd+click opens it at its line.</summary>
+    /// <summary>The terminal's links: an address is a link a click opens (a drag from it selects instead) and so does
+    /// Cmd+click (Ctrl+click elsewhere), wrapped across rows or not; a file's path is text until Cmd or Ctrl is held over
+    /// it, and Cmd+click opens it at its line.</summary>
     [AvaloniaFact]
     public void An_address_in_the_terminal_opens_with_a_click_or_cmd_click_and_a_files_path_with_cmd_click()
     {
@@ -548,7 +535,6 @@ public sealed class TerminalTests
         Ui.Settle();
         Assert.Equal((line, 4, line, 36, false), view.HoveredLink is { } link ? (link.FromLine, link.FromColumn, link.ToLine, link.ToColumn, link.Hidden) : default);
 
-        // A drag that begins on it selects, and opens nothing.
         Drag(window, line, 12, line, 22);
         Assert.Equal("example.com", view.SelectedText);
         Assert.Empty(window.Browsed);
@@ -562,7 +548,6 @@ public sealed class TerminalTests
         Ui.Settle();
         Assert.Equal(2, window.Browsed.Count);
 
-        // An address wrapped onto the next row is one link from either row.
         string longer = "https://example.com/" + new string('w', shell.Screen.Columns);
         Run(window, $"echo {longer}");
         long first = WaitForLine(shell, longer[..shell.Screen.Columns], "the long address's first row");
@@ -575,7 +560,6 @@ public sealed class TerminalTests
         Ui.Settle();
         Assert.Equal(longer, window.Browsed[^1].AbsoluteUri);
 
-        // A file of the folder named with its line: a click alone does not open it, Cmd+click does, at that line.
         Run(window, "echo written to notes.txt:2 just now");
         long named = WaitForLine(shell, "written to notes.txt:2 just now", "the file's name");
         Point file = view.TranslatePoint(view.PointOf(named, 13), window)!.Value;
@@ -755,12 +739,10 @@ public sealed class TerminalResponsivenessTests
         MainWindow? window = null;
         try
         {
-            // Numbered lines of a hundred bytes, made as they are read: 500 MB of them, many times the 7 to 35 MB the window
-            // takes before Ctrl+C, yet an end that a terminal reading without waiting comes to.
+            // 500 MB of numbered lines, made as read: many times what the window takes before Ctrl+C, but not endless.
             string lines = $"seq -f 'line %07.0f {new string('x', 86)}'";
             (window, TerminalSession shell) = TerminalTests.Open(folder, "/bin/sh");
-            // The lines' glyphs drawn once first, as in a terminal already in use: the first frame of them lays them out,
-            // which on a slow machine holds the window for a second whatever the terminal does.
+            // The lines' glyphs drawn once first, whose first layout holds a slow machine's window for a second anyway.
             window.KeyTextInput($"{lines} 0 2");
             Ui.Press(window, "ENTER");
             Ui.WaitFor(() => shell.Screen.ScreenText().Contains("line 0000002", StringComparison.Ordinal), "the first lines on the screen");
@@ -775,8 +757,7 @@ public sealed class TerminalResponsivenessTests
                 window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.None, null);
                 window.KeyRelease(Key.Enter, RawInputModifiers.None, PhysicalKey.None, null);
                 Ui.PumpUntil(() => shell.Screen.ScreenText().Contains("xxxxxxxx", StringComparison.Ordinal), "seq's lines to come onto the screen");
-                // A second more of the flood, the window running as it does on a desktop, and on a machine slow to draw as
-                // long as it takes the window to answer enough looks to say how long a key waits.
+                // A second more of the flood, or as long as the window takes to answer enough looks to time a key's wait.
                 Stopwatch flooding = Stopwatch.StartNew();
                 Ui.Hold(TimeSpan.FromSeconds(1), "a second of seq's flood, in which every key's wait is measured");
                 Ui.Pumped(() => waits.Answered >= 20, TimeSpan.FromSeconds(19));
@@ -787,8 +768,7 @@ public sealed class TerminalResponsivenessTests
                     $"a key waited {waits.Longest.TotalMilliseconds:F0} ms for the window while seq's output poured in");
             }
 
-            // The window falls behind for a moment, as it would drawing a heavy frame: seq waits for it, its output not read
-            // into memory meanwhile, so Ctrl+C finds it running and only what the terminal had already read comes after.
+            // The window falls behind a moment: seq waits for it, unread, so Ctrl+C finds it running.
             long atCtrlC = -1;
             window.AddHandler(InputElement.KeyDownEvent, (_, e) =>
             {
@@ -841,7 +821,6 @@ public sealed class TerminalResponsivenessTests
             // What the pseudo-terminal took it echoes, so the paste did go.
             Ui.WaitFor(() => TerminalTests.Screen(shell).Contains("echo pasted 0", StringComparison.Ordinal), "the start of the paste echoed", TimeSpan.FromSeconds(10));
 
-            // The window still takes the IDE's keys: Shift+Escape hides the terminal.
             Ui.Press(window, "shift ESCAPE");
             Assert.False(window.DockHost.IsShown(ToolWindowIds.Terminal), "the terminal is still shown after Shift+Escape");
             window.Close();

@@ -6,10 +6,11 @@ using Passenger.Text;
 
 namespace Passenger.App.Web;
 
-/// <summary>One open JavaScript, TypeScript, HTML, CSS, JSON, Dockerfile or YAML file's share of its language server: kept in step, marked
-/// with the diagnostics the server pulls or pushes (moved with the text between them, as a C# file's are), and, where the
-/// server finds colours (CSS's), a swatch in the gutter beside each line that writes one. Of one server only: a server
-/// started again gives the file a new one, so what asks the server asks <see cref="WebLanguages.For"/> each time.</summary>
+/// <summary>One open JavaScript, TypeScript, HTML, CSS, JSON, Dockerfile or YAML file's share of its language server:
+/// kept in step, marked with the diagnostics the server pulls or pushes (moved with the text between them), and, where
+/// the server finds colours (CSS's), a swatch in the gutter beside each line that writes one. Of one server only: a
+/// server started again gives the file a new one, so what asks the server asks <see cref="WebLanguages.For"/> each
+/// time.</summary>
 public sealed class WebDocument : IServerDocument, IDisposable
 {
     /// <summary>How long typing must pause before diagnostics and colours are asked for again.</summary>
@@ -89,9 +90,8 @@ public sealed class WebDocument : IServerDocument, IDisposable
         document.Markers = Shown();
     }
 
-    /// <summary>Every source's markers, but an engine's on a line the server already marks as gravely: Compose checks a
-    /// compose file by the schema the YAML server does, and the Dockerfile server knows some of BuildKit's rules, so the
-    /// line is marked once (Problems' Containers tab lists the engine's whole).</summary>
+    /// <summary>Every source's markers, but an engine's on a line the server already marks as gravely: the engine's
+    /// checks and the server's often find the same problem, so the line is marked once.</summary>
     private IReadOnlyList<Marker> Shown()
     {
         if (engine.Count == 0)
@@ -250,8 +250,8 @@ public sealed class WebDocument : IServerDocument, IDisposable
         document.Markers = Shown();
     }
 
-    /// <summary>A diagnostic with the code Rider shows before its message: TypeScript's as TS2322 (from its own server, or
-    /// the HTML server's script), none for the rest, whose codes are lint rules' names or the JSON server's numbers.</summary>
+    /// <summary>A diagnostic with its code before its message: TypeScript's as TS2322 (from its own server, or the HTML
+    /// server's script), none for the rest, whose codes are lint rules' names or the JSON server's numbers.</summary>
     private static Diagnostic Named(Diagnostic diagnostic)
     {
         string? code = diagnostic.Code is { ValueKind: System.Text.Json.JsonValueKind.Number } number && diagnostic.Source is "typescript" or "ts" or "js"
@@ -269,7 +269,7 @@ public sealed class WebDocument : IServerDocument, IDisposable
         };
     }
 
-    /// <summary>A swatch in the gutter for each line that writes a colour, the first on the line, as Rider shows them.</summary>
+    /// <summary>A swatch in the gutter for each line that writes a colour, the first on the line.</summary>
     private static IReadOnlyList<ColourMark> Swatches(LspDocument lsp, IReadOnlyList<ColorInformation> colours) =>
         [.. colours
             .Select(c => (Line: lsp.Text.Snapshot.GetLineFromOffset(Math.Min(lsp.OffsetOf(c.Range.Start), lsp.Text.Snapshot.Length)), c.Color))

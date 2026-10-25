@@ -1,9 +1,9 @@
 namespace Passenger.App;
 
-/// <summary>What every popup over the window shares (Find Action, Go to File, Find in Files, a Git choice, a breakpoint's
-/// properties), as Rider's popups share it: the frame (Shell.axaml's <c>Border.popup</c>), a width from one scale, the
-/// title's look (<c>TextBlock.popupTitle</c>), and its list's rows of <see cref="ListRow.Height"/>. A popup takes its width
-/// from here, never a number of its own.</summary>
+/// <summary>What every popup over the window shares (Find Action, Go to File, Find in Files, a Git choice, a
+/// breakpoint's properties): the frame (Shell.axaml's <c>Border.popup</c>), a width from one scale, the title's look
+/// (<c>TextBlock.popupTitle</c>), and its list's rows of <see cref="ListRow.Height"/>. A popup takes its width from
+/// here, never a number of its own.</summary>
 public static class PopupFrame
 {
     /// <summary>A name to type (New Branch, Stash Changes).</summary>

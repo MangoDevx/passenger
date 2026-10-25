@@ -6,11 +6,10 @@ using Passenger.App.Settings;
 
 namespace Passenger.App;
 
-/// <summary>Discord Rich Presence, as the JetBrains IDEs' Discord plugins give it: while Settings' Show activity in
-/// Discord is on (as it is at first) and a solution is open, the person's own window has Discord show Playing Passenger
-/// with its icon, Passenger's own words or, as the person chooses, the solution and the file, and the time since the
-/// solution opened; only Passenger once the person has been idle a while; nothing once the setting goes off, the
-/// solution closes or Passenger quits. Of several of the
+/// <summary>Discord Rich Presence: while Settings' Show activity in Discord is on (as it is at first) and a solution is
+/// open, the person's own window has Discord show Playing Passenger with its icon, Passenger's own words or, as the
+/// person chooses, the solution and the file, and the time since the solution opened; only Passenger once the person
+/// has been idle a while; nothing once the setting goes off, the solution closes or Passenger quits. Of several of the
 /// person's windows, the one in front alone gives Discord its activity, through the one presence they share
 /// (<see cref="PassengerApp"/>). No other window (a test's, an agent's, a screenshot's) reaches Discord.</summary>
 public partial class MainWindow
@@ -26,24 +25,23 @@ public partial class MainWindow
     private bool idleInDiscord;
     private DispatcherTimer? idleWatch;
 
-    /// <summary>Where this window looks for Discord: the system's places, or the one PASSENGER_DISCORD_IPC names; a test
-    /// gives a stand-in of its own.</summary>
+    /// <summary>Where this window looks for Discord: the system's places, or the one PASSENGER_DISCORD_IPC names,
+    /// unless one is given.</summary>
     public DiscordIpc DiscordIpc { get; init; } = DiscordIpc.Default;
 
-    /// <summary>How long without a key, click or scroll before only Passenger shows: Settings' minutes, or a test's own
-    /// time.</summary>
+    /// <summary>How long without a key, click or scroll before only Passenger shows: Settings' minutes, unless
+    /// given.</summary>
     public TimeSpan? DiscordIdleAfter { get; init; }
 
     private void AddDiscord()
     {
-        // Any key, click, scroll or caret move is the person at work: a key or click in any of the IDE's windows (OnActivity),
-        // a scroll here, a caret's move in an editor anywhere.
+        // Any key, click, scroll or caret move anywhere in the IDE is the person at work.
         AddHandler(PointerWheelChangedEvent, (_, _) => Stir(), RoutingStrategies.Tunnel, handledEventsToo: true);
         Editors.CaretMoved += (_, _) => Stir();
     }
 
-    /// <summary>The person's window shows its activity in Discord while Settings says so (App calls this for it alone, a
-    /// test for its window as the person's).</summary>
+    /// <summary>The person's window shows its activity in Discord while Settings says so (called for the person's
+    /// window alone).</summary>
     public void ShowActivityInDiscord()
     {
         sharesActivity = true;

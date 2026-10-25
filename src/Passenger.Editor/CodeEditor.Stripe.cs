@@ -11,12 +11,11 @@ using Passenger.Text;
 
 namespace Passenger.Editor;
 
-/// <summary>Rider's error stripe: the vertical scrollbar's track stays and carries a mark for each problem (errors over
-/// warnings over the rest), changed lines, search matches, the uses of the symbol at the caret, bookmarks and the caret,
-/// each where its line is in the file
-/// (a folded one at its fold). A mark says what it is on hover and takes the caret there on a click. Over the stripe's
-/// top, the file's counts of errors and warnings, or a green tick: a click goes to the next problem and asks the host
-/// for Problems.</summary>
+/// <summary>The error stripe: the vertical scrollbar's track stays and carries a mark for each problem (errors over
+/// warnings over the rest), changed lines, search matches, the uses of the symbol at the caret, bookmarks and the
+/// caret, each where its line is in the file (a folded one at its fold). A mark says what it is on hover and takes the
+/// caret there on a click. Over the stripe's top, the file's counts of errors and warnings, or a green tick: a click
+/// goes to the next problem and asks the host for Problems.</summary>
 public sealed partial class CodeEditor
 {
     private readonly ErrorStripe stripe;

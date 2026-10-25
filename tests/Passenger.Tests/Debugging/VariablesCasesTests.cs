@@ -25,7 +25,7 @@ public class VariablesCasesTests(ITestOutputHelper testOutputHelper)
     {
         using DebugSession host = await DebugSession.LaunchToBreakpoint(testOutputHelper, "PassengerCases", Debuggees.Line("PassengerCases", "Console.WriteLine(f());"), ["all"]);
 
-        // Every exception stops, the earlier cases' too: run on to the one that wraps another.
+        // Every exception stops, the earlier cases' too.
         int wrapping = Debuggees.Line("PassengerCases", "throw new InvalidOperationException(\"Message2\", e1)");
         StoppedEvent stop = await host.WaitForStoppedEvent();
         for (int stops = 0; stop.ReadStopInfo().line != wrapping && stops < 10; stops++)
@@ -81,8 +81,7 @@ public class VariablesCasesTests(ITestOutputHelper testOutputHelper)
         Assert.DoesNotContain(angry, v => v.Name is "_message" or "StackTrace");
     }
 
-    /// <summary>A value whose ToString throws shows its type, as Visual Studio shows it, and still opens to its members;
-    /// the row had been the exception's words alone, with nothing to open.</summary>
+    /// <summary>A value whose ToString throws shows its type and still opens to its members.</summary>
     [Fact]
     public async Task A_value_whose_ToString_throws_shows_its_type_and_opens_to_its_members()
     {

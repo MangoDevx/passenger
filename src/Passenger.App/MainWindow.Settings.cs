@@ -32,7 +32,7 @@ public partial class MainWindow
                 settingsStore.Dispose();
             }
         };
-        // macOS has Settings in the application menu, as Rider's there.
+        // macOS has Settings in the application menu.
         actions!.Add(new IdeAction(AppActions.ShowSettings, "Settings…", "IDE", _ => ShowSettings())
         {
             Menus = OperatingSystem.IsMacOS() ? [] : [new MenuPlace("File", 3, 0)],

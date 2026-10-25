@@ -12,9 +12,9 @@ using Passenger.Core;
 
 namespace Passenger.Tests;
 
-/// <summary>Find in Files' scope and file mask as Rider's: the solution, one project (a project nested in its folder
-/// left to itself), a directory with or without its subdirectories, or a named scope; a mask of wildcards with commas,
-/// a ! leaving files out; the Solution view's Edit menu opening Find and Replace in Files on a row's folder, project or
+/// <summary>Find in Files' scope and file mask: the solution, one project (a project nested in its folder left to
+/// itself), a directory with or without its subdirectories, or a named scope; a mask of wildcards with commas, a !
+/// leaving files out; the Solution view's Edit menu opening Find and Replace in Files on a row's folder, project or
 /// file; and the scope and mask coming back the next time, and after a restart.</summary>
 public sealed class FindInFilesScopeTests : IClassFixture<FindInFilesScopeTests.Shop>, IDisposable
 {
@@ -78,7 +78,6 @@ public sealed class FindInFilesScopeTests : IClassFixture<FindInFilesScopeTests.
         Search(popup, "total");
         Assert.Equal(["Line.cs", "Main.cs", "Money.cs", "Money.g.cs", "notes.md", "Order.cs", "Plugin.cs", "total.md"], Found(popup));
 
-        // Alt+P: the project of the file in the editor, as Rider preselects it.
         Ui.Press(window, "alt P");
         Assert.Equal((SearchScopeKind.Project, Full("App/App.csproj")), (popup.ScopeKind, popup.Project));
         string[] app = Found(popup);
@@ -90,7 +89,6 @@ public sealed class FindInFilesScopeTests : IClassFixture<FindInFilesScopeTests.
         Assert.Equal(["Money.cs", "Money.g.cs"], Found(popup));
         Assert.Equal("2 matches in 2 files", popup.Status);
 
-        // Alt+S: a named scope, the open files.
         Ui.Press(window, "alt S");
         Assert.Equal("Open Files", popup.NamedScope);
         Assert.Equal(["Main.cs"], Found(popup));
@@ -107,7 +105,6 @@ public sealed class FindInFilesScopeTests : IClassFixture<FindInFilesScopeTests.
         string[] models = Found(popup);
         Assert.True(models.SequenceEqual(["Line.cs", "notes.md", "Order.cs"]), $"Find in Files on the Models folder found [{string.Join(", ", models)}]");
 
-        // Alt+Y: the folder's own files, not its subfolders'.
         Ui.Press(window, "alt Y");
         Assert.False(popup.Recursive);
         Assert.Equal(["notes.md", "Order.cs"], Found(popup));
@@ -119,14 +116,12 @@ public sealed class FindInFilesScopeTests : IClassFixture<FindInFilesScopeTests.
         Assert.Equal(["Money.cs", "Money.g.cs"], Found(popup));
         Ui.Press(window, "ESCAPE");
 
-        // A file is a scope of its own, named after it as Rider names a selection.
         popup = FromMenu(window, Reveal(window, "Lib/Money.g.cs"), "Find in Files…");
         Assert.Equal((SearchScopeKind.Scope, "Money.g.cs"), (popup.ScopeKind, popup.NamedScope));
         Search(popup, "total");
         Assert.Equal(["Money.g.cs"], Found(popup));
         Ui.Press(window, "ESCAPE");
 
-        // The shortcut with the Solution view's row chosen and the keys there searches that row, as Rider's does.
         Reveal(window, "App/App.csproj");
         window.ExplorerView.FocusRows();
         Ui.Press(window, Ui.Shortcut(AppActions.FindInFiles));
@@ -143,7 +138,6 @@ public sealed class FindInFilesScopeTests : IClassFixture<FindInFilesScopeTests.
         Search(popup, "total");
         Assert.Equal(8, Found(popup).Length);
 
-        // Alt+K turns the mask on, on the C# files.
         Ui.Press(window, "alt K");
         Assert.Equal("*.cs", popup.FileMask);
         string[] code = Found(popup);
@@ -154,7 +148,6 @@ public sealed class FindInFilesScopeTests : IClassFixture<FindInFilesScopeTests.
         Assert.DoesNotContain("Money.g.cs", Found(popup));
         Assert.Equal(5, Found(popup).Length);
 
-        // Exclusions alone leave everything else in, and the mask takes a name in any case.
         popup.FileMask = "!*.cs";
         Ui.Settle();
         Assert.Equal(["notes.md", "total.md"], Found(popup));
@@ -167,7 +160,6 @@ public sealed class FindInFilesScopeTests : IClassFixture<FindInFilesScopeTests.
         Assert.Empty(popup.Matches);
         Assert.Equal("Empty file mask", popup.Status);
 
-        // Alt+K again turns it off: every file.
         Ui.Press(window, "alt K");
         Assert.Null(popup.FileMask);
         Assert.Equal(8, Found(popup).Length);
@@ -205,7 +197,7 @@ public sealed class FindInFilesScopeTests : IClassFixture<FindInFilesScopeTests.
     }
 
     /// <summary>Replace All acts on the query and scope as they stand, though the matches shown for a moment after the
-    /// scope changes are still the last search's: pressed then, it replaced in every file the solution's search had found.</summary>
+    /// scope changes are still the last search's.</summary>
     [AvaloniaFact]
     public void Replace_all_pressed_as_the_scope_changes_replaces_in_the_new_scope_alone()
     {
@@ -267,7 +259,7 @@ public sealed class FindInFilesScopeTests : IClassFixture<FindInFilesScopeTests.
             $"After a restart Find in Files opened on {popup.ScopeKind} {popup.Directory} (recursive {popup.Recursive}) with the mask {popup.FileMask ?? "off"}");
         Ui.Press(second, "ESCAPE");
 
-        // Another folder has its own scope, and the mask, as Rider's, is every folder's.
+        // Another folder has its own scope, and the mask is every folder's.
         string other = TestFolders.Create("other-");
         File.WriteAllText(Path.Combine(other, "One.cs"), "class One { }\n");
         second.OpenFolder(other);

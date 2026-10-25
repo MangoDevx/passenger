@@ -8,10 +8,10 @@ using Passenger.Dap;
 
 namespace Passenger.App.Debugging;
 
-/// <summary>What a breakpoint does, as Rider's breakpoint popup and Breakpoints dialog edit it: on or off,
-/// whether it stops, its condition and hit count, and a message to log; for an exception breakpoint, Rider's "Suspend If",
-/// where the exception was thrown and where it is handled. Enter submits, Escape gives up. A hit count the debugger
-/// cannot read is said under its field as it is typed; the debugger refuses it in the same words.</summary>
+/// <summary>What a breakpoint does, as its popup and the Breakpoints window edit it: on or off, whether it stops, its
+/// condition and hit count, and a message to log; for an exception breakpoint, "Suspend If", where the exception was
+/// thrown and where it is handled. Enter submits, Escape gives up. A hit count the debugger cannot read is said under its
+/// field as it is typed; the debugger refuses it in the same words.</summary>
 public sealed class BreakpointProperties : UserControl
 {
     private readonly CheckBox enabled = new() { Content = "Enabled" };
@@ -41,7 +41,7 @@ public sealed class BreakpointProperties : UserControl
         inactive.Bind(TextBlock.ForegroundProperty, inactive.GetResourceObservable("Passenger.Error"));
         hitCount.TextChanged += (_, _) => CheckHitCount();
 
-        // Rider's "Suspend If" panel, in its words: the exception breakpoint stops when one of each row holds.
+        // The "Suspend If" panel: the exception breakpoint stops when one of each row holds.
         Grid scenarios = new() { ColumnDefinitions = new ColumnDefinitions("Auto,*"), RowDefinitions = new RowDefinitions("Auto,Auto"), RowSpacing = 4, ColumnSpacing = 10 };
         AddRow(scenarios, 0, "Exception thrown in:", Row(thrownInUserCode, thrownInExternalCode));
         AddRow(scenarios, 1, "Exception handler:", Row(handledInUserCode, handledInExternalCode, unhandled));
@@ -135,7 +135,7 @@ public sealed class BreakpointProperties : UserControl
         | (handledInExternalCode.IsChecked == true ? ExceptionScenarios.HandledInExternalCode : 0)
         | (unhandled.IsChecked == true ? ExceptionScenarios.Unhandled : 0);
 
-    /// <summary>Says, in Rider's words, that an exception breakpoint with no box of a row checked never stops.</summary>
+    /// <summary>Says that an exception breakpoint with no box of a row checked never stops.</summary>
     private void CheckScenarios()
     {
         ExceptionScenarios chosen = Chosen();
@@ -189,7 +189,7 @@ public sealed class BreakpointProperties : UserControl
     }
 }
 
-/// <summary>Rider's popup on a breakpoint (a right-click on it, or Alt+F9): its place, its properties, and the
+/// <summary>The popup on a breakpoint (a right-click on it, or Alt+F9): its place, its properties, and the
 /// way to the Breakpoints window. The changes stand when it closes, however it closes.</summary>
 public sealed class BreakpointPopup : UserControl
 {
@@ -252,13 +252,12 @@ public sealed class BreakpointPopup : UserControl
     }
 }
 
-/// <summary>Rider's Breakpoints window: the line breakpoints (XAML's among them) under ".NET Line Breakpoints", the
-/// session's data breakpoints under "Data Breakpoints", its property breakpoints under "Avalonia Property Breakpoints" and
-/// the exception breakpoints under "CLR Exception Breakpoints" ("Any exception" first) and the binding errors' one under
+/// <summary>The Breakpoints window: the line breakpoints (XAML's among them) under ".NET Line Breakpoints", the session's
+/// data breakpoints under "Data Breakpoints", its property breakpoints under "Avalonia Property Breakpoints", the
+/// exception breakpoints under "CLR Exception Breakpoints" ("Any exception" first) and the binding errors' one under
 /// "XAML Binding Errors", each turned on or off by its box, and the chosen one's properties beside the list. + adds an
-/// exception breakpoint by its
-/// type, offering the exception types that match what is typed (Rider's Add CLR Exception Breakpoints); − removes the
-/// chosen one. Double-click (or Go to Source) shows a line breakpoint's line.</summary>
+/// exception breakpoint by its type, offering the exception types that match what is typed (Add CLR Exception
+/// Breakpoints); − removes the chosen one. Double-click (or Go to Source) shows a line breakpoint's line.</summary>
 public sealed class BreakpointsWindow : UserControl
 {
     private readonly BreakpointStore store;
@@ -316,7 +315,7 @@ public sealed class BreakpointsWindow : UserControl
         properties.Submitted += (_, _) => properties.Apply(store);
         properties.Dismissed += (_, _) => Close();
 
-        // Rider's Add CLR Exception Breakpoints, in the window: the types that match what is typed, Enter adds the one chosen.
+        // Add CLR Exception Breakpoints, in the window: the types that match what is typed, Enter adds the one chosen.
         typed.TextChanged += (_, _) => ShowFound();
         typed.AddHandler(KeyDownEvent, OnTypedKeyDown, RoutingStrategies.Tunnel);
         found.DoubleTapped += (_, _) => AddChosenType();
@@ -559,7 +558,7 @@ public sealed class BreakpointsWindow : UserControl
         ShowChosen();
     }
 
-    /// <summary>A group's heading, as Rider's tree has one for each kind of breakpoint; it is never chosen.</summary>
+    /// <summary>A group's heading, one for each kind of breakpoint; it is never chosen.</summary>
     private static ListBoxItem Group(string name)
     {
         TextBlock text = new() { Text = name, FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, 4, 0, 0) };

@@ -11,9 +11,9 @@ using Passenger.Core;
 
 namespace Passenger.App;
 
-/// <summary>Problems as Rider keeps them: the current file's as they are typed, the solution's with solution-wide
-/// analysis on (the status bar's icon turns it on and off and counts its errors), the projects' load problems under
-/// Toolset, Environment, and the last build's apart. A link in a problem (an advisory) opens in the browser.</summary>
+/// <summary>Problems: the current file's as they are typed, the solution's with solution-wide analysis on (the status
+/// bar's icon turns it on and off and counts its errors), the projects' load problems under Toolset, Environment, and
+/// the last build's apart. A link in a problem (an advisory) opens in the browser.</summary>
 public partial class MainWindow
 {
     private OpenDocument? problemsFile;

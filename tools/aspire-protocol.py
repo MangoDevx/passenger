@@ -2,11 +2,9 @@
 """Writes the C# for Aspire's resource service protocol, src/Passenger.App/Aspire/Protocol/DashboardService.cs and
 DashboardServiceGrpc.cs, from dashboard_service.proto beside them, with protoc and gRPC's C# plugin from Grpc.Tools.
 
-The generated code is checked in (#400), so no build runs protoc: Grpc.Tools ran it in every fresh build (CI's, each
-publish), its macOS protoc then (before 2.84's universal one) an x64 binary that Apple Silicon ran only under Rosetta.
-The proto changes only with the Aspire version Passenger speaks to; then `just aspire-protocol` and the two files'
-changes seen in review. Grpc.Tools is fetched once from nuget.org into artifacts/aspire-protocol/, checked against the
-SHA-512 below, and never restored.
+The generated code is checked in, so no build runs protoc. The proto changes only with the Aspire version Passenger
+speaks to; then `just aspire-protocol` and the two files' changes seen in review. Grpc.Tools is fetched once from
+nuget.org into artifacts/aspire-protocol/, checked against the SHA-512 below, and never restored.
 """
 import base64
 import hashlib
@@ -71,7 +69,7 @@ def main():
     for program in (protoc, plugin):
         os.chmod(program, os.stat(program).st_mode | stat.S_IXUSR)
     out = os.path.join(APP, "Aspire", "Protocol")
-    # As Grpc.Tools ran it for a client-only Protobuf item, from the project's folder.
+    # A client-only Protobuf item's arguments, from the project's folder.
     subprocess.run([protoc, f"--csharp_out={out}", f"--plugin=protoc-gen-grpc={plugin}", f"--grpc_out={out}",
                     "--grpc_opt=no_server", f"--proto_path={os.path.join(tools, 'build', 'native', 'include')}",
                     "--proto_path=.", PROTO], cwd=APP, check=True)

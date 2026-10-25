@@ -77,7 +77,7 @@ public static class ContainerConfigurations
                     Kind = RunKind.Dockerfile,
                     Project = project.Path,
                     Dockerfile = dockerfile,
-                    // Every port its image exposes, each on a port the engine chooses, as Visual Studio's publishAllPorts.
+                    // Every port its image exposes, each on a port the engine chooses (publishAllPorts).
                     RunArguments = "-P",
                     LaunchBrowser = web,
                     BrowserUrl = web ? ServiceUrl : string.Empty,

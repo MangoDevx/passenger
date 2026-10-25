@@ -267,7 +267,7 @@ public sealed class ContainerEngine
 
     /// <summary>What a failed command said: its errors, else its output, else its exit code, its secrets masked
     /// (<see cref="ContainerSecrets.InSaid"/>: Compose's errors echo what it interpolated, from the .env in the
-    /// <paramref name="folder"/> it ran in among the rest), as every error of the engine is shown or logged.</summary>
+    /// <paramref name="folder"/> it ran in among the rest).</summary>
     public static string Said(ChildResult result, string? folder = null) => ContainerSecrets.InSaid(
         (result.Error.Trim() is { Length: > 0 } error ? error : result.Output.Trim() is { Length: > 0 } output ? output : $"exit code {result.ExitCode}")
             .Replace("\r", string.Empty, StringComparison.Ordinal), folder);

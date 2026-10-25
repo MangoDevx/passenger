@@ -9,10 +9,9 @@ public enum MarkupKind
     Html,
 }
 
-/// <summary>The indentation Enter gives a new line in markup, from the tags before the caret, as IntelliJ's formatter
-/// gives it: a level in from the element the caret is inside, the element's own on a line its end tag starts, and under
-/// a tag's first attribute inside the tag (Rider's XML and XAML Align by first attribute). HTML's elements whose end tag
-/// may be left out (li, p, td, ...) close as its parser closes them.</summary>
+/// <summary>The indentation Enter gives a new line in markup, from the tags before the caret: a level in from the
+/// element the caret is inside, the element's own on a line its end tag starts, and under a tag's first attribute
+/// inside the tag. HTML's elements whose end tag may be left out (li, p, td, ...) close as its parser has them.</summary>
 internal static class MarkupIndent
 {
     /// <summary>The text an XML file's Enter reads back from the caret first, then four times as much, and so on, until it
@@ -279,7 +278,7 @@ internal static class MarkupIndent
         return open >= 0 && s.IndexOf(closer, open + opener.Length, StringComparison.Ordinal) < 0 ? open : -1;
     }
 
-    /// <summary>Where the construct holding a '<' at <paramref name="lt"/> begins, when one ends between it and
+    /// <summary>Where the construct holding a '&lt;' at <paramref name="lt"/> begins, when one ends between it and
     /// <paramref name="p"/>; -1 when its beginning is not in <paramref name="s"/> or does not pair with that end, null with none.</summary>
     private static int? Within(string s, int lt, int p, string opener, string closer)
     {

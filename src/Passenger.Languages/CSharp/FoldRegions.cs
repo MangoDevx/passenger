@@ -7,13 +7,13 @@ using Passenger.Text;
 
 namespace Passenger.Languages.CSharp;
 
-/// <summary>What folds in one parse of a C# file, as Rider folds it: the comments it begins with (its header), the usings,
-/// a namespace's, a type's, a member's, an accessor's and a multi-line lambda's braces, #region to #endregion, and doc
-/// comments and block comments over several lines, each of its kind. A braced region starts at the end of the line before its brace when the brace stands alone, as in the usual
-/// layout, so folded it reads <c>void Run() {...}</c>. Lines are the editor's. Found from the parse before as well: a
-/// subtree Roslyn's incremental parse took whole from the tree before keeps the regions it had there, moved, so a key
-/// reads the nodes it changed and the lists of their neighbours, never the whole file (whose every node Roslyn would
-/// build anew for a walk of the new tree).</summary>
+/// <summary>What folds in one parse of a C# file: the comments it begins with (its header), the usings, a namespace's,
+/// a type's, a member's, an accessor's and a multi-line lambda's braces, #region to #endregion, and doc comments and
+/// block comments over several lines, each of its kind. A braced region starts at the end of the line before its brace
+/// when the brace stands alone, so folded it reads <c>void Run() {...}</c>. Lines are the editor's. Found from the
+/// parse before as well: a subtree the incremental parse took whole from the tree before keeps the regions it had
+/// there, moved, so a key reads the nodes it changed and the lists of their neighbours, never the whole file (whose
+/// every node a walk of the new tree would build anew).</summary>
 public sealed class FoldRegions
 {
     private FoldRegions(SyntaxNode root, Made[] owned, FoldRegion[] comments, IReadOnlyList<FoldRegion> all)
@@ -62,8 +62,7 @@ public sealed class FoldRegions
         List<FoldRegion> regions = Regions(text, root);
         Made[] made = [.. owned];
         FoldRegion[] comments = [.. walk.Comments];
-        // As one sort of them all in this order would order regions starting together: the file's header and usings, nodes,
-        // #regions, comments.
+        // Regions starting together in this order: the file's header and usings, nodes, #regions, comments.
         return new FoldRegions(root, made, comments, Merge([usings, new Unmade(made), [.. regions.OrderBy(r => r.Start)], comments]));
     }
 
@@ -452,10 +451,9 @@ public sealed class FoldRegions
 
         public static Frame Walking(SyntaxNode node) => new() { children = node.ChildNodesAndTokens().GetEnumerator() };
 
-        /// <summary>A node the parse made anew away from the text that changed, beside one of the same kind and length in
-        /// its place, child for child with no list made: Roslyn never reuses a namespace whole, only what it holds, and
-        /// makes again the nodes that end just before an edit, and a walk of the namespace after a key in the usings
-        /// built every node of the file.</summary>
+        /// <summary>A node the parse made anew away from the text that changed, beside one of the same kind and length
+        /// in its place, child for child with no list made: an incremental parse makes a namespace and the nodes that
+        /// end just before an edit anew, though it reuses what they hold.</summary>
         public static Frame InStep(SyntaxNode node, SyntaxNode old) =>
             new() { children = node.ChildNodesAndTokens().GetEnumerator(), oldChildren = old.ChildNodesAndTokens().GetEnumerator(), inStep = true };
 

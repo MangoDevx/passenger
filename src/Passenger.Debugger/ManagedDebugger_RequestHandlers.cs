@@ -20,9 +20,9 @@ public record FunctionBreakpointRequest(string Name, string? Condition = null, s
 public record ExceptionBreakpointRequest(ExceptionBreakpointFilter Filter, string? Condition = null);
 public enum ExceptionBreakpointFilter { All, UserUnhandled }
 
-/// <summary>A CLR exception breakpoint as Rider's: the exception types it is for (none: every exception; with
-/// <paramref name="Excluded"/>, every one but those), the scenarios it stops in, and a condition, hit count and log message
-/// as a line breakpoint has. A type given without a namespace is any type of that name.</summary>
+/// <summary>A CLR exception breakpoint: the exception types it is for (none: every exception; with
+/// <paramref name="Excluded"/>, every one but those), the scenarios it stops in, and a condition, hit count and log
+/// message as a line breakpoint has. A type given without a namespace is any type of that name.</summary>
 public sealed record ExceptionRuleRequest(
     IReadOnlyList<string> Types, bool Excluded, Passenger.Dap.ExceptionScenarios Scenarios, string? Condition = null, string? HitCondition = null, string? LogMessage = null, bool Suspend = true)
 {
@@ -123,8 +123,7 @@ public partial class ManagedDebugger
         _launchOutput = Task.WhenAll(Forward(launch.Output, isError: false), Forward(launch.Error, isError: true));
         Task<int?> launchExit = Task.Run(launch.WaitForExit);
         _launchExit = launchExit;
-        // The exit is told as soon as the program has gone, not when the runtime's word of it is handled:
-        // mscordbi can crash tearing the session down first (a race in its transport), taking that word with it.
+        // Told as the program goes, not when the runtime's word of it is handled, which mscordbi may lose tearing down.
         _ = launchExit.ContinueWith(ended => ReportExit(ended.Result), TaskScheduler.Default);
         int processId = launch.ProcessId;
 
@@ -217,9 +216,9 @@ public partial class ManagedDebugger
         return _breakpointManager.RemoveBreakpoint(id);
     }
 
-    /// <summary>The process to attach to, taken hold of by configurationDone once the client's breakpoints are set; with
-    /// <paramref name="hotReload"/> (a program started held, DOTNET_MODIFIABLE_ASSEMBLIES=debug set) the user's modules that
-    /// load after the attach get Edit and Continue, as a launch's do.</summary>
+    /// <summary>The process to attach to, taken hold of by configurationDone once the client's breakpoints are set;
+    /// with <paramref name="hotReload"/> (a program started held, DOTNET_MODIFIABLE_ASSEMBLIES=debug set) the user's
+    /// modules that load after the attach get Edit and Continue.</summary>
     public void Attach(int processId, bool justMyCode, bool hotReload = false)
     {
         EnsureNoProcessBeingDebugged();
@@ -313,8 +312,7 @@ public partial class ManagedDebugger
         }
         if (_process.IsRunning is false)
         {
-            // Held for one of the runtime's own events (a module loading, a thread starting): the pause is taken where
-            // the engine would let it go on, in Continue.
+            // Held for the runtime's own event (a module loading, a thread starting): the pause is taken in Continue.
             _pauseRequested = true;
             return;
         }
@@ -401,8 +399,7 @@ public partial class ManagedDebugger
         ForgetReturnedValues();
         if (EvalStatus.Abandoned.ContainsKey(threadId))
         {
-            // The thread runs an evaluation given up, above the stop: a stepper made now would be the evaluation's, and the
-            // runtime ends it with the evaluation. The step is taken from the stop once the evaluation has returned.
+            // A stepper made now would be the given-up evaluation's, ended with it: the step waits for it to return.
             _stepAfterEvaluation = (threadId, type);
             Continue(clearVariables: true);
             return;
@@ -410,8 +407,7 @@ public partial class ManagedDebugger
         if (_unhandledByUser is (int stopped, StackRange caught) && stopped == threadId
             && EnumerateFramesForThread(thread).FirstOrDefault(frame => RangeOf(frame) == caught) is { } handler)
         {
-            // Stopped at an exception the user's code left unhandled: the step goes where that code goes on, past the
-            // handler that caught it. A step from the throw would end in a frame the exception unwinds, and never stop.
+            // At an exception the user's code left unhandled the step goes where that code goes on, past its handler.
             StepOutOfHandler(thread, handler);
             Continue(clearVariables: true);
             return;
@@ -494,14 +490,12 @@ public partial class ManagedDebugger
                 continue;
             }
 
-            // Try to bind the breakpoint if we have a process
             if (_process is not null)
             {
                 TryBindBreakpoint(bp);
             }
             else
             {
-                // No process yet, mark as pending
                 bp.Message = "Breakpoint has not been processed by the debugger.";
             }
 
@@ -588,8 +582,7 @@ public partial class ManagedDebugger
         {
             foreach ((int id, ThreadInfo? threadInfo) in _threads)
             {
-                // A thread with no managed frame (one of the runtime's own) is a row that opens to
-                // nothing, which no client can use (upstream #59).
+                // A thread with no managed frame (one of the runtime's own) would be a row that opens to nothing.
                 if (!HasManagedFrames(threadInfo.Thread))
                 {
                     continue;
@@ -635,9 +628,7 @@ public partial class ManagedDebugger
             long endFrame = levels is null ? long.MaxValue : (long)startFrame + levels.Value;
             int index = 0;
 
-            // Physical frames come first and are enumerated lazily, so a request for the topmost frames does not
-            // have to walk the entire stack. We store the IL frames so their synthetic async caller frames can be
-            // appended after all physical frames, once enumeration reaches past them.
+            // Physical frames are walked lazily, the IL frames kept so their async callers can follow them all.
             List<(int physicalDepth, ICorDebugILFrame frame)> ilFramesForSyntheticAsyncFrames = new List<(int physicalDepth, ICorDebugILFrame frame)>();
             ThreadId threadId = new ThreadId(threadIdInt);
             foreach ((int physicalDepth, ICorDebugFrame? frame) in EnumerateFramesForThread(thread).AsValueEnumerable().Index())
@@ -722,10 +713,11 @@ public partial class ManagedDebugger
             ?? throw new InvalidOperationException($"Stack frame '{frameId}' cannot be resolved because it is not an IL frame.");
     }
 
-    /// <summary>Rider's name for a frame whose method the debugger cannot read.</summary>
+    /// <summary>What a frame whose method the debugger cannot read is called.</summary>
     private const string UnknownMethod = "[Unknown method]";
 
-    /// <summary>A frame as the stack shows it; one that cannot be read is named as Rider names it, and the walk goes on.</summary>
+    /// <summary>A frame as the stack shows it; one that cannot be read is named <see cref="UnknownMethod"/>, and the
+    /// walk goes on.</summary>
     private StackFrameInfo DescribeFrame(int frameId, ICorDebugFrame frame)
     {
         try
@@ -772,17 +764,14 @@ public partial class ManagedDebugger
             ICorDebugFunction function = ilFrame.Function;
             if (FindModule(function.Module) is not { } module)
             {
-                // Rider's name for a method it cannot read; the frames below it are walked all the same.
                 stackFrameInfo.Name = UnknownMethod;
                 stackFrameInfo.IsResolved = false;
                 return stackFrameInfo;
             }
-            // returns null if the function is not a state machine method
             int? kickoffMethodToken = module.MetadataReader.GetStateMachineKickoffMethodToken(function.Token);
             stackFrameInfo.Name = GetMethodFormattedName(module, kickoffMethodToken ?? function.Token, ilFrame.TypeParameters);
             SourceInfo? sourceInfo = GetSourceInfoAtFrame(ilFrame, decompiled);
-            // A method its own code says is not the user's ([DebuggerNonUserCode], [DebuggerStepThrough], [DebuggerHidden]) is
-            // shown as external code is, as Just My Code passes over it.
+            // A method its own code says is not the user's ([DebuggerNonUserCode] and kin) is shown as external code.
             stackFrameInfo.IsUserCode = module.IsUserCode && !(_justMyCode && module.MetadataReader.IsNonUserCode(function.Token));
             stackFrameInfo.IsResolved = module.MetadataReader.HasSymbols;
             if (sourceInfo is not null)
@@ -866,7 +855,6 @@ public partial class ManagedDebugger
             return result;
         }
 
-        // can this just be the same reference?
         int localsRef = _variableManager.CreateReference(new VariablesReference(StoredReferenceKind.Scope, null, threadId, frameStackDepth, null));
         result.Add(new ScopeInfo
         {
@@ -913,7 +901,6 @@ public partial class ManagedDebugger
             {
                 if (variablesReference.DebuggerProxyInstance is not null)
                 {
-                    // get the public members of the debugger proxy instance instead
                     ICorDebugObjectValue objectValue = variablesReference.DebuggerProxyInstance.UnwrapDebugValueToObject();
                     await AddMembersAndStaticPseudoVariable(variablesReference.DebuggerProxyInstance, objectValue.ExactType, variablesReference.ThreadId, variablesReference.FrameStackDepth, result, false);
                     int rawValueVariablesReference = _variableManager.CreateReference(new VariablesReference(StoredReferenceKind.RawView, variablesReference.ObjectValue, variablesReference.ThreadId, variablesReference.FrameStackDepth, null));
@@ -1068,7 +1055,7 @@ public partial class ManagedDebugger
         {
             try
             {
-                // CORDBG_E_PROCESS_NOT_SYNCHRONIZED is thrown if attempting to terminate a running process. We need to stop it first.
+                // A running process cannot be terminated (CORDBG_E_PROCESS_NOT_SYNCHRONIZED): it is stopped first.
                 if (_process.TryIsRunning(out bool isRunning) is Cor.S_OK && isRunning)
                 {
                     int stopResult = _process.TryStop(0);
@@ -1149,7 +1136,7 @@ public partial class ManagedDebugger
             ExceptionInfo exceptionInfo = new ExceptionInfo
             {
                 ExceptionId = $"CLR/{friendlyTypeName}",
-                // With an inner exception, the line netcoredbg and Visual Studio add, naming the innermost.
+                // With an inner exception, a line naming the innermost.
                 Description = $"Exception thrown: '{friendlyTypeName}' in {source}.dll: '{message}'"
                     + (details.InnerException.Count > 0 ? $"\n Inner exceptions found, see $exception in variables window for more details.\n Innermost exception: {innermost}" : ""),
                 BreakMode = _exceptionBreakModes.GetValueOrDefault(threadId, ExceptionBreakMode.Unknown),
@@ -1165,8 +1152,7 @@ public partial class ManagedDebugger
                 "It was thrown while the debugger ran code on another thread, so its thread is held where no code can run, and its properties cannot be read.");
         }
 
-        // An exception's details, its inner exceptions' within (upstream #50), as deep as they go,
-        // within reason.
+        // An exception's details, its inner exceptions' within, as deep as they go, within reason.
         async Task<ExceptionInfo.ExceptionDetails> Details(ICorDebugValue exception, string typeName, string evaluateName, int depth)
         {
             string detailMessage = await GetExceptionPropertyValue(exception, "Message");

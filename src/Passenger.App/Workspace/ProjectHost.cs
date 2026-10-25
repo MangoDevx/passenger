@@ -13,10 +13,10 @@ public sealed class ProjectHostFailed(string reason, Exception? inner = null) : 
     public string Reason { get; } = reason;
 }
 
-/// <summary>One project host (Passenger.Host, carried under <c>host/</c>): MSBuild's evaluation in a process of its own,
-/// run by the machine's dotnet on its newest runtime (prereleases included, as Roslyn runs its build host), with the SDK
-/// a folder picks loaded. Requests go out as lines of JSON and their answers, partial ones first, come back on the
-/// reader's thread: whatever a caller does with them on the UI thread it crosses there itself.</summary>
+/// <summary>One project host (Passenger.Host, carried under <c>host/</c>): MSBuild's evaluation in a process of its
+/// own, run by the machine's dotnet on its newest runtime (prereleases included), with the SDK a folder picks loaded.
+/// Requests go out as lines of JSON and their answers, partial ones first, come back on the reader's thread: whatever a
+/// caller does with them on the UI thread it crosses there itself.</summary>
 public sealed class ProjectHost : IAsyncDisposable
 {
     private readonly Process process;
@@ -148,15 +148,15 @@ public sealed class ProjectHost : IAsyncDisposable
             partial => evaluated(partial.Deserialize<EvaluatedProject>(HostJson.Options)!), cancel)).Deserialize<EvaluateDone>(HostJson.Options)
             ?? throw new ProjectHostFailed("the project host gave no answer for its evaluation");
 
-    /// <summary>Builds projects at design time, as Roslyn's server would, handing each over as its builds end, on the
-    /// reader's thread; done once every one has been.</summary>
+    /// <summary>Builds projects at design time, handing each over as its builds end, on the reader's thread; done once
+    /// every one has been.</summary>
     public async Task<BuildDone> BuildAsync(IReadOnlyList<string> projects, IReadOnlyDictionary<string, string> properties, Action<BuiltProject> built, CancellationToken cancel = default) =>
         (await AskAsync(HostMethods.Build, new BuildParams(projects, properties),
             partial => built(partial.Deserialize<BuiltProject>(HostJson.Options)!), cancel)).Deserialize<BuildDone>(HostJson.Options)
             ?? throw new ProjectHostFailed("the project host gave no answer for its builds");
 
-    /// <summary>Evaluates one project for the code help in its MSBuild files, the open files' unsaved texts read in place of
-    /// the disk's; the host answers again from its cache while what the last answer read holds.</summary>
+    /// <summary>Evaluates one project for the code help in its MSBuild files, the open files' unsaved texts read in
+    /// place of the disk's.</summary>
     public async Task<ProjectInsight> InspectAsync(string project, IReadOnlyDictionary<string, string> properties, IReadOnlyDictionary<string, string> texts,
         CancellationToken cancel = default) =>
         (await AskAsync(HostMethods.Inspect, new InspectParams(project, properties, texts), null, cancel)).Deserialize<ProjectInsight>(HostJson.Options)
@@ -256,8 +256,8 @@ public sealed class ProjectHost : IAsyncDisposable
         }
     }
 
-    /// <summary>Has the host's answer to the next request of a method read as a line that does not, as a host of another
-    /// build could write one: for a test of what follows, which it cannot make the host do.</summary>
+    /// <summary>Has the host's answer to the next request of a method read as a line that does not, as a host of
+    /// another build could write one.</summary>
     public void SpoilNext(string method)
     {
         lock (pending)

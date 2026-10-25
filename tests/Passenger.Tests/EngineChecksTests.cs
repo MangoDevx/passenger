@@ -48,7 +48,6 @@ public sealed class EngineChecksTests
             Assert.False(window.Settings.BuildKitChecks, "Check Dockerfiles with BuildKit is on in the tests' run, which reaches registries");
             Assert.DoesNotContain(document.Markers, m => m.Message.StartsWith("BuildKit:", StringComparison.Ordinal));
 
-            // Turned on, on Settings' Docker page, which says what it reads.
             SettingsDialog dialog = DialogButtonsTests.Check(window.ShowSettings());
             dialog.Query = "buildkit";
             Ui.Settle();
@@ -81,7 +80,6 @@ public sealed class EngineChecksTests
             Assert.Equal(new Uri("https://docs.docker.com/go/dockerfile/rule/from-as-casing/"), casing.Link);
             Assert.Equal("FromAsCasing", casing.LinkText);
 
-            // Problems' Containers tab lists it under its file, linked to the rule's page.
             ProblemsModel problems = window.BottomPanel.Problems;
             Problem listed = Assert.Single(problems.ContainerProblems);
             Assert.Equal((PathOf(folder, "Dockerfile"), 2, casing.Message), (listed.Path, listed.Position.Line, listed.Message));
@@ -89,7 +87,6 @@ public sealed class EngineChecksTests
             Assert.Equal([(0, "Dockerfile", "1 problem"), (1, casing.Message, "Dockerfile:3:1")], problems.Rows.Select(r => (r.Depth, r.Label, r.Detail)));
             Assert.Empty(Docker.Ask(["image", "ls", "-q", Frontend]).Trim());
 
-            // Fixed and saved, the check runs again and finds nothing.
             int casingAt = text.ToString().IndexOf(" as ", StringComparison.Ordinal);
             window.EditorArea.CodeEditor.ApplyEdits([new TextEdit(casingAt, 4, " AS ")]);
             Ui.Run(window, AppActions.Save);
@@ -118,8 +115,7 @@ public sealed class EngineChecksTests
         try
         {
             OpenDocument document = window.EditorArea.Active!;
-            // A secret's value (a password's, as a word of its variable's or key's name says) is masked, the same dots whatever its
-            // length; MONKEY has no word KEY, and PWD is the compose file's folder, which Compose runs in, never where the IDE was started.
+            // MONKEY has no word KEY; PWD is the compose file's folder, which Compose runs in.
             string folderHint = FolderHint(folder);
             string[] expected = ["${TAG:-1.36}|= 1.36", "${PORT:-8080}|= 9090", "$NAME|= world", "$MONKEY|= banana", folderHint, "postgres:16|compose.override.yaml: postgres:17",
                 "${DB_PASSWORD:-hunter2}|= ••••••", "${DB_PASSWORD:-hunter2}|compose.override.yaml: ••••••"];
@@ -187,7 +183,6 @@ public sealed class EngineChecksTests
             window.OpenFile(PathOf(folder, "oci/compose.yaml"));
             Ui.Settle();
             OpenDocument oci = window.EditorArea.Active!;
-            // Each checked: its variable's value, which Compose made in the same check, is shown.
             string[] expected = ["${TAG:-1.37}|= 1.37"];
             Ui.WaitFor(() => Hints(git, expected).SequenceEqual(expected) && Hints(oci, expected).SequenceEqual(expected), "both files checked");
             Assert.True(host.Connections == 0, $"Checking a compose file reached an included repository's host {host.Connections} times");
@@ -252,7 +247,6 @@ public sealed class EngineChecksTests
             const string Said = "Compose: service \"web\" depends on undefined service \"cache\": invalid compose project";
             Ui.WaitFor(() => document.Markers.Any(m => m.Message == Said), $"Compose's error marked, not [{string.Join(", ", document.Markers.Select(m => m.Message))}]");
             Marker error = document.Markers.Single(m => m.Message == Said);
-            // On the name of the service that is not there, which its fixes are offered on.
             Assert.Equal((MarkerKind.Error, "cache"), (error.Kind, document.Text.Snapshot.GetText(error.Range.Start, error.Range.Length)));
             Problem listed = Assert.Single(window.BottomPanel.Problems.ContainerProblems);
             Assert.Equal((PathOf(folder, "compose.yaml"), new TextPosition(4, 8), Said), (listed.Path, listed.Position, listed.Message));
@@ -326,7 +320,6 @@ public sealed class EngineChecksTests
             OpenDocument document = window.EditorArea.Active!;
             CodeEditor editor = window.EditorArea.CodeEditor;
 
-            // The service it waits for, misspelt: marked on its name, changed to the near one or taken out of depends_on.
             Marker misspelt = Marked(window, document, "dbb");
             Assert.Equal(new TextPosition(4, 8), document.Text.Snapshot.GetPosition(misspelt.Range.Start));
             Fixes(window, misspelt, ["Remove dbb from depends_on", "Change to db"]);
@@ -340,7 +333,6 @@ public sealed class EngineChecksTests
             Assert.Equal(changed, editor.Document.Snapshot.ToString());
             Ui.WaitFor(() => !document.Markers.Any(m => m.Message.StartsWith("Compose:", StringComparison.Ordinal)), "Compose's error gone once the name is the service's");
 
-            // One with no near name is only taken out.
             editor.ApplyEdits([new TextEdit(changed.IndexOf("- db", StringComparison.Ordinal) + 2, 2, "queue")]);
             Marker missing = Marked(window, document, "queue");
             Fixes(window, missing, ["Remove queue from depends_on"]);
@@ -348,7 +340,6 @@ public sealed class EngineChecksTests
             Assert.Equal(Compose.Replace("      - dbb\n", string.Empty, StringComparison.Ordinal), editor.Document.Snapshot.ToString());
             Ui.WaitFor(() => !document.Markers.Any(m => m.Message.StartsWith("Compose:", StringComparison.Ordinal)), "Compose's error gone once it is taken out");
 
-            // A volume and a secret the file has no key for: each declared at the file's end under a key made for it.
             string before = editor.Document.Snapshot.ToString();
             int db = before.IndexOf("  db:", StringComparison.Ordinal);
             editor.ApplyEdits([new TextEdit(db, 0, "    volumes:\n      - data:/data\n    secrets:\n      - api_key\n")]);
@@ -434,14 +425,11 @@ public sealed class EngineChecksTests
         }
     }
 
-    /// <summary>A .NET service whose project reads connection strings (GetConnectionString, a ConnectionStrings: key) that
-    /// neither its environment nor its own settings set is warned of on its name, once the language server has read the
-    /// project as Aspire's warning reads a service; one its appsettings.json or appsettings.Development.json (Development, as
-    /// the service sets none) gives at localhost, which in its container is the container itself, more softly, saying what
-    /// to do; one they give elsewhere not at all. Show Context Actions there offers Passenger's own fix for each first: set
-    /// in the service's environment, made under it as the file indents, as one undo step, to the connection string of the
-    /// Postgres the file runs (at its name, the database the settings name kept), else, for one never set, to a value the
-    /// person fills in; a localhost one of a kind the file does not run has none. Set, its warning goes.</summary>
+    /// <summary>A .NET service whose project reads connection strings neither its environment nor its settings set is
+    /// warned of on its name, once the language server has read the project; one its appsettings give at localhost (in
+    /// its container, the container itself) more softly; one given elsewhere not at all. Show Context Actions offers
+    /// Passenger's fix first: set in the service's environment, one undo step, to the Postgres the file runs, else to a
+    /// value the person fills in; a localhost one of a kind the file does not run has none.</summary>
     [AvaloniaFact]
     public void A_dotnet_services_connection_strings_its_environment_never_sets_are_marked_and_set_by_their_fixes()
     {
@@ -528,12 +516,11 @@ public sealed class EngineChecksTests
         }
     }
 
-    /// <summary>The connection strings a .NET service reads that its compose file's environment does not set are marked in the
-    /// service's own code too, where it reads each (GetConnectionString's name, a ConnectionStrings: key), with the compose
-    /// file's warning, the one its settings give at localhost more softly. Show Context Actions on a read offers the compose
-    /// file's own fix first, made in the compose file as one undo step there, the code left as it was, and the read's mark
-    /// goes with the compose file's. An agent's code_actions on a read lists the same fix first, and
-    /// apply_code_action makes it in the compose file, saved.</summary>
+    /// <summary>The connection strings a .NET service reads that its compose file's environment does not set are marked
+    /// in its own code too, where it reads each (GetConnectionString's name, a ConnectionStrings: key), the one its
+    /// settings give at localhost more softly. Show Context Actions on a read offers the compose file's fix first, one
+    /// undo step there, the code left as it was, and the read's mark goes with the compose file's. An agent's
+    /// code_actions on a read lists the same fix first, and apply_code_action makes it, saved.</summary>
     [AvaloniaFact]
     public void A_services_reads_of_connection_strings_its_compose_environment_never_sets_are_marked_in_its_code_and_set_from_there()
     {

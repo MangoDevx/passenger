@@ -8,11 +8,11 @@ using Passenger.Text;
 
 namespace Passenger.Tests;
 
-/// <summary>An EF Core query's SQL at a stop (#420): a program on EF Core and SQLite stopped holding a query its provider
+/// <summary>An EF Core query's SQL at a stop: a program on EF Core and SQLite stopped holding a query its provider
 /// translates and one it cannot, each listing first among its members a row of the SQL it would run, read only as the row
-/// is opened (ToQueryString() run in the program then, through the debugger's own evaluation), in Variables, the hover card
-/// and an agent's debug_variables alike; the SQL opens whole in a read-only tab, and what keeps a query from SQL is said as
-/// its row's value. The tests share the program as written (<see cref="Shop"/>). Debugged, so run alone.</summary>
+/// is opened (ToQueryString() run in the program then), in Variables, the hover card and an agent's debug_variables
+/// alike; the SQL opens whole in a read-only tab, and what keeps a query from SQL is said as its row's value. The tests
+/// share the program as written (<see cref="Shop"/>). Debugged, so run alone.</summary>
 [Collection(Alone.Name)]
 public sealed class QuerySqlTests : McpRig, IClassFixture<QuerySqlTests.Shop>
 {
@@ -37,12 +37,10 @@ public sealed class QuerySqlTests : McpRig, IClassFixture<QuerySqlTests.Shop>
                 $"the stop at the breakpoint and its locals; the status bar said \"{window.Status}\"", TimeSpan.FromMinutes(1));
             VariablesList variables = window.DebugWindow.VariablesList;
 
-            // Opened, the query lists its SQL first, unread: nothing has run ToQueryString() in the program yet.
             VariableNode stocked = variables.Tree.Rows.Single(r => r.Name == "stocked" && r.Depth == 0);
             VariableNode unread = Unread(window, variables, stocked);
             Assert.Equal(DapRows.QuerySql, variables.Tree.Rows[variables.Tree.Rows.IndexOf(stocked) + 1].Name);
 
-            // Opened, the row reads the SQL in its place, its lines on the row's one, and it opens whole in a read-only tab.
             DebuggerHoverTests.Toggle(window, variables, unread);
             VariableNode sql = Read(variables, stocked);
             Assert.True(sql.Value.Contains("FROM \"Products\" AS \"p\"", StringComparison.Ordinal) && sql.Value.Contains("ORDER BY \"p\".\"Name\"", StringComparison.Ordinal),
@@ -56,14 +54,12 @@ public sealed class QuerySqlTests : McpRig, IClassFixture<QuerySqlTests.Shop>
             Assert.True(window.EditorArea.CodeEditor.IsReadOnly, "The query's SQL opened as something to edit");
             Assert.StartsWith("SQL ", window.EditorArea.Active!.Origin, StringComparison.Ordinal);
 
-            // A query its provider cannot translate says so as its row's value.
             VariableNode odd = variables.Tree.Rows.Single(r => r.Name == "odd" && r.Depth == 0);
             DebuggerHoverTests.Toggle(window, variables, Unread(window, variables, odd));
             VariableNode refused = Read(variables, odd);
             Assert.True(refused.Role == VariableRole.Error && refused.Value.Contains("could not be translated", StringComparison.Ordinal),
                 $"The query EF Core cannot translate read as: {refused.Value}");
 
-            // The hover card's query reads the same row the same way, and the row's menu opens it.
             // Laid out on the file again before the pointer is aimed at its words.
             window.OpenFile(shop.PathOf("Program.cs"));
             Ui.Settle();
@@ -96,7 +92,6 @@ public sealed class QuerySqlTests : McpRig, IClassFixture<QuerySqlTests.Shop>
         Assert.Equal("paused", stop.GetProperty("state").GetString());
         int query = stop.GetProperty("locals").EnumerateArray().Single(l => l.GetProperty("name").GetString() == "stocked").GetProperty("reference").GetInt32();
 
-        // The query's members begin with its SQL, unread; its reference reads it, one row in its place.
         JsonElement row = (await Call(client, "debug_variables", new() { ["reference"] = query })).EnumerateArray().First();
         Assert.Equal((DapRows.QuerySql, DapRows.QuerySqlUnread), (row.GetProperty("name").GetString(), row.GetProperty("value").GetString()));
         JsonElement read = Assert.Single((await Call(client, "debug_variables", new() { ["reference"] = row.GetProperty("reference").GetInt32() })).EnumerateArray());

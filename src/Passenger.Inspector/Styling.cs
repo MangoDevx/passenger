@@ -184,8 +184,7 @@ internal sealed class Styling
     private static SourcePlace? SetterPlace(StyleBase style, AvaloniaProperty property) =>
         style.Setters.OfType<Setter>().FirstOrDefault(s => s.Property == property) is { } setter ? Details.Place(setter) : null;
 
-    /// <summary>The styles that apply and those that do not but could, the last Avalonia takes first, as a browser lists the
-    /// rule that wins first.</summary>
+    /// <summary>The styles that apply and those that do not but could, the last Avalonia takes first.</summary>
     public IReadOnlyList<StyleReport> Reports()
     {
         List<StyleReport> reports = [];
@@ -226,7 +225,7 @@ internal sealed class Styling
     private SetterReport Setter(Setter setter, StyleBase style, bool applies, StyledElement element)
     {
         AvaloniaProperty property = setter.Property!;
-        // As the Properties page names it: Foreground on a control that took TextElement's for its own.
+        // Foreground, not TextElement.Foreground, on a control that took TextElement's for its own.
         string name = property.IsAttached && !AvaloniaPropertyRegistry.Instance.GetRegistered(element.GetType()).Contains(property)
             ? $"{Inspector.TypeName(property.OwnerType)}.{property.Name}"
             : property.Name;

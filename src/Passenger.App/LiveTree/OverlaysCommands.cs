@@ -11,9 +11,8 @@ public sealed record OverlaysParts(ToolViews Views, ActionRegistry Actions, Acti
 /// <summary>Avalonia's renderer debug overlays (its FPS counter, the dirty rectangles each frame redraws, and graphs of past
 /// layout and render times) in an app Run, Debug or Profile launched with Passenger's inspector in it: the Run window's toggle
 /// sets them in the app its console runs (Run's, else Profile's), the Debug window's in the app being debugged, and the Run
-/// menu's in the debugged app, else the run one. The inspector sets each window's RendererDiagnostics.DebugOverlays, so the
-/// app's code is never changed; what is chosen last is the session's launch option, which the next launch shows from its first
-/// window. A UI-thread object of the window.</summary>
+/// menu's in the debugged app, else the run one. The app's code is never changed; what is chosen last is the session's
+/// launch option, which the next launch shows from its first window. A UI-thread object of the window.</summary>
 public sealed class OverlaysCommands
 {
     private static readonly IReadOnlyList<string> Ids = [AppActions.OverlayFps, AppActions.OverlayDirtyRects, AppActions.OverlayLayoutTimeGraph, AppActions.OverlayRenderTimeGraph];

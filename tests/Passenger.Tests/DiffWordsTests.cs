@@ -12,9 +12,9 @@ using Passenger.Text;
 
 namespace Passenger.Tests;
 
-/// <summary>The words that changed inside changed lines, as Rider marks them over a real working tree: in Show Diff's two
-/// sides (by words at first, the diff's Settings choosing lines, characters or nothing, which the next diff keeps), in a
-/// change bar's popup and the file beside it (Highlight Words turning them off), in the merge window's three panes, and
+/// <summary>The words that changed inside changed lines, marked over a real working tree: in Show Diff's two sides (by
+/// words at first, the diff's Settings choosing lines, characters or nothing, which the next diff keeps), in a change
+/// bar's popup and the file beside it (Highlight Words turning them off), in the merge window's three panes, and
 /// quickly in a large file changed all over.</summary>
 [Collection(Alone.Name)]
 public sealed class DiffWordsTests : IDisposable
@@ -51,13 +51,11 @@ public sealed class DiffWordsTests : IDisposable
         Assert.All(view.Words.Left.Concat(view.Words.Right), w => Assert.Equal(ChangeMarkKind.Modified, w.Kind));
         diff.Close();
 
-        // The change bar's popup marks the word in what the line was, and the file marks the word it has now.
         ChangePopup popup = ClickBar(window, editor, 2);
         Assert.Equal("    int count;", popup.Before);
         Assert.Equal(["int"], Marked(popup.Before!, popup.WordsShown));
         Assert.Equal(["long"], Marked(now, editor.InlineChanges));
 
-        // Highlight Words off: neither marks a word, and the next popup opens so.
         popup.HighlightToggle.IsChecked = false;
         Ui.Settle();
         Assert.Empty(popup.WordsShown);
@@ -70,7 +68,6 @@ public sealed class DiffWordsTests : IDisposable
         Assert.Empty(again.WordsShown);
         Assert.Empty(editor.InlineChanges);
 
-        // On again, then closed: the file's marks go with the popup.
         again.HighlightToggle.IsChecked = true;
         Ui.Settle();
         Assert.Equal(["long"], Marked(now, editor.InlineChanges));
@@ -97,19 +94,16 @@ public sealed class DiffWordsTests : IDisposable
         Assert.Equal(["public ", " += 2"], Marked(now, view.Words.Right));
         Assert.Equal([ChangeMarkKind.Added, ChangeMarkKind.Modified], view.Words.Right.Select(w => w.Kind));
 
-        // Settings, Highlighting Differences: Lines leaves the lines' tint alone.
         Ui.ChooseFromMenu(view.SettingsButton, "Lines");
         Assert.Equal(DiffHighlighting.Lines, view.Highlighting);
         Assert.Empty(view.Words.Left);
         Assert.Empty(view.Words.Right);
         Assert.Single(view.Right.ChangeMarks);
 
-        // Characters marks the characters that changed.
         Ui.ChooseFromMenu(view.SettingsButton, "Characters");
         Ui.Settle();
         Assert.Equal(["public ", " ", "= 2"], Marked(now, view.Words.Right));
 
-        // None turns highlighting off: no tint, no band, no word.
         Ui.ChooseFromMenu(view.SettingsButton, "None");
         Assert.Empty(view.Right.ChangeMarks);
         Assert.Empty(view.Left.ChangeMarks);
@@ -117,7 +111,7 @@ public sealed class DiffWordsTests : IDisposable
         Assert.Equal(DiffHighlighting.None, window.Settings.DiffHighlighting);
         diff.Close();
 
-        // The next diff opens as chosen last; Ctrl+Shift+D (Cmd+Shift+D) opens its settings, as Rider's.
+        // The next diff opens as chosen last; Ctrl+Shift+D (Cmd+Shift+D), Rider's key, opens its settings.
         opening = window.ShowDiffAsync(window.EditorArea.Active!.Path);
         Ui.Landed(() => opening.IsCompleted, "the diff open again");
         diff = opening.Result!;
@@ -151,7 +145,6 @@ public sealed class DiffWordsTests : IDisposable
         Assert.Equal(["int"], Marked(view.Result.Document.Snapshot.ToString(), view.Result.InlineChanges));
         Assert.All(view.Left.InlineChanges.Concat(view.Right.InlineChanges).Concat(view.Result.InlineChanges), w => Assert.Equal(ChangeMarkKind.Conflict, w.Kind));
 
-        // Taken from the left, the conflict's words leave that side and the result, which no longer holds the base there.
         view.Accept(0, MergeSide.Left);
         Ui.Settle();
         Assert.Empty(view.Left.InlineChanges);
@@ -187,7 +180,6 @@ public sealed class DiffWordsTests : IDisposable
         Assert.True(opened.Elapsed < TimeSpan.FromSeconds(5).Scaled(), $"The diff of 1,667 changes took {opened.Elapsed.TotalMilliseconds:F0} ms to open with its words marked");
         Assert.All(Marked(view.Right.Document.Snapshot.ToString(), view.Words.Right), w => Assert.Equal("Measure", w));
 
-        // A rewrite too big to compare word by word is shown by its lines, at once.
         opening.Result.Close();
         window.Perform(AppActions.CloseTab);
         File.WriteAllText(generated, string.Join("\n", lines.Select(l => l.Replace("int", "long", StringComparison.Ordinal))) + "\n");

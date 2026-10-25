@@ -57,8 +57,8 @@ public sealed record ContainerTelemetry(string OtlpKey, string ApiKey)
 
     /// <summary>Tells a .NET service where to send its logs and traces, and as what, adding to the environment Passenger's
     /// override gives it: what its own files set of OpenTelemetry's endpoint, name and headers stays theirs, so a service
-    /// that names its own endpoint is left to it. Batches go every second, as an AppHost's do, so a request shows at once.
-    /// Started after the dashboard, which it depends on, so nothing it sends as it starts is lost.</summary>
+    /// that names its own endpoint is left to it. Batches go every second, so a request shows at once. Started after the
+    /// dashboard, which it depends on, so nothing it sends as it starts is lost.</summary>
     public bool Tell(ComposeService service, JsonObject entry, JsonObject environment)
     {
         if (service.Environment.ContainsKey("OTEL_EXPORTER_OTLP_ENDPOINT"))
@@ -83,7 +83,7 @@ public sealed record ContainerTelemetry(string OtlpKey, string ApiKey)
     }
 
     /// <summary>Where the run's logs and traces are read once it is up: the dashboard's API port as published on this machine
-    /// (<c>compose port</c>), with its key; null, saying why in <paramref name="why"/>, when it cannot be read from here.</summary>
+    /// (<c>compose port</c>), with its key; null, saying why in <c>Why</c>, when it cannot be read from here.</summary>
     public async Task<(TelemetrySource? Source, string? Why)> ReadAsync(ContainerEngine engine, IReadOnlyList<string> compose, string folder, CancellationToken cancel)
     {
         Core.ChildResult said = await engine.RunAsync([.. compose, "port", "--", Service, ApiPort.ToString(CultureInfo.InvariantCulture)], ContainerEngine.AskLimit, cancel, folder);

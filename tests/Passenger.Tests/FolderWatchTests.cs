@@ -10,11 +10,11 @@ using Passenger.Core;
 
 namespace Passenger.Tests;
 
-/// <summary>Changes another program makes in the folder, seen at once as Rider's fsnotifier sees them: the Explorer,
-/// Go to File and the open files follow, an open file with unsaved edits asks which version to keep, a project added on
-/// disk joins the Solution view and the run configurations, and the solution the folder's files now pick is the one
-/// the Explorer and the language server both open. Linux's way of watching, a watch for each kept folder from a pool
-/// with a limit, is chosen here on any system, since only the kernel's own running out is Linux's alone.</summary>
+/// <summary>Changes another program makes in the folder, seen at once: the Explorer, Go to File and the open files
+/// follow, an open file with unsaved edits asks which version to keep, a project added on disk joins the Solution view
+/// and the run configurations, and the solution the folder's files now pick is the one the Explorer and the language
+/// server both open. Linux's way of watching, a watch for each kept folder from a pool with a limit, is chosen here on
+/// any system, since only the kernel's own running out is Linux's alone.</summary>
 public sealed class FolderWatchTests : IDisposable
 {
     private readonly string folder = PathNames.Canonical(TestFolders.Create("watch-"));
@@ -66,8 +66,8 @@ public sealed class FolderWatchTests : IDisposable
         window.Close();
     }
 
-    /// <summary>Git's checkout and rollback, and editors that save so, delete a file and write it anew. The changes seen,
-    /// handed over between the two, found the open file gone and closed its tab, as one rollback in 160 did on Windows.</summary>
+    /// <summary>Git's checkout and rollback, and editors that save so, delete a file and write it anew: the open file
+    /// keeps its tab, even when the deletion is handed over just before the file is there again.</summary>
     [AvaloniaFact]
     public void A_file_deleted_and_written_again_at_once_keeps_its_tab_with_the_new_text_and_one_deleted_for_good_closes()
     {
@@ -101,8 +101,8 @@ public sealed class FolderWatchTests : IDisposable
     }
 
     /// <summary>A save writes the new text beside the file and moves it over the file, which the watcher takes for no
-    /// change of which files there are. The folder read again in that moment (another program's new file seen) listed the
-    /// temporary file, and nothing read it again once the save was done, so it stayed offered until the next new file.</summary>
+    /// change of which files there are: the folder read again in that moment (another program's new file seen) leaves
+    /// the temporary file offered nowhere once the save is done.</summary>
     [AvaloniaFact]
     public void A_saves_temporary_file_there_as_the_folder_is_read_is_never_offered_by_go_to_file_find_in_files_or_the_explorer()
     {
@@ -151,7 +151,6 @@ public sealed class FolderWatchTests : IDisposable
         };
         Type(window, "public ");
 
-        // Keep Memory Changes: the edits are written over the disk's.
         File.WriteAllText(path, "class One { int disk; }\n");
         Ui.WaitFor(() => asked.Count == 1, "the File Cache Conflict question");
         Assert.Equal("One.cs", asked[0]);
@@ -159,7 +158,6 @@ public sealed class FolderWatchTests : IDisposable
         Assert.Equal("public class One { }\n", File.ReadAllText(path));
         Assert.False(window.EditorArea.Active!.IsModified);
 
-        // Load File System Changes: the disk's text replaces the edits.
         Type(window, "sealed ");
         loadDisk = true;
         File.WriteAllText(path, "class One { int again; }\n");
@@ -209,7 +207,6 @@ public sealed class FolderWatchTests : IDisposable
         Ui.Settle();
         Type(window, "public ");
 
-        // Deleted with its folder (a git clean), the file keeps its tab and its edits.
         Directory.Delete(Path.GetDirectoryName(path)!, recursive: true);
         Ui.WaitFor(() => !window.ExplorerView.Tree.Rows.Any(r => r.Name == "Gone"), "the deletion to be seen");
         Assert.Equal("public class One { }\n", Text(window));
@@ -221,8 +218,8 @@ public sealed class FolderWatchTests : IDisposable
         Assert.False(window.IsVisible, "The window would not close");
     }
 
-    /// <summary>A folder renamed elsewhere (mv, git mv, Finder) is seen as that folder alone, not the files in it. Its open
-    /// files stayed on their old paths, and the next save wrote them there, making the old folder again beside the new.</summary>
+    /// <summary>A folder renamed elsewhere (mv, git mv, Finder) is seen as that folder alone, not the files in it: its
+    /// open files move with it, and a save writes them in its new place alone.</summary>
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
@@ -246,7 +243,6 @@ public sealed class FolderWatchTests : IDisposable
         OpenDocument two = window.EditorArea.Documents.Single(d => d.Name == "Two.cs");
         Assert.True(two.IsModified && two.Text.Snapshot.ToString() == "sealed class Two { }\n", "The file with unsaved edits lost them as it followed its folder");
 
-        // Typed into, both are saved as the window closes: in the folder's new place, and nowhere else.
         window.EditorArea.CodeEditor.Focus();
         Type(window, "public ");
         window.Close();
@@ -289,7 +285,6 @@ public sealed class FolderWatchTests : IDisposable
         Assert.False(Directory.Exists(old), "An autosave made the folder trashed elsewhere again");
         Assert.True(two.IsModified);
 
-        // The person's own Save writes it back there, as asked.
         window.Perform(AppActions.Save);
         Ui.WaitFor(() => !two.IsModified, "the person's Save");
         Assert.Equal("public sealed class Two { }\n", File.ReadAllText(Path.Combine(old, "Two.cs")));
@@ -346,7 +341,6 @@ public sealed class FolderWatchTests : IDisposable
         window.Perform(AppActions.Save);
         Assert.Equal([0xEF, 0xBB, 0xBF, .. Encoding.UTF8.GetBytes("public class One { }\n")], File.ReadAllBytes(path));
 
-        // An 8-bit file converted to UTF-8 elsewhere is saved as UTF-8 from then on.
         window.OpenFile("Two.cs");
         Ui.Settle();
         Assert.Equal("windows-1252", EncodingShown(window));
@@ -381,18 +375,15 @@ public sealed class FolderWatchTests : IDisposable
         {
             Assert.True(watched.Contains(kept), $"{kept} is not watched, so what other programs change in it goes unseen");
         }
-        // Of build output only a project's obj itself, where its restore writes the assets its XAML is read from, and
-        // artifacts itself, where UseArtifactsOutput's restore makes artifacts/obj/Project for them.
+        // Of build output only obj and artifacts themselves, where restores write the assets XAML is read from.
         Assert.All(watched, path => Assert.True(path is "." or ".git" or "src" or "src/App" or "src/App/obj" or "artifacts" || path.StartsWith(".git/refs", StringComparison.Ordinal),
             $"{path} is watched, spending one of the user's inotify watches on a folder nothing in the IDE looks at"));
 
-        // Each kept folder's own watch is what hears of its files, Git's HEAD among them.
         File.WriteAllText(Path.Combine(folder, "src", "App", "App.cs"), "class App { int changed; }\n");
         Ui.WaitFor(() => Text(window) == "class App { int changed; }\n", "the open file deep in the folder to take the text on disk");
         Git("switch", "-q", "-c", "side");
         Ui.WaitFor(() => window.Vcs.Branch == "side", "the branch checked out elsewhere to show");
 
-        // A folder made later is watched with the kept folders in it, before a file is made there.
         Directory.CreateDirectory(Path.Combine(folder, "src", "Feature", "Deep"));
         Directory.CreateDirectory(Path.Combine(folder, "src", "Feature", "obj", "Debug"));
         Ui.WaitFor(() => Watched(window).Contains("src/Feature/Deep") && Watched(window).Contains("src/Feature/obj"), "the folders made to be watched");
@@ -403,7 +394,6 @@ public sealed class FolderWatchTests : IDisposable
         Write("src/Feature/Deep/Deep.cs", "class Deep { }\n");
         Ui.WaitFor(() => window.FileIndex.Files.Contains(deep), "the file made in the new folder in Go to File, which only that folder's watch hears of");
 
-        // A restore into artifacts/obj made later is heard of, its folders watched, though nothing else in build output is.
         List<string> restored = [];
         window.FolderWatcher!.Changed += (_, changes) => restored.AddRange(changes.Restored);
         Write("artifacts/obj/Late/project.assets.json", "{}\n");
@@ -417,7 +407,6 @@ public sealed class FolderWatchTests : IDisposable
         // Windows moves or deletes a watched folder only once its watch lets go; there one watch covers the tree anyway.
         if (!OperatingSystem.IsWindows())
         {
-            // A folder renamed is watched under its new name, its old name's watches let go of.
             Directory.Move(Path.Combine(folder, "src", "Feature"), Path.Combine(folder, "src", "Moved"));
             Ui.WaitFor(() => Watched(window).Contains("src/Moved/Deep") && !Watched(window).Any(p => p.StartsWith("src/Feature", StringComparison.Ordinal)),
                 "the renamed folders to be watched under their new names alone");
@@ -453,7 +442,6 @@ public sealed class FolderWatchTests : IDisposable
         Assert.Contains("fs.inotify.max_user_watches", Ui.IdeLog(), StringComparison.Ordinal);
         Assert.Equal(["."], Watched(window));
 
-        // The folders still watched still say what changes in them.
         Write("Three.cs", "class Three { }\n");
         Ui.WaitFor(() => window.FileIndex.Files.Contains("Three.cs"), "a file made in a folder still watched in Go to File");
         // Reported on purpose: the check that fails a test over a caught error is not to see it.
@@ -488,8 +476,7 @@ public sealed class FolderWatchTests : IDisposable
             $"the folder made meanwhile in the Explorer (it shows {string.Join(", ", window.ExplorerView.Tree.Rows.Select(r => r.Name))})");
         Ui.WaitFor(() => window.FileIndex.Files.Contains(Path.Combine("Fresh", "Fresh.cs")), "the file made meanwhile in Go to File");
 
-        // What changes from then on is heard again, in the folder made meanwhile too. Started only now, since a watcher
-        // started at once can still be told of the changes just made.
+        // Started only now: a watcher started at once can still be told of the changes just made.
         watchers.ForEach(w => w.EnableRaisingEvents = true);
         Write("Fresh/Later.cs", "class Later { }\n");
         Ui.WaitFor(() => window.FileIndex.Files.Contains(Path.Combine("Fresh", "Later.cs")), "a file made after in Go to File");
@@ -557,7 +544,6 @@ public sealed class FolderWatchTests : IDisposable
         window.OpenFile("Extra/Use.cs");
         Ui.WaitFor(() => Codes(window).Contains("CS0029"), "the language server to load Extra, which the Explorer shows");
 
-        // The .slnx deleted, both read the .sln, which has no Extra.
         File.Delete(slnx);
         Ui.WaitFor(() => window.Solution?.Path == sln, "the Explorer to show the .sln");
         Assert.DoesNotContain(window.ExplorerView.Tree.Rows, r => r.Kind == NodeKind.Project && r.Name == "Extra");

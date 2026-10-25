@@ -4,11 +4,11 @@ using Passenger.Host;
 
 namespace Passenger.App.Workspace;
 
-/// <summary>A folder's projects as MSBuild last evaluated them, kept in the folder's place in the store (as Rider keeps its
-/// project model cache), so the folder opens on them before any is evaluated again: each with what its evaluation read
-/// (the project file, its imports outside the SDK and package folders, the folders its wildcards walked, each as it was),
-/// so one whose inputs changed since is evaluated again and the rest are not; and the SDK they were evaluated with, a
-/// change of which evaluates them all.</summary>
+/// <summary>A folder's projects as MSBuild last evaluated them, kept in the folder's place in the store, so the folder
+/// opens on them before any is evaluated again: each with what its evaluation read (the project file, its imports
+/// outside the SDK and package folders, the folders its wildcards walked, each as it was), so one whose inputs changed
+/// since is evaluated again and the rest are not; and the SDK they were evaluated with, a change of which evaluates
+/// them all.</summary>
 public sealed record ProjectModelCache : IStateDocument<ProjectModelCache>
 {
     /// <summary>The folder of the SDK whose MSBuild evaluated them.</summary>

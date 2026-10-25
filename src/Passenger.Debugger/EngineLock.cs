@@ -1,9 +1,9 @@
 namespace Passenger.Debugger;
 
-/// <summary>The engine's one lock, held by a request or the runtime's event loop, one at a time: not re-entrant, and let go
-/// the moment its hold is disposed (a library lock that let go on the thread pool after Dispose once left a request waiting
-/// on itself). A read (what a stop shows: frames, values, evaluations) waits behind every other holder, even one that asked
-/// after it, so a continue, a step or a stop is never queued behind the stop's own reads; the others go in turn.</summary>
+/// <summary>The engine's one lock, held by a request or the runtime's event loop, one at a time: not re-entrant, and
+/// let go the moment its hold is disposed. A read (what a stop shows: frames, values, evaluations) waits behind every
+/// other holder, even one that asked after it, so a continue, a step or a stop is never queued behind the stop's own
+/// reads; the others go in turn.</summary>
 public sealed class EngineLock
 {
     private readonly Lock gate = new();

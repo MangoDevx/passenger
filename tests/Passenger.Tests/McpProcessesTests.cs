@@ -22,9 +22,9 @@ public sealed class McpProcessesTests : McpRig, IClassFixture<RestoredFolders>
     {
     }
 
-    /// <summary>An agent's windowless Passenger over the person's folder keeps its Local History in the person's store, as
-    /// the repository's own .mcp.json has it: the person's window pruning a day's turn rewrote the history from its own
-    /// records alone, and what the agent's Passenger kept (a file as it was before the agent changed it) was gone.</summary>
+    /// <summary>An agent's windowless Passenger over the person's folder keeps its Local History in the person's store: what
+    /// it kept (a file as it was before the agent changed it) outlasts the person's window pruning the history at a day's
+    /// turn.</summary>
     [AvaloniaFact]
     public void What_an_agents_own_passenger_keeps_in_local_history_outlasts_the_persons_window_pruning_the_history()
     {
@@ -53,7 +53,6 @@ public sealed class McpProcessesTests : McpRig, IClassFixture<RestoredFolders>
             SaveEdit($"save {save}");
         }
 
-        // The agent's Passenger, on the same folder and state, changes a file the person never opened.
         McpClient client = Await(Task.Run(() => Start(["--mcp", Folder], languageServer: false)), "the agent's Passenger starting");
         try
         {
@@ -69,7 +68,7 @@ public sealed class McpProcessesTests : McpRig, IClassFixture<RestoredFolders>
         WaitFor(() => agents.HasExited, "the agent's Passenger to end");
         Ui.WaitFor(() => File.ReadAllText(notes) == "second first draft\n", "the person's window to see the agent's change");
 
-        // The next day the person saves again, and the window prunes the oldest of its history.
+        // The next day's save, at which the window prunes the oldest of its history.
         Later(TimeSpan.FromHours(25));
         SaveEdit("the next day");
         Ui.Settle();
@@ -96,8 +95,7 @@ public sealed class McpProcessesTests : McpRig, IClassFixture<RestoredFolders>
 
     /// <summary>The person's window and an agent's windowless Passenger keep one Local History in one state at the same
     /// time: every label the agent's Passenger puts is in it after the window has pruned the history again and again
-    /// meanwhile, each prune of a long history holding the agent's lines back until it is done. A prune read the log and
-    /// wrote it again with no word to the other Passenger, and the lines it appended in between were gone.</summary>
+    /// meanwhile, each prune of a long history holding the agent's lines back until it is done.</summary>
     [AvaloniaFact]
     public void Labels_an_agents_passenger_puts_as_the_persons_window_prunes_the_shared_history_are_all_kept()
     {
@@ -158,10 +156,8 @@ public sealed class McpProcessesTests : McpRig, IClassFixture<RestoredFolders>
 
     /// <summary>Passenger killed outright (SIGKILL, TerminateProcess), as a crash ends it, while it runs (and has profiled)
     /// a program, debugs another and builds the project and its language server loads it. Each program writes its id to a
-    /// file named for how it was started and runs until it is ended; the load (the BuildHost's design-time build) and, once
-    /// the folder has a linger file, the build run a step that would take ten minutes, as a slow tool or a hung test would.
-    /// The two programs are two launch profiles' configurations: Debug of the configuration Run runs would end that run
-    /// first (#408).</summary>
+    /// file named for how it was started; the load and, once the folder has a linger file, the build run a step that would
+    /// take ten minutes. The programs are two launch profiles', as Debug of the one Run runs would end that run.</summary>
     [Fact]
     public async Task A_Passenger_killed_while_it_loads_runs_profiles_debugs_and_builds_a_project_leaves_none_of_it_running()
     {
@@ -185,7 +181,7 @@ public sealed class McpProcessesTests : McpRig, IClassFixture<RestoredFolders>
               </Target>
             </Project>
             """);
-        // No compiler server left for others' builds to use, which the kill would end under them (the IDE's nodes are its own).
+        // No compiler server left for others' builds to use, which the kill would end under them.
         Process passenger = StartPassenger(["--mcp", Folder], environment: new() { ["UseSharedCompilation"] = "false" });
         List<int> started = [];
         Task<CallToolResult>? building = null;
@@ -205,7 +201,6 @@ public sealed class McpProcessesTests : McpRig, IClassFixture<RestoredFolders>
             // The build never ends: the test gives its call up once it has seen the step start.
             building = Result(client, "build", giveUp: giveUp);
             int build = await WrittenId("build.pid", "the build's step");
-            // The terminal's shell (PowerShell on Windows), with a program it runs in the background.
             await Call(client, "terminal_run", new()
             {
                 ["command"] = OperatingSystem.IsWindows() ? "Set-Content -Path shell.pid -Value $PID" : "echo $$ > shell.pid; sleep 600 &",
@@ -222,7 +217,7 @@ public sealed class McpProcessesTests : McpRig, IClassFixture<RestoredFolders>
         }
         finally
         {
-            // Given up before the kill, as above, so the client's word of it reaches a Passenger still there.
+            // Given up before the kill, so the client's word of it reaches a Passenger still there.
             giveUp.Cancel();
             ChildProcesses.Kill(passenger);
             foreach (int id in started)
@@ -258,11 +253,10 @@ public sealed class McpBuildNodesTests : McpRig, IClassFixture<RestoredFolders>
     }
 
     /// <summary>The MSBuild nodes a build of Passenger's leaves for its next build, which no other build takes up, end with
-    /// Passenger, whether it ends as its agent leaves or is killed. The two projects build at once, each with a step of a
-    /// few seconds, so MSBuild runs one in a node the test sees. They are restored first, and the agent's Passenger starts no
-    /// language server, whose restore of a solution never restored would leave a node no process's child that a build after
-    /// it runs in. MSBuild
-    /// sometimes ends a node it meant to keep (<see cref="NodeBuilds"/>): the test builds until one stays.</summary>
+    /// Passenger, whether it ends as its agent leaves or is killed. The two projects build at once, each with a step of a few
+    /// seconds, so MSBuild runs one in a node the test sees; restored first, with no language server, whose restore would
+    /// leave a node no process's child. MSBuild sometimes ends a node it meant to keep (<see cref="NodeBuilds"/>): the test
+    /// builds until one stays.</summary>
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -347,9 +341,8 @@ public sealed class McpBuildNodesTests : McpRig, IClassFixture<RestoredFolders>
         }
     }
 
-    /// <summary>The builds the test makes for one to leave a node. A node MSBuild meant to keep ends when its build, given the
-    /// node's last message, closes their pipe before the node has stopped taking a closed pipe for a failure
-    /// (OutOfProcNode.HandleShutdown): rarely, on a loaded machine, and the next build starts a node again.</summary>
+    /// <summary>The builds the test makes for one to leave a node: rarely, on a loaded machine, MSBuild ends a node it meant
+    /// to keep, and the next build starts one again.</summary>
     private const int NodeBuilds = 3;
 
     /// <summary>Waits, before a build, until MSBuild would keep its node: while it counts more nodes than it keeps (<see
@@ -364,9 +357,7 @@ public sealed class McpBuildNodesTests : McpRig, IClassFixture<RestoredFolders>
     }
 
     /// <summary>Why the last build may have left no node, for its failure to say: what it ran (id, parent, nice value,
-    /// command) and Passenger's MSBuild nodes now, with their MSBuild variables. MSBuild keeps none at a nice value other
-    /// than 0, nor while it counts more than it keeps (<see cref="Processes.MSBuildNodesCounted"/>), and ends one it kept
-    /// as <see cref="NodeBuilds"/> says; an idle node a build took up, no process's child, is not among what it ran.</summary>
+    /// command) and Passenger's MSBuild nodes now, with their MSBuild variables.</summary>
     private static string NoNodeLeft(int passenger, IReadOnlyList<int> ran, IReadOnlyDictionary<int, string> listed)
     {
         IReadOnlyDictionary<int, string> now = Processes.Listed();

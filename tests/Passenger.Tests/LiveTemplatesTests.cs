@@ -11,11 +11,11 @@ using Passenger.Text;
 
 namespace Passenger.Tests;
 
-/// <summary>Rider's Live Templates and Postfix Completion pages in Settings, and what Tab and completion then do in the
+/// <summary>The Live Templates and Postfix Completion pages in Settings, and what Tab and completion then do in the
 /// editor on a real project with its language server: a template turned off stays the word typed, one whose text is
 /// edited writes its new text, one added fills in its variables as their macros say, and all of it is there again after
-/// a restart; a postfix template that could wrap more than one expression asks which, as Rider's does, and one turned off
-/// is offered no more.</summary>
+/// a restart; a postfix template that could wrap more than one expression asks which, and one turned off is offered no
+/// more.</summary>
 public sealed class LiveTemplatesTests : IClassFixture<LiveTemplatesTests.Project>, IDisposable
 {
     private readonly Project project;
@@ -48,7 +48,6 @@ public sealed class LiveTemplatesTests : IClassFixture<LiveTemplatesTests.Projec
         dialog.Ok();
         Ui.Settle();
 
-        // cw is a word now: completion does not offer it, and Tab after it indents.
         NewLine(window, "int total = 0;");
         window.KeyTextInput("c");
         Ui.Settle();
@@ -60,7 +59,6 @@ public sealed class LiveTemplatesTests : IClassFixture<LiveTemplatesTests.Projec
         Assert.False(editor.IsInSnippet, "cw, turned off, still expanded");
         Assert.DoesNotContain("Console.WriteLine", Text(editor), StringComparison.Ordinal);
 
-        // thr writes its new text, its message a variable to fill after the exception's type.
         NewLine(window, "int total = 0;");
         window.KeyTextInput("thr");
         Ui.Settle();
@@ -74,7 +72,6 @@ public sealed class LiveTemplatesTests : IClassFixture<LiveTemplatesTests.Projec
         Assert.False(editor.IsInSnippet);
         Assert.Contains("        throw new InvalidOperationException(\"Not yet\");\n", Text(editor), StringComparison.Ordinal);
 
-        // A template added fills in its variables as their macros say, and every change is there after a restart.
         dialog = LiveTemplates(window);
         page = dialog.Templates;
         Ui.Click(page.NewButton);
@@ -99,7 +96,6 @@ public sealed class LiveTemplatesTests : IClassFixture<LiveTemplatesTests.Projec
         Assert.Equal([new TemplateVariable("TYPE", "typeName", string.Empty, Editable: false), new TemplateVariable("WHO", "constant", "world")],
             page.Chosen?.Variables ?? []);
 
-        // A built-in one turned off, as the other kinds of change, to be kept with it.
         Assert.True(page.Choose("while"));
         Ui.Settle();
         Ui.Click(page.EnabledBox("while")!);
@@ -164,7 +160,7 @@ public sealed class LiveTemplatesTests : IClassFixture<LiveTemplatesTests.Projec
         Ui.Press(window, "ESCAPE");
         Ui.Press(window, "TAB");
 
-        // Rider's list, the innermost first, the one chosen highlighted in the editor.
+        // The innermost first, the one chosen highlighted in the editor.
         Assert.Equal("Select expression to parenthesize", window.Assist.OfferedTitle);
         Assert.Equal(["count", "other.First + count"], window.Assist.Offered);
         string text = Text(editor);
@@ -176,7 +172,6 @@ public sealed class LiveTemplatesTests : IClassFixture<LiveTemplatesTests.Projec
         Assert.Contains("        int both = (other.First + count)\n", Text(editor), StringComparison.Ordinal);
         Assert.Empty(editor.Highlights);
 
-        // One expression only is wrapped without asking.
         NewLine(window, "int count = 2;");
         window.KeyTextInput("count.not");
         Ui.Settle();
@@ -185,7 +180,6 @@ public sealed class LiveTemplatesTests : IClassFixture<LiveTemplatesTests.Projec
         Assert.Empty(window.Assist.Offered);
         Assert.Contains("        !count\n", Text(editor), StringComparison.Ordinal);
 
-        // A postfix template turned off is offered no more.
         NewLine(window, "int count = 2;");
         window.KeyTextInput("count.");
         Ui.WaitFor(() => window.Assist.CompletionLabels.Contains("par"), "the postfix templates after the dot");
@@ -212,7 +206,6 @@ public sealed class LiveTemplatesTests : IClassFixture<LiveTemplatesTests.Projec
         Ui.Press(window, "TAB");
         Assert.DoesNotContain("(count)", Text(editor), StringComparison.Ordinal);
 
-        // Rider's Show postfix templates in completion autopopup, off: the list has none, Tab after one still expands it.
         dialog = window.ShowSettings();
         Ui.Settle();
         dialog.Page = SettingsDialog.PostfixPage;
@@ -231,7 +224,6 @@ public sealed class LiveTemplatesTests : IClassFixture<LiveTemplatesTests.Projec
         Ui.Press(window, "TAB");
         Assert.True(Text(editor).Split("        !count\n").Length == negated + 1, $"Tab after not, with postfix templates kept out of the list, did not expand it:\n{Text(editor)}");
 
-        // Enable postfix completion, off: Tab after a postfix template's name is a tab.
         dialog = window.ShowSettings();
         Ui.Settle();
         dialog.Page = SettingsDialog.PostfixPage;

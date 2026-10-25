@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.Formatting;
 
 namespace Passenger.Roslyn.Extension;
 
-/// <summary>Rider's Pull Members Up and Push Members Down: members of a class moved into a base class (or declared in an
+/// <summary>Pull Members Up and Push Members Down: members of a class moved into a base class (or declared in an
 /// interface it implements) or into every derived class chosen, each one made abstract where it stays when asked, its
 /// overrides then marked so. The files they go to get the usings of the file they came from that they need.</summary>
 internal static class MemberMoves

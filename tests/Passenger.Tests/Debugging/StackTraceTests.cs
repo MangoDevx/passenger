@@ -38,15 +38,14 @@ public class StackTraceTests(ITestOutputHelper testOutputHelper)
             new() { Id = 3, Column = 0, EndColumn = null, Line =  0, EndLine = null, Name = "System.Linq.dll!System.Linq.Enumerable.RangeSelectIterator<int, int>.ToArray()",   Source = null, PresentationHint = "subtle" },
             new() { Id = 4, Column = 3, EndColumn =   65, Line =  7, EndLine =    7, Name = "DebuggableConsoleApp.dll!DebuggableConsoleApp.ClassWithBclCall.Test(int myParam)", Source = new DapSource { Name = "ClassWithBclCall.cs", SourceReference = 0, Path = breakpointedFilePath } },
             new() { Id = 5, Column = 4, EndColumn =   29, Line = 31, EndLine =   31, Name = "DebuggableConsoleApp.dll!DebuggableConsoleApp.Program.Main(string[] args)",        Source = new DapSource { Name = "Program.cs",          SourceReference = 0, Path = Debuggees.Source("DebuggableConsoleApp", "Program.cs") } },
-			// TODO: Return internal frames (thread.ActiveInternalFrames)
-			//new() { Id = 1005, Column = 0, EndColumn = null,  Line =  0, EndLine = null, Name = "[Native to Managed Transition]", Source = null, PresentationHint = "subtle" }
+			// TODO: Return internal frames (thread.ActiveInternalFrames), such as a subtle "[Native to Managed Transition]".
 		];
 
         debugProtocolHost.WithStackTraceRequest(stoppedEvent.ThreadId!.Value, out StackTraceResponse? stackTraceResponse, null);
         Assert.Equal(expectedStackFrames.Count, stackTraceResponse.StackFrames.Count);
         Assert.Equal(expectedStackFrames, stackTraceResponse.StackFrames.WithoutResolution());
         Assert.Equal([true, false, false, true, true], stackTraceResponse.StackFrames.Select(f => f.IsResolved));
-        // Since JMC is enabled, we never decompile, as well as to resolve a frame, we need to send a ResolveStackFrameRequest, so all frames should have null decompiledSourceInfo
+        // Just My Code is on, and a frame is decompiled only when it is resolved.
         Assert.All(stackTraceResponse.StackFrames, frame => Assert.Null(frame.DecompiledSourceInfo));
 
         string breakpointedFilePath2 = Debuggees.Source("DebuggableConsoleApp", "MyClassContainingAnotherClass.cs");
@@ -163,7 +162,7 @@ public class StackTraceTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task A_stop_in_a_method_emitted_code_calls_has_its_stack_down_to_Main_through_the_emitted_frame()
     {
-        // System.Reflection.Emit's module has no file and no image in memory: its metadata is the runtime's own.
+        // System.Reflection.Emit's module has no file and no image in memory.
         int calledBack = Debuggees.Line("PassengerCases", "Console.WriteLine($\"called back with {value}\");");
         using DebugSession host = DebugSession.ForLaunch(testOutputHelper);
         await host
@@ -181,8 +180,7 @@ public class StackTraceTests(ITestOutputHelper testOutputHelper)
         Assert.EndsWith("!EmittedCaller.CallBack(int)", names[1], StringComparison.Ordinal);
         Assert.Equal("PassengerCases.dll!Emitted.Run()", names[2]);
 
-        // The emitted frame is one like any other: its argument, emitted without a name, is there by its place, and a step
-        // out of the method it called passes over it.
+        // The emitted frame's argument, emitted without a name, is there by its place.
         host.WithScopesRequest(stack.StackFrames[1].Id, out ScopesResponse scopes);
         host.WithVariablesRequest(Assert.Single(scopes.Scopes).VariablesReference, out List<DapVariable> arguments);
         Assert.Equal(("arg_0", "7"), (Assert.Single(arguments).Name, arguments[0].Value));

@@ -5,9 +5,9 @@ using Passenger.Editor;
 
 namespace Passenger.App.Workspace;
 
-/// <summary>What a folder's window had open, kept in the folder's place in the store as Rider keeps its workspace.xml:
-/// the editors' splits, tabs (pinned or not) and carets, the editor windows, the recent files, the projects unloaded and the
-/// files' folds, so opening the folder again brings them back. Only the window a person uses keeps it, as with the layout.</summary>
+/// <summary>What a folder's window had open, kept in the folder's place in the store: the editors' splits, tabs (pinned
+/// or not) and carets, the editor windows, the recent files, the projects unloaded and the files' folds, so opening the
+/// folder again brings them back. Only the window a person uses keeps it, as with the layout.</summary>
 public sealed record WorkspaceState : IStateDocument<WorkspaceState>
 {
     public EditorLayout? Editors { get; init; }
@@ -61,8 +61,8 @@ public sealed record KeptFolds
     public List<int[]> Folded { get; init; } = [];
 }
 
-/// <summary>The folds of the files a folder's window opened, as Rider keeps them in its workspace: each file's as it last
-/// closed, the latest first, so one opened again opens folded as it was, after a restart too (the window keeps them in
+/// <summary>The folds of the files a folder's window opened: each file's as it last closed, the latest first, so one
+/// opened again opens folded as it was, after a restart too (the window keeps them in
 /// <see cref="WorkspaceState.Folds"/>); the oldest go past <see cref="Kept"/>.</summary>
 public sealed class FoldMemory
 {

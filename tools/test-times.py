@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 """Each test class's time in a run of Passenger's tests, from the run's .trx results, held to the suite's budget.
 
-Prints every class with its tests and the seconds they took (xunit's own time for each test: its class made, the test
-run and its class disposed; a class fixture's setup is outside it), the slowest first, and each run's own time from its
-start to its end. CI runs each system's tests in shards (tools/test-shards.py), one .trx each. Given the budget
-(tests/Passenger.Tests/TestBudget.json), a class over its seconds is a warning, and a shard over its minutes fails: the
-budget says how long a job may take before someone decides it should, and a class's seconds say where the time went.
-On GitHub Actions the warnings and the failure are annotations and the table goes in the step's summary. Each shard's
-Test step runs it over its own .trx after `dotnet test --logger trx` (--shard), and each system's summary job over all
-its shards' (--summary), which only shows their times and warns of a budgeted class that none ran; here, after the same:
+Prints every class with its tests and seconds (xunit's own time for each test, its class made and disposed; a class
+fixture's setup is outside it), the slowest first, and each run's time from its start to its end. Given TestBudget.json,
+a class over its seconds is a warning and a shard over its minutes fails: the budget says how long a job may take before
+someone decides it should, and a class's seconds say where the time went. On GitHub Actions they are annotations and the
+table goes in the step's summary.
+
 python3 -I tools/test-times.py artifacts/test-results --budget tests/Passenger.Tests/TestBudget.json
 """
 import argparse
@@ -51,7 +49,7 @@ def trx_files(paths):
 
 def shard_of(file):
     """The system and shard number a result came from: the shard.json its shard's job leaves beside its .trx, else the
-    folder its artifact was downloaded to (test-results-macOS-2, or test-results-macOS before CI had shards), else
+    folder its artifact was downloaded to (test-results-macOS-2, or test-results-macOS from an unsharded run), else
     (None, None). A download of one artifact lands in the folder asked for, not in one named after it."""
     folder = os.path.dirname(os.path.abspath(file))
     if os.path.exists(os.path.join(folder, "shard.json")):

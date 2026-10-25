@@ -58,7 +58,6 @@ public sealed class DebuggedAppsTests : IClassFixture<RestoredFolders>, IDisposa
         int greeting = Line(Xaml, "x:Name=\"Greeting\"");
         try
         {
-            // The first app: its tree, its greeting's value read for the control chosen, its caption's failure in Problems.
             Debug(window, "BindingErrorsApp", "Caption");
             ProblemsModel problems = window.BottomPanel.Problems;
             Ui.WaitFor(() => problems.BindingProblems.Any(p => p.Failure.Path == "Nmae"), "the first app's caption to fail in Problems");
@@ -66,7 +65,6 @@ public sealed class DebuggedAppsTests : IClassFixture<RestoredFolders>, IDisposa
             Ui.WaitFor(() => Value(editor, greeting) == "Text: \"Hello\"", $"the first app's greeting after its binding, not {Value(editor, greeting)}", TimeSpan.FromMinutes(1));
             LiveApp first = window.Session.LiveApp!;
 
-            // The second, beside it: the window shows its tree; the first keeps its inspector and its failure in Problems.
             Debug(window, "LiveTreeApp", "Delete");
             Assert.DoesNotContain(window.LiveTree.Rows, r => r.Element.Name == "Caption");
             LiveApp second = window.Session.LiveApp!;
@@ -75,10 +73,8 @@ public sealed class DebuggedAppsTests : IClassFixture<RestoredFolders>, IDisposa
                 $"Debugging a second app cut the first off from its inspector: it is {first.State} ({first.Problem})");
             Assert.True(problems.BindingProblems.Any(p => p.Failure.Path == "Nmae"),
                 "Debugging a second app took the first's failed binding out of Problems while the first is still debugged");
-            // The first app's file reads none of the second app's values.
             Ui.WaitFor(() => Value(editor, greeting) is null, $"the greeting's value to go with the first app's tab, not to stay as {Value(editor, greeting)}");
 
-            // The first tab chosen again: its own tree, and its values as a control of it is chosen.
             ChooseTab(window, "BindingErrorsApp");
             Ui.WaitFor(() => window.Session.LiveApp == first && window.LiveTree.Rows.Any(r => r.Element.Name == "Caption"),
                 $"the Live Visual Tree to show the first app's window again ({window.LiveApp?.Name} {window.LiveApp?.State})", TimeSpan.FromMinutes(1));
@@ -86,12 +82,10 @@ public sealed class DebuggedAppsTests : IClassFixture<RestoredFolders>, IDisposa
             Choose(window, "Greeting");
             Ui.WaitFor(() => Value(editor, greeting) == "Text: \"Hello\"", $"the first app's greeting again, not {Value(editor, greeting)}", TimeSpan.FromMinutes(1));
 
-            // And the second's again.
             ChooseTab(window, "LiveTreeApp");
             Ui.WaitFor(() => window.Session.LiveApp == second && window.LiveTree.Rows.Any(r => r.Element.Name == "Delete"),
                 "the Live Visual Tree to show the second app's window again", TimeSpan.FromMinutes(1));
 
-            // Each ends with its own debugging; the first's failure stays in Problems while its tab does.
             Assert.True(window.Perform(AppActions.StopAll), $"Stop All could not run: {Ui.Said(window)}");
             Ui.WaitFor(() => !window.Debugger.IsDebugging && first.State == LiveAppState.Ended && second.State == LiveAppState.Ended, "both apps to end");
             Assert.Contains(problems.BindingProblems, p => p.Failure.Path == "Nmae");

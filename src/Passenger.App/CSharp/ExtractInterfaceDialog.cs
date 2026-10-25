@@ -6,8 +6,8 @@ using Passenger.Roslyn.Extension;
 
 namespace Passenger.App.CSharp;
 
-/// <summary>Rider's Extract Interface dialog: the interface's name and the file it goes in, which follows the name until
-/// it is typed in, and the type's members to give it, each checked to go, all of them at first.</summary>
+/// <summary>Extract Interface: the interface's name and the file it goes in, which follows the name until it is typed
+/// in, and the type's members to give it, each checked to go, all of them at first.</summary>
 public sealed class ExtractInterfaceDialog : RefactoringDialog
 {
     private readonly Func<string, string, IReadOnlyList<string>, Task<string?>> make;

@@ -8,9 +8,9 @@ using Passenger.Text;
 
 namespace Passenger.App;
 
-/// <summary>The status bar's path, as Rider's new UI has it: the active file's folders and name, then the type and
-/// member the caret is in, from the language server's outline (asked again as editing pauses); a click on a member goes
-/// to it, on the file or a folder shows it in the Explorer.</summary>
+/// <summary>The status bar's path: the active file's folders and name, then the type and member the caret is in, from
+/// the language server's outline (asked again as editing pauses); a click on a member goes to it, on the file or a
+/// folder shows it in the Explorer.</summary>
 public partial class MainWindow
 {
     private readonly StackPanel breadcrumbs = new() { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Avalonia.Thickness(0, 0, 18, 0) };
@@ -46,9 +46,9 @@ public partial class MainWindow
         };
     }
 
-    /// <summary>Asks for the outline once editing pauses, for a file the C# server has or will have (a C# or Razor file a
-    /// window that starts one shows before its server, or its service, is up): a file no server serves gives none, and a
-    /// pause waited out for nothing held every key's background work with it (a screenshot's, a test's).</summary>
+    /// <summary>Asks for the outline once editing pauses, for a file the C# server has or will have (a C# or Razor file
+    /// shown before its server, or its service, is up): a file no server serves gives none, so no pause is waited out
+    /// for it.</summary>
     private void OutlineLater()
     {
         if (Editors.Active is { } document && (session.CSharp?.For(document)?.Lsp is not null

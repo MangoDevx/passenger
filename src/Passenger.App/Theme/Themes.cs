@@ -81,8 +81,7 @@ public static class Themes
     }
 
     /// <summary>Fluent's own accented parts (a ticked box, a chosen radio button, a focused drop-down) in the theme's
-    /// Passenger.Accent, as the default buttons beside them are: Fluent takes the system's accent otherwise (the user's on
-    /// macOS, #0078D4 headless).</summary>
+    /// Passenger.Accent: Fluent takes the system's accent otherwise (the user's on macOS, #0078D4 headless).</summary>
     public static void TakeAccentFromTokens(Application app)
     {
         FluentTheme fluent = app.Styles.OfType<FluentTheme>().Single();

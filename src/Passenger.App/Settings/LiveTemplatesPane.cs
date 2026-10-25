@@ -10,15 +10,15 @@ using Passenger.Languages.CSharp;
 
 namespace Passenger.App.Settings;
 
-/// <summary>Rider's Editor | Live Templates | C# page: the templates down the left, each its shortcut in bold and its
-/// description, sorted by name, under New Template, Clone And Edit Template and Delete Template; the chosen one's editor on
-/// the right (Shortcut, Description, Options, Availability, Use in, Mnemonic, Edit variables, then its text). Each row's
-/// check box turns a template off or on again, as IntelliJ's Live Templates page has it. Every change goes back to the
-/// settings being edited at once, kept as differences from the built-in templates.</summary>
+/// <summary>The Editor | Live Templates | C# page: the templates down the left, each its shortcut in bold and its
+/// description, sorted by name, under New Template, Clone And Edit Template and Delete Template; the chosen one's
+/// editor on the right (Shortcut, Description, Options, Availability, Use in, Mnemonic, Edit variables, then its text).
+/// Each row's check box turns a template off or on again. Every change goes back to the settings being edited at once,
+/// kept as differences from the built-in templates.</summary>
 public sealed class LiveTemplatesPane : DockPanel
 {
-    /// <summary>Rider's names for the places a template is offered, as its editor's Availability lists them and as its
-    /// Availability configuration does.</summary>
+    /// <summary>The names of the places a template is offered: short in its editor's Availability, long in its
+    /// Availability configuration.</summary>
     public static readonly (TemplateAvailability Place, string Short, string Long)[] Places =
     [
         (TemplateAvailability.Statements, "C# statements", "In C# where statement is allowed"),
@@ -139,10 +139,10 @@ public sealed class LiveTemplatesPane : DockPanel
 
     public CheckBox ReformatBox { get; }
 
-    /// <summary>Where the chosen template is offered, as Rider's editor says it.</summary>
+    /// <summary>Where the chosen template is offered, in words.</summary>
     public TextBlock AvailabilityText { get; }
 
-    /// <summary>Opens Rider's Availability configuration for the chosen template.</summary>
+    /// <summary>Opens the Availability configuration for the chosen template.</summary>
     public Button AvailabilityButton { get; }
 
     public RadioButton GenerationButton { get; }
@@ -157,7 +157,7 @@ public sealed class LiveTemplatesPane : DockPanel
 
     public TextBox TextBox { get; }
 
-    /// <summary>The templates as listed, in Rider's order.</summary>
+    /// <summary>The templates as listed, by shortcut.</summary>
     public IReadOnlyList<LiveTemplate> Rows => list.ItemsSource as IReadOnlyList<LiveTemplate> ?? [];
 
     /// <summary>The template chosen in the list, as the fields show it.</summary>
@@ -182,7 +182,7 @@ public sealed class LiveTemplatesPane : DockPanel
         return row is null ? null : (list.ContainerFromItem(row) as ListBoxItem)?.GetVisualDescendants().OfType<CheckBox>().FirstOrDefault();
     }
 
-    /// <summary>Rider's text for where a template is offered: the places' short names, the first two and a count past
+    /// <summary>The words for where a template is offered: the places' short names, the first two and a count past
     /// three, "nowhere" for none.</summary>
     public static string Said(TemplateAvailability where)
     {
@@ -195,7 +195,8 @@ public sealed class LiveTemplatesPane : DockPanel
         };
     }
 
-    /// <summary>Rider's New Template: an empty one to fill in, typed where a statement goes, its shortcut ready to type.</summary>
+    /// <summary>New Template: an empty one to fill in, typed where a statement goes, its shortcut ready to
+    /// type.</summary>
     private void New()
     {
         LiveTemplate added = new(Unique("template"), string.Empty, TemplateScope.Statement, string.Empty, []) { Key = "user-" + Guid.NewGuid().ToString("N") };
@@ -210,7 +211,7 @@ public sealed class LiveTemplatesPane : DockPanel
         }, DispatcherPriority.Loaded);
     }
 
-    /// <summary>Rider's Clone And Edit Template: a copy of the chosen one as one of the person's own.</summary>
+    /// <summary>Clone And Edit Template: a copy of the chosen one as one of the person's own.</summary>
     private void Clone()
     {
         if (Chosen is not { } source)
@@ -224,8 +225,8 @@ public sealed class LiveTemplatesPane : DockPanel
         Choose(copy.Abbreviation);
     }
 
-    /// <summary>Rider's Delete Template, for one of the person's own; a built-in one is turned off by its check box instead,
-    /// so it can be turned on again.</summary>
+    /// <summary>Delete Template, for one of the person's own; a built-in one is turned off by its check box instead, so
+    /// it can be turned on again.</summary>
     private void Delete()
     {
         if (Chosen is not { BuiltIn: false } removed)
@@ -313,7 +314,7 @@ public sealed class LiveTemplatesPane : DockPanel
         }
     }
 
-    /// <summary>Rider's Availability configuration, over the settings: the places the chosen template is offered.</summary>
+    /// <summary>The Availability configuration, over the settings: the places the chosen template is offered.</summary>
     private async Task ConfigureAvailability()
     {
         if (Chosen is not { } chosen || TopLevel.GetTopLevel(this) is not Window owner)
@@ -329,8 +330,8 @@ public sealed class LiveTemplatesPane : DockPanel
         }
     }
 
-    /// <summary>Rider's Edit variables, over the settings: what the chosen template's variables take their values from,
-    /// whether Tab stops at each, and in what order.</summary>
+    /// <summary>Edit variables, over the settings: what the chosen template's variables take their values from, whether
+    /// Tab stops at each, and in what order.</summary>
     private async Task EditVariables()
     {
         if (Chosen is not { } chosen || TopLevel.GetTopLevel(this) is not Window owner)
@@ -357,7 +358,7 @@ public sealed class LiveTemplatesPane : DockPanel
         return button;
     }
 
-    /// <summary>Lists the templates again, sorted as Rider sorts them: by shortcut, ordinal.</summary>
+    /// <summary>Lists the templates again, sorted by shortcut, ordinal.</summary>
     private void List() => list.ItemsSource = (LiveTemplate[])[.. templates.OrderBy(t => t.Abbreviation.Length > 0 ? t.Abbreviation : t.Description, StringComparer.Ordinal)];
 
     /// <summary>Shows the chosen template in the fields, or says none is chosen.</summary>

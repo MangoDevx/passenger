@@ -14,8 +14,8 @@ namespace Passenger.Lsp;
 public sealed class LanguageServer : IAsyncDisposable
 {
     /// <summary>How long a request waits before the server is checked: one this old may be slow work (usages across a
-    /// large solution) or a server that will never answer. Settable, with <see cref="ResponseLimit"/>, for a test that
-    /// holds a server to them, so it waits them out quickly.</summary>
+    /// large solution) or a server that will never answer. Settable, with <see cref="ResponseLimit"/>, so a test waits
+    /// them out quickly.</summary>
     public TimeSpan SlowRequest { get; set; } = TimeSpan.FromSeconds(5);
 
     /// <summary>How long the check may go unanswered before the server is called not responding. Roslyn answers it in
@@ -45,7 +45,7 @@ public sealed class LanguageServer : IAsyncDisposable
     private volatile bool disposing;
     private volatile string? ended;
 
-    /// <summary>The server as a test's quiet wait names it, among the requests in flight (<see cref="InFlight"/>).</summary>
+    /// <summary>The server's name among the requests in flight (<see cref="InFlight"/>).</summary>
     private readonly string who;
 
     private readonly Dictionary<string, object?> options;
@@ -104,23 +104,22 @@ public sealed class LanguageServer : IAsyncDisposable
     /// where it runs from the app's own roslyn/, and for every other server.</summary>
     public string? ServerCopy { get; private set; }
 
-    /// <summary>The server's process, for the IDE's log and for a test to end it; kept once the process is gone.</summary>
+    /// <summary>The server's process id, kept once the process is gone.</summary>
     public int ProcessId { get; }
 
     /// <summary>A message the server logged (<c>window/logMessage</c>), every one of which is in its own log too; raised on
     /// any thread.</summary>
     public event EventHandler<LogMessageParams>? Logged;
 
-    /// <summary>A message the server shows the person: <c>window/showMessage</c>, or Roslyn's toast (a project that did
-    /// not load says so this way, the reason in an error it logged just before). Raised on any thread.</summary>
+    /// <summary>A message the server shows the person: <c>window/showMessage</c>, or Roslyn's toast. Raised on any
+    /// thread.</summary>
     public event EventHandler<LogMessageParams>? Shown;
 
     /// <summary>Work the server reports the progress of (<c>$/progress</c>: Roslyn's project loads); raised on any thread.</summary>
     public event EventHandler<WorkProgress>? Progressed;
 
     /// <summary>Where every message to and from every server goes while set, with the server's process and an arrow
-    /// for its direction ("-->" to the server); called on the connection's threads. Settings' Trace protocol messages,
-    /// the process's as every window's servers write the one lsp.log.</summary>
+    /// for its direction ("-->" to the server); called on the connection's threads.</summary>
     public static Action<int, string>? Trace { get; set; }
 
     /// <summary>Roslyn has finished loading the projects it was asked to open; raised on any thread.</summary>
@@ -224,9 +223,8 @@ public sealed class LanguageServer : IAsyncDisposable
     }
 
     /// <summary>Every document's diagnostics from one source, as the solution-wide analysis has them, each report given to
-    /// <paramref name="streamed"/> as the server sends it: Roslyn sends what it found, then holds the pull open until the
-    /// source's next change, which an earlier pull may already have taken, so what the answer alone would bring could wait
-    /// for another edit. The answer's own reports are given back; none is given to <paramref name="streamed"/> after it.</summary>
+    /// <paramref name="streamed"/> as the server sends it, since Roslyn holds the pull open until the source next changes.
+    /// The answer's own reports are given back; none is given to <paramref name="streamed"/> after it.</summary>
     public async Task<IReadOnlyList<WorkspaceDocumentDiagnosticReport>> WorkspaceDiagnosticsAsync(string? source, IReadOnlyList<PreviousResultId> previous,
         Action<IReadOnlyList<WorkspaceDocumentDiagnosticReport>> streamed, CancellationToken cancel = default)
     {
@@ -240,7 +238,7 @@ public sealed class LanguageServer : IAsyncDisposable
         };
         try
         {
-            // How long it is held says nothing of the server, and it is no work in flight for a test's quiet wait.
+            // How long it is held says nothing of the server, nor is it work in flight.
             return (await InvokeAsync<WorkspaceDiagnosticReport>("workspace/diagnostic", new WorkspaceDiagnosticParams(source, previous, token), cancel, inFlight: false))?.Items ?? [];
         }
         finally
@@ -309,18 +307,14 @@ public sealed class LanguageServer : IAsyncDisposable
             server, "--stdio", "--logLevel", "Information", "--telemetryLevel", "off",
             "--extensionLogDirectory", logFolder, "--clientProcessId", Environment.ProcessId.ToString(),
         ];
-        // Passenger's refactorings that take options, which the server loads into a context of the extension's own.
         if (File.Exists(RoslynExtension.Assembly))
         {
             arguments.AddRange(["--extension", RoslynExtension.Assembly]);
         }
         ProcessStartInfo start = ChildProcesses.DotnetCommand(arguments);
-        // The dotnet restore Roslyn runs leaves its MSBuild node in the server's process group, which a restart ends: a
-        // build of the IDE's that took that node up would lose it midway, so a server's nodes are its own.
+        // A server's MSBuild nodes are its own: a restart ends them, which would cut short a build that took one up.
         start.Environment["MSBUILDNODEHANDSHAKESALT"] += $"-server-{Interlocked.Increment(ref started)}";
-        // The server's own dotnet restore takes no properties: off Windows a WPF or Windows Forms project restores only with
-        // EnableWindowsTargeting (NETSDK1100), so the server's environment says it, where MSBuild reads it as a property a
-        // project's own value still overrides, and which a project with no Windows-only framework never reads.
+        // The server's restore takes no properties, and off Windows a WPF project restores only with this (NETSDK1100).
         if (!OperatingSystem.IsWindows() && !start.Environment.ContainsKey("EnableWindowsTargeting"))
         {
             start.Environment["EnableWindowsTargeting"] = "true";
@@ -339,7 +333,7 @@ public sealed class LanguageServer : IAsyncDisposable
             }
             catch (LanguageServerFailed failed)
             {
-                // The server runs on without it; only the refactorings that ask it say why.
+                // The server runs on without it.
                 server2.ExtensionProblem = $"the C# language server did not activate Passenger's extension: {failed.Reason}";
             }
         }
@@ -389,8 +383,7 @@ public sealed class LanguageServer : IAsyncDisposable
         SystemTextJsonFormatter formatter = new() { JsonSerializerOptions = Json.Options };
         CountedMessages handler = new(input, output, formatter);
         ClientTarget client = new();
-        // What the server sends is handled in the order it came, one at a time, rather than on the thread pool as it comes:
-        // a progress report handled after its end would leave the load showing, an error logged after its toast unread.
+        // One at a time, in order: a progress report handled after its end would leave the load showing.
         JsonRpc rpc = new(handler) { SynchronizationContext = new Microsoft.VisualStudio.Threading.NonConcurrentSynchronizationContext(sticky: false) };
         rpc.AddLocalRpcTarget(client, new JsonRpcTargetOptions { UseSingleObjectParameterDeserialization = true });
         LanguageServer server2 = new(process, rpc, handler, client, log, logFolder, options, configure, content, applyEdit);
@@ -495,8 +488,8 @@ public sealed class LanguageServer : IAsyncDisposable
         }
     }
 
-    /// <summary>Has the server refuse the next requests of a method, as Roslyn refuses one or cancels it unanswered (a pull
-    /// a change made stale): for a test of what follows, which it cannot make the server do. Done once all are refused.</summary>
+    /// <summary>Refuses the next requests of a method as the server may refuse one or cancel it unanswered (a pull a change
+    /// made stale), for a test of what follows. Done once all are refused.</summary>
     public Task RefuseNext(string method, int requests)
     {
         lock (refusing)
@@ -724,10 +717,9 @@ public sealed class LanguageServer : IAsyncDisposable
         log.Dispose();
     }
 
-    /// <summary>The server's options Passenger sets: parameter name hints where Rider shows them (before a literal, a
-    /// null or an indexer's argument), and never where the argument already says the name; type hints where Rider has
-    /// them (a <c>var</c>, a lambda's parameter, a target-typed <c>new</c>), which <c>TypeHints</c> moves to Rider's
-    /// place and leaves off where Rider's are, and none for a collection expression, which Rider never hints.</summary>
+    /// <summary>The server's options Passenger sets: parameter name hints before a literal, a null or an indexer's argument,
+    /// never where the argument already says the name; type hints on a <c>var</c>, a lambda's parameter and a target-typed
+    /// <c>new</c>, none for a collection expression.</summary>
     private static readonly Dictionary<string, object?> Settings = new(StringComparer.Ordinal)
     {
         ["dotnet_enable_inlay_hints_for_parameters"] = true,
@@ -751,8 +743,8 @@ public sealed class LanguageServer : IAsyncDisposable
     /// deleting, and closed at the stream's end or the server's, so the folder it is in can go.</summary>
     private sealed class ServerLog(string path) : IDisposable
     {
-        /// <summary>The servers' logs kept in a folder, the newest: older ones go as a server starts, as the IDE's own
-        /// log keeps a dozen rotations, so a folder that every server of every session writes to stays small.</summary>
+        /// <summary>The servers' logs kept in a folder, the newest: older ones go as a server starts, so a folder that every
+        /// server of every session writes to stays small.</summary>
         private const int Kept = 20;
 
         private readonly StreamWriter writer = new(new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete)) { AutoFlush = true };
@@ -873,8 +865,7 @@ public sealed class LanguageServer : IAsyncDisposable
         {
             get
             {
-                // A registration with no identifier repeats what the named ones report; it is pulled only
-                // when there are no named ones.
+                // One with no identifier repeats what the named ones report: pulled only when there are none.
                 lock (diagnosticSources)
                 {
                     List<string?> named = diagnosticSources.Where(s => s is not null).ToList();
@@ -958,8 +949,8 @@ public sealed class LanguageServer : IAsyncDisposable
         [JsonRpcMethod("window/showDocument")]
         public object ShowDocument(JsonElement? request = null) => new { success = false };
 
-        /// <summary>An edit a server's own command makes (ESLint's fixes): made by what its start names, else refused, as
-        /// Passenger applies what Roslyn's commands answer itself. Awaited apart from the messages that follow.</summary>
+        /// <summary>An edit a server's own command makes (ESLint's fixes): made by what its start names, else refused.
+        /// Awaited apart from the messages that follow.</summary>
         [JsonRpcMethod("workspace/applyEdit")]
         public async Task<object> ApplyEdit(JsonElement request)
         {
@@ -1032,7 +1023,7 @@ public sealed class LanguageServer : IAsyncDisposable
                     RazorLegend = legend.Deserialize<SemanticTokensLegend>(Json.Options);
                 }
             }
-            // A Razor file's diagnostics are Razor's one source, pulled as the file's own (LspDocument.IsRazor).
+            // Razor's are left out: a Razor file's diagnostics are its one source, pulled as the file's own.
             foreach (Registration registration in request.Registrations.Where(r => r.Method == "textDocument/diagnostic" && !ForRazor(r)))
             {
                 string? identifier = registration.RegisterOptions is { ValueKind: JsonValueKind.Object } options

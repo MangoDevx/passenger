@@ -1,8 +1,8 @@
 #!/bin/sh
 # Passenger's container tools for one Linux system (src/Passenger.ContainerTools), self-contained, into
-# artifacts/container-tools/<rid>/, where a dev build of the IDE finds them; --archive also packs them as the release
-# carries them, artifacts/container-tools/Passenger-container-tools-<rid>.tar.gz (the folder's files at its root).
-# With no RID, the glibc one for the container engine's processor (docker version), else this machine's.
+# artifacts/container-tools/<rid>/, where a dev build of the IDE finds them; --archive also packs the release's
+# artifacts/container-tools/Passenger-container-tools-<rid>.tar.gz (the folder's files at its root). With no RID, the
+# glibc one for the container engine's processor, else this machine's.
 #   tools/container-tools.sh [linux-x64|linux-arm64|linux-musl-x64|linux-musl-arm64] [--archive]
 set -eu
 cd "$(dirname "$0")/.."
@@ -38,8 +38,7 @@ if [ -z "$rid" ]; then
     esac
 fi
 
-# The version as tools/package-linux.sh takes it: a vX.Y.Z tag on this commit, else Directory.Build.props' Version. The
-# IDE uses tools of its own version alone (passenger-tools version), so a release's must say the release's.
+# A vX.Y.Z tag on this commit, else Directory.Build.props' Version: the IDE takes tools of its own version alone.
 version=$(git describe --tags --exact-match --match 'v[0-9]*' 2>/dev/null | sed 's/^v//' || true)
 [ -n "$version" ] || version=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' Directory.Build.props | head -n 1)
 
@@ -47,8 +46,7 @@ out=artifacts/container-tools/$rid
 rm -rf "$out"
 AVALONIA_TELEMETRY_OPTOUT=1 dotnet publish src/Passenger.ContainerTools -c Release -r "$rid" --self-contained -p:Version="$version" -o "$out" -nologo -v:q
 test -x "$out/passenger-tools"
-# Its licence and its notices, written at its build from the packages it carries (tools/Passenger.Notices), which name the
-# runtime and the dbgshim it carries for its system (musl's own on a musl one).
+# Its licence and notices, which must name the runtime and the dbgshim it carries for its system (musl's on a musl one).
 test -s "$out/LICENSE.txt"
 for package in Microsoft.NETCore.App.Runtime.$rid Microsoft.Diagnostics.DbgShim.$rid; do
     if ! grep -q "^$package " "$out/THIRD-PARTY-NOTICES.txt"; then

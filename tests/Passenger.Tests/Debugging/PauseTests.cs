@@ -3,9 +3,8 @@ using Passenger.Tests.Debugging.Helpers;
 
 namespace Passenger.Tests.Debugging;
 
-/// <summary>Pause, as Rider's: a running program stops wherever it is, the IDE hears so on a thread showing its code,
-/// and a step from there goes on from the loop, even from a pause that caught it outside managed code. While it is
-/// paused, an evaluation runs its own thread alone, as Visual Studio's do, and what the other threads were about to
+/// <summary>Pause: a running program stops wherever it is, on a thread showing its code, and a step from there goes on
+/// from the loop. While it is paused, an evaluation runs its own thread alone, and what the other threads were about to
 /// stop for (a breakpoint, an exception) is still seen once it is over.</summary>
 [Collection(DebugSession.Collection)]
 public class PauseTests(ITestOutputHelper testOutputHelper)
@@ -31,9 +30,9 @@ public class PauseTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("pause", (await Pause(host)).Reason);
     }
 
-    /// <summary>A pause that caught the thread in the runtime's own code (its sleep), where the runtime may run none of the
-    /// program's: a value its ToString would show is then shown by its type, as Visual Studio shows it, its fields there to
-    /// open, never as an error in its place; and a step from there comes back to the loop.</summary>
+    /// <summary>A pause that caught the thread in the runtime's own code (its sleep), where none of the program's can run: a
+    /// value its ToString would show is shown by its type, its fields there to open, never as an error; and a step from
+    /// there comes back to the loop.</summary>
     [Fact]
     public async Task A_value_paused_in_a_sleep_shows_its_type_and_fields_where_its_ToString_cannot_run_and_a_step_comes_back_to_the_loop()
     {
@@ -120,7 +119,7 @@ public class PauseTests(ITestOutputHelper testOutputHelper)
     private static async Task Launch(DebugSession host, bool sleeps)
     {
         await Start(host, sleeps ? ["sleep"] : []);
-        // A person pauses a program that is under way: this one says when it is in its loop.
+        // The program says when it is in its loop.
         await host.WaitForEvent<OutputEvent>(output => output.Output.Contains("looping", StringComparison.Ordinal));
     }
 

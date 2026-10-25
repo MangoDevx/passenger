@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis.Rename;
 
 namespace Passenger.Roslyn.Extension;
 
-/// <summary>Rider's Change Signature: a method's or constructor's parameters added, removed, reordered, renamed or
+/// <summary>Change Signature: a method's or constructor's parameters added, removed, reordered, renamed or
 /// retyped, its return type and name changed, through every declaration in its hierarchy (what it overrides and
 /// implements, and what overrides and implements it) and every call, each call's arguments following their parameters
 /// and passing a new one's value. Parameters and the method are renamed by Roslyn's Renamer, which resolves conflicts.</summary>
@@ -153,7 +153,7 @@ internal static class Signatures
         parameter.Identifier.ValueText,
         parameter.Default?.Value.ToString() ?? string.Empty);
 
-    /// <summary>Why the signature asked for cannot be made, in ReSharper's words; null when it can.</summary>
+    /// <summary>Why the signature asked for cannot be made; null when it can.</summary>
     private static string? Problem(IMethodSymbol method, IReadOnlyList<Parameter> original, SignatureChange change)
     {
         if (method.MethodKind == MethodKind.Ordinary && !Changes.IsName(change.Name))

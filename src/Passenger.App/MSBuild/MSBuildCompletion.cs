@@ -72,7 +72,7 @@ public static class MSBuildCompletion
     /// <summary>SDKs that come from NuGet rather than the .NET install, which a project may name all the same.</summary>
     private static readonly string[] PackageSdks = ["MSTest.Sdk", "Aspire.AppHost.Sdk", "Microsoft.Build.NoTargets", "Microsoft.Build.Traversal", "Microsoft.Build.Sql"];
 
-    /// <summary>The properties a project sets most, which the list offers first, as Rider's does.</summary>
+    /// <summary>The properties a project sets most, which the list offers first.</summary>
     private static readonly string[] CommonProperties =
     [
         "TargetFramework", "TargetFrameworks", "OutputType", "Nullable", "ImplicitUsings", "LangVersion", "RootNamespace", "AssemblyName",
@@ -400,8 +400,8 @@ public static class MSBuildCompletion
     private static string? PackageOf(XmlElement element, string text) =>
         (MSBuildSyntax.ValueOf(element, "Include", text) ?? MSBuildSyntax.ValueOf(element, "Update", text)) is { Length: > 0 } id && !MSBuildSyntax.IsExpression(id) ? id.Trim() : null;
 
-    /// <summary>The values a property takes: the schemas' (an enumeration, or true and false), else those Rider offers for
-    /// the SDK's own (target frameworks the evaluation's SDK supports, output types, language versions).</summary>
+    /// <summary>The values a property takes: the schemas' (an enumeration, or true and false), else the SDK's own
+    /// (target frameworks the evaluation's SDK supports, output types, language versions).</summary>
     public static IReadOnlyList<(string Value, string? Detail)> PropertyValues(MSBuildContext context, string name)
     {
         if (context.Schema.Properties.GetValueOrDefault(name) is { Values.Count: > 0 } property)
@@ -439,7 +439,6 @@ public static class MSBuildCompletion
             return null;
         }
         char sigil = text[at - 2];
-        // The bracket goes in only where nothing of a name, or the bracket itself, follows already.
         string close = offset < text.Length && (text[offset] == ')' || MSBuildSyntax.IsNameChar(text[offset])) ? string.Empty : ")";
         MSBuildInsight? insight = context.Insight;
         List<MSBuildItem> items = [];

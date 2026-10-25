@@ -36,9 +36,9 @@ public sealed class NavigationTests : IDisposable
         window.Close();
     }
 
-    /// <summary>Page Down and Page Up in Go to File's field choose a page of results below or above, as every search list's
-    /// keys do (one behaviour, #390, where no list took them): the first Page Down chooses the last row in sight without
-    /// scrolling, the next keeps the row it left in sight, and Page Up comes back the same way, stopping at the top.</summary>
+    /// <summary>Page Down and Page Up in Go to File's field choose a page of results below or above: the first Page Down
+    /// chooses the last row in sight without scrolling, the next keeps the row it left in sight, and Page Up comes back the
+    /// same way, stopping at the top.</summary>
     [AvaloniaFact]
     public void Page_down_and_up_in_go_to_file_choose_a_page_of_results_keeping_the_choice_in_sight()
     {
@@ -77,11 +77,9 @@ public sealed class NavigationTests : IDisposable
             && top.Y >= -0.5 && top.Y + row.Bounds.Height <= list.Bounds.Height + 0.5;
     }
 
-    /// <summary>Go to File over a large folder costs a key little more than over a small one: a file whose name cannot
-    /// match is passed over with nothing done for it, where every file's name and stem were copied out of its path and its
-    /// word starts listed, a key in sixty thousand files taking the UI thread a median 86 to 123 ms; and the first letter,
-    /// which a great many match, keeps only the best of them as it goes, where all of them were sorted (#233's ~150 ms over
-    /// 60,000). What the window allocates is the count, not a time a busy machine stretches: each key over 20,000 files
+    /// <summary>Go to File over a large folder costs a key little more than over a small one: a file whose name cannot match
+    /// is passed over with nothing done for it, and the first letter, which a great many match, keeps only the best of them as
+    /// it goes. What the window allocates is the count, not a time a busy machine stretches: each key over 20,000 files
     /// allocates on the UI thread less than 8 bytes for each file more than over 2,000, the least of three tries of it.</summary>
     [AvaloniaFact]
     public void Go_to_file_in_twenty_thousand_files_does_no_work_for_a_file_whose_name_cannot_match()
@@ -99,7 +97,6 @@ public sealed class NavigationTests : IDisposable
             $"A key in Go to File over 20,000 files allocated {many / 1024} KB on the UI thread, against {few / 1024} KB over 2,000: 8 bytes or more for each file more");
         Assert.True(manyFirst - fewFirst < 8 * 18_000,
             $"The first letter in Go to File over 20,000 files allocated {manyFirst / 1024} KB on the UI thread, against {fewFirst / 1024} KB over 2,000: every match was sorted");
-        // What it found is what it finds: the validators of area 7, a name of the query's letters in order.
         Ui.Press(window, "ENTER");
         Assert.Matches(@"^Validator7x\d+\.cs$", window.EditorArea.Active?.Name ?? string.Empty);
         window.Close();
@@ -136,9 +133,9 @@ public sealed class NavigationTests : IDisposable
         return (first, key);
     }
 
-    /// <summary>The least a key typed in Go to File's field allocates on the UI thread of three times, each taken back
-    /// after: what else lands on that thread meanwhile (a frame the key's own wait draws) goes into one look, as CI's
-    /// Linux once put 613 KB into one, while what the key costs for each file goes into every one.</summary>
+    /// <summary>The least a key typed in Go to File's field allocates on the UI thread of three times, each taken back after:
+    /// what else lands on that thread meanwhile (a frame the key's own wait draws) goes into one look, while what the key
+    /// costs for each file goes into every one.</summary>
     private static long Least(MainWindow window, string key)
     {
         long least = long.MaxValue;
@@ -165,7 +162,7 @@ public sealed class NavigationTests : IDisposable
         Write("src/Editor/Commands.cs", "class Commands { }");
         MainWindow window = Open();
 
-        // As Rider's: a stack trace's "CodeEditor.cs:20" or "CodeEditor.cs:20:4", pasted or typed, finds the file and its place.
+        // A stack trace's "CodeEditor.cs:20" or "CodeEditor.cs:20:4", pasted or typed, finds the file and its place.
         Ui.Press(window, Ui.Shortcut(AppActions.GoToFile));
         window.KeyTextInput("CodeEditor.cs:20");
         Ui.Settle();
@@ -180,7 +177,6 @@ public sealed class NavigationTests : IDisposable
         Ui.Press(window, "ENTER");
         Assert.Equal(new TextPosition(6, 3), window.EditorArea.CodeEditor.CaretPosition);
 
-        // Go to Everything's files take the same.
         Ui.Press(window, Ui.Shortcut(AppActions.GoToEverything));
         window.KeyTextInput("CodeEditor.cs:12");
         Ui.WaitFor(() => window.Popup is Passenger.App.Navigation.SymbolPopup { IsSettled: true } popup && popup.Rows.Count > 0, "Go to Everything's file");
@@ -270,7 +266,6 @@ public sealed class NavigationTests : IDisposable
 
         Ui.Run(window, AppActions.FocusExplorer);
         Assert.False(window.EditorArea.CodeEditor.IsFocused, "The Explorer's shortcut left the keys with the editor");
-        // The keys go on from the open file's row, as in Rider's Project view, and Enter opens the row they reach.
         Ui.Press(window, "UP");
         Assert.Equal("One.cs", window.ExplorerView.Selected?.Name);
         Ui.Press(window, "ENTER");

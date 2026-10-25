@@ -108,7 +108,6 @@ internal sealed class DebuggingAssemblyResolver(List<string> modulePaths) : IAss
         }
     }
 
-    // Works for now, why not just use MVID?
     private static ImmutableArray<byte> ComputePublicKeyToken(MetadataReader reader, AssemblyDefinition assemblyDef)
     {
         byte[] publicKeyOrToken = reader.GetBlobBytes(assemblyDef.PublicKey);

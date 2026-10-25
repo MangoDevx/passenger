@@ -13,11 +13,12 @@ namespace Passenger.App;
 /// nothing, as it opens no browser.</summary>
 public static class FileManager
 {
-    /// <summary>What the IDE calls it: the Finder, Explorer, or on Linux whichever file manager the desktop has, which
-    /// IntelliJ names "File Manager" when it cannot tell.</summary>
+    /// <summary>What the IDE calls it: the Finder, Explorer, or on Linux whichever file manager the desktop
+    /// has.</summary>
     public static string Name { get; } = OperatingSystem.IsMacOS() ? "Finder" : OperatingSystem.IsWindows() ? "Explorer" : "File Manager";
 
-    /// <summary>Rider's words for the action that shows a file there: Reveal in Finder on macOS, Show in Explorer elsewhere.</summary>
+    /// <summary>The action's words for showing a file there: Reveal in Finder on macOS, Show in Explorer
+    /// elsewhere.</summary>
     public static string Showing { get; } = OperatingSystem.IsMacOS() ? $"Reveal in {Name}" : $"Show in {Name}";
 
     /// <summary>Shows a file chosen in its folder, or a folder's contents, in the window's file manager.</summary>

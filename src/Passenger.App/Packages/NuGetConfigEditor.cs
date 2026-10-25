@@ -16,11 +16,10 @@ public sealed record FeedEdit(string Name, string Url, bool Enabled, bool AllowI
     public override string ToString() => $"{Name} ({Url})";
 }
 
-/// <summary>Changes one nuget.config as <c>dotnet nuget</c> changes it with --configfile: a feed added, edited, removed,
-/// enabled or disabled, and its credentials, in packageSources, disabledPackageSources and packageSourceCredentials.
-/// Only the elements changed are written, indented as their neighbours are; every other character of the file stays as it
-/// was (its declaration or none, comments, quotes, byte order mark, line ends and permissions). A password goes in clear
-/// text but on Windows, where NuGet encrypts it for the user, as dotnet nuget does.</summary>
+/// <summary>Changes one nuget.config: a feed added, edited, removed, enabled or disabled, and its credentials. Only the
+/// elements changed are written, indented as their neighbours are; every other character of the file stays as it was
+/// (its declaration or none, comments, quotes, byte order mark, line ends and permissions). A password goes in clear
+/// text but on Windows, where NuGet encrypts it for the user.</summary>
 public static class NuGetConfigEditor
 {
     private const string Sources = "packageSources";
@@ -143,11 +142,8 @@ public static class NuGetConfigEditor
 
     private static string Escape(string value) => SecurityElement.Escape(value);
 
-    /// <summary>Reads the file, makes the changes on its text, and writes it back as it came (its encoding, byte order mark
-    /// and line breaks), as an editor's save writes (<see cref="FileText.Save"/>): through a temporary file given the
-    /// file's permissions (a user's nuget.config is its owner's alone), through a symlink to its target (one a dotfiles
-    /// folder keeps), never over a read-only one, and to Local History with what it held. A file not there yet, or
-    /// empty, is made with NuGet's empty configuration.</summary>
+    /// <summary>Reads the file, makes the changes on its text, and writes it back as it came through
+    /// <see cref="FileText.Save"/>. A file not there yet, or empty, is made with NuGet's empty configuration.</summary>
     private static void Change(string path, Action<ConfigText> change)
     {
         FileText? file = File.Exists(path) ? FileText.Load(path) ?? throw new IOException($"{Path.GetFileName(path)} is not a text file") : null;

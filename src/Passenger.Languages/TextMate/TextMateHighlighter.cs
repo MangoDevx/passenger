@@ -13,7 +13,7 @@ namespace Passenger.Languages.TextMate;
 /// newer key ends it a little way on, the next pass going on from there.</summary>
 public sealed partial class TextMateHighlighter : IHighlighter, IBraceMatcher, IDisposable
 {
-    /// <summary>A line longer than this (minified, generated) is left plain and its state carried over, as VS Code does.</summary>
+    /// <summary>A line longer than this (minified, generated) is left plain and its state carried over.</summary>
     private const int LongestLine = 20_000;
 
     /// <summary>Lines read under one hold of the grammar's lock, between looks at whether the text has moved on.</summary>
@@ -57,7 +57,7 @@ public sealed partial class TextMateHighlighter : IHighlighter, IBraceMatcher, I
         Grammar.For(language) is { } grammar ? new TextMateHighlighter(document, grammar) : null;
 
     /// <summary>What colouring this file has cost off the UI thread: the lines the grammar read, the passes, and the time
-    /// they took, for a test to count what a key costs.</summary>
+    /// they took.</summary>
     public (long Lines, int Passes, TimeSpan Time) Worked =>
         (Interlocked.Read(ref linesRead), Volatile.Read(ref passes), Stopwatch.GetElapsedTime(0, Interlocked.Read(ref workTicks)));
 

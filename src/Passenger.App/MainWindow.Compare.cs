@@ -7,8 +7,8 @@ using Passenger.Text;
 
 namespace Passenger.App;
 
-/// <summary>The Explorer's Compare, as Rider's Tools menu has it: Compare Files on two files chosen together, Compare
-/// With... on one and a file the person picks, each in the diff window.</summary>
+/// <summary>The Explorer's Compare: Compare Files on two files chosen together, Compare With... on one and a file the
+/// person picks, each in the diff window.</summary>
 public partial class MainWindow
 {
     /// <summary>The two files chosen, or the row's file and one picked: the first on the left, the other on the right.</summary>

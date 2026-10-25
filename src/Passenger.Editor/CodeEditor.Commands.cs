@@ -232,8 +232,7 @@ public sealed partial class CodeEditor
         document.BreakUndoGroup();
     }
 
-    /// <summary>Types text at every caret as if from the keyboard, the editor's typing help
-    /// included. What tests and scripted captures type through.</summary>
+    /// <summary>Types text at every caret as if from the keyboard, the editor's typing help included.</summary>
     public void Type(string typed) => Apply(TextEditing.Type(document.Snapshot, selections, typed));
 
     private int PageLines => Math.Max(1, (int)(Viewport.Height / metrics.LineHeight) - 1);
@@ -267,7 +266,7 @@ public sealed partial class CodeEditor
     }
 
     /// <summary>Up and Down go by rows, a wrapped line's included, and keep returning to the x a vertical run of moves
-    /// started from, even through shorter rows, the way every editor does.</summary>
+    /// started from, even through shorter rows.</summary>
     private void MoveVertically(int rows, bool extend)
     {
         document.BreakUndoGroup();
@@ -329,8 +328,8 @@ public sealed partial class CodeEditor
     }
 
     /// <summary>The touched lines commented or uncommented with the language's line comment, or wrapped in its block
-    /// comment where it has none; Visual Studio's separate Comment and Uncomment chords (<paramref name="add"/> given)
-    /// only ever add or only ever remove, unlike the toggle.</summary>
+    /// comment where it has none; the separate Comment and Uncomment actions (<paramref name="add"/> given) only ever
+    /// add or only ever remove, unlike the toggle.</summary>
     private EditPlan? LineComments(TextSnapshot text, bool? add) =>
         LineCommentPrefix is { } prefix ? TextEditing.ToggleLineComment(text, selections, prefix, add: add)
         : BlockComment is { } block ? TextEditing.ToggleLineComment(text, selections, block.Start, block.End, add)

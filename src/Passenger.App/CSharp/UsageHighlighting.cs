@@ -8,14 +8,14 @@ using Passenger.Text;
 
 namespace Passenger.App.CSharp;
 
-/// <summary>Rider's highlighting of the symbol at the caret: once the caret rests on it, the language server's highlights
-/// of its uses in the file (writes apart from reads), drawn in the editor and marked on its stripe. They go as soon as the
-/// caret leaves them or the text changes, so none is ever left on the wrong symbol, and come again once it rests. Highlight
-/// Usages in File asks at once and keeps them, through edits and caret moves, until Escape or the action again. Each
-/// editor of a split has its own, for the file it shows.</summary>
+/// <summary>Highlighting of the symbol at the caret: once the caret rests on it, the language server's highlights of
+/// its uses in the file (writes apart from reads), drawn in the editor and marked on its stripe. They go as soon as the
+/// caret leaves them or the text changes, so none is ever left on the wrong symbol, and come again once it rests.
+/// Highlight Usages in File asks at once and keeps them, through edits and caret moves, until Escape or the action
+/// again. Each editor of a split has its own, for the file it shows.</summary>
 public sealed class UsageHighlighting
 {
-    /// <summary>How long the caret rests before the server is asked, as Rider's daemon waits after a move.</summary>
+    /// <summary>How long the caret rests before the server is asked.</summary>
     private static readonly TimeSpan Rest = TimeSpan.FromMilliseconds(300);
 
     private readonly EditorArea editors;
@@ -112,8 +112,8 @@ public sealed class UsageHighlighting
         }
     }
 
-    /// <summary>Highlight Usages in File: the uses of the symbol at the caret, kept until Escape, the status bar saying how
-    /// many; asked again on one of them, it takes them away, as Rider's does.</summary>
+    /// <summary>Highlight Usages in File: the uses of the symbol at the caret, kept until Escape, the status bar saying
+    /// how many; asked again on one of them, it takes them away.</summary>
     private async Task HighlightInFile()
     {
         CodeEditor editor = editors.CodeEditor;

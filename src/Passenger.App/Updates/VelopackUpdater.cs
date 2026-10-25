@@ -10,11 +10,10 @@ using Velopack.Sources;
 
 namespace Passenger.App.Updates;
 
-/// <summary>Windows' update, Velopack's own, as the installer is: its UpdateManager reads the release's feed for this
-/// install's channel (<c>releases.win-x64.json</c> or <c>-arm64</c>), downloads the full package it names into
-/// <c>packages\</c> and checks its size and SHA-256 against it. As Passenger ends, Velopack starts Update.exe, which
-/// outlives Passenger to replace <c>current\</c>, runs the new version's hook and, for Restart to Update, starts it;
-/// so it is not ChildProcesses' to start.</summary>
+/// <summary>Windows' update, through Velopack as the installer is: the full package the release's feed names for this
+/// install's channel (<c>releases.win-x64.json</c> or <c>-arm64</c>), downloaded into <c>packages\</c> and checked
+/// against its size and SHA-256. As Passenger ends, Velopack's Update.exe replaces the install and, for Restart to
+/// Update, starts the new version; it outlives Passenger, so it is not ChildProcesses' to start.</summary>
 public sealed class VelopackUpdater(IVelopackLocator locator) : Updater
 {
     private UpdateManager? manager;

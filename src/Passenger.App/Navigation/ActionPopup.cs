@@ -9,8 +9,8 @@ using Avalonia.Threading;
 
 namespace Passenger.App.Navigation;
 
-/// <summary>Rider's Find Action: every action by name, the recently run ones first, narrowed as words are typed, each
-/// with its group and shortcut and greyed where it cannot run; Enter or a double-click runs the chosen one, Escape gives
+/// <summary>Find Action: every action by name, the recently run ones first, narrowed as words are typed, each with its
+/// group and shortcut and greyed where it cannot run; Enter or a double-click runs the chosen one, Escape gives
 /// up.</summary>
 public sealed class ActionPopup : UserControl
 {
@@ -78,7 +78,6 @@ public sealed class ActionPopup : UserControl
         IReadOnlyList<IdeAction> found = actions.Find(Query);
         if (Query.Trim().Length == 0)
         {
-            // Before anything is typed, what was run last comes first, as Rider lists it.
             found = [.. recent.Select(id => found.FirstOrDefault(a => a.Id == id)).OfType<IdeAction>(), .. found.Where(a => !recent.Contains(a.Id))];
         }
         results.ItemsSource = found;
@@ -117,7 +116,7 @@ public sealed class ActionPopup : UserControl
         TextBlock title = new() { Text = action.Title, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
         if (!action.CanRun(context))
         {
-            // Listed, so it can be found, but greyed as Rider greys an action that cannot run where it is asked for.
+            // Listed, so it can be found, but greyed: it cannot run here.
             title.Bind(TextBlock.ForegroundProperty, title.GetResourceObservable("Passenger.TextMuted"));
         }
         TextBlock group = new() { Text = action.Group, FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0) };

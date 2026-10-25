@@ -7,17 +7,15 @@ using Passenger.Text;
 namespace Passenger.Languages.CSharp;
 
 /// <summary>Colours a C# document as it is typed, and is the one parse of it that everything else reading its syntax
-/// shares (<see cref="Current"/>, <see cref="Parsed"/>). Roslyn reads the document's own snapshots, told the
-/// range each edit changed, so each parse is incremental and runs on a worker thread. Nothing is classified ahead:
-/// the editor asks for the lines it draws, and they are classified from the newest tree there and
-/// then (Roslyn's trees are immutable and safe to read from any thread), each line's colours kept while that tree stands.
-/// Edits made since that tree was parsed are mapped back to find the tree's text and forward again to place its colours,
-/// so a word being typed keeps its colour and typing never flashes plain. A keystroke costs the lines it changed until the
-/// parse lands, then the lines on screen, whatever the size of the file.</summary>
+/// shares (<see cref="Current"/>, <see cref="Parsed"/>). Roslyn reads the document's own snapshots, told the range each
+/// edit changed, so each parse is incremental and runs on a worker thread. The editor asks for the lines it draws,
+/// which are classified from the newest tree (immutable, so safe to read from any thread) and kept while that tree
+/// stands; a parse classifies the lines last asked for on its worker. Edits made since that tree was parsed are mapped
+/// back to find the tree's text and forward again to place its colours, so a word being typed keeps its colour and
+/// typing never flashes plain. A key costs the UI thread the lines it changed, whatever the size of the file.</summary>
 public sealed class CSharpHighlighter : IHighlighter, IBraceMatcher, IFoldFinder, IDisposable
 {
-    /// <summary>The symbols a Debug build defines, so <c>#if DEBUG</c> code is coloured as code until
-    /// the project system says which configuration is active.</summary>
+    /// <summary>The symbols a Debug build defines, so <c>#if DEBUG</c> code is coloured as code.</summary>
     private static readonly CSharpParseOptions Options = new(LanguageVersion.Preview, DocumentationMode.Parse, preprocessorSymbols: ["DEBUG", "TRACE", "NET", "NETCOREAPP"]);
 
     private readonly TextDocument document;
@@ -84,15 +82,14 @@ public sealed class CSharpHighlighter : IHighlighter, IBraceMatcher, IFoldFinder
     public event EventHandler? FoldsChanged;
 
     /// <summary>What the parses of this file allocated on their worker, its folds and the lines on screen classified ahead
-    /// included, and how many there were: what typing costs off the UI thread, for a test to count rather than time.</summary>
+    /// included, and how many there were: what typing costs off the UI thread.</summary>
     public (long Bytes, int Parses) Worked => (Interlocked.Read(ref parseBytes), Volatile.Read(ref parses));
 
     /// <summary>A parse of the text as it stands landed: its syntax, for work on it off the UI thread. Raised on the UI
     /// thread, once typing has paused long enough for a parse to catch up with it.</summary>
     public event EventHandler<ParsedText>? Parsed;
 
-    /// <summary>The syntax of the text as it stands, for whatever else reads it (live templates' scopes, postfix
-    /// templates, Extend Selection, the tests a file declares, inline values): the newest parse, carried through the
+    /// <summary>The syntax of the text as it stands, for whatever else reads it: the newest parse, carried through the
     /// edits made since by Roslyn's incremental parse, which reads again only around them, so nothing parses the whole
     /// file on the UI thread. Made once for each version of the text, on the UI thread, where the text changes.</summary>
     public ParsedText Current
@@ -153,8 +150,7 @@ public sealed class CSharpHighlighter : IHighlighter, IBraceMatcher, IFoldFinder
             to = CarriedSpans.Back(sinceTree[i].Edits, to, toEnd: true);
         }
         SyntaxNode root = tree!.GetRoot();
-        // One character to the left, so a word being typed at its end is found and its colour
-        // carried over the new letters.
+        // One character to the left, so a word being typed at its end is found and its colour carried over the new letters.
         from = sinceTree.Count > 0 ? from - 1 : from;
         TextSpan range = TextSpan.FromBounds(Math.Clamp(from, 0, root.FullSpan.End), Math.Clamp(to, 0, root.FullSpan.End));
         List<SyntaxSpan> spans = CSharpClassifier.Classify(root, range);
@@ -313,7 +309,7 @@ public sealed class CSharpHighlighter : IHighlighter, IBraceMatcher, IFoldFinder
     }
 
     /// <summary>How many characters the editor's asks have had classified from the tree on the UI thread: what drawing the
-    /// lines on screen costs a key, for a test to count rather than time.</summary>
+    /// lines on screen costs a key.</summary>
     public long CharactersClassified => Interlocked.Read(ref classified);
 
     /// <summary>A bracket and its pair (<see cref="BracePairs"/>), read from <see cref="Current"/> once the first parse has
@@ -358,9 +354,7 @@ public sealed class CSharpHighlighter : IHighlighter, IBraceMatcher, IFoldFinder
         {
             long allocated = GC.GetAllocatedBytesForCurrentThread();
             SyntaxTree parsed = previous is null ? CSharpSyntaxTree.ParseText(parsedText, Options) : previous.WithChangedText(parsedText);
-            // Classifying the lines on screen here builds the tree's nodes there (Roslyn makes them on
-            // first touch, and a list of thousands of members makes arrays of thousands), and its colours
-            // are the screen's once the parse lands, so the UI thread classifies them no more.
+            // The screen's lines classified here build the tree's nodes off the UI thread, which classifies them no more.
             Dictionary<int, (int Length, SyntaxSpan[] Spans)> read = Read(parsed.GetRoot(), parsedText.Snapshot, warm);
             FoldRegions folds = FoldRegions.Of(new ParsedText(parsed, parsedText.Snapshot), previous is null ? null : previousFolds);
             Interlocked.Add(ref parseBytes, GC.GetAllocatedBytesForCurrentThread() - allocated);

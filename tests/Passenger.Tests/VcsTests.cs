@@ -13,11 +13,11 @@ using Passenger.Text;
 
 namespace Passenger.Tests;
 
-/// <summary>Git as Rider shows it, over a real working tree: an edit grows a change bar (blank lines at the end too, and a
-/// large rewrite's off the window's thread), which a rename keeps and a commit clears; Rollback Lines and Rollback put
-/// changes back; a branch made from the toolbar is checked out, and going back reloads the open file; Commit, Stash and
-/// Unstash run one at a time, a drop asked first and the log leaving the stash out; a status older than a commit never
-/// lands after it, nor lists a save's temporary file, and the last commit's texts are read again only when HEAD moves.</summary>
+/// <summary>Git over a real working tree: an edit grows a change bar (blank lines at the end too, and a large rewrite's
+/// off the window's thread), which a rename keeps and a commit clears; Rollback Lines and Rollback put changes back; a
+/// branch made from the toolbar is checked out, and going back reloads the open file; Commit, Stash and Unstash run one
+/// at a time, a drop asked first and the log leaving the stash out; a status older than a commit never lands after it,
+/// nor lists a save's temporary file, and the last commit's texts are read again only when HEAD moves.</summary>
 public sealed class VcsTests : IDisposable
 {
     private const string Original = "class Shop\n{\n    int count;\n\n    void Add() { count++; }\n}\n";
@@ -32,9 +32,9 @@ public sealed class VcsTests : IDisposable
 
     public void Dispose() => TestFolders.Delete(folder);
 
-    /// <summary>Git's commands start off the window's thread (#233: a fork cost a large process ~40 ms, which every git
-    /// command the window asked for paid there): the working tree's status and branch as it opens, an edit's bars, a commit
-    /// and the log start none of theirs on it.</summary>
+    /// <summary>Git's commands start off the window's thread, since a fork costs a large process tens of milliseconds: the
+    /// working tree's status and branch as it opens, an edit's bars, a commit and the log start none of theirs on
+    /// it.</summary>
     [AvaloniaFact]
     public void The_git_commands_the_window_asks_for_start_off_its_thread()
     {
@@ -108,7 +108,6 @@ public sealed class VcsTests : IDisposable
         Ui.Landed(() => Git("log", "-1", "--format=%s").Trim() == "Count with a long",
             $"Committing from the message's own key: the log's last commit is '{Git("log", "-1", "--format=%s").Trim()}' and the message reads '{commit.Message}'");
 
-        // Committed: saved first, in the log, the bars gone and nothing left to commit.
         Assert.Contains("long int count;", File.ReadAllText(Path.Combine(folder, "Shop.cs")), StringComparison.Ordinal);
         Ui.Landed(() => Marks(window).Count == 0 && window.Vcs.Changes.Count == 0, "the bars and the changes cleared");
         Assert.Empty(commit.Rows);
@@ -145,7 +144,6 @@ public sealed class VcsTests : IDisposable
         Ui.Landed(() => Marks(window).Count == 2, "two change bars");
         Assert.Contains(Marks(window), m => m.Kind == ChangeMarkKind.Added && m.Line == 4 && m.Count == 1);
 
-        // The added line goes; the other change stays.
         editor.GoTo(new TextPosition(4, 2));
         window.Perform(AppActions.RollbackLines);
         Ui.Landed(() => !Text(window).Contains("// added", StringComparison.Ordinal), "the added line gone");
@@ -170,7 +168,6 @@ public sealed class VcsTests : IDisposable
         Ui.Landed(() => submitted.IsCompleted && window.Vcs.Branch == "feature/sale", "the new branch checked out");
         Assert.False(window.IsPopupOpen);
 
-        // A commit on the branch, then main again: the editor shows main's text without being asked.
         File.WriteAllText(Path.Combine(folder, "Shop.cs"), Original.Replace("count++", "count += 2", StringComparison.Ordinal));
         Git("commit", "-q", "-am", "Twice");
         window.Vcs.ReloadOpenFiles();
@@ -184,9 +181,8 @@ public sealed class VcsTests : IDisposable
         window.Close();
     }
 
-    /// <summary>A save writes the new text beside the file and moves it over the file. Git reading the folder in that
-    /// moment (a read under way as Save is pressed) listed the temporary file as a new one in place of the file saved, and
-    /// Rollback of what the Commit window listed deleted it and left the saved edit, as on the Windows runner.</summary>
+    /// <summary>A save writes the new text beside the file and moves it over the file: Git reading the folder in that moment
+    /// (a read under way as Save is pressed) lists the file saved as changed, never the temporary file.</summary>
     [AvaloniaFact]
     public void A_file_saved_as_git_reads_the_folder_is_listed_as_changed_and_its_saves_temporary_file_never_is()
     {
@@ -278,7 +274,6 @@ public sealed class VcsTests : IDisposable
         _ = window.Vcs.RefreshAsync();
         Ui.Landed(() => window.Vcs.Changes.Count == 1, "Shop.cs listed as changed");
 
-        // From the Commit window, as a double-click on the file does.
         Task<DiffWindow?> opening = window.ShowDiffAsync(window.Vcs.Changes[0].Path);
         Ui.Landed(() => opening.IsCompleted, "the diff open");
         DiffWindow diff = opening.Result!;
@@ -290,7 +285,6 @@ public sealed class VcsTests : IDisposable
         // Below the added line, the left side stands one line higher.
         Assert.Equal(5, view.MapLine(6, toLeft: true));
 
-        // The arrow on the added line takes it out of the open file; the file is then unsaved.
         view.Revert(view.Hunks[1]);
         Ui.Settle();
         Assert.DoesNotContain("int total;", Text(window), StringComparison.Ordinal);
@@ -338,9 +332,8 @@ public sealed class VcsTests : IDisposable
         window.Close();
     }
 
-    /// <summary>The diff's side of the open file took the file's colours as the diff opened and kept them: opened before
-    /// the language server answered, never the server's; opened before the server started again, the gone server's, which
-    /// no longer follow the text, so a word typed before them left them on the wrong words.</summary>
+    /// <summary>The diff's side of the open file takes the file's colours as they change: opened before the language server
+    /// answered, the server's once it does; and once the server starts again, the new one's, which follow the text.</summary>
     [AvaloniaFact]
     public void A_diff_opened_before_the_language_server_answers_takes_its_colours_and_a_new_servers_when_it_starts_again()
     {
@@ -365,7 +358,6 @@ public sealed class VcsTests : IDisposable
         Assert.True(Field(right.Highlighter, right.Document.Snapshot, use),
             "The diff opened before the language server answered never took its colours: the field it colours in the editor is plain in the diff");
 
-        // The server ends and another starts: a word typed before the field in the diff moves it, its colour with it.
         int ended = window.CSharpService!.Session!.Server.ProcessId;
         Process.GetProcessById(ended).Kill();
         Ui.WaitFor(() => window.CSharpService.Session is { IsLoaded: true } session && session.Server.ProcessId != ended, "the language server started again");
@@ -404,7 +396,6 @@ public sealed class VcsTests : IDisposable
         Ui.Landed(() => opening.IsCompleted, "the diff open");
         DiffWindow diff = opening.Result!;
 
-        // The file's tab closes under the diff, whose right side still edits the file.
         window.Perform(AppActions.CloseTab);
         Ui.Settle();
         Assert.Null(window.EditorArea.Active);
@@ -415,7 +406,6 @@ public sealed class VcsTests : IDisposable
         Ui.Settle();
         Assert.Contains("    public void Add()", right.Document.Snapshot.ToString(), StringComparison.Ordinal);
 
-        // Save All writes it, as every changed file; edited again, closing the diff writes it, and the file closes.
         window.Perform(AppActions.SaveAll);
         Assert.Contains("    public void Add()", File.ReadAllText(shop), StringComparison.Ordinal);
         right.GoTo(new TextPosition(2, 4));
@@ -468,8 +458,7 @@ public sealed class VcsTests : IDisposable
         VcsController vcs = window.Vcs;
         Ui.Landed(() => Marks(window).Count == 1667, "a bar for each line generated anew");
 
-        // Typed in, the file is compared again with the last commit off the window's thread, in the memory a few copies of
-        // its 1 MB of text take: keeping every step of the comparison took over 100 MB.
+        // Typed in, the file is compared again with the last commit off the window's thread, in a few copies' memory.
         editor.GoTo(new TextPosition(0, 4));
         window.KeyTextInput("const ");
         Ui.Landed(() => Marks(window).Count == 1668, "a bar for the first line typed in");
@@ -479,8 +468,7 @@ public sealed class VcsTests : IDisposable
         Assert.Equal([new ChangeMark(0, 1, ChangeMarkKind.Modified), new ChangeMark(5, 1, ChangeMarkKind.Modified), new ChangeMark(8, 1, ChangeMarkKind.Modified)], Marks(window).Take(3));
         Assert.True(vcs.LargestComparison < 16_000_000, $"Comparing the file with the last commit took {vcs.LargestComparison / 1e6:F0} MB");
 
-        // A click on a bar, not on the scrollbar's marks at its height, opens what the line was there and then, from the
-        // comparison its bars came from: the window's thread compares nothing again.
+        // A click on a bar opens what the lines were from the comparison its bars came from: nothing is compared again.
         int comparisons = vcs.Comparisons;
         Ui.Settle();
         Avalonia.Point at = editor.TranslatePoint(editor.GutterColumnPoint(GutterColumn.Changes, 8), window)!.Value;
@@ -494,7 +482,6 @@ public sealed class VcsTests : IDisposable
         Assert.True(clicked < 4_000_000, $"Opening the bar's popup took {clicked / 1e6:F0} MB on the window's thread");
         Assert.True(vcs.Comparisons == comparisons, $"Opening the bar's popup compared the file {vcs.Comparisons - comparisons} times again");
 
-        // Show Diff opens on those same differences.
         Ui.Click(Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(popup).OfType<Avalonia.Controls.Button>()
             .First(b => Avalonia.Controls.ToolTip.GetTip(b) as string == "Show Diff"), settle: false);
         Ui.Landed(() => window.Frontmost is DiffWindow, "the diff window");
@@ -503,7 +490,6 @@ public sealed class VcsTests : IDisposable
         Assert.True(vcs.Comparisons == comparisons, $"Show Diff compared the file {vcs.Comparisons - comparisons} times again");
         diff.Close();
 
-        // Rollback Lines puts the first line back at once, from the same comparison; the bars follow.
         editor.GoTo(new TextPosition(0, 0));
         window.Perform(AppActions.RollbackLines);
         Assert.StartsWith("    int value0 = 0;\n    int value1 = 1;\n", Text(window), StringComparison.Ordinal);
@@ -530,7 +516,6 @@ public sealed class VcsTests : IDisposable
         Assert.Equal([new DiffHunk(6, 0, 6, 2)], opening.Result!.View.Hunks);
         opening.Result.Close();
 
-        // Rolled back from the second of them, the file is as committed.
         editor.GoTo(new TextPosition(7, 0));
         window.Perform(AppActions.RollbackLines);
         Ui.Landed(() => Text(window) == Original, "the blank lines gone");
@@ -577,16 +562,13 @@ public sealed class VcsTests : IDisposable
         GraphRow merge = log.Rows[0];
         Assert.Equal("Merge side", merge.Commit.Subject);
         Assert.Contains("main", merge.Commit.Refs);
-        // Below the merge its two parents wait in two lanes, which join again at the first commit.
         Assert.Equal(2, merge.Below.Count(l => l is not null));
         GraphRow first = log.Rows[^1];
         Assert.Equal(2, first.Above.Count(l => l == first.Commit.Hash));
         Assert.Empty(first.Below);
 
-        // A commit's files, and what it did to one.
         CommitInfo twice = log.Rows.Select(r => r.Commit).First(c => c.Subject == "Twice");
         log.Select(twice);
-        // Read again (as after a commit elsewhere), the chosen commit stays chosen.
         Task reload = log.LoadAsync();
         Ui.Landed(() => reload.IsCompleted, "the log read again");
         Assert.Equal(twice.Hash, log.Selected?.Hash);
@@ -603,7 +585,6 @@ public sealed class VcsTests : IDisposable
         Assert.False(diff.IsEditable);
         opening.Result!.Close();
 
-        // A hash's first characters find its commit.
         log.FilterText = twice.Hash[..7];
         Ui.Settle();
         Assert.Equal(twice.Hash, Assert.Single(log.Rows).Commit.Hash);
@@ -652,17 +633,14 @@ public sealed class VcsTests : IDisposable
         Assert.NotNull(shop.GutterAnnotations[4]);
         Assert.True(window.EditorArea.CodeEditor.IsInAnnotationColumn(new Point(4, 4)));
 
-        // A typed line is not committed yet, once the blame is read again.
         window.EditorArea.CodeEditor.ApplyEdits([new TextEdit(0, 0, "// new\n")]);
         Ui.Landed(() => window.Vcs.BlameOf(shop) is { Count: > 0 } now && !now[0].IsCommitted, "the typed line blamed");
         Assert.Equal("Not committed yet", shop.GutterAnnotations[0]);
 
-        // A click on a line's annotation chooses its commit in the Git window.
         CodeEditor editor = window.EditorArea.CodeEditor;
         Ui.Click(editor, new Point(10, (5 * editor.LineHeight) + (editor.LineHeight / 2) - editor.ScrollOffset.Y), settle: false);
         Ui.Landed(() => window.GitLog.Selected?.Hash == twice, "the commit chosen in the log");
 
-        // Closing them takes the column away.
         Task closing = window.ToggleAnnotationsAsync(shop);
         Ui.Landed(() => closing.IsCompleted, "the annotations closed");
         Assert.Empty(shop.GutterAnnotations);
@@ -686,7 +664,6 @@ public sealed class VcsTests : IDisposable
         Passenger.Core.ChildProcesses.Ended += counted;
         try
         {
-            // On, off, on, off and on again: a blame each time they open.
             for (int i = 0; i < 5; i++)
             {
                 Task toggled = window.ToggleAnnotationsAsync(shop);
@@ -695,7 +672,6 @@ public sealed class VcsTests : IDisposable
             Ui.WaitFor(() => Volatile.Read(ref blames) == 3, "a blame for each of the three openings");
             Assert.NotEmpty(shop.GutterAnnotations);
 
-            // Two edits before typing pauses: one blame, not one for every time the annotations were opened.
             window.EditorArea.CodeEditor.ApplyEdits([new TextEdit(0, 0, "// one\n")]);
             window.EditorArea.CodeEditor.ApplyEdits([new TextEdit(0, 0, "// two\n")]);
             Ui.Landed(() => shop.GutterAnnotations is ["Not committed yet", ..], "the typed lines blamed");
@@ -724,7 +700,6 @@ public sealed class VcsTests : IDisposable
         Assert.Empty(shop.GutterAnnotations);
         Assert.Null(window.Vcs.BlameOf(shop));
 
-        // Nor does typing bring them back.
         window.EditorArea.CodeEditor.ApplyEdits([new TextEdit(0, 0, "// new\n")]);
         Ui.Hold(TimeSpan.FromSeconds(1), "past the pause after typing, which would blame the file were the annotations open");
         Ui.Settle();
@@ -786,7 +761,6 @@ public sealed class VcsTests : IDisposable
         string notes = Path.Combine(folder, "Notes.txt");
         File.WriteAllText(notes, "a new file\n");
 
-        // Stash Changes saves what is open, then puts it and the new file away under the message.
         NamePopup stash = window.ShowStash()!;
         Ui.Settle();
         stash.Text = "Half-done count";
@@ -797,7 +771,6 @@ public sealed class VcsTests : IDisposable
         Assert.False(window.EditorArea.Active!.IsModified);
         Assert.Contains("Half-done count", Git("stash", "list"), StringComparison.Ordinal);
 
-        // Unstash Changes lists it; Pop puts both back and drops it.
         Task<UnstashPopup?> showing = window.ShowUnstashAsync();
         Ui.Landed(() => showing.IsCompleted, "the stashes");
         UnstashPopup unstash = showing.Result!;
@@ -841,7 +814,6 @@ public sealed class VcsTests : IDisposable
         Assert.Empty(asked);
         Assert.True(window.IsPopupOpen, "Backspace closed Unstash Changes");
 
-        // Delete asks first, naming the chosen stash; a no keeps it, and the popup on it.
         Ui.Press(window, "DELETE");
         Ui.Landed(() => !window.Vcs.IsBusy, "the end of whatever Delete began");
         Assert.Equal(2, Stashes().Length);
@@ -849,7 +821,6 @@ public sealed class VcsTests : IDisposable
         Assert.True(question.Contains("stash@{0}", StringComparison.Ordinal) && question.Contains("Newer", StringComparison.Ordinal), $"Drop asked \"{question}\"");
         Assert.True(window.IsPopupOpen, "Answering no to the drop closed Unstash Changes");
 
-        // A yes drops it; pressed again while that runs, nothing more is asked or dropped, the buttons off meanwhile.
         agree = true;
         Avalonia.Controls.Button[] buttons = [.. Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(unstash).OfType<Avalonia.Controls.Button>()];
         Assert.Equal("Drop Apply Pop", string.Join(' ', buttons.Select(b => b.Content)));
@@ -889,7 +860,6 @@ public sealed class VcsTests : IDisposable
         Ui.Landed(() => stashing.IsCompleted, "the stash made");
         Assert.Single(Stashes());
 
-        // Read again, as after any commit, the log lists what it did.
         Task reading = log.LoadAsync();
         Ui.Landed(() => reading.IsCompleted, "the log read again");
         Assert.True(Listed(log) == before, $"After one stash the log lists\n{Listed(log)}\nwhere it listed\n{before}");
@@ -934,7 +904,6 @@ public sealed class VcsTests : IDisposable
         MainWindow window = Open();
         Assert.Equal("main", window.Vcs.Branch);
 
-        // The Commit window's Add to .gitignore: the file leaves the changes.
         window.Perform(AppActions.ShowCommit);
         Avalonia.Controls.ListBox changes = Find(window.CommitView, window.CommitView.Rows);
         Ui.Landed(() => window.CommitView.Rows.OfType<CommitRow>().Any(r => r.Change.Name == "notes.txt"), "the unversioned file listed");
@@ -943,7 +912,6 @@ public sealed class VcsTests : IDisposable
         Assert.Equal("notes.txt\n", File.ReadAllText(Path.Combine(folder, ".gitignore")));
         Ui.Landed(() => window.Vcs.Changes.All(c => c.Name != "notes.txt"), "the ignored file gone from the changes");
 
-        // The log's Revert Commit undoes "Twice" with a commit of its own, and the open file follows.
         window.Perform(AppActions.ShowGit);
         GitLogView log = window.GitLog;
         Ui.Landed(() => log.Rows.Any(r => r.Commit.Subject == "Twice"), "the log");
@@ -955,7 +923,6 @@ public sealed class VcsTests : IDisposable
         // Git reads what the revert did (slower on Windows) before it takes another change; one asked for meanwhile is refused.
         Ui.Landed(() => !window.Vcs.IsBusy, "the revert's end");
 
-        // Copy Revision Number and New Branch from the first commit.
         Ui.Landed(() => log.Rows.Any(r => r.Commit.Subject == "First"), "the first commit in the log");
         Passenger.App.Vcs.CommitInfo first = log.Rows.First(r => r.Commit.Subject == "First").Commit;
         log.Select(first);
@@ -991,7 +958,6 @@ public sealed class VcsTests : IDisposable
         window.KeyTextInput("sealed ");
         Assert.Equal("main", window.Vcs.Branch);
 
-        // The unsaved edit to Notes.cs is saved and goes along; Shop.cs, open, takes the other branch's text.
         Task<VcsOutcome> checkout = window.Vcs.CheckoutAsync("other");
         Ui.Landed(() => checkout.IsCompleted, "the checkout done");
         Assert.True(checkout.Result.Succeeded, checkout.Result.Message);
@@ -1000,7 +966,6 @@ public sealed class VcsTests : IDisposable
         Ui.Landed(() => Text(window).Contains("count += 5", StringComparison.Ordinal), "the other branch's text");
         Assert.False(window.EditorArea.Active!.IsModified);
 
-        // Rolled back with unsaved edits on top of saved ones: the editor and the disk are both at HEAD.
         window.EditorArea.CodeEditor.Selections = SelectionSet.Single(0);
         window.KeyTextInput("// saved\n");
         window.Perform(AppActions.Save);
@@ -1098,7 +1063,6 @@ public sealed class VcsTests : IDisposable
         CommitRow a = commit.Rows.OfType<CommitRow>().First(r => r.Change.Name == "A.cs");
         changes.SelectedItem = a;
 
-        // Read again with nothing new (the window coming to the front), then with a new file: A.cs stays chosen, its row kept.
         Task again = window.Vcs.RefreshAsync();
         Ui.Landed(() => again.IsCompleted, "the status read again");
         File.WriteAllText(Path.Combine(folder, "Notes.txt"), "new\n");
@@ -1108,13 +1072,11 @@ public sealed class VcsTests : IDisposable
         Assert.Same(a, commit.Rows.OfType<CommitRow>().First(r => r.Change.Name == "A.cs"));
         Assert.Equal(["A.cs"], changes.SelectedItems!.OfType<CommitRow>().Select(r => r.Change.Name));
 
-        // Deleted meanwhile, A.cs is listed anew, and is still the file chosen.
         File.Delete(Path.Combine(folder, "A.cs"));
         Task deleted = window.Vcs.RefreshAsync();
         Ui.Landed(() => deleted.IsCompleted, "the status read with A.cs deleted");
         Assert.Equal([("A.cs", ChangeKind.Deleted)], changes.SelectedItems!.OfType<CommitRow>().Select(r => (r.Change.Name, r.Change.Kind)));
 
-        // Rollback asks naming the file it will roll back, and rolls back that one alone.
         RollbackChosen(window);
         Ui.WaitFor(() => window.OwnedWindows.OfType<ConfirmDialog>().Any(), "the Rollback Changes dialog");
         ConfirmDialog dialog = window.OwnedWindows.OfType<ConfirmDialog>().Single();
@@ -1144,9 +1106,7 @@ public sealed class VcsTests : IDisposable
         Assert.Equal(2, buttons.Length);
         Assert.All(buttons, b => Assert.True(b.IsEnabled));
 
-        // Pressed twice, as a double-click does: the buttons are off from the first press until it is done. The commit waits
-        // in its pre-commit hook until the second press is made, so it is still under way however soon git would be done:
-        // a click's own frames gave Linux's git the time to commit, read the status and leave nothing to commit.
+        // Pressed twice, as a double-click does; the pre-commit hook holds the commit until the second press is made.
         string go = Path.Combine(folder, ".git", "go");
         HoldCommits(go);
         Avalonia.Controls.Button press = buttons.First(b => b.Content is "Commit");
@@ -1170,7 +1130,6 @@ public sealed class VcsTests : IDisposable
         // Git reads what the commit did (slower on Windows) before it takes another change; one asked for meanwhile is refused.
         Ui.Landed(() => !window.Vcs.IsBusy, "the commit's end");
 
-        // Stash Changes asked twice while the first runs: one stash and no complaint, and Commit off meanwhile.
         File.AppendAllText(Path.Combine(folder, "Shop.cs"), "// stashed\n");
         commit.Message = "Not now";
         NamePopup stash = window.ShowStash()!;
@@ -1188,8 +1147,7 @@ public sealed class VcsTests : IDisposable
     [AvaloniaFact]
     public void A_commit_whose_hook_leaves_a_job_holding_gits_output_is_done_within_seconds()
     {
-        // A post-commit hook that starts something and leaves it running, as a hook's `daemon &` does: the job has the
-        // hook's output, which is git's errors, for as long as it lives (its folder elsewhere, so the test's can go).
+        // A post-commit hook that leaves a job running, as `daemon &` does, holding git's error output while it lives.
         string job = Path.Combine(folder, ".git", "job");
         string hook = Path.Combine(folder, ".git", "hooks", "post-commit");
         Directory.CreateDirectory(Path.GetDirectoryName(hook)!);
@@ -1210,7 +1168,7 @@ public sealed class VcsTests : IDisposable
         Assert.True(committed.Result, window.Status);
         Assert.Equal("More", Git("log", "-1", "--format=%s").Trim());
         Ui.Landed(() => !window.Vcs.IsBusy && window.Vcs.Changes.Count == 0, $"the commit's end, with nothing left to commit ({window.Status})");
-        // Ended with git's process group, as a child that outran its limit is; Windows' git hooks run under MSYS, whose ids are its own.
+        // Ended with git's process group; Windows' git hooks run under MSYS, whose ids are its own.
         int left = Processes.ReadId(job);
         if (!OperatingSystem.IsWindows())
         {
@@ -1250,8 +1208,7 @@ public sealed class VcsTests : IDisposable
     [AvaloniaFact]
     public void A_status_read_begun_before_a_commit_that_ends_after_it_leaves_the_commit_window_empty()
     {
-        // One git status made slow, as a large tree's is on Windows: the file system monitor hook, which git runs once it
-        // has read the index, sleeps when asked to and then says nothing is known.
+        // One git status made slow, as a large tree's is: the file system monitor hook sleeps when asked to.
         string slow = Path.Combine(folder, ".git", "slow");
         string slept = Path.Combine(folder, ".git", "slept");
         string hook = Path.Combine(folder, ".git", "slow-status.sh");
@@ -1283,8 +1240,7 @@ public sealed class VcsTests : IDisposable
         Ui.Landed(() => committed.IsCompleted, "the commit made");
         Assert.True(committed.Result, window.Status);
 
-        // The slow status ends after the commit's own: what it found before the commit never lands over it.
-        // What it found, background work until it lands, is in the Commit window once the IDE is quiet.
+        // The slow status ends after the commit's own, and what it found before the commit never lands over it.
         Ui.Landed(() => File.Exists(slept), "the slow status ended");
         Assert.True(window.Vcs.Changes.Count == 0,
             $"The Commit window lists {string.Join(", ", window.Vcs.Changes.Select(c => c.Name))} after the commit: a status read before it landed after the commit's own");
@@ -1315,13 +1271,12 @@ public sealed class VcsTests : IDisposable
         Task opened = window.Vcs.RefreshAsync();
         Ui.Landed(() => opened.IsCompleted && window.Vcs.Branch == "main", "the working tree read");
 
-        // Back from another program with five files open: the status is read again, and no file's last-commit text.
         int reads = window.Vcs.HeadReads;
         Task back = window.Vcs.RefreshAsync();
         Ui.Landed(() => back.IsCompleted, "the status read again");
         Assert.True(window.Vcs.HeadReads == reads, $"Coming back to the window read last-commit texts {window.Vcs.HeadReads - reads} times though HEAD had not moved");
 
-        // HEAD moved back a commit in a terminal: every open file's bars are against it, from one read of their texts.
+        // HEAD moved back a commit, as in a terminal.
         Git("reset", "-q", "--soft", "HEAD~1");
         Ui.WaitFor(() => Bars(window, "Shop.cs").Count > 0 && Bars(window, "Prices.cs").Count > 0, "the bars against the commit HEAD moved to");
         Assert.Equal([new ChangeMark(2, 1, ChangeMarkKind.Modified)], Bars(window, "Shop.cs"));

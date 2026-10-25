@@ -4,10 +4,10 @@ using Passenger.Tests.Debugging.Helpers;
 
 namespace Passenger.Tests.Debugging;
 
-/// <summary>A frame of an assembly that ships no symbols (CoreLib's, System.Linq's) is shown with source once its symbols are
-/// decompiled into the folder the adapter is given: written whole or not at all, so a decompile cut short (the adapter
-/// killed) or a PDB that does not load costs the next session no more than a decompile; pruned as an adapter starts. The
-/// session answering promptly while CoreLib is decompiled is <see cref="DecompiledSymbolsTimingTests"/>'.</summary>
+/// <summary>A frame of an assembly that ships no symbols (CoreLib's, System.Linq's) is shown with source once its
+/// symbols are decompiled into the folder the adapter is given: written whole or not at all, so a decompile cut short
+/// (the adapter killed) or a PDB that does not load costs the next session no more than a decompile; pruned as an
+/// adapter starts.</summary>
 [Collection(DebugSession.Collection)]
 public sealed class DecompiledSymbolsTests(ITestOutputHelper testOutputHelper) : DecompiledSymbolsSessions(testOutputHelper)
 {
@@ -106,8 +106,8 @@ public abstract class DecompiledSymbolsSessions(ITestOutputHelper testOutputHelp
     /// <summary>The test's output, which its debug sessions write to.</summary>
     protected ITestOutputHelper Output => testOutputHelper;
 
-    /// <summary>How long a request may take while CoreLib is decompiled beside it: a moment, where it waited out the whole
-    /// decompile (a minute or more) under the engine's lock.</summary>
+    /// <summary>How long a request may take while CoreLib is decompiled beside it, which takes a minute or
+    /// more.</summary>
     protected static readonly TimeSpan Promptly = TimeSpan.FromSeconds(10);
 
     /// <summary>The longest a decompile may take on a slow runner.</summary>

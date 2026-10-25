@@ -5,11 +5,11 @@ using Passenger.Text;
 
 namespace Passenger.Editor;
 
-/// <summary>Soft wrap, as IntelliJ's: a line wider than the view goes on in rows below, broken after a space (or a comma or
-/// semicolon, else before a dot or a bracket, else at the edge), its later rows from its own indent. <see cref="Rows"/> maps
-/// lines to rows and back with the folds; a line's wraps come from its graphemes' widths, and after an edit only the lines
-/// it touched are wrapped again. A caret where a row wraps stands at the next row's start, or at the end of the row before
-/// (after End, a step right onto it, a click past the row's end, typing), as IntelliJ's does.</summary>
+/// <summary>Soft wrap: a line wider than the view goes on in rows below, broken after a space (or a comma or semicolon,
+/// else before a dot or a bracket, else at the edge), its later rows from its own indent. <see cref="Rows"/> maps lines
+/// to rows and back with the folds; a line's wraps come from its graphemes' widths, and after an edit only the lines it
+/// touched are wrapped again. A caret where a row wraps stands at the next row's start, or at the end of the row before
+/// (after End, a step right onto it, a click past the row's end, typing).</summary>
 public sealed partial class CodeEditor
 {
     private bool softWrap;
@@ -28,12 +28,11 @@ public sealed partial class CodeEditor
     /// <summary>What the next <see cref="SetSelections"/> leaves in <see cref="wrapLeaning"/>.</summary>
     private HashSet<int>? nextWrapLeaning;
 
-    /// <summary>How many characters the editor has read to work out where lines wrap: what a key costs to wrap, for a test to
-    /// count rather than time.</summary>
+    /// <summary>How many characters the editor has read to work out where lines wrap: what a key costs to wrap.</summary>
     public long CharactersWrapped { get; private set; }
 
-    /// <summary>Whether lines wider than the view wrap onto rows below (Rider's View, Active Editor, Soft-Wrap). On, nothing
-    /// scrolls sideways; the line at the top of the view stays there as it turns on or off.</summary>
+    /// <summary>Whether lines wider than the view wrap onto rows below (Soft-Wrap). On, nothing scrolls sideways; the
+    /// line at the top of the view stays there as it turns on or off.</summary>
     public bool SoftWrap
     {
         get => softWrap;
@@ -55,8 +54,7 @@ public sealed partial class CodeEditor
         }
     }
 
-    /// <summary>Whether a wrapped line's rows after its first start where its text does (Rider's "Use the original line's
-    /// indent for wrapped fragments"), or at the left edge.</summary>
+    /// <summary>Whether a wrapped line's rows after its first start where its text does, or at the left edge.</summary>
     public bool WrapIndent
     {
         get => wrapIndent;
@@ -252,7 +250,7 @@ public sealed partial class CodeEditor
         return at;
     }
 
-    /// <summary>Home, as IntelliJ's on a wrapped line: on a row after the first, to the row's start, and from there to the row
+    /// <summary>Home on a wrapped line: on a row after the first, to the row's start, and from there to the row
     /// before's; on the first row, to the text and then to the line's start, as without wraps.</summary>
     private void MoveToRowStart(bool extend)
     {
@@ -282,8 +280,8 @@ public sealed partial class CodeEditor
         }), reveal: true);
     }
 
-    /// <summary>End, as IntelliJ's on a wrapped line: to the end of the caret's row, before the wrap, and from there to the
-    /// end of the next row; on a line's last row, to the line's end.</summary>
+    /// <summary>End on a wrapped line: to the end of the caret's row, before the wrap, and from there to the end of the
+    /// next row; on a line's last row, to the line's end.</summary>
     private void MoveToRowEnd(bool extend)
     {
         TextSnapshot text = document.Snapshot;
@@ -333,8 +331,7 @@ public sealed partial class CodeEditor
         }
     }
 
-    /// <summary>Changes what the rows are made of, keeping the offset at the view's top on the row at the top, as IntelliJ
-    /// keeps the view when its soft wraps change.</summary>
+    /// <summary>Changes what the rows are made of, keeping the offset at the view's top on the row at the top.</summary>
     private void KeepTopLine(Action change)
     {
         if (Bounds.Height <= 0 || rowMap is not { } before || !ReferenceEquals(before.Folds.Text, document.Snapshot))

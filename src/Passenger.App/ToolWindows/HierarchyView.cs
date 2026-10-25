@@ -35,7 +35,7 @@ public sealed class HierarchyRow(HierarchyNode node, int depth) : Observable
     }
 }
 
-/// <summary>Rider's Hierarchy window, for calls (Ctrl+Alt+H) and types (Ctrl+E, H): the symbol at the top, and under it
+/// <summary>The Hierarchy window, for calls (Ctrl+Alt+H) and types (Ctrl+E, H): the symbol at the top, and under it
 /// a tree going one way, callers or callees, supertypes or subtypes, each level asked of the language server as it is
 /// opened. The toggles switch the direction; Enter or a double-click goes to a row, Right and Left open and close.</summary>
 public sealed class HierarchyView : DockPanel
@@ -94,7 +94,7 @@ public sealed class HierarchyView : DockPanel
     public Task ShowAsync(string heading, HierarchyNode top, HierarchyDirection one, HierarchyDirection other)
     {
         title.Text = heading;
-        // Narrowed beside the toggles it ends in an ellipsis, as a header of Rider's does; the whole heading is its tip.
+        // Narrowed beside the toggles it ends in an ellipsis; the whole heading is its tip.
         ToolTip.SetTip(title, heading);
         root = top;
         directions = (one, other);
@@ -244,6 +244,6 @@ public sealed class HierarchyView : DockPanel
         };
     }
 
-    // As wide as its words: an option toggle is otherwise an icon's square, which cut "Supertypes" to "S".
+    // As wide as its words: an option toggle is otherwise an icon's square.
     private static ToggleButton Toggle() => new() { Classes = { "option" }, FontSize = 12, Width = double.NaN, Padding = new Thickness(8, 2) };
 }

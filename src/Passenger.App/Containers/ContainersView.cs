@@ -22,10 +22,9 @@ public sealed record ContainersParts(Func<ContainerEngine> Engine, ActionWork Wo
 /// <summary>The Containers window: the engine's Compose projects with their services and containers (stopped ones still
 /// listed), then every other container (Testcontainers' apart), images, volumes and networks, each row with its state,
 /// health, ports (links) and image; and the chosen container's Log, Stats, Files and Details (a service's its container's),
-/// or a project's or an AppHost's merged Log and Stats; and for a container run that collects them, its Telemetry (the Telemetry view, its
-/// logs and traces, a service's or container's own).
-/// It asks the engine only while shown: its lists once, then again as the engine's events say something changed; a
-/// container's log and stats stream only while their tab is shown. Its toolbar's buttons run the window's actions.</summary>
+/// or a project's or an AppHost's merged Log and Stats; and for a container run that collects them, its Telemetry. It asks
+/// the engine only while shown: its lists once, then again as the engine's events say something changed; a container's
+/// log and stats stream only while their tab is shown. Its toolbar's buttons run the window's actions.</summary>
 public sealed class ContainersView : DockPanel
 {
     // The tabs' names are those every list of a run's services has, in its order (RunWindows.Tabs).
@@ -70,7 +69,7 @@ public sealed class ContainersView : DockPanel
         Telemetry.ShownChanged += (_, _) => ShowChosen();
 
         StackPanel tools = new() { Orientation = Orientation.Horizontal, Spacing = 2, Margin = new Thickness(6, 0), VerticalAlignment = VerticalAlignment.Center };
-        // Its Refresh, then the service actions as every list of a run's services groups them, then a container's own.
+        // Its Refresh, then the service actions, then a container's own.
         foreach ((string action, string icon) in (ReadOnlySpan<(string, string)>)[
             (AppActions.ContainersRefresh, "Icon.Rerun"),
             .. RunWindows.ServiceActions,
@@ -106,8 +105,7 @@ public sealed class ContainersView : DockPanel
             }
         };
         RunRows.Toggles(list, () => Chosen is { Expands: true }, () => Toggle(Chosen));
-        // In the order every list of a run's services gives a row's menu: the service actions first, for a service's or a
-        // container's row (greyed with why where it is no .NET service of the run under way), then the row's own.
+        // The service actions first (greyed with why where it is no .NET service of the run under way), then the row's own.
         ListMenus.Attach(list, () => Chosen is not { Kind: not ContainerRowKind.Group } ? [] :
         [
             .. Chosen is { Kind: ContainerRowKind.Service or ContainerRowKind.Container }
@@ -310,7 +308,7 @@ public sealed class ContainersView : DockPanel
         }
     }
 
-    /// <summary>Shows a detail tab, as its tab's click does.</summary>
+    /// <summary>Shows a detail tab.</summary>
     public void ShowTab(string name)
     {
         shownTab = name;
@@ -323,8 +321,7 @@ public sealed class ContainersView : DockPanel
         shown = true;
         following ??= parts.Engine().Follow(told =>
         {
-            // What the window's own tabs do (exec for Files, attach and copy) changes nothing it lists, and would read again for ever;
-            // the engine stopping or coming back changes all of it.
+            // Its own tabs' exec, attach and copy change nothing listed, and would read again for ever.
             if (told.Type is "container" or "network" or "volume" or "image" or ContainerEngine.EngineEvent && !Quiet(told.Action))
             {
                 UiThread.Post(() =>
@@ -443,8 +440,7 @@ public sealed class ContainersView : DockPanel
                             rows.AddRange(containers.Select(c => ContainerRowOf(c, 3)));
                         }
                     }
-                    // What its run left unstarted has no container yet, so the engine lists none: said not started, as an
-                    // AppHost's resource is.
+                    // What its run left unstarted has no container yet, so the engine lists none: said not started.
                     foreach (string service in UnstartedOf?.Invoke(project.Name) ?? [])
                     {
                         if (project.Services.All(s => s.Service != service))
@@ -462,8 +458,7 @@ public sealed class ContainersView : DockPanel
             });
         }
         List<ContainerInfo> others = [.. snapshot.Containers.Where(c => !c.IsTestcontainers)];
-        // An AppHost's containers under it, as a Compose project's are under the project; any other its orchestrator made
-        // (an AppHost's not running here, a Persistent one kept) under the heading.
+        // An AppHost's containers under it; any other its orchestrator made (a Persistent one kept) under the heading.
         List<(string Key, string Name, List<ContainerInfo> Containers)> hosts = [];
         List<ContainerInfo> orchestrated = [];
         foreach (ContainerInfo container in others)
@@ -526,8 +521,7 @@ public sealed class ContainersView : DockPanel
                     new ContainerRow(kind, 1, $"{o.Kind}:{o.Id}", o.Name) { Detail = o.Detail, Object = o })));
             }
         }
-        // Rows taken out may choose nothing for a moment, which must not end the chosen row's streams; a row kept keeps its
-        // control, so a click on it lands whatever the engine said meanwhile.
+        // Rows taken out may choose nothing for a moment, which must not end the chosen row's streams.
         filling = true;
         try
         {
@@ -555,7 +549,7 @@ public sealed class ContainersView : DockPanel
 
     private const string NothingChosen = "Choose a container or a Compose project to see its log and stats";
 
-    /// <summary>How a service its run left unstarted is said, as an AppHost's resource so left is.</summary>
+    /// <summary>How a service its run left unstarted is said, in an AppHost's words.</summary>
     public const string NotStarted = Aspire.AspireAppRun.NotStarted;
 
     private static ContainerRow ContainerRowOf(ContainerInfo container, int depth) =>
@@ -672,9 +666,9 @@ public sealed class ContainersView : DockPanel
         return button;
     }
 
-    /// <summary>A row as every list of what runs draws one (<see cref="RunRows"/>): a heading with its count, a project with
-    /// its status, a service or container with its health and ports (links on the engine's machine while it runs), an
-    /// image, volume or network with what it is.</summary>
+    /// <summary>A row (<see cref="RunRows"/>): a heading with its count, a project with its status, a service or container
+    /// with its health and ports (links on the engine's machine while it runs), an image, volume or network with what it
+    /// is.</summary>
     private RunRow Row(ContainerRow row)
     {
         IReadOnlyList<ContainerInfo> containers = row.Containers;
@@ -697,8 +691,8 @@ public sealed class ContainersView : DockPanel
         };
     }
 
-    /// <summary>The state dot's, as the Aspire window's says a resource's: failed (one restarting after each crash, or ended
-    /// with an error) first, then running (unhealthy while its health check fails), paused between states, the rest stopped.</summary>
+    /// <summary>The state dot's: failed (one restarting after each crash, or ended with an error) first, then running
+    /// (unhealthy while its health check fails), paused between states, the rest stopped.</summary>
     private static RunState StateOf(IReadOnlyList<ContainerInfo> containers) =>
         containers.Any(c => c.IsFailed) ? RunState.Failed
         : containers.Any(c => c.IsRunning && c.Health == "unhealthy") ? RunState.Unhealthy

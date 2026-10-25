@@ -11,11 +11,11 @@ using Passenger.Text;
 
 namespace Passenger.App;
 
-/// <summary>The Explorer's file operations, as Rider's: New File, New Folder and New Class where a row holds things,
-/// Rename and Delete (to the Trash) for what is on disk, though a project's Delete takes it out of the solution; the
-/// solution's own folders' are in MainWindow.Solution.cs, and the actions that run them on a row in
-/// MainWindow.ExplorerActions.cs. The open tabs follow a rename and close with a delete, and the Explorer, the file index
-/// and Git are read again after.</summary>
+/// <summary>The Explorer's file operations: New File, New Folder and New Class where a row holds things, Rename and
+/// Delete (to the Trash) for what is on disk, though a project's Delete takes it out of the solution; the solution's
+/// own folders' are in MainWindow.Solution.cs, and the actions that run them on a row in MainWindow.ExplorerActions.cs.
+/// The open tabs follow a rename and close with a delete, and the Explorer, the file index and Git are read again
+/// after.</summary>
 public partial class MainWindow
 {
     private void AddFileOperations()
@@ -29,7 +29,7 @@ public partial class MainWindow
         Editors.Followed += (_, move) => session.Followed(move);
     }
 
-    /// <summary>Rider's File Nesting, over the window: its "Show files with the same names as nested" is the setting every
+    /// <summary>File Nesting, over the window: its "Show files with the same names as nested" is the setting every
     /// Solution view nests by.</summary>
     private async Task AskNestingAsync()
     {
@@ -65,11 +65,10 @@ public partial class MainWindow
         return answer.Task;
     }
 
-    /// <summary>The C# types Rider's Class/Interface makes, in the order its popup lists them (its file templates of that
-    /// group: Class, Interface, Record, Struct, Enum).</summary>
+    /// <summary>The C# types Class/Interface makes, in the order its popup lists them.</summary>
     public static IReadOnlyList<string> TypeKinds { get; } = ["Class", "Interface", "Record", "Struct", "Enum"];
 
-    /// <summary>Rider's Add, Class/Interface: a name, and the kind of type chosen under it with Up and Down.</summary>
+    /// <summary>Add, Class/Interface: a name, and the kind of type chosen under it with Up and Down.</summary>
     private void AskType(string into)
     {
         Vcs.NamePopup? popup = null;
@@ -79,7 +78,7 @@ public partial class MainWindow
         popups.Show(popup);
     }
 
-    /// <summary>The letter and colour Rider marks a kind of type with, as Go to Symbol shows it.</summary>
+    /// <summary>The letter and colour a kind of type is marked with, as Go to Symbol shows it.</summary>
     private static Avalonia.Controls.Control TypeBadge(string kind)
     {
         (string letter, string brush) = Navigation.SymbolPopup.Badge(kind switch { "Interface" => 11, "Struct" => 23, "Enum" => 10, _ => 5 });
@@ -146,13 +145,13 @@ public partial class MainWindow
     private static string NotMade(string name, Exception error) =>
         $"{name} could not be made: {(error is UnauthorizedAccessException ? "access denied" : error.Message)}";
 
-    /// <summary>Rider's New Class: a file of its name holding a class in the namespace its folder gives (the project's
-    /// name, then the folders under it).</summary>
+    /// <summary>New Class: a file of its name holding a class in the namespace its folder gives (the project's name,
+    /// then the folders under it).</summary>
     public string? CreateClass(string into, string name) => CreateType(into, name, "Class");
 
-    /// <summary>Rider's Class/Interface: a file of its name holding a type of the kind chosen (<see cref="TypeKinds"/>), as
-    /// its file template for that kind writes it, in the namespace its folder gives. Folders before the name
-    /// ("Shapes/Circle") are made and the type goes in them, where they were dropped and the type made beside them.</summary>
+    /// <summary>Class/Interface: a file of its name holding a type of the kind chosen (<see cref="TypeKinds"/>), in the
+    /// namespace its folder gives. Folders before the name ("Shapes/Circle") are made and the type goes in
+    /// them.</summary>
     public string? CreateType(string into, string name, string kind)
     {
         string[] parts = name.Trim().Split('/', '\\');
@@ -178,8 +177,8 @@ public partial class MainWindow
         return CreateFile(into, type + ".cs", $"namespace {NamespaceFor(into)};\n\n{declaration}");
     }
 
-    /// <summary>The namespace a folder's code takes: its project's root namespace (its name, "Shop.App"), then the folders
-    /// below, each name a C# identifier or dotted ones, as Rider makes them.</summary>
+    /// <summary>The namespace a folder's code takes: its project's root namespace (its name, "Shop.App"), then the
+    /// folders below, each name a C# identifier or dotted ones.</summary>
     private string NamespaceFor(string into)
     {
         string full = PathNames.Canonical(into);
@@ -196,8 +195,8 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>Rider's Rename on a row: a C# file named after a type it declares offers to rename the type too, Rider's
-    /// Rename type 'Foo' to match the new file name, checked as it was left (on until turned off).</summary>
+    /// <summary>Rename on a row: a C# file named after a type it declares offers to rename the type too (Rename type
+    /// 'Foo' to match the new file name), checked as it was left (on until turned off).</summary>
     private void AskRename(string path)
     {
         if (TypeRename.NamedAfterFile(Editors, path) is not { } type)
@@ -213,10 +212,9 @@ public partial class MainWindow
         popups.Show(popup);
     }
 
-    /// <summary>Renames a C# file and, when asked, the type it is named after, as Rider's Rename of a file does: the
-    /// language server renames the type everywhere it is used, then the file takes its new name and any other file named
-    /// after the type (a partial part's Foo.Designer.cs) the type's, all one command for Undo. Null once renamed, else why
-    /// not, in Rider's words where it has them.</summary>
+    /// <summary>Renames a C# file and, when asked, the type it is named after: the language server renames the type
+    /// everywhere it is used, then the file takes its new name and any other file named after the type (a partial
+    /// part's Foo.Designer.cs) the type's, all one command for Undo. Null once renamed, else why not.</summary>
     public async Task<string?> RenameWithTypeAsync(string path, string name, (string Name, int Offset) type, bool renameType)
     {
         string renamed = TypeRename.Stem(name);
@@ -247,7 +245,7 @@ public partial class MainWindow
             return csharp?.Unready("Renaming the type") ?? "Renaming the type needs the C# language server, which runs for a folder";
         }
         OpenDocument? open = Editors.Documents.FirstOrDefault(d => d.Path == path);
-        // A file not open is shown to the server for the question alone, as Rider renames without opening it.
+        // A file not open is shown to the server for the question alone, never opened in a tab.
         Lsp.LspDocument? shown = null;
         BackgroundWork.Begin();
         try
@@ -298,7 +296,7 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>Rider's Rename on a project: its file takes the name, its extension kept, and the solution and the projects
+    /// <summary>Rename on a project: its file takes the name, its extension kept, and the solution and the projects
     /// referencing it follow (<see cref="Rename"/>). Null once renamed, else why not.</summary>
     public string? RenameProject(string project, string name)
     {
@@ -306,10 +304,10 @@ public partial class MainWindow
         return Invalid(name) ?? Rename(project, name.EndsWith(extension, StringComparison.OrdinalIgnoreCase) ? name : name + extension);
     }
 
-    /// <summary>Renames a file or folder in place, and the files nested under a file with it, as Rider's rename of a
-    /// project item renames its dependents (Counter.razor.cs going with Counter.razor). Its open files keep their tabs,
-    /// splits and undo, saved first, its bookmarks and breakpoints go with it, and what names it follows (projects' items,
-    /// the solution, references to a project). Undo in the Solution view renames it all back, as Rider's does.</summary>
+    /// <summary>Renames a file or folder in place, and the files nested under a file with it (Counter.razor.cs going
+    /// with Counter.razor). Its open files keep their tabs, splits and undo, saved first, its bookmarks and breakpoints
+    /// go with it, and what names it follows (projects' items, the solution, references to a project). Undo in the
+    /// Solution view renames it all back.</summary>
     public string? Rename(string path, string name)
     {
         if (Invalid(name) is { } problem)
@@ -358,9 +356,9 @@ public partial class MainWindow
         FilesChanged();
     }
 
-    /// <summary>Rider's Delete on a project: it leaves the solution and its files stay. Moving its folder to the Trash is a
-    /// second question, never asked of the open folder, a folder above it, or one holding the solution or another of its
-    /// projects.</summary>
+    /// <summary>Delete on a project: it leaves the solution and its files stay. Moving its folder to the Trash is a
+    /// second question, never asked of the open folder, a folder above it, or one holding the solution or another of
+    /// its projects.</summary>
     public async Task<bool> RemoveProjectAsync(string project)
     {
         string name = Path.GetFileNameWithoutExtension(project);
@@ -473,8 +471,8 @@ public static partial class Trash
 {
     private const string ObjC = "/usr/lib/libobjc.A.dylib";
 
-    /// <summary>A folder to use as the Trash instead of the platform's (tests, which leave the person's alone). The
-    /// process's, as the system's Trash is every window's.</summary>
+    /// <summary>A folder to use as the Trash instead of the platform's. The process's, as the system's Trash is every
+    /// window's.</summary>
     public static string? Folder { get; set; }
 
     public static void Move(string path)

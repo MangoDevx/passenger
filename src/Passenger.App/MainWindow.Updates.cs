@@ -7,14 +7,15 @@ using Passenger.Editor;
 
 namespace Passenger.App;
 
-/// <summary>Rider's check for updates, and the update: the person's window asks for the latest release as it starts and
-/// once a day while Check for updates is on. A copy its installer or disk image put in place downloads a newer one in the
-/// background, saying so in the status bar, checks it, offers Restart to Update and installs it as Passenger ends; any
-/// other copy says once per version that one is out, linking this system's download. Help, Check for Updates asks when
-/// a person wants. Every answer is logged; only one a person asked for, or a download that did not land, is said.</summary>
+/// <summary>The check for updates, and the update: the person's window asks for the latest release as it starts and
+/// once a day while Check for updates is on. A copy its installer or disk image put in place downloads a newer one in
+/// the background, saying so in the status bar, checks it, offers Restart to Update and installs it as Passenger ends;
+/// any other copy says once per version that one is out, linking this system's download. Help, Check for Updates asks
+/// when a person wants. Every answer is logged; only one a person asked for, or a download that did not land, is
+/// said.</summary>
 public partial class MainWindow
 {
-    /// <summary>Rider's words when there is nothing newer.</summary>
+    /// <summary>The words when there is nothing newer.</summary>
     public const string UpToDate = "Passenger is up to date";
 
     private static readonly TimeSpan UpdateInterval = TimeSpan.FromDays(1);
@@ -39,8 +40,8 @@ public partial class MainWindow
     /// <summary>What the status bar's notice offers, which its click does.</summary>
     private UpdateNotice notice;
 
-    /// <summary>Where this window asks for the latest release: GitHub's, or the one PASSENGER_RELEASES names; a test
-    /// names a stand-in of its own, with a timeout it can wait out.</summary>
+    /// <summary>Where this window asks for the latest release: GitHub's, or the one PASSENGER_RELEASES names, unless
+    /// one is given.</summary>
     public ReleaseFeed Releases { get; init; } = ReleaseFeed.Default;
 
     /// <summary>How this copy installs a newer release, or null for one that only says it is out: every window but the
@@ -129,9 +130,9 @@ public partial class MainWindow
         WatchUpdates(settings.CheckForUpdates);
     }
 
-    /// <summary>Installs the update made ready, once the window has closed and what it started has ended (Program calls
-    /// it as the process ends, a test as its window's would): at once on macOS, by Velopack's Update.exe once this
-    /// process has gone on Windows, then starting the new version when the person chose Restart to Update.</summary>
+    /// <summary>Installs the update made ready, once the window has closed and what it started has ended, as the
+    /// process ends: at once on macOS, by Velopack's Update.exe once this process has gone on Windows, then starting
+    /// the new version when the person chose Restart to Update.</summary>
     public void InstallUpdate()
     {
         if (readyRelease is not null && SelfUpdate is { } updater)
@@ -429,8 +430,7 @@ public partial class MainWindow
     }
 
     /// <summary>The notice's click: the download (or the release's page) in the person's browser, through the system's
-    /// own launcher as a link anywhere opens (the browser is the person's, never ended with the IDE, and a test's
-    /// headless platform opens nothing); Restart to Update once the update is ready.</summary>
+    /// own launcher as a link anywhere opens; Restart to Update once the update is ready.</summary>
     private void OnUpdateClicked(object? sender, RoutedEventArgs e)
     {
         if (notice == UpdateNotice.Ready)

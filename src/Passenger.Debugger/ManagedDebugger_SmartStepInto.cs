@@ -15,13 +15,13 @@ namespace Passenger.Debugger;
 /// columns from one), when the source could be read.</summary>
 public sealed record StepInTargetInfo(int Id, string Label, int? Line, int? Column, int? EndLine, int? EndColumn);
 
-/// <summary>Rider's Smart Step Into: the calls of the statement a thread is stopped at, in the order they run, each one a
-/// step can go straight into, lambdas (whose bodies run when what they are given to calls them) and awaited async methods
+/// <summary>Smart Step Into: the calls of the statement a thread is stopped at, in the order they run, each one a step
+/// can go straight into, lambdas (whose bodies run when what they are given to calls them) and awaited async methods
 /// included. The calls are read from the method's IL between the statement's sequence points, and matched by name, in
 /// order, to the invocations, object creations and lambdas of the statement's source, which give each its place on the
-/// line. The step is a step over the statement with a breakpoint at the chosen method's first line (an async method's state
-/// machine's): it stops there when the method is entered from the statement (a lambda's, from whatever the statement
-/// called), and ends at the next line as a step over would when it never is.</summary>
+/// line. The step is a step over the statement with a breakpoint at the chosen method's first line (an async method's
+/// state machine's): it stops there when the method is entered from the statement (a lambda's, from whatever the
+/// statement called), and ends at the next line as a step over would when it never is.</summary>
 public partial class ManagedDebugger
 {
     private enum EntryKind
@@ -89,7 +89,7 @@ public partial class ManagedDebugger
         }
         int start = points[at].Offset;
         int end = last + 1 < points.Count ? points[last + 1].Offset : frame.Function.ILCode.Size;
-        // A call before the stop has run already (the one a step out returned from, mid-statement), as Rider leaves it out.
+        // A call before the stop has run already (the one a step out returned from, mid-statement): left out.
         List<ModuleMetadataReader.CallSite> calls = [.. module.MetadataReader.CallSites(token, start, end, version)
             .Where(call => call.Offset > ip || (call.Offset == ip && mapping.HasFlag(CorDebugMappingResult.MAPPING_EXACT)))];
 
@@ -174,8 +174,7 @@ public partial class ManagedDebugger
         }
         return targets;
 
-        // The statement's calls in post-order (what an invocation's receiver and arguments call runs before it), a lambda
-        // after the call it is handed to; nothing inside a lambda's or a local function's body, which runs elsewhere.
+        // The statement's calls in post-order, a lambda after the call it is handed to; none in a lambda's body.
         void Visit(SyntaxNode node)
         {
             foreach (SyntaxNode child in node.ChildNodes())

@@ -2,11 +2,11 @@ using System.Globalization;
 
 namespace Passenger.Core;
 
-/// <summary>Work under way that no frame of the window's waits for and a test's quiet wait does (<c>Ui.Settle</c>): a
-/// language server's request still unanswered, a state file's write still queued. Recorded only while
-/// <see cref="Watched"/>, which a test run sets as it begins, so the IDE itself pays nothing for it. Each piece is named,
-/// with when it began, for a wait that gives up to say what was still busy. What is busy for as long as it runs, by
-/// design (a pull Roslyn holds open until the next change, a program still running), is never entered here.</summary>
+/// <summary>Work under way that no frame of the window's waits for and a test's quiet wait does: a language server's
+/// request still unanswered, a state file's write still queued. Recorded only while <see cref="Watched"/>, so the IDE
+/// itself pays nothing for it. Each piece is named, with when it began, for a wait that gives up to say what was still
+/// busy. What is busy for as long as it runs, by design (a pull held open until the next change, a program still
+/// running), is never entered here.</summary>
 public static class InFlight
 {
     private static readonly object Gate = new();
@@ -14,7 +14,7 @@ public static class InFlight
     private static readonly IDisposable Nothing = new Piece(string.Empty, null, 0);
     private static int count;
 
-    /// <summary>Whether work in flight is recorded (and <c>BackgroundWork</c>'s holds named): a test run's, from its start.</summary>
+    /// <summary>Whether work in flight is recorded: in a test run, from its start.</summary>
     public static bool Watched { get; set; }
 
     /// <summary>What a piece that is not to be waited for holds: nothing.</summary>
@@ -50,7 +50,7 @@ public static class InFlight
     }
 
     /// <summary>Lets go of everything recorded, for a test beginning: what an earlier one left in flight ends with what
-    /// it started (its servers ended with its windows), and is never this test's to wait for.</summary>
+    /// it started, and is never this test's to wait for.</summary>
     public static void Forget()
     {
         lock (Gate)

@@ -7,10 +7,10 @@ using Avalonia.Threading;
 
 namespace Passenger.Inspector;
 
-/// <summary>The app's frames as Passenger's profiler reads them (Passenger.Profiler's UiFrames, which names these events by
-/// their numbers): Passenger's own EventSource, carried by the EventPipe session of a Profile run or of the profiler attached
-/// to the app. A session enabling it turns the recording on and its end turns it off (<see cref="FrameRecorder.Follow"/>),
-/// so an app nobody profiles pays nothing. A control is told once a recording, before its first layout.</summary>
+/// <summary>The app's frames, told by Passenger's own EventSource, whose events Passenger.Profiler's UiFrames reads by
+/// their numbers. A session enabling it turns the recording on and its end turns it off
+/// (<see cref="FrameRecorder.Follow"/>), so an app nobody profiles pays nothing. A control is told once a recording,
+/// before its first layout.</summary>
 [EventSource(Name = Source)]
 internal sealed class FrameEvents : EventSource
 {

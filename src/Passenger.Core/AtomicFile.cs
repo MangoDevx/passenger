@@ -3,12 +3,11 @@ namespace Passenger.Core;
 /// <summary>A file written whole or not at all: its bytes go to a temporary file beside it, made new under a name of its
 /// own (on macOS and Linux with its mode from the moment it is made, so a secret is never another user's to read), flushed
 /// to disk and renamed over it, so a crash, a full disk or a write cut short leaves the file as it was and no reader finds
-/// half of the new one. Every write of a whole file goes through it: a save (<c>FileText</c>, which keeps the file's own
-/// metadata on top), the state's documents, Local History's log and content, decompiled sources and a container run's.</summary>
+/// half of the new one.</summary>
 public static class AtomicFile
 {
-    /// <summary>What a temporary file's name ends with unless its writer names its own: one an old prune finds is a write
-    /// that never finished.</summary>
+    /// <summary>What a temporary file's name ends with unless its writer names its own: one left behind is a write that
+    /// never finished.</summary>
     public const string Temporary = ".tmp";
 
     /// <summary>Writes a file whole, the folder it goes in already there. <paramref name="mode"/> is its mode on macOS and
@@ -17,8 +16,8 @@ public static class AtomicFile
         Write(path, bytes, mode, Temporary, static (temporary, target) => File.Move(temporary, target, overwrite: true));
 
     /// <summary>Writes a file whole, its temporary file's name ending with <paramref name="suffix"/> and put in the file's
-    /// place by <paramref name="put"/> (given the temporary file and the file), which a save does keeping what the file
-    /// was; a temporary file left by a failure is deleted, and the failure thrown.</summary>
+    /// place by <paramref name="put"/> (given the temporary file and the file); a temporary file left by a failure is
+    /// deleted, and the failure thrown.</summary>
     public static void Write(string path, ReadOnlySpan<byte> bytes, UnixFileMode? mode, string suffix, Action<string, string> put)
     {
         // A name of its own, made new: one already there by a known name (a link a cloned repository holds) took the write wherever it led.
@@ -62,7 +61,7 @@ public static class AtomicFile
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
-            // Held a moment (Windows): left beside the file, which the failure thrown says nothing of.
+            // Held a moment (Windows): left beside the file.
         }
     }
 }

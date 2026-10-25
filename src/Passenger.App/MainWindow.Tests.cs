@@ -30,7 +30,7 @@ public partial class MainWindow
             testGutter.Forget(document);
             session.Tests.Finder.Closed(document.Path);
         };
-        // The grouping and outcomes chosen are the folder's, as Rider keeps a session's.
+        // The grouping and outcomes chosen are the folder's.
         Bottom.TestTree.ViewChanged += (_, _) => session.State?.UnitTests.Set(new Testing.UnitTestsState
         {
             Grouping = [.. Bottom.TestTree.Grouping],
@@ -91,7 +91,7 @@ public partial class MainWindow
                 testHosts.Remove(tab);
             }
         }
-        // Rider's system labels: a test run's end.
+        // A test run's end, a label in Local History.
         tests.Ran += (_, passed) =>
         {
             if (session == next && !next.IsEnded)
@@ -101,7 +101,7 @@ public partial class MainWindow
         };
     }
 
-    /// <summary>The Unit Tests window's grouping and outcomes as the folder kept them, or Rider's defaults.</summary>
+    /// <summary>The Unit Tests window's grouping and outcomes as the folder kept them, or the defaults.</summary>
     private void RestoreUnitTests(Testing.UnitTestsState kept)
     {
         session.Tests.Tree.Group(kept.Grouping);
@@ -163,7 +163,7 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>Rider's menu on a test's run icon: run or debug that test, or all of its class's.</summary>
+    /// <summary>The menu on a test's run icon: run or debug that test, or all of its class's.</summary>
     private void ShowTestMenu(CodeEditor editor, OpenDocument document, int line)
     {
         if (testGutter.At(document, line) is not { } chosen)
@@ -185,7 +185,7 @@ public partial class MainWindow
         menu.ShowAt(editor, showAtPointer: true);
     }
 
-    /// <summary>Rider's Run (or Debug) Unit Tests in context: the Unit Tests window's chosen rows when it has the keys, the
+    /// <summary>Run (or Debug) Unit Tests in context: the Unit Tests window's chosen rows when it has the keys, the
     /// projects chosen in the Explorer (a solution folder's, those under it) when it has them, else the test method or
     /// class at the editor's caret.</summary>
     private void RunTestsInContext(ActionContext context, bool debug, bool untilFailure = false)
@@ -211,7 +211,7 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>Runs tests until one fails, as Rider's Run Until Failure, and shows the failed one's output.</summary>
+    /// <summary>Run Until Failure: runs tests until one fails, and shows the failed one's output.</summary>
     private void RunUntilFailure(IReadOnlyList<Testing.TestNode> chosen)
     {
         if (Folder is null || chosen.Count == 0)

@@ -9,8 +9,8 @@ using Passenger.App.Mcp;
 namespace Passenger.Tests;
 
 /// <summary>An agent's container tools on a real engine: the engine's containers listed, a log read, a container stopped
-/// and started as the window's buttons do it, a command run in one only once the person allows it, and what a crashed
-/// Passenger left removed as the next one starts. Each skips, saying why, where no Linux engine runs.</summary>
+/// and started, a command run in one only once the person allows it, and what a crashed Passenger left removed as the
+/// next one starts. Each skips, saying why, where no Linux engine runs.</summary>
 public sealed class McpContainersTests : McpRig, IClassFixture<RestoredFolders>
 {
     public McpContainersTests(RestoredFolders folders)
@@ -82,7 +82,6 @@ public sealed class McpContainersTests : McpRig, IClassFixture<RestoredFolders>
             Press(Admission(window, "the window to ask whether the agent may work there"), AgentAdmissionDialog.Allow);
             ConfirmDialog asked = Question(window, "the question for the agent's command in the container");
             Assert.Contains("Allow container_exec?", Texts(asked));
-            // Nothing ran before the person answered.
             Assert.False(Docker.Run("exec", name, "sh", "-c", "test -e /tmp/answer && echo there || echo absent") == "there", "The command ran before the person allowed it");
             Press(asked, "Allow");
             JsonElement ran = Await(running, "the command in the container");
@@ -163,7 +162,7 @@ public sealed class McpContainersTests : McpRig, IClassFixture<RestoredFolders>
             CallToolResult either = Await(Task.Run(() => Result(client, "container_logs", new() { ["container"] = "5a5d0c0ffee" })), "the log of an id's start two share");
             Assert.True(either.IsError == true && Text(either).Contains("begins the ids of 2 containers (shop-web-1, solo)", StringComparison.Ordinal),
                 $"An id's start two containers share answered: {Text(either)}");
-            // A project's log is Compose's to read: the engine's refusal is the agent's answer, never a fault of Passenger's.
+            // A project's log is Compose's to read, so the engine's refusal is the agent's answer.
             CallToolResult merged = Await(Task.Run(() => Result(client, "container_logs", new() { ["container"] = "shop" })), "the project's log");
             Assert.True(merged.IsError == true && Text(merged).Contains("'compose' is not a docker command", StringComparison.Ordinal)
                 && !Text(merged).Contains(PassengerTools.Faulted, StringComparison.Ordinal), $"The project's log answered: {Text(merged)}");
@@ -188,8 +187,7 @@ public sealed class McpContainersTests : McpRig, IClassFixture<RestoredFolders>
         ContainerLabels.Flush();
         string state = labels.Single(l => l.StartsWith(ContainerLabels.State, StringComparison.Ordinal));
         string machine = labels.Single(l => l.StartsWith(ContainerLabels.Machine, StringComparison.Ordinal));
-        // One a crashed Passenger of this state left, and one of this living process, which stays; and one another machine's
-        // Passenger left on a shared engine, whose process this machine cannot tell is gone, which stays too.
+        // A crashed Passenger's of this state, one of this living process, and one another machine's on a shared engine.
         string gone = $"{ContainerLabels.Process}={ContainerLabels.Of(int.MaxValue - 7, 1)}";
         string left = Docker.Container("left", "sleep 600", state, machine, gone);
         string living = Docker.Container("living", "sleep 600", labels);

@@ -7,14 +7,14 @@ using Passenger.Core;
 
 namespace Passenger.ContainerTools;
 
-/// <summary>A .NET program of the container as the IDE reads it: what Attach to Process shows of it, whether it was started
-/// held for Hot Reload (DOTNET_MODIFIABLE_ASSEMBLIES=debug), whether its code is a Release build's (optimized, so Just My
-/// Code finds none of it the user's), and why the debugger cannot attach to it, when it cannot.</summary>
+/// <summary>A .NET program of the container: what Attach to Process shows of it, whether it was started held for Hot
+/// Reload (DOTNET_MODIFIABLE_ASSEMBLIES=debug), whether its code is a Release build's, and why the debugger cannot
+/// attach to it, when it cannot.</summary>
 public sealed record ContainerProcess(int Id, string Name, string CommandLine, string User, bool HotReload, bool Optimized, string? WhyNot);
 
-/// <summary>The <c>processes</c> mode: the container's .NET programs, as <see cref="DotnetProcesses"/> finds them on this
-/// machine (the runtime's pipes for a debugger in the temporary folder), and those whose runtime opened none, by the
-/// runtime's library in their memory, each saying why.</summary>
+/// <summary>The <c>processes</c> mode: the container's .NET programs, those <see cref="DotnetProcesses"/> finds and
+/// those whose runtime opened no pipe for a debugger, found by the runtime's library in their memory, each saying
+/// why.</summary>
 public static class Processes
 {
     private static readonly JsonSerializerOptions Json = new()
@@ -42,8 +42,7 @@ public static class Processes
             {
                 continue;
             }
-            // Held at its start for a debugger (Passenger's Debug of a container run): no pipe yet, which the attach's
-            // registration for its runtime's start and its diagnostic port's resume see to. Diagnostics off, nothing holds it.
+            // Held at its start for a debugger, so no pipe yet but attachable; with diagnostics off, nothing holds it.
             bool held = Variable(id, RuntimeVariables.DefaultDiagnosticPortSuspend) == "1" && !DiagnosticsOff(id);
             found.Add(new ContainerProcess(process.Id, process.Name, process.CommandLine, process.User,
                 held && Variable(id, RuntimeVariables.ModifiableAssemblies) is { } modifiable && modifiable.Equals("debug", StringComparison.OrdinalIgnoreCase),
@@ -147,8 +146,7 @@ public static class Processes
                 {
                     BlobReader value = metadata.GetBlobReader(attribute.Value);
                     value.ReadUInt16();
-                    // DebuggingModes as one int (the enum's constructor, 6 bytes with the named arguments' count), or two bools
-                    // (the older one, 4): tracking enabled, then the optimizer disabled.
+                    // DebuggingModes as one int (6 bytes with the named arguments' count), or the older two bools (4).
                     int modes;
                     if (value.RemainingBytes >= 6)
                     {

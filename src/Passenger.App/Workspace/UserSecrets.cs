@@ -1,8 +1,8 @@
 namespace Passenger.App.Workspace;
 
-/// <summary>Where a project's user secrets are kept on this machine: .NET's own folder (APPDATA's Microsoft/UserSecrets on
-/// Windows, ~/.microsoft/usersecrets elsewhere), or <see cref="Variable"/>'s in its place, read for that alone, so a test's
-/// run never reads or writes the person's own. A container run mounts a project's; an AppHost's parameters are read there.</summary>
+/// <summary>Where a project's user secrets are kept on this machine: .NET's own folder (APPDATA's Microsoft/UserSecrets
+/// on Windows, ~/.microsoft/usersecrets elsewhere), or <see cref="Variable"/>'s in its place, read for that alone. A
+/// container run mounts a project's; an AppHost's parameters are read there.</summary>
 public static class UserSecrets
 {
     /// <summary>The folder kept in place of .NET's own when set.</summary>

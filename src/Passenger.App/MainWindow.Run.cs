@@ -215,9 +215,9 @@ public partial class MainWindow
         ToolTip.SetTip(RunConfigButton, why is null ? "Run configuration" : $"{chosen!.Name} cannot run here: {why}");
     }
 
-    /// <summary>The run configurations to choose from, as a menu under the toolbar widget, and Edit Configurations below
-    /// them, as Rider's run widget lists them: one that cannot launch here is listed greyed, with why beside it, and can
-    /// still be chosen, so Run says why and Edit Configurations shows it.</summary>
+    /// <summary>The run configurations to choose from, as a menu under the toolbar widget, and Edit Configurations
+    /// below them: one that cannot launch here is listed greyed, with why beside it, and can still be chosen, so Run
+    /// says why and Edit Configurations shows it.</summary>
     private void OnRunConfigClicked(object? sender, RoutedEventArgs e)
     {
         ContextMenu menu = new();

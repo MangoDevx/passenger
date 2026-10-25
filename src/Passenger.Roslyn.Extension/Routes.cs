@@ -9,8 +9,7 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace Passenger.Roslyn.Extension;
 
-/// <summary>The routes web projects declare in their code (<see cref="RouteReading"/>), for the Endpoints window, the
-/// gutter's send and an agent's <c>workspace</c>.</summary>
+/// <summary>The routes web projects declare in their code (<see cref="RouteReading"/>).</summary>
 public sealed class WebRoutes : IExtensionWorkspaceMessageHandler<RoutesRequest, RoutesFound>
 {
     public Task<RoutesFound> ExecuteAsync(RoutesRequest message, ExtensionMessageContext context, CancellationToken cancellationToken) =>

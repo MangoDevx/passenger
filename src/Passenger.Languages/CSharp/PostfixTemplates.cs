@@ -6,12 +6,12 @@ using Passenger.Text;
 
 namespace Passenger.Languages.CSharp;
 
-/// <summary>A postfix template: typed after an expression and a dot, it wraps the expression. Its name, Rider's
-/// description of it and what it writes; a statement's one takes an expression that is its whole statement; <c>$EXPR$</c>
-/// is the expression's text, the rest Rider's live template syntax.</summary>
+/// <summary>A postfix template: typed after an expression and a dot, it wraps the expression. Its name, its description
+/// and what it writes; a statement's one takes an expression that is its whole statement; <c>$EXPR$</c> is the
+/// expression's text, the rest live template syntax.</summary>
 public sealed record PostfixTemplate(string Name, string Description, string Example, bool Statement, string Text, IReadOnlyDictionary<string, string> Defaults)
 {
-    /// <summary>What the list that asks which expression it wraps is titled, as Rider titles it for this template.</summary>
+    /// <summary>What the list that asks which expression it wraps is titled.</summary>
     public string SelectTitle { get; init; } = "Select expression";
 }
 
@@ -27,7 +27,7 @@ public sealed record PostfixTarget(IReadOnlyList<PostfixExpression> Expressions,
     public PostfixExpression Outermost => Expressions[^1];
 }
 
-/// <summary>Rider's C# postfix templates, the everyday ones, and the expression before a dot they would wrap.</summary>
+/// <summary>The C# postfix templates, the everyday ones, and the expression before a dot they would wrap.</summary>
 public static class PostfixTemplates
 {
     private static Dictionary<string, string> D(params (string Name, string Value)[] values) => values.ToDictionary(v => v.Name, v => v.Value);

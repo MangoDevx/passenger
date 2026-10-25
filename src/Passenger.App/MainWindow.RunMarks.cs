@@ -342,7 +342,7 @@ public partial class MainWindow
         menu.ShowAt(editor, showAtPointer: true);
     }
 
-    /// <summary>The run icon's menu last opened, for a test to choose from.</summary>
+    /// <summary>The run icon's menu last opened.</summary>
     public MenuFlyout? RunMarkMenu { get; private set; }
 
     /// <summary>Runs (or debugs, or profiles) what a run icon stands beside: a Compose configuration's one service (with what

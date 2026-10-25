@@ -1,16 +1,15 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <!-- Fluent's own keys, each named once as the Passenger token it is in every theme (FluentKeys, in the application's
-         resources): a control Passenger leaves to Fluent asks for its key and gets the token of the look in force, Dark or
-         Light, so a theme supplies only tokens and cannot leave one of Fluent's greys showing. Each entry is a Fluent key
-         and the token it reads. A key Fluent gives clear in both variants, and a control Passenger never shows, stay
-         Fluent's (FluentKeysTests holds the rest to this table, so a Fluent update that adds a key fails until it is here). -->
+    <!-- Fluent's own keys, each named once as the Passenger token it is in every theme (read by FluentKeys), so a theme
+         supplies only tokens and cannot leave one of Fluent's greys showing. Each entry is a Fluent key and the token it
+         reads. A key Fluent gives clear in both variants, and a control Passenger never shows, stay Fluent's;
+         FluentKeysTests fails on any other key missing here. -->
 
     <!-- The corners of Fluent's controls Passenger leaves as they are (check boxes, number boxes, menus): the look's. -->
     <x:String x:Key="ControlCornerRadius">Passenger.ControlRadius</x:String>
     <x:String x:Key="OverlayCornerRadius">Passenger.PopupRadius</x:String>
 
-    <!-- A button as Shell.axaml draws it in every state: Rider's plain ground, its words, dimmed when it cannot be used. -->
+    <!-- A button as Shell.axaml draws it in every state: its plain ground, its words, dimmed when it cannot be used. -->
     <x:String x:Key="ButtonBackground">Passenger.Button</x:String>
     <x:String x:Key="ButtonBackgroundPointerOver">Passenger.Button</x:String>
     <x:String x:Key="ButtonBackgroundPressed">Passenger.Button</x:String>

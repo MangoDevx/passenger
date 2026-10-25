@@ -13,10 +13,10 @@ namespace Passenger.Tests.Debugging.Helpers;
 /// breakpoint changes queue in the order they came, for the tests to wait on one at a time.</summary>
 public sealed class DebugSession : IDisposable
 {
-    /// <summary>The debug adapter's protocol tests run one at a time, as their upstream's did: each debuggee waits on
-    /// timings (a suspended start, a breakpoint's binding) that a machine busy with others stretches. Beside the window
-    /// tests, one at a time themselves, their adapter and small debuggee are what the run can bear; a protocol test
-    /// that holds the engine to a time runs alone (<see cref="Alone"/>).</summary>
+    /// <summary>The debug adapter's protocol tests run one at a time: each debuggee waits on timings (a suspended
+    /// start, a breakpoint's binding) that a machine busy with others stretches. Beside the window tests, one at a time
+    /// themselves, their adapter and small debuggee are what the run can bear; a protocol test that holds the engine to
+    /// a time runs alone (<see cref="Alone"/>).</summary>
     public const string Collection = "Debugger";
 
     private static readonly TimeSpan EventLimit = TimeSpan.FromSeconds(60).Scaled();
@@ -41,8 +41,7 @@ public sealed class DebugSession : IDisposable
         {
             throw new FileNotFoundException("The debug adapter is not beside the tests", path);
         }
-        // The engine's own log: PASSENGER_ENGINE_LOG=FILE keeps every session's, else the session keeps one for a failed
-        // wait to quote, which on a machine no one can debug on (CI's) is all there is to go by.
+        // PASSENGER_ENGINE_LOG=FILE keeps every session's log; else one is kept for a failed wait to quote.
         string? kept = Environment.GetEnvironmentVariable(Passenger.Dap.AdapterEnvironment.EngineLogVariable) is { Length: > 0 } named ? named : null;
         ownLog = kept is null;
         engineLog = kept ?? Path.Combine(TestRun.Root, $"engine-{Guid.NewGuid():N}.log");
@@ -592,8 +591,7 @@ public sealed class DebugSession : IDisposable
         {
             start.Environment["DOTNET_DefaultDiagnosticPortSuspend"] = "1";
         }
-        // A test runner under a debugger hands these to the tests' children, and they change what the
-        // debuggee's stacks look like (ReadyToRun code, for one).
+        // A test runner under a debugger hands these on, and they change the debuggee's stacks (ReadyToRun code).
         foreach (string variable in (string[])["COMPLUS_FORCEENC", "COMPLUS_ReadyToRun", "COMPLUS_ZapDisable", "DOTNET_GCConserveMemory", "DOTNET_GCHeapCount", "DOTNET_GCNoAffinitize", "DOTNET_MODIFIABLE_ASSEMBLIES", "DOTNET_MULTILEVEL_LOOKUP", "DOTNET_TieredPGO", "DOTNET_gcServer", "_NO_DEBUG_HEAP"])
         {
             start.Environment.Remove(variable);

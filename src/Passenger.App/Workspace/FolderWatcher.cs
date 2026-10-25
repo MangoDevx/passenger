@@ -18,11 +18,10 @@ public sealed record FolderChanges(IReadOnlySet<string> Paths, bool Structure, b
 }
 
 /// <summary>Watches a folder for what other programs change in it (a terminal's <c>git pull</c>, an agent's edits,
-/// <c>dotnet new</c>), as Rider's fsnotifier does. Changes are gathered for a moment and handed over together on the
-/// UI thread, as background work so a screenshot waits for them. Build output, dependencies and Git's folder are
-/// passed over, except Git's HEAD, index and refs and a restore's assets; where each folder is watched on its own
-/// (Linux), they are never watched at all but for Git's and each obj itself, and a folder made later is watched as it
-/// appears.</summary>
+/// <c>dotnet new</c>). Changes are gathered for a moment and handed over together on the UI thread, as background work.
+/// Build output, dependencies and Git's folder are passed over, except Git's HEAD, index and refs and a restore's
+/// assets; where each folder is watched on its own (Linux), they are never watched at all but for Git's and each obj
+/// itself, and a folder made later is watched as it appears.</summary>
 public sealed class FolderWatcher : IDisposable
 {
     private static readonly TimeSpan Gather = TimeSpan.FromMilliseconds(150);
@@ -421,8 +420,7 @@ public sealed class FolderWatcher : IDisposable
             return;
         }
         bool restore = !inGit && IsRestore(parts);
-        // A passed-over folder itself, come or gone, is the folder above it changing (the Explorer lists it, dimmed);
-        // what changes in it is never followed.
+        // A passed-over folder itself, come or gone, is its parent changing; what changes in it is never followed.
         if (!inGit && !restore && IgnoredFolders.AnyOf(folder, parts) && !(created && !IgnoredFolders.AnyOf(folder, parts.AsSpan(..^1))))
         {
             return;

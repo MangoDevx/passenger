@@ -36,8 +36,8 @@ public static class Breaks
 }
 
 /// <summary>A binding that failed, as the app stops at it: Passenger's <c>$bindingError</c> (in Variables, and in the
-/// breakpoint's condition and log message), as an Avalonia app's has it. The element and the property it sets, its path and
-/// the part of the path that failed, the element's DataContext, WPF's message, and where the element is written in XAML.</summary>
+/// breakpoint's condition and log message). The element and the property it sets, its path and the part of the path
+/// that failed, the element's DataContext, WPF's message, and where the element is written in XAML.</summary>
 [DebuggerDisplay("{Description,nq}")]
 public sealed class BindingError
 {
@@ -69,8 +69,7 @@ public sealed class BindingError
 
     public string Message { get; }
 
-    /// <summary>The element in its XAML, "MainWindow.xaml:8:20", when WPF recorded it: its XAML compiler's line, which
-    /// Passenger's Variables show at the editor's.</summary>
+    /// <summary>The element in its XAML, "MainWindow.xaml:8:20", when WPF recorded it: its compiler's line.</summary>
     public string? Xaml { get; }
 
     /// <summary>"TextBlock#Caption.Text to Nmae: BindingExpression path error: 'Nmae' property not found on ...".</summary>

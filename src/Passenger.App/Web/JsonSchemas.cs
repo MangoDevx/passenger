@@ -3,11 +3,11 @@ using System.Collections.Concurrent;
 namespace Passenger.App.Web;
 
 /// <summary>The JSON schemas the JSON and YAML servers check and complete files by. The well-known files of a .NET and
-/// Node.js project (package.json, tsconfig.json, jsconfig.json, appsettings.json, launchSettings.json, global.json) take
-/// SchemaStore's, and compose files the Compose specification's, carried under <c>web/schemas/</c> with those they refer
-/// to and never downloaded, as Rider's bundled ones are. A schema a file names itself (its <c>$schema</c>) is downloaded as Rider's Remote JSON Schemas setting
-/// allows, over HTTP or HTTPS, kept for the process; <c>PASSENGER_SCHEMAS</c> names another place to ask for them (the
-/// tests' run names a dead address, so no test reaches the web). Called on any thread.</summary>
+/// Node.js project (package.json, tsconfig.json, jsconfig.json, appsettings.json, launchSettings.json, global.json)
+/// take SchemaStore's, and compose files the Compose specification's, carried under <c>web/schemas/</c> with those they
+/// refer to and never downloaded. A schema a file names itself (its <c>$schema</c>) is downloaded while Settings allow
+/// it, over HTTP or HTTPS, kept for the process; <c>PASSENGER_SCHEMAS</c> names another place to ask for them. Called
+/// on any thread.</summary>
 public sealed class JsonSchemas(Func<bool> download)
 {
     public const string Variable = "PASSENGER_SCHEMAS";
@@ -15,7 +15,7 @@ public sealed class JsonSchemas(Func<bool> download)
     /// <summary>SchemaStore's hosts, whose schemas Passenger carries by their file's name.</summary>
     private static readonly string[] SchemaStore = ["json.schemastore.org", "www.schemastore.org", "schemastore.org"];
 
-    /// <summary>The files each carried schema is for, as VS Code's JSON server matches them (a name anywhere in the folder).</summary>
+    /// <summary>The files each carried schema is for, each name matched anywhere in the folder.</summary>
     public static readonly IReadOnlyList<(string[] FileMatch, string Uri)> Associations =
     [
         (["package.json"], "https://json.schemastore.org/package.json"),
@@ -44,8 +44,8 @@ public sealed class JsonSchemas(Func<bool> download)
     /// <summary>The Compose specification's schema, carried, as the YAML server reads it from disk.</summary>
     public static string ComposeUri => new Uri(Path.Combine(Folder, "compose-spec.json")).AbsoluteUri;
 
-    /// <summary>The names Docker Compose looks for (compose.yaml first) and the overrides and variants named after them,
-    /// as the YAML server matches them anywhere in the folder.</summary>
+    /// <summary>The names Docker Compose looks for (compose.yaml first) and the overrides and variants named after
+    /// them, matched anywhere in the folder.</summary>
     public static readonly string[] ComposeFiles =
     [
         "compose.yaml", "compose.yml", "compose.*.yaml", "compose.*.yml",

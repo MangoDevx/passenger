@@ -1,29 +1,13 @@
 #!/usr/bin/env python3
 """The whole suite on one machine as several test processes at once, then what must run alone (`just test`).
 
-Window tests run one at a time on a process's one headless session (Collections.cs), so one process uses little of a
-developer's machine while it waits on language servers, MSBuild and the programs it starts. Each process keeps to a run
-folder, state, Git configuration, NuGet home, MSBuild node salt, agent sockets and container labels of its own (TestRun),
-so several can run at once, as CI's shards do on runners of their own. The run is in two phases:
+1. Every class outside the Alone collection, dealt to N processes, since one runs its window tests one at a time: by its
+   seconds (the most any system took in TestTimes.json, else its budget), the heaviest first, each to the lightest
+   process so far. The classes run beside the window tests are dealt apart, their heaviest hand to the lightest window
+   hand; the container engine's go to one process together (LANES). Limits are scaled by SIDE_BY_SIDE_SCALE.
+2. The Alone classes in one process once the first phase has ended, so nothing runs beside them.
 
-1. Every class outside the Alone collection, dealt to N processes by its seconds (the most any system took for it in
-   tests/Passenger.Tests/TestTimes.json, so a class CI skips somewhere, as macOS's container tests, weighs what it costs
-   where it runs; one the times lack weighs its budget in TestBudget.json), the heaviest first, each to the lightest
-   process so far. The classes that run beside the window tests in a process (the debug adapter's protocol tests,
-   DebugSession.Collection, and Beside's) are dealt apart, the heaviest of their hands to the process whose window tests
-   weigh least, since a process takes about as long as the longer of the two. The classes that use the container engine
-   go to one process together (LANES), so the engine's machine works for one test at a time, as in one process. Their
-   limits are scaled by SIDE_BY_SIDE_SCALE, unless PASSENGER_TEST_TIME_SCALE says otherwise, since the processes share the
-   machine.
-2. The Alone classes (a test held to a time, or one that debugs through the window) in one process, once every process of
-   the first phase has ended, so nothing runs beside them; their limits as the person's PASSENGER_TEST_TIME_SCALE says.
-
-A class is Alone when its declaration in the test project's sources carries `[Collection(Alone.Name)]`, or its base
-class's does; a class the sources do not show is run alone, to be safe. A filter (`just test Mcp`) narrows the suite as
-`dotnet test --filter` does, before it is dealt. With one process (`just test FILTER 1`, or PASSENGER_TEST_PROCESSES=1) the
-suite runs as one `dotnet test`, as before, xunit keeping its own order. Each run's results go to
-artifacts/test-results/local/: each process's .trx and its log, the console's words as dotnet test wrote them; the last
-run's are removed as the next begins. The tests that failed are listed at the end, with the first lines of what each said.
+Results go to artifacts/test-results/local/ (each process's .trx and console log); the failures are listed at the end.
 """
 import argparse
 import glob
@@ -54,7 +38,7 @@ TIME_SCALE = "PASSENGER_TEST_TIME_SCALE"
 # The first phase's limits, its processes sharing the machine: a test's limits are written for a machine that runs it
 # alone, and this lengthens only how long a test may wait, never how long it does.
 SIDE_BY_SIDE_SCALE = "1.5"
-# A hung test is stopped and named after this, as on CI, rather than holding the run.
+# A hung test is stopped and named after this, rather than holding the run.
 HANG = "10m"
 # Classes that share something of the machine beyond the run's own folder, run in one process together in the first phase:
 # the container engine (its virtual machine's processors, image builds, Compose), by what a class's source calls.
@@ -160,8 +144,8 @@ def default_processes():
 
 
 def listing(given):
-    """The tests dotnet test lists, with the filter given, asked again while a listing says discovery failed (xunit #3576),
-    as CI's shards ask; None, saying why, when the third is no better. An empty listing with a filter is no test chosen."""
+    """The tests dotnet test lists, with the filter given, asked again while a listing says discovery failed
+    (xunit #3576); None, saying why, when the third is no better. An empty listing with a filter is no test chosen."""
     command = ["dotnet", "test", ASSEMBLY, "--list-tests"] + (["--filter", given] if given else [])
     why = None
     for attempt in range(1, 4):
@@ -198,7 +182,6 @@ class Process:
                    "--blame-hang-timeout", HANG, "--blame-hang-dump-type", "none"]
         self.started = time.monotonic()
         self.log = open(self.log_path, "w", encoding="utf-8", errors="replace")
-        # What the run shows as it happens goes to the terminal too; the first phase's processes write only to their logs.
         if shown:
             self.process = subprocess.Popen(command, cwd=ROOT, env=environment, stdout=subprocess.PIPE,
                                             stderr=subprocess.STDOUT, bufsize=1, encoding="utf-8", errors="replace")
@@ -301,7 +284,7 @@ def main():
     if count == 1:
         return one_process(given)
     if TIME_SCALE in os.environ:
-        # A malformed one fails every test of the run, saying why (TestRun); a run of processes would only say it N times.
+        # Passed on unchecked: a malformed one fails every test, saying why.
         side_by_side = os.environ[TIME_SCALE]
     else:
         side_by_side = SIDE_BY_SIDE_SCALE
@@ -324,7 +307,6 @@ def main():
     last = [name for name in classes if alone(name, declared)]
     rest = [name for name in classes if name not in last]
 
-    # The first phase's units: a class on its own, or a lane's classes together; those beside the window tests apart.
     units = {}
     side = set()
     for name in rest:
@@ -339,7 +321,6 @@ def main():
     count = min(count, max(len(windowed), len(besides)))
     window_hands, window_totals = shards.deal(windowed, count) if count else ([], [])
     side_hands, side_totals = shards.deal(besides, count) if count else ([], [])
-    # The heaviest hand beside the window tests goes with the lightest hand of them.
     by_window = sorted(range(count), key=lambda i: window_totals[i])
     by_side = sorted(range(count), key=lambda i: -side_totals[i])
     hands = [window_hands[w] + side_hands[b] for w, b in zip(by_window, by_side)]

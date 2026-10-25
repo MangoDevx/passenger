@@ -6,11 +6,11 @@ using Passenger.Debugger.PresentationHintModels;
 
 namespace Passenger.Debugger;
 
-/// <summary>An EF Core query's SQL (#420): a query whose type is EF Core's own (a DbSet, or what its provider's operators
-/// made of one) lists first a row of the SQL it would run, given as the protocol's lazy row, so the program runs
-/// ToQueryString() only as the row is opened, through the debugger's own evaluation and its time limit; what keeps it from
-/// one (a query its provider cannot translate, an evaluation refused or past its time) is said as the row's value. Here, in
-/// the engine, so the Variables view, the hover card and an agent's debug_variables read the one row the same way.</summary>
+/// <summary>An EF Core query's SQL: a query whose type is EF Core's own (a DbSet, or what its provider's operators made
+/// of one) lists first a row of the SQL it would run, given as the protocol's lazy row, so the program runs
+/// ToQueryString() only as the row is opened, through the debugger's own evaluation and its time limit; what keeps it
+/// from one (a query its provider cannot translate, an evaluation refused or past its time) is said as the row's
+/// value.</summary>
 public partial class ManagedDebugger
 {
     private const string EfCoreModule = "Microsoft.EntityFrameworkCore.dll";

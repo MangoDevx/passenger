@@ -6,10 +6,10 @@ using Passenger.Editor;
 
 namespace Passenger.App.Settings;
 
-/// <summary>Rider's keyboard shortcut panel, in its Keyboard Shortcut dialog and its Find Shortcut popup: a field the first
-/// keystroke is pressed into, the Second stroke check box, and the second keystroke's field, which takes keys only while
-/// the box is checked. The keys go on to the second field once the first holds a keystroke and the box is checked, as
-/// Rider moves them.</summary>
+/// <summary>The keyboard shortcut panel of the Keyboard Shortcut dialog and the Find Shortcut popup: a field the first
+/// keystroke is pressed into, the Second stroke check box, and the second keystroke's field, which takes keys only
+/// while the box is checked. The keys go on to the second field once the first holds a keystroke and the box is
+/// checked.</summary>
 public sealed class ShortcutPanel : StackPanel
 {
     public ShortcutPanel(string secondLabel)
@@ -46,7 +46,7 @@ public sealed class ShortcutPanel : StackPanel
     /// <summary>The first keystroke's field.</summary>
     public StrokeField First { get; }
 
-    /// <summary>Rider's "Second stroke" box, which makes the shortcut a chord.</summary>
+    /// <summary>The "Second stroke" box, which makes the shortcut a chord.</summary>
     public CheckBox SecondStroke { get; }
 
     /// <summary>The second keystroke's field, which takes every key, Escape, Enter and Tab too.</summary>
@@ -60,9 +60,9 @@ public sealed class ShortcutPanel : StackPanel
     public event EventHandler? Changed;
 }
 
-/// <summary>Rider's shortcut text field: a key pressed in it, with the modifiers held, is the keystroke it shows, never
+/// <summary>A shortcut's text field: a key pressed in it, with the modifiers held, is the keystroke it shows, never
 /// typing. The first stroke's field lets Tab and Shift+Tab move on, plain Escape cancel and plain Enter confirm once it
-/// holds a keystroke, as Rider's does, and its + sets those keys instead; the second's takes every key.</summary>
+/// holds a keystroke, and its + sets those keys instead; the second's takes every key.</summary>
 public sealed class StrokeField : TextBox
 {
     private readonly bool passesDialogKeys;
@@ -116,7 +116,7 @@ public sealed class StrokeField : TextBox
 
     protected override void OnTextInput(TextInputEventArgs e) => e.Handled = true;
 
-    /// <summary>Rider's + in the field: "Set ⏎" and the rest, for the keys the field passes on rather than takes.</summary>
+    /// <summary>The + in the field: "Set ⏎" and the rest, for the keys the field passes on rather than takes.</summary>
     private Button SpecialKeys()
     {
         Keystroke[] keys = [new(Key.Enter, KeyModifiers.None), new(Key.Escape, KeyModifiers.None), new(Key.Tab, KeyModifiers.None), new(Key.Tab, KeyModifiers.Shift)];

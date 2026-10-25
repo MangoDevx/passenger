@@ -441,8 +441,8 @@ public static class ContainerTools
         ["-e", $"{RuntimeVariables.DefaultDiagnosticPortSuspend}=0", "-e", $"{RuntimeVariables.DiagnosticPorts}=", "-e", $"{RuntimeVariables.StartupHooks}=",
             "-e", $"{RuntimeVariables.ModifiableAssemblies}="];
 
-    /// <summary>The adapter's command in a container, over docker exec's standard input and output: the IDE's evaluation
-    /// limit given it as the IDE's own adapter has it.</summary>
+    /// <summary>The adapter's command in a container, over docker exec's standard input and output, given the IDE's
+    /// evaluation limit.</summary>
     public static IReadOnlyList<string> AdapterCommand(string container, string executable, IReadOnlyList<string> adapterArguments)
     {
         List<string> words = ["exec", "-i", .. Unheld];

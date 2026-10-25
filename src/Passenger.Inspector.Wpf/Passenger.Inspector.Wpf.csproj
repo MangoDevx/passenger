@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Passenger's inspector inside a WPF app it runs or debugs (the Live Visual Tree, binding errors, an agent's app tools),
-       WPF's counterpart of Passenger.Inspector: the runtime loads it as a startup hook (DOTNET_STARTUP_HOOKS) into a run
-       Passenger launches, never into the app as built or shipped, and it answers over the socket Passenger names, on the
-       app's UI thread, in the same protocol (Protocol.cs). Built on every system (EnableWindowsTargeting), so a change that
-       breaks it fails every build, and carried under inspector/wpf/ only by Passenger's Windows builds, where WPF runs. -->
+  <!-- Passenger's inspector inside a WPF app it runs or debugs (the Live Visual Tree, binding errors, an agent's app
+       tools): the runtime loads it as a startup hook (DOTNET_STARTUP_HOOKS) into a run Passenger launches, never into
+       the app as built or shipped, and it answers over the socket Passenger names, on the app's UI thread
+       (Protocol.cs). Built on every system (EnableWindowsTargeting), so a change that breaks it fails every build, and
+       carried under inspector/wpf/ only by Passenger's Windows builds, where WPF runs. -->
   <PropertyGroup>
     <!-- The oldest .NET a WPF app Passenger runs is on (CoreCLR alone), so it loads into any of them. -->
     <TargetFramework>net8.0-windows</TargetFramework>
@@ -23,7 +23,7 @@
     <!-- What Passenger and its inspectors say to each other, and the app's end of the socket, one definition for all. -->
     <Compile Include="../Passenger.Inspector/Protocol.cs" Link="Protocol.cs" />
     <Compile Include="../Passenger.Inspector/Connection.cs" Link="Connection.cs" />
-    <!-- The failed bindings told and counted, and a failure's nearest names, as the Avalonia inspector has them. -->
+    <!-- The failed bindings told and counted, and a failure's nearest names, one definition for both inspectors. -->
     <Compile Include="../Passenger.Inspector/BindingFailures.cs" Link="BindingFailures.cs" />
     <Compile Include="../Passenger.Core/Spelling.cs" Link="Spelling.cs" />
     <!-- The runtime's variables, and the startup hooks' rule (this hook first, taken out as it starts), as Passenger names them. -->

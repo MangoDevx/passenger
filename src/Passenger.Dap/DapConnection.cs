@@ -21,9 +21,9 @@ public sealed class DapConnection : IAsyncDisposable
     /// and an end that sends more without one is not speaking it.</summary>
     public const int MostHeader = 64 * 1024;
 
-    /// <summary>The longest message body read, 256 MB: the largest either end sends are Hot Reload's deltas (a large
-    /// edit's metadata, IL and PDB, a few MB in base64) and a large collection's variables (a few MB), so this is far above
-    /// any real one, and a Content-Length beyond it ends the conversation rather than take the reader's memory.</summary>
+    /// <summary>The longest message body read, 256 MB, far above any real one (Hot Reload's deltas or a large
+    /// collection's variables, a few MB): a Content-Length beyond it ends the conversation rather than take the
+    /// reader's memory.</summary>
     public const long MostBody = 256L * 1024 * 1024;
 
     /// <summary>The read buffer's size between messages: a larger message's room is let go once it has been read.</summary>
@@ -58,10 +58,9 @@ public sealed class DapConnection : IAsyncDisposable
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
     };
 
-    /// <summary>Where every message each connection sends or reads goes while set, with the connection's <see cref="Name"/>
-    /// and the message after an arrow for its direction ("-->" sent); called on the connection's threads. The IDE's
-    /// Trace protocol messages setting, the process's as every window's sessions write the one dap.log; an adapter
-    /// never sets it.</summary>
+    /// <summary>Where every message each connection sends or reads goes while set, with the connection's <see
+    /// cref="Name"/> and the message after an arrow for its direction ("-->" sent); called on the connection's
+    /// threads.</summary>
     public static Action<string, string>? Trace { get; set; }
 
     /// <summary>What a trace calls this connection (the adapter's process).</summary>
@@ -357,8 +356,7 @@ public sealed class DapConnection : IAsyncDisposable
                 switch (Text(message, "type"))
                 {
                     case "request":
-                        // Started here, in order, and left to finish: a handler's first wait is where the
-                        // next request may start, as the protocol's own adapters behave.
+                        // Started in order and left to finish: the next request may start at a handler's first wait.
                         _ = AnswerAsync(message);
                         break;
                     case "event":

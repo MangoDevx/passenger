@@ -15,7 +15,7 @@ public sealed class Bookmark(string path, int line)
     public string Name => System.IO.Path.GetFileName(Path);
 }
 
-/// <summary>A folder's bookmarks as the store keeps them, as Rider keeps them with the project.</summary>
+/// <summary>A folder's bookmarks as the store keeps them.</summary>
 public sealed record BookmarksState : IStateDocument<BookmarksState>
 {
     public List<KeptBookmark> Bookmarks { get; init; } = [];
@@ -32,8 +32,8 @@ public sealed record BookmarksState : IStateDocument<BookmarksState>
 /// <summary>A bookmark as kept: its file and its line from zero.</summary>
 public sealed record KeptBookmark(string Path, int Line);
 
-/// <summary>Rider's bookmarks: lines marked to come back to, Toggle Bookmark on the caret's line, Next and Previous
-/// across every file in the order they were set. A bookmark in an open file moves with its line, as a breakpoint does.</summary>
+/// <summary>Bookmarks: lines marked to come back to, Toggle Bookmark on the caret's line, Next and Previous across
+/// every file in the order they were set. A bookmark in an open file moves with its line.</summary>
 public sealed class BookmarkStore
 {
     private readonly List<Bookmark> all = [];

@@ -42,7 +42,6 @@ public sealed class LogsTests : IDisposable
         Assert.True(log.Any(line => line.Contains($"C# language server (process {server}) error: ", StringComparison.Ordinal) && line.Contains(Reason, StringComparison.Ordinal)),
             $"The IDE's log does not say why Bad.csproj did not load:\n{string.Join('\n', log.Where(line => line.Contains($"(process {server})", StringComparison.Ordinal)))}");
         Assert.Contains(log, line => line.Contains($"C# language server (process {server}) says: There were problems loading project Bad.csproj", StringComparison.Ordinal));
-        // The load's progress showed beside the language as it went, and is gone once it is done.
         Assert.True(languageShown.Any(t => t.Contains("Loading 1 project(s)…", StringComparison.Ordinal)),
             $"The status bar never showed the projects loading; it showed: {string.Join(" | ", languageShown.Distinct())}");
         Ui.WaitFor(() => window.FindControl<TextBlock>("LanguageText")!.Text == "C#", "the load's progress to leave the status bar");
@@ -74,7 +73,6 @@ public sealed class LogsTests : IDisposable
         Ui.WaitFor(() => Ui.IdeLog().Contains($"(process {server}) gave an open file its colours", StringComparison.Ordinal), "the loose file's colours from the server");
         Ui.WaitFor(() => window.FindControl<TextBlock>("LanguageText")!.Text == "C#", "the server's work to leave the status bar");
 
-        // Every restore it showed was the folder's project's, by name.
         string shown = string.Join(" | ", languageShown.Distinct());
         Assert.True(languageShown.Where(t => t.Contains("Restor", StringComparison.Ordinal)).All(t => t.Contains("App.csproj", StringComparison.Ordinal)),
             $"The status bar showed a restore of a project the folder does not have, the language server's own: {shown}");
@@ -85,9 +83,9 @@ public sealed class LogsTests : IDisposable
         window.Close();
     }
 
-    /// <summary>The start's timing waits for an open file to be placed in a project without asking the server itself: the
-    /// first file open being one no project holds, left in the server's Miscellaneous Files, it is not asked after ten
-    /// times a second, which filled lsp.log for ten minutes.</summary>
+    /// <summary>The start's timing waits for an open file to be placed in a project without asking the server itself:
+    /// the first file open being one no project holds, left in the server's Miscellaneous Files, it is never asked
+    /// after again and again.</summary>
     [AvaloniaFact]
     public void Timing_the_start_never_asks_the_language_server_again_and_again_of_a_file_no_project_holds()
     {
@@ -152,16 +150,13 @@ public sealed class LogsTests : IDisposable
             Assert.True(Traced(trace, $"[server {server}] --> ", "\"method\":\"textDocument/semanticTokens/full\""),
                 $"lsp.log does not have the open file's colours asked for:\n{Start(trace)}");
 
-            // Every program, quick or not, with its command line, as Rider's debug log has its processes.
             string log = Ui.IdeLog();
             Assert.True(log.Contains($"Process {server} started", StringComparison.Ordinal) && log.Contains("Microsoft.CodeAnalysis.LanguageServer.dll --stdio", StringComparison.Ordinal),
                 $"The IDE's log does not have the language server's command line:\n{log}");
-            // The phases of the folder's opening, each with its time.
             Assert.Contains($"Opened {window.Folder}", log, StringComparison.Ordinal);
             Assert.Matches($@"C# language server \(process {server}\) started for .* in \d+\.\d\d s, loading 1 project", log);
             Assert.Matches($@"C# language server \(process {server}\) loaded 1 project in \d+\.\d\d s", log);
 
-            // Off, nothing more is traced: a change typed now is not in lsp.log.
             window.ApplySettings(window.Settings with { TraceProtocols = false });
             int traced = Logged("lsp.log").Length;
             window.KeyTextInput("// untraced");

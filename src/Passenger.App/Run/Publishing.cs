@@ -267,9 +267,8 @@ public static class PublishProfiles
     public static string Path(string project, IReadOnlyDictionary<string, string>? evaluated, string profile) =>
         System.IO.Path.Combine(Folder(project, evaluated), $"{profile}.pubxml");
 
-    /// <summary>The folder a publish puts the app in, from its evaluation: PublishDir, from the project's folder. A Visual
-    /// Studio web profile's PublishUrl is not it: Visual Studio copies the app on there (Web Deploy's FileSystem step, run
-    /// only with DeployOnBuild), dotnet publish does not.</summary>
+    /// <summary>The folder a publish puts the app in, from its evaluation: PublishDir, from the project's folder; never a web
+    /// profile's PublishUrl, which dotnet publish does not copy to.</summary>
     public static string? FolderOf(string project, IReadOnlyDictionary<string, string> evaluated) =>
         evaluated.GetValueOrDefault("PublishDir") is { } named ? Full(project, named) : null;
 
@@ -317,7 +316,7 @@ public static class PublishProfiles
     /// property the dialog shows where the file sets it already or the option differs from what the profile (or, for a new
     /// one, the project) made of it before, so a change touches what changed and a new profile says what it changes. A
     /// multi-targeted project's framework is named; a single one's is the project's own, never pinned in a profile that
-    /// would outlive a change of it. A new profile names its folder target, as Visual Studio's do, so it shows it as one.</summary>
+    /// would outlive a change of it. A new profile names its folder target, so Visual Studio shows it as one.</summary>
     public static IReadOnlyList<(string Name, string? Value)> Properties(PublishOptions options, PublishOptions? before, IReadOnlyDictionary<string, string> raw,
         bool multiTargeted, bool fresh)
     {
@@ -433,7 +432,7 @@ public static class PubXml
                 group.Add(new XText(indentation), added, new XText(indentation.Length >= 2 ? indentation[..^2] : "\n"));
             }
         }
-        // Written as SolutionEdits writes a .slnx: its declaration as it was, the rest through a writer that keeps its breaks.
+        // Its declaration as it was, the rest through a writer that keeps its breaks.
         string newline = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
         int start = text.IndexOf("<?xml", StringComparison.Ordinal);
         StringBuilder written = new(document.Declaration is null || start < 0 ? null : text[start..(text.IndexOf("?>", start, StringComparison.Ordinal) + 2)]);

@@ -11,7 +11,7 @@ namespace Passenger.App.Mcp;
 /// cref="McpProxy"/>); the tools say their stage through <see cref="Say"/> and <see cref="Follow"/>.</summary>
 public sealed class AgentCall : IAsyncDisposable
 {
-    /// <summary>The variable that gives <see cref="Every"/> in milliseconds (the tests' run, shorter).</summary>
+    /// <summary>The variable that gives <see cref="Every"/> in milliseconds.</summary>
     public const string EveryVariable = "PASSENGER_MCP_PROGRESS_MS";
 
     /// <summary>The call the flow serves, so a tool's own code reaches it however deep (the dispatcher flows it too).</summary>
@@ -60,9 +60,8 @@ public sealed class AgentCall : IAsyncDisposable
         beating = token is null ? Task.CompletedTask : Task.Run(BeatAsync);
     }
 
-    /// <summary>How often a call that takes a while tells its agent so: 10 s, or what <see cref="EveryVariable"/> gives; a
-    /// value there that is no whole number of milliseconds above 0 is fatal, as a malformed flag is (Program checks it
-    /// before any window or server starts).</summary>
+    /// <summary>How often a call that takes a while tells its agent so: 10 s, or what <see cref="EveryVariable"/>
+    /// gives; a value there that is no whole number of milliseconds above 0 is fatal.</summary>
     public static TimeSpan Every => Environment.GetEnvironmentVariable(EveryVariable) is { Length: > 0 } given
         ? int.TryParse(given, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int milliseconds) && milliseconds > 0
             ? TimeSpan.FromMilliseconds(milliseconds)
@@ -152,8 +151,7 @@ public sealed class AgentCall : IAsyncDisposable
         }
         try
         {
-            // A beat told before the answer, so the agent hears none after it; never waited for long, since the answer
-            // waits on it.
+            // Told before the answer, so no beat comes after it; waited briefly, since the answer waits on it.
             await beating.WaitAsync(TimeSpan.FromSeconds(2));
         }
         catch (TimeoutException)

@@ -159,8 +159,9 @@ public sealed partial class CSharpDocument
         }
     }
 
-    /// <summary>The warning of a connection string a service reads by a name no resource of its AppHost has and its settings do
-    /// not give, with the declared names near it, which its fix changes it to (Compose's Change to rule, <see cref="Spelling.Near"/>).</summary>
+    /// <summary>The warning of a connection string a service reads by a name no resource of its AppHost has and its
+    /// settings do not give, with the declared names near it, which its fix changes it to
+    /// (<see cref="Spelling.Near"/>).</summary>
     private static Diagnostic Unknown(AspireUnknownConnection read)
     {
         IReadOnlyList<string> near = Spelling.Near(read.Name, read.Declared);

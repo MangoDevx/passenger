@@ -94,9 +94,8 @@ public sealed record ContainerInfo(string Id, string Name, string Image, string 
     public int? ExitCode => Status.StartsWith("Exited (", StringComparison.Ordinal) && Status.IndexOf(')', 8) is var end and > 8
         && int.TryParse(Status.AsSpan(8, end - 8), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int code) ? code : null;
 
-    /// <summary>Whether it failed, as an Aspire resource's failure is said: started again and again after each crash
-    /// (restarting), dead, or exited with a code other than a stop's (0, and SIGTERM's 143 and SIGKILL's 137, the codes a
-    /// person's Stop ends a container with).</summary>
+    /// <summary>Whether it failed: started again and again after each crash (restarting), dead, or exited with a code other
+    /// than a stop's (0, and SIGTERM's 143 and SIGKILL's 137, the codes a person's Stop ends a container with).</summary>
     public bool IsFailed => State is "restarting" or "dead" || State == "exited" && ExitCode is { } code && code is not (0 or 137 or 143);
 
     internal static ContainerInfo Read(JsonElement row)

@@ -21,11 +21,11 @@ namespace Passenger.App.History;
 /// an activity's name.</summary>
 public sealed record HistoryHost(EditorArea Editors, Func<IReadOnlyList<(string Path, string? Version)>, string, Task> Revert);
 
-/// <summary>One of the Local History window's tabs, as Rider's activity view: what a file or folder went through, newest
-/// first, each change set with its name and time and the labels among them, narrowed by content (a file's) or by file name
-/// (a folder's). A file's chosen row shows the file before it beside the file now, whose arrows put a change back; a
-/// folder's lists its files that are not now what they were then, each shown so as it is chosen. Revert Selected and
-/// Later Changes puts back what the chosen row's version was; a folder's Revert Selection, only the files chosen.</summary>
+/// <summary>One of the Local History window's tabs: what a file or folder went through, newest first, each change set
+/// with its name and time and the labels among them, narrowed by content (a file's) or by file name (a folder's). A
+/// file's chosen row shows the file before it beside the file now, whose arrows put a change back; a folder's lists its
+/// files that are not now what they were then, each shown so as it is chosen. Revert Selected and Later Changes puts back
+/// what the chosen row's version was; a folder's Revert Selection, only the files chosen.</summary>
 public sealed class HistoryTab : DockPanel
 {
     private const double RowHeight = ListRow.Height;
@@ -195,8 +195,8 @@ public sealed class HistoryTab : DockPanel
         await ShowAsync();
     }
 
-    /// <summary>Rider's Revert Selected and Later Changes: the file, or every file of the folder that differs, back as it
-    /// was before the chosen row's change set.</summary>
+    /// <summary>Revert Selected and Later Changes: the file, or every file of the folder that differs, back as it was before
+    /// the chosen row's change set.</summary>
     public Task RevertAsync()
     {
         if (Selected is not { } row)
@@ -207,14 +207,14 @@ public sealed class HistoryTab : DockPanel
         return IsFolder ? host.Revert([.. files.Select(f => (f.Path, f.Then))], name) : host.Revert([(Path, row.Version)], name);
     }
 
-    /// <summary>What Revert Selected and Later Changes names its activity, as Rider names it: the row's label or time.</summary>
+    /// <summary>What Revert Selected and Later Changes names its activity: the row's label or time.</summary>
     public static string RevertName(HistoryRow row)
     {
         string when = GitLogView.When(row.Time);
         return row.Name is { } named ? $"Revert to '{named}' at {when}" : $"Revert to {when}";
     }
 
-    /// <summary>Rider's Revert Selection: only the folder's files chosen, back as they were before the chosen row.</summary>
+    /// <summary>Revert Selection: only the folder's files chosen, back as they were before the chosen row.</summary>
     public Task RevertSelectionAsync()
     {
         if (Selected is not { } row || fileList?.SelectedItems is not { Count: > 0 } chosen)
@@ -359,7 +359,6 @@ public sealed class HistoryTab : DockPanel
         shownDiff = (set, path, version);
         if (diff.Hunks.Count > 0)
         {
-            // Opened on its first difference, as Rider's diff opens.
             view.Right.GoTo(new TextPosition(Math.Min(diff.Hunks[0].NewStart, text.LineCount - 1), 0));
         }
         if (lent is { } taken)
@@ -419,7 +418,7 @@ public sealed class HistoryTab : DockPanel
         line.Children.Add(time);
         if (row.IsLabel)
         {
-            // A label stands out as Rider's do, the IDE's own (a test run's) muted.
+            // The IDE's own labels (Tests Passed) muted beside the person's.
             PathIcon tag = new() { Width = 12, Height = 12, Margin = new Thickness(0, 0, 6, 0), [DockProperty] = Dock.Left };
             tag.Bind(PathIcon.DataProperty, tag.GetResourceObservable("Icon.Label"));
             tag.Bind(PathIcon.ForegroundProperty, tag.GetResourceObservable(row.System ? "Passenger.TextMuted" : "Passenger.Accent"));

@@ -22,14 +22,14 @@ public enum AttachPurpose
     Profiler,
 }
 
-/// <summary>Rider's Attach to Process: the .NET programs running on this machine that the debugger can attach to, each by
-/// Rider's columns (executable, process id, user, command line), those attached to before in this window first under
-/// Recently attached, then those in the engine's running containers under each container (what to know first after the
-/// command line; one no debugger can attach to says why, and Attach stays off for it). The search box narrows them by any
-/// of those as it is typed, the arrow keys choose among the rows
-/// left, and Enter, a double-click or Attach with .NET Debugger closes it with the program chosen (null when cancelled).
-/// Refresh lists them again, for a program started since it opened. For the profiler it is titled and its button named
-/// Attach Profiler (<see cref="AttachPurpose"/>).</summary>
+/// <summary>Attach to Process: the .NET programs running on this machine that the debugger can attach to, each by its
+/// executable, process id, user and command line, those attached to before in this window first under Recently
+/// attached, then those in the engine's running containers under each container (what to know first after the command
+/// line; one no debugger can attach to says why, and Attach stays off for it). The search box narrows them by any of
+/// those as it is typed, the arrow keys choose among the rows left, and Enter, a double-click or Attach with .NET
+/// Debugger closes it with the program chosen (null when cancelled). Refresh lists them again, for a program started
+/// since it opened. For the profiler it is titled and its button named Attach Profiler
+/// (<see cref="AttachPurpose"/>).</summary>
 public sealed class AttachToProcessDialog : Window
 {
     private const string Columns = "220,90,110,*";
@@ -162,8 +162,8 @@ public sealed class AttachToProcessDialog : Window
         ShowRows();
     }
 
-    /// <summary>The rows the search leaves: those attached to before under Recently attached, then the others, as Rider
-    /// groups them, with no headings when none was.</summary>
+    /// <summary>The rows the search leaves: those attached to before under Recently attached, then the others, with no
+    /// headings when none was.</summary>
     private void ShowRows()
     {
         if (listed is null)

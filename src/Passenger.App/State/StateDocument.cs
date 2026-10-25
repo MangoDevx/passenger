@@ -147,13 +147,12 @@ public sealed class StateDocument<T> where T : class, IStateDocument<T>, new()
         }
     }
 
-    /// <summary>The file's value as read and clamped now, on any thread, without taking it in: what the process's start
-    /// reads before any window keeps the document.</summary>
+    /// <summary>The file's value as read and clamped now, on any thread, without taking it in.</summary>
     public T Peek() => ReadNow().Value;
 
     /// <summary>Changes the value as the file holds it now and writes the change at once, merged over the file as a
-    /// <see cref="Set"/>'s is, on any thread: for a document no window keeps (the process's start, before any window; work
-    /// that ends after its window's loop has stopped). A document a window keeps is changed through <see cref="Set"/>.</summary>
+    /// <see cref="Set"/>'s is, on any thread: for a document no window keeps. A document a window keeps is changed through
+    /// <see cref="Set"/>.</summary>
     public void ChangeNow(Func<T, T> change)
     {
         lock (writing)
@@ -420,8 +419,8 @@ internal static class StateFile
         return written;
     }
 
-    /// <summary>A value with what changed between two others put over it, value by value as a file's merge does: what a
-    /// window changed from the settings it had, over the settings as they are now.</summary>
+    /// <summary>A value with what changed between two others put over it, value by value: what a window changed from the
+    /// settings it had, over the settings as they are now.</summary>
     public static T Merged<T>(T now, T from, T to) where T : class, IStateDocument<T>, new()
     {
         JsonObject merged = [];

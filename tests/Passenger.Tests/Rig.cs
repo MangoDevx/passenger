@@ -74,8 +74,8 @@ public sealed class TestRun : IDisposable
             : (1, $"{TimeScaleVariable} is \"{given}\": it must be a number above 0, such as 1.5, by which every test's time limits are multiplied");
     });
 
-    /// <summary>The run's fixture, made before its first test: a malformed time scale fails each test with why, as a malformed
-    /// flag ends the IDE (a module initializer's exception reaches dotnet test only as "did not return valid JSON").</summary>
+    /// <summary>The run's fixture, made before its first test: a malformed time scale fails each test with why (a module
+    /// initializer's exception reaches dotnet test only as "did not return valid JSON").</summary>
     public TestRun()
     {
         if (ReadTimeScale.Value.Problem is { } problem)
@@ -114,23 +114,20 @@ public sealed class TestRun : IDisposable
         // Configuration given on git's command line through the environment, which would come before the file's.
         Environment.SetEnvironmentVariable("GIT_CONFIG_PARAMETERS", null);
         Environment.SetEnvironmentVariable("GIT_CONFIG_COUNT", null);
-        // The commands the terminals' shells run go into the run's history, not the person's: sh takes HISTFILE as given,
-        // and zsh takes its startup files, and from them its history, from ZDOTDIR.
+        // The terminals' shells keep their history in the run's: sh takes HISTFILE, zsh its startup files from ZDOTDIR.
         Environment.SetEnvironmentVariable("HISTFILE", Path.Combine(Root, "history"));
         Environment.SetEnvironmentVariable("ZDOTDIR", Directory.CreateDirectory(Path.Combine(Root, "zsh")).FullName);
         File.WriteAllText(Path.Combine(Root, "zsh", ".zshrc"), string.Empty);
         NuGetHome();
-        // No test reaches GitHub: a window or a Passenger started that checks for updates without a stand-in of its own
-        // asks a loopback port nothing listens on.
+        // No test reaches GitHub: a Passenger that checks for updates without a stand-in asks where nothing listens.
         Environment.SetEnvironmentVariable(Passenger.App.Updates.ReleaseFeed.Variable, "http://127.0.0.1:9/repos/Zaneris/passenger/releases/latest");
         // Nor NuGet's symbol server: a theme's sources asked for without a stand-in of the test's come from where nothing listens.
         Environment.SetEnvironmentVariable(Passenger.App.Xaml.SourceLink.Variable, "http://127.0.0.1:9/");
         // Nor the web for a JSON schema a file names: those Passenger does not carry are asked of where nothing listens.
         Environment.SetEnvironmentVariable(Passenger.App.Web.JsonSchemas.Variable, "http://127.0.0.1:9/");
-        // Nor Docker Hub for an image's tags after FROM image:, which a Dockerfile server without a stand-in of its window's asks of where nothing listens.
+        // Nor Docker Hub for an image's tags: a Dockerfile server without a stand-in asks where nothing listens.
         Environment.SetEnvironmentVariable(Passenger.App.Web.DockerHubTags.Variable, "http://127.0.0.1:9/");
-        // Nor a registry for a Dockerfile's base images: BuildKit's checks, which read their metadata there, are off in every
-        // window's settings but in the one test that turns them on.
+        // Nor a registry for a Dockerfile's base images: BuildKit's checks are off but in the one test that turns them on.
         Environment.SetEnvironmentVariable(Passenger.App.Containers.BuildKitChecks.Variable, "off");
         // Nor the person's user secrets: a container run mounts a project's from the run's own folder, which a test writes.
         Environment.SetEnvironmentVariable(Passenger.App.Containers.ContainerPlans.UserSecretsVariable, UserSecrets);
@@ -138,8 +135,7 @@ public sealed class TestRun : IDisposable
         Environment.SetEnvironmentVariable(Passenger.App.Mcp.McpProxy.StartVariable, "headless");
         // Nor the person's Discord: a window without a stand-in of its own looks where nothing listens.
         Environment.SetEnvironmentVariable(Passenger.App.Discord.DiscordIpc.Variable, DiscordNowhere);
-        // Nor npm's registry: an npm install the IDE runs (Run 'npm install') takes only what the run's own empty cache
-        // has, and reads none of the person's npm configuration or cache.
+        // Nor npm's registry: an npm install the IDE runs takes only what the run's own empty cache has.
         string npmConfig = Path.Combine(Root, "npmrc");
         File.WriteAllText(npmConfig, string.Empty);
         Environment.SetEnvironmentVariable("npm_config_userconfig", npmConfig);
@@ -149,24 +145,17 @@ public sealed class TestRun : IDisposable
         Environment.SetEnvironmentVariable("npm_config_update_notifier", "false");
         Environment.SetEnvironmentVariable("npm_config_audit", "false");
         Environment.SetEnvironmentVariable("npm_config_fund", "false");
-        // Nor the person's application data: a Testing Platform test app the IDE runs writes its first-run notice's
-        // sentinel there (Microsoft/TestingPlatform) unless telemetry is opted out.
+        // Nor the person's application data, where a Testing Platform app writes its first-run sentinel unless opted out.
         Environment.SetEnvironmentVariable("TESTINGPLATFORM_TELEMETRY_OPTOUT", "1");
-        // Nor Aspire's: an aspire CLI or AppHost the run starts keeps its settings, logs and first-run sentinel in the run's
-        // own home (ASPIRE_HOME), sends no telemetry and looks for no newer version of itself or of Aspire.
+        // Nor Aspire's: an aspire CLI or AppHost the run starts keeps its settings and first-run sentinel in the run's home.
         Environment.SetEnvironmentVariable("ASPIRE_HOME", Path.Combine(Root, "aspire-home"));
         Environment.SetEnvironmentVariable("ASPIRE_CLI_TELEMETRY_OPTOUT", "1");
         Environment.SetEnvironmentVariable("features__updateNotificationsEnabled", "false");
         Environment.SetEnvironmentVariable("ASPIRE_VERSION_CHECK_DISABLED", "true");
-        // Nor the person's aspire CLI, nor their ~/.aspire: the run's own CLI, with a home of the run's own, is the only aspire
-        // on the run's PATH (AspireCli), and it makes no development certificate where it would only check one.
+        // Nor the person's aspire CLI: the run's own is the only one on its PATH (AspireCli), and makes no certificate.
         Environment.SetEnvironmentVariable("ASPIRE_CLI_GENERATE_HTTPS_CERTIFICATE", "false");
         AspireCli.Begin(Root);
-        // Waits a person never notices, which a test that holds the IDE to them would wait out in full, made short: the
-        // debugger gives up on an evaluation after 3 s, not 5 (Passenger.Dap's AdapterEnvironment.EvaluationTimeoutVariable;
-        // 1 s timed out a program's first LINQ evaluation on CI's Linux runner), an agent's hot_reload under dotnet watch
-        // waits 3 s, not 10, after the changes applied for a restart they may still end in (the status bar follows on), and
-        // an agent's call that takes a while tells it so every second, not every 10 s.
+        // Waits a person never notices, which a test holding the IDE to them would wait out in full, made short.
         Environment.SetEnvironmentVariable(Passenger.Dap.AdapterEnvironment.EvaluationTimeoutVariable, "3000");
         Environment.SetEnvironmentVariable(Passenger.App.MainWindow.WatchSaysLaterVariable, "3000");
         Environment.SetEnvironmentVariable(Passenger.App.Mcp.AgentCall.EveryVariable, "1000");
@@ -177,20 +166,15 @@ public sealed class TestRun : IDisposable
     }
 
     /// <summary>On macOS and Linux, NuGet's home for the run, which NuGet takes from DOTNET_CLI_HOME: its user nuget.config,
-    /// its credential providers and its HTTP cache are the run's, so no test reads the person's feeds or credentials or
-    /// writes their nuget.config, nor reads the machine's. The run's nuget.config names nuget.org and the person's package
-    /// cache, as theirs did by default, so a restore downloads nothing new, and a folder's own nuget.config still says
-    /// otherwise. The cache is named as NuGet names its default, ending in a separator, so a restore of a project the
-    /// person built (the repository's own, which SelfDebuggingTests' IDE builds) writes the same NuGetPackageRoot into its
-    /// nuget.g.props as theirs did: named without it, every project's props changed, and with them every compile's inputs,
-    /// so that build compiled Passenger's 21 projects again, and so did the person's next build. dotnet's first run in that
-    /// home leaves the certificate store and PATH alone.</summary>
+    /// its credential providers and its HTTP cache are the run's, so no test reads the person's feeds or credentials or writes
+    /// their nuget.config. Its nuget.config names nuget.org and the person's package cache, named as NuGet names its default
+    /// (ending in a separator), so a restore downloads nothing new and writes the same NuGetPackageRoot into a project's
+    /// nuget.g.props as the person's builds do, leaving their next build nothing to compile again.</summary>
     private static void NuGetHome()
     {
         if (OperatingSystem.IsWindows())
         {
-            // NuGet reads the user's nuget.config from %APPDATA% there; each test's folder clears its feeds instead.
-            // dotnet new's templates, kept in that home elsewhere, go in a hive of the run's own, apart from AvaloniaApp's.
+            // NuGet reads %APPDATA% there, so each test's folder clears its feeds; dotnet new's templates get the run's hive.
             Passenger.App.Templates.ProjectTemplates.Hive = Directory.CreateDirectory(Path.Combine(Root, "dotnet-new")).FullName;
             return;
         }
@@ -873,8 +857,7 @@ public static class Ui
     public static void WaitFor(Func<bool> condition, string what, TimeSpan? limit = null) => WaitFor(condition, () => what, limit);
 
     /// <summary><see cref="WaitFor(Func{bool}, string, TimeSpan?)"/> whose words are made as it gives up, so what it says
-    /// of the window (its status, a model's state) is what stood then: words made as a wait begins tell how it began, which
-    /// read as what it hung on (#433's "hang" was the status as the wait began).</summary>
+    /// of the window (its status, a model's state) is what stood then, not how the wait began.</summary>
     public static void WaitFor(Func<bool> condition, Func<string> what, TimeSpan? limit = null)
     {
         TimeSpan within = (limit ?? SettleLimit).Scaled();
@@ -1064,10 +1047,9 @@ public static class Ui
         return (top, point);
     }
 
-    /// <summary>Shuts each tooltip of what the pointer leaves for a click elsewhere, as a person's pointer moving there does. The
-    /// rig's pointer jumps to a click without moving, so Avalonia hears it rests on what it pressed only as the window redraws
-    /// under it, and opens that control's tooltip 400 ms on (a person's move there told it first, and the press shut it for
-    /// as long as the pointer stays); on a slow runner a click's wait outlasts that and the tip covers what is clicked next.</summary>
+    /// <summary>Shuts each tooltip of what the pointer leaves for a click elsewhere, as a person's pointer moving there does:
+    /// the rig's pointer jumps to a click without moving, so a tooltip the window opened under it as it redrew could cover
+    /// what is clicked next.</summary>
     private static void ShutToolTipsLeft(TopLevel top, Control control)
     {
         foreach (ToolTip tip in top.GetVisualDescendants().OfType<ToolTip>().ToList())
@@ -1979,7 +1961,7 @@ public static partial class Processes
         }
         catch (Exception gone) when (gone is ArgumentException or InvalidOperationException or AggregateException or System.ComponentModel.Win32Exception)
         {
-            // Gone, or ending: Windows refuses to end a process of the tree that is (ChildProcesses.Kill).
+            // Gone, or ending: Windows refuses to end a process of the tree that is.
         }
     }
 

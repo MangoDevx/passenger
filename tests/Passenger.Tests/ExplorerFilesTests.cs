@@ -15,9 +15,10 @@ using Passenger.Text;
 
 namespace Passenger.Tests;
 
-/// <summary>The Explorer's file operations as Rider's: New Class writes a class in its folder's namespace and opens it;
-/// a rename moves the file or folder and its open tabs with it, its project including and removing what it did; a delete
-/// goes to the Trash and closes its tab, and a project's leaves the solution; a name already there is refused with why.</summary>
+/// <summary>The Explorer's file operations: New Class writes a class in its folder's namespace and opens it; a rename
+/// moves the file or folder and its open tabs with it, its project including and removing what it did; a delete goes to
+/// the Trash and closes its tab, and a project's leaves the solution; a name already there is refused with
+/// why.</summary>
 public sealed class ExplorerFilesTests : IDisposable
 {
     private readonly string folder = TestFolders.Create("files-");
@@ -43,7 +44,6 @@ public sealed class ExplorerFilesTests : IDisposable
         MainWindow window = Open();
         string models = PathNames.Canonical(Path.Combine(folder, "Models"));
 
-        // New Class: the folder's namespace under the project's, and the file open.
         Assert.Null(window.CreateClass(models, "Order"));
         string order = Path.Combine(models, "Order.cs");
         Assert.Equal("namespace Shop.Models;\n\npublic class Order\n{\n}\n", File.ReadAllText(order));
@@ -51,18 +51,15 @@ public sealed class ExplorerFilesTests : IDisposable
         Assert.Contains(window.ExplorerView.Tree.Rows, r => r.Name == "Order.cs");
         Assert.Equal("Order.cs is already there", window.CreateFile(models, "Order.cs", string.Empty));
 
-        // A rename moves the file, and its tab shows the new one.
         Assert.Null(window.Rename(order, "Purchase.cs"));
         string purchase = Path.Combine(models, "Purchase.cs");
         Assert.True(File.Exists(purchase));
         Assert.False(File.Exists(order));
         Assert.Equal(["Purchase.cs"], window.EditorArea.Documents.Select(d => d.Name));
 
-        // A folder's rename takes its open files along.
         Assert.Null(window.Rename(models, "Domain"));
         Assert.Equal(PathNames.Canonical(Path.Combine(folder, "Domain", "Purchase.cs")), Assert.Single(window.EditorArea.Documents).Path);
 
-        // A delete goes to the Trash and closes the tab.
         window.Confirm = (_, _, _) => Task.FromResult(true);
         string moved = Path.Combine(folder, "Domain", "Purchase.cs");
         Task<bool> deleting = window.DeleteAsync(PathNames.Canonical(moved));
@@ -73,7 +70,6 @@ public sealed class ExplorerFilesTests : IDisposable
         Assert.Empty(window.EditorArea.Documents);
         Assert.DoesNotContain(window.ExplorerView.Tree.Rows, r => r.Name == "Purchase.cs");
 
-        // A folder renamed with two of its files open keeps the one in front in front.
         string domain = PathNames.Canonical(Path.Combine(folder, "Domain"));
         File.WriteAllText(Path.Combine(domain, "Alpha.cs"), "class Alpha { }\n");
         File.WriteAllText(Path.Combine(domain, "Beta.cs"), "class Beta { }\n");
@@ -85,8 +81,7 @@ public sealed class ExplorerFilesTests : IDisposable
         Assert.Equal(PathNames.Canonical(Path.Combine(folder, "Models", "Alpha.cs")), window.EditorArea.Active?.Path);
         Assert.Equal(2, window.EditorArea.Documents.Count);
 
-        // New Class named with a folder, typed as a person types it into New Class/Interface: the folder first, and the
-        // file's .cs by habit; it goes in that folder, in its namespace.
+        // Typed as a person types it: the folder first, and the file's .cs by habit.
         string project = PathNames.Canonical(folder);
         Assert.Null(window.CreateType(project, "Shapes/Circle.cs", "Class"));
         string circle = Path.Combine(project, "Shapes", "Circle.cs");
@@ -94,7 +89,6 @@ public sealed class ExplorerFilesTests : IDisposable
         Assert.Equal("namespace Shop.Shapes;\n\npublic class Circle\n{\n}\n", File.ReadAllText(circle));
         Assert.Equal(PathNames.Canonical(circle), window.EditorArea.Active?.Path);
 
-        // A name that is not one C# name is refused, not cut down to its first part.
         Assert.Equal("Circle.Shape is not a C# name", window.CreateType(project, "Circle.Shape", "Class"));
         window.Close();
     }
@@ -159,10 +153,8 @@ public sealed class ExplorerFilesTests : IDisposable
         Assert.True(File.Exists(notes), "The file left although the Trash refused it");
         OpenDocument open = Assert.Single(window.EditorArea.Documents);
         Assert.Equal("milk, groceries\n", open.Text.Snapshot.ToString());
-        // Saved before the Trash was asked, the edit is on disk as well.
         Assert.True(File.ReadAllText(notes) == "milk, groceries\n" || open.IsModified, "The unsaved edit was marked saved without being written, so it would be lost");
 
-        // Another edit, unsaved, and a Trash that takes the file: it goes with every edit, and Local History keeps them.
         Trash.Folder = trash;
         window.EditorArea.CodeEditor.Focus();
         window.KeyTextInput("eggs, ");
@@ -200,7 +192,6 @@ public sealed class ExplorerFilesTests : IDisposable
         MainWindow window = Open();
         List<string> asked = Answer(window);
 
-        // Rename's keys on the folder in the Solution view: the project removes the same files from where they went.
         window.ExplorerView.Reveal(legacy);
         Ui.Settle();
         Ui.ClickRow(window, window.ExplorerView.Tree.Rows.First(r => r.Path == legacy));
@@ -213,7 +204,6 @@ public sealed class ExplorerFilesTests : IDisposable
         Assert.True(Directory.Exists(Path.Combine(folder, "Archive")), $"Legacy was not renamed: {window.Status}");
         Assert.Equal(written.Replace("Legacy\\", "Archive\\", StringComparison.Ordinal), File.ReadAllText(project));
 
-        // Undo takes the folder and the project back together, asked first.
         string archive = PathNames.Canonical(Path.Combine(folder, "Archive"));
         window.ExplorerView.Reveal(archive);
         Ui.Settle();
@@ -264,7 +254,6 @@ public sealed class ExplorerFilesTests : IDisposable
         Assert.Equal(purchase, Assert.Single(window.Bookmarks.All).Path);
         Assert.Equal([4], document.Bookmarks);
 
-        // The breakpoint still follows its line at the new path, and undo reaches back past the rename.
         area.CodeEditor.GoTo(new TextPosition(0, 0));
         area.CodeEditor.Focus();
         Ui.Press(window, "Enter");
@@ -277,11 +266,10 @@ public sealed class ExplorerFilesTests : IDisposable
         window.Close();
     }
 
-    /// <summary>The Explorer's menu and keys are the window's actions (#393), where its own copies ignored the keymap: a
-    /// row's Rename and Delete run from its menu and from the keys of the keymap chosen, Visual Studio's Ctrl+R, R (⌘R, R
-    /// on macOS) and Delete, VS Code's F2 and Delete, as Rider's RenameElement and $Delete are bound in each; F2 renames
-    /// nothing in Visual Studio's, where Rider gives it none. Open In's file manager shows the row's file there, as the one
-    /// way the IDE opens the file manager records it (headless, it opens nothing).</summary>
+    /// <summary>The Explorer's menu and keys are the window's actions: a row's Rename and Delete run from its menu and
+    /// from the keys of the keymap chosen, Visual Studio's Ctrl+R, R (⌘R, R on macOS) and Delete, VS Code's F2 and
+    /// Delete, as Rider's RenameElement and $Delete are bound in each; F2 renames nothing in Visual Studio's, where
+    /// Rider gives it none. Open In's file manager shows the row's file there (headless, it opens nothing).</summary>
     [AvaloniaFact]
     public void The_explorers_rename_delete_and_reveal_run_from_its_menu_and_from_each_keymaps_keys()
     {
@@ -293,7 +281,6 @@ public sealed class ExplorerFilesTests : IDisposable
         List<string> asked = Answer(window);
         try
         {
-            // From the row's menu.
             Ui.ChooseFromRowMenu(window, Row(window, "One.txt"), "Edit", "Rename…");
             Renamed(window, "Uno.txt");
             Ui.ChooseFromRowMenu(window, Row(window, "Uno.txt"), "Edit", "Delete…");
@@ -301,7 +288,6 @@ public sealed class ExplorerFilesTests : IDisposable
             Ui.ChooseFromRowMenu(window, Row(window, "Four.txt"), "Open In", FileManager.Name);
             Assert.Equal([Row(window, "Four.txt").Path!], window.ShownInFileManager);
 
-            // By Visual Studio's keys.
             Pick(window, Row(window, "Two.txt"));
             Ui.Press(window, "F2");
             Assert.False(window.Popup is NamePopup, "F2 renamed a row in Visual Studio's keymap, which gives Rename Ctrl+R, R");
@@ -311,7 +297,6 @@ public sealed class ExplorerFilesTests : IDisposable
             Ui.Press(window, "DELETE");
             Gone(window, "Dos.txt", "Delete in Visual Studio's keymap");
 
-            // By VS Code's.
             window.ApplySettings(window.Settings with { Keymap = KeymapPreset.VSCode });
             Ui.Settle();
             Pick(window, Row(window, "Three.txt"));
@@ -382,11 +367,11 @@ public sealed class ExplorerFilesTests : IDisposable
         return asked;
     }
 
-    /// <summary>Whether the status bar says the work ended, as it does or with why it could not.</summary>
     /// <summary>What a folder holds, by its paths inside it, for a failure to name.</summary>
     private static IEnumerable<string> Left(string path) =>
         Directory.Exists(path) ? Directory.EnumerateFileSystemEntries(path, "*", SearchOption.AllDirectories).Select(p => Path.GetRelativePath(path, p)) : [];
 
+    /// <summary>Whether the status bar says the work ended, as it does or with why it could not.</summary>
     private static bool Finished(MainWindow window, string done) =>
         window.Status is { } status && (status.StartsWith(done, StringComparison.Ordinal) || status.Contains("could not", StringComparison.Ordinal));
 }

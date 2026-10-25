@@ -9,9 +9,9 @@ namespace Passenger.Editor;
 /// what it opens, which only the host reads.</summary>
 public sealed record TextLink(TextRange Range, object Target);
 
-/// <summary>Links, as Rider's consoles have them: the host finds a line's links (<see cref="Links"/>), each drawn underlined
-/// in the link colour, the pointer over one takes the hand, and a click on it that selects nothing opens it
-/// (<see cref="LinkClicked"/>); a drag that begins on one selects as anywhere else.</summary>
+/// <summary>Links: the host finds a line's links (<see cref="Links"/>), each drawn underlined in the link colour, the
+/// pointer over one takes the hand, and a click on it that selects nothing opens it (<see cref="LinkClicked"/>); a drag
+/// that begins on one selects as anywhere else.</summary>
 public sealed partial class CodeEditor
 {
     private Func<TextSnapshot, int, IReadOnlyList<TextLink>>? links;
@@ -123,8 +123,7 @@ public sealed partial class CodeEditor
         }
     }
 
-    /// <summary>The links' underlines on a line, in the link's underline colour, under the text's baseline, as Rider's
-    /// hyperlink attributes draw them.</summary>
+    /// <summary>The links' underlines on a line, in the link's underline colour, under the text's baseline.</summary>
     private void DrawLinks(DrawingContext context, TextSnapshot text, LineView view, Gap[] gaps, double left, double y)
     {
         if (links is null)

@@ -3,10 +3,10 @@ using Avalonia.Controls;
 
 namespace Passenger.App.Docking;
 
-/// <summary>The window's frame as IntelliJ lays it out: a stripe of tool window buttons down each edge (<see
-/// cref="Stripe"/>), the side areas left and right of the editor, the bottom area under them, each side split in two
-/// halves that show one window each (<see cref="ToolPane"/>). A window moves by a drag (<see cref="DockDrag"/>) or by
-/// its header's Move to, floats in a <see cref="FloatWindow"/>, and the layout is captured for the next start.</summary>
+/// <summary>The window's frame: a stripe of tool window buttons down each edge (<see cref="Stripe"/>), the side areas
+/// left and right of the editor, the bottom area under them, each side split in two halves that show one window each
+/// (<see cref="ToolPane"/>). A window moves by a drag (<see cref="DockDrag"/>) or by its header's Move to, floats in a
+/// <see cref="FloatWindow"/>, and the layout is captured for the next start.</summary>
 public sealed class DockHost : Grid
 {
     internal const double StripeWidth = 40;
@@ -69,8 +69,7 @@ public sealed class DockHost : Grid
         Place(rightArea, 0, 5);
         Place(bottomDivider, 1, 1, columnSpan: 5);
         Place(bottomArea, 2, 1, columnSpan: 5);
-        // Under a side area the bottom one meets a tool window of its own ground, so a seam shows the edge there; under the
-        // editor the shades do.
+        // The bottom area meets a side area of the same ground, so a seam marks that edge.
         Place(leftSeam, 1, 1);
         Place(rightSeam, 1, 5);
         foreach (Border seam in (Border[])[leftSeam, rightSeam])
@@ -155,8 +154,8 @@ public sealed class DockHost : Grid
         }
     }
 
-    /// <summary>Rider's Restore Default Layout: every window back where it was added, docked, open only if it opens at
-    /// first, and the areas at their first sizes, halves shared alike.</summary>
+    /// <summary>Restore Default Layout: every window back where it was added, docked, open only if it opens at first,
+    /// and the areas at their first sizes, halves shared alike.</summary>
     public void RestoreDefault()
     {
         foreach (Grid area in (Grid[])[leftArea, rightArea])
@@ -168,7 +167,7 @@ public sealed class DockHost : Grid
         LayoutChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>Shows a window in its place, hiding the one that was there, as a stripe button does.</summary>
+    /// <summary>Shows a window in its place, hiding the one that was there.</summary>
     public void Show(string id)
     {
         if (this[id] is not { } window)
@@ -217,8 +216,8 @@ public sealed class DockHost : Grid
         }
     }
 
-    /// <summary>Puts a window in its place, over the IDE in a window of its own, or in an independent window, as
-    /// View Mode does; it stays open if it was.</summary>
+    /// <summary>Puts a window in its place, over the IDE in a window of its own, or in an independent window (its View
+    /// Mode); it stays open if it was.</summary>
     public void SetMode(ToolWindow window, ToolMode mode)
     {
         if (window.Mode == mode)
@@ -274,7 +273,7 @@ public sealed class DockHost : Grid
 
     public bool IsMaximized => maximized is not null;
 
-    /// <summary>Hides every docked window open, or opens them again (Ctrl+Shift+F12), as IntelliJ's Hide All Windows.</summary>
+    /// <summary>Hides every docked window open, or opens them again (Ctrl+Shift+F12).</summary>
     public void ToggleHideAll()
     {
         if (hiddenAll is { } hidden)
@@ -470,7 +469,6 @@ public sealed class DockHost : Grid
         static double Positive(double value, double fallback) => value > 40 ? value : fallback;
     }
 
-    // Layout.
 
     /// <summary>The stripes' tips said again with the keymap in force, which a change of keymap or shortcut has replaced.</summary>
     public void FollowKeys()

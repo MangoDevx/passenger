@@ -14,10 +14,11 @@ using Passenger.App.Vcs;
 
 namespace Passenger.Tests;
 
-/// <summary>A dialog's buttons as a person sees them (#213): each one's words centred in it, unless it reads as text (a
-/// link, a crumb); a dialog's text buttons, the default among them, one height and one corner radius; the default button
-/// and Cancel where Rider puts them, the default rightmost on macOS and first elsewhere. <see cref="Check"/> is the rule,
-/// which the tests that open the other dialogs (a refactoring's, Conflicts, a feed's) hold their dialogs to as well.</summary>
+/// <summary>A dialog's buttons as a person sees them: each one's words centred in it, unless it reads as text (a link,
+/// a crumb); a dialog's text buttons, the default among them, one height and one corner radius; the default button and
+/// Cancel in the platform's order, the default rightmost on macOS and first elsewhere. <see cref="Check"/> is the rule,
+/// which the tests that open the other dialogs (a refactoring's, Conflicts, a feed's) hold their dialogs to as
+/// well.</summary>
 public sealed class DialogButtonsTests : IDisposable
 {
     /// <summary>The buttons that read as text, whose words stand at their left as a line of text's do.</summary>
@@ -80,7 +81,7 @@ public sealed class DialogButtonsTests : IDisposable
             Assert.True(window.Perform(AppActions.AddAspireOrchestration), $"Add Aspire Orchestration could not run: {window.Status}");
             Closed(Opened<Passenger.App.Aspire.AspireOrchestrationDialog>(window));
 
-            // Rider's Open Solution question, as another folder opens over the one open.
+            // The Open Solution question, as another folder opens over the one open.
             window.Open(other);
             Ui.Settle();
             Closed(window.Asking ?? throw new Xunit.Sdk.XunitException("Opening another folder over one open did not ask where"));
@@ -91,9 +92,9 @@ public sealed class DialogButtonsTests : IDisposable
         }
     }
 
-    /// <summary>Holds a dialog's buttons to the rule: each one shown has its words (or icon) centred in it unless it reads
-    /// as text; its text buttons (plain or the default) are one height and one corner radius; and the default button
-    /// and Cancel, when it has both, stand where Rider's do. Returns the dialog.</summary>
+    /// <summary>Holds a dialog's buttons to the rule: each one shown has its words (or icon) centred in it unless it
+    /// reads as text; its text buttons (plain or the default) are one height and one corner radius; and the default
+    /// button and Cancel, when it has both, stand in the platform's order. Returns the dialog.</summary>
     public static T Check<T>(T dialog) where T : Window
     {
         Ui.Settle();
@@ -107,15 +108,14 @@ public sealed class DialogButtonsTests : IDisposable
             {
                 continue;
             }
-            // Where its words are laid out (an icon turned in place keeps its box): a text stretched across the button
-            // still draws them from its left.
+            // Where its words are laid out: a text stretched across the button still draws them from its left.
             double left = presenter.Bounds.X + content.Bounds.X;
             double right = button.Bounds.Width - left - Math.Min(content.DesiredSize.Width, content.Bounds.Width);
             Assert.True(Math.Abs(left - right) <= 1.5,
                 $"{Name(button)} in {title} has its words {left:0.#} px from its left edge and {right:0.#} px from its right: they are not centred in the button");
         }
 
-        // A button that asks more before it acts ends in the one ellipsis, as every label does (#392): never three dots.
+        // A button that asks more before it acts ends in the one ellipsis, never three dots.
         Assert.False(title.Contains("...", StringComparison.Ordinal), $"The dialog's title '{title}' ends in three dots, where every label has the one ellipsis, '…'");
         foreach (Button button in shown.Where(b => b.Content is string words && words.Contains("...", StringComparison.Ordinal)))
         {
@@ -140,7 +140,7 @@ public sealed class DialogButtonsTests : IDisposable
                 + (OperatingSystem.IsMacOS() ? "rightmost, after Cancel" : "first, before Cancel"));
         }
 
-        // A plain button is Rider's: its own ground (white in light) inside a field's edge.
+        // A plain button: its own ground (white in light) inside a field's edge.
         Color plain = Token(dialog, "Passenger.Button");
         foreach (Button button in text.Where(b => !b.Classes.Contains("primary") && b.IsEffectivelyEnabled))
         {
@@ -158,8 +158,7 @@ public sealed class DialogButtonsTests : IDisposable
                 $"In {title}, {Name(idle)} cannot be used now yet keeps the default button's accent, where Rider's looks disabled");
         }
 
-        // The page is a tool window's ground, as every page of Rider's dialogs is its panel's, never an editor's; a list or
-        // table framed in it stands on the list's ground (Border.framed), white in light as the editor is.
+        // The page is a tool window's ground; a list framed in it stands on the list's (Border.framed).
         Assert.True(dialog.Background is ISolidColorBrush page && page.Color == Token(dialog, "Passenger.Panel"),
             $"{title}'s page is not a tool window's ground, as every dialog's page is");
         // A dialog's buttons stand on its footer's bar, never straight on its page.
@@ -183,7 +182,7 @@ public sealed class DialogButtonsTests : IDisposable
                 $"{title} lays a third of its page on the editor's ground, where its page is the chrome");
         }
 
-        // The drop-downs of a column (starting at one place) are one width, their right edges in line, as Rider's forms.
+        // The drop-downs of a column (starting at one place) are one width, their right edges in line.
         foreach (IGrouping<double, ComboBox> column in dialog.GetVisualDescendants().OfType<ComboBox>().Where(c => c.IsEffectivelyVisible && c.Bounds.Width > 0)
             .GroupBy(c => Math.Round(c.TranslatePoint(default, dialog)!.Value.X)))
         {
@@ -192,7 +191,7 @@ public sealed class DialogButtonsTests : IDisposable
             Assert.True(other is null, $"In {title}, drop-downs of one column are {first.Bounds.Width:0.#} and {other?.Bounds.Width:0.#} px wide, where a form's are one width");
         }
 
-        // Don't ask again stands at the footer's left, beside the buttons, as Rider puts it.
+        // Don't ask again stands at the footer's left, beside the buttons.
         foreach (CheckBox ask in dialog.GetVisualDescendants().OfType<CheckBox>().Where(c => c.IsEffectivelyVisible && c.Content is string words
             && (words.StartsWith("Don't ask", StringComparison.Ordinal) || words.StartsWith("Do not ask", StringComparison.Ordinal))))
         {

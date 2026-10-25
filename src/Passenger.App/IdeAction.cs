@@ -25,20 +25,19 @@ public sealed record IdeAction(string Id, string Title, string Group, Action<Act
     /// a pinned tab, Close on a tab's own menu); Find Action lists it by its title.</summary>
     public Func<ActionContext, string>? TitleIn { get; init; }
 
-    /// <summary>For an action that turns something on and off (Soft-Wrap), whether it is on where it would run: its menu
-    /// item shows a check then, as Rider's toggle actions do.</summary>
+    /// <summary>For an action that turns something on and off (Soft-Wrap), whether it is on where it would run: its
+    /// menu item shows a check then.</summary>
     public Func<ActionContext, bool>? IsChecked { get; init; }
 
-    /// <summary>Whether its keys run it while the terminal has them, as Rider's terminal lets the tool windows' own
-    /// shortcuts through and keeps every other key for the shell.</summary>
+    /// <summary>Whether its keys run it while the terminal has them; every other key there is the shell's.</summary>
     public bool FromTerminal { get; init; }
 
     /// <summary>An editor's own action (a movement, typing, the clipboard): its keys run it only in the editor with the
     /// keys, and anywhere else go on to whatever has them; a menu runs it where the keys are, a text box included.</summary>
     public bool InEditor { get; init; }
 
-    /// <summary>Other names Find Action finds it by, as Rider's search words do: the older names a Rider user still types
-    /// (Split Vertically for Split Right).</summary>
+    /// <summary>Other names Find Action finds it by, such as an older name a person may still type (Split Vertically
+    /// for Split Right).</summary>
     public IReadOnlyList<string> Words { get; init; } = [];
 
     /// <summary>The action whose work this one starts, which <see cref="ActionWork"/> holds it under while it works: its own
@@ -48,9 +47,10 @@ public sealed record IdeAction(string Id, string Title, string Group, Action<Act
     /// <summary>The id its work is held under.</summary>
     public string WorkId => Works ?? Id;
 
-    /// <summary>For an action whose keys are another's where it applies, as Rider gives one key two actions told apart by
-    /// where it is pressed (the Explorer's Compare Files takes the editor's Duplicate keys in Visual Studio's keymap off
-    /// macOS): that action, whose keys its menu items and Find Action show. Null with keys of its own, or none.</summary>
+    /// <summary>For an action whose keys are another's where it applies, one key running two actions told apart by
+    /// where it is pressed (the Explorer's Compare Files takes the editor's Duplicate keys in Visual Studio's keymap
+    /// off macOS): that action, whose keys its menu items and Find Action show. Null with keys of its own, or
+    /// none.</summary>
     public Func<string?>? KeysOf { get; init; }
 
     public bool CanRun(ActionContext context) => WhyNot(context) is null;

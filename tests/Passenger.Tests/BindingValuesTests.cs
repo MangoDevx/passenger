@@ -50,7 +50,6 @@ public sealed class BindingValuesTests : IClassFixture<RestoredFolders>, IDispos
         Ui.TypeToDebugged(window, "rename");
         Stopped(window, "the stop after rename");
 
-        // Paused, the debugger reads each binding's value on the window the file made, as C#'s inline values are shown.
         Assert.Null(window.OpenFile(Xaml));
         CodeEditor editor = window.EditorArea.CodeEditor;
         int customer = Line(Xaml, "x:Name=\"Customer\"");
@@ -60,18 +59,15 @@ public sealed class BindingValuesTests : IClassFixture<RestoredFolders>, IDispos
         Assert.Equal("Text: \"3\"", Value(editor, Line(Xaml, "x:Name=\"Orders\"")));
         Assert.Equal("Text: \"VIP\"", Value(editor, Line(Xaml, "{TemplateBinding Content}")));
         Assert.StartsWith("Background: ", Value(editor, Line(Xaml, "{TemplateBinding Background}")), StringComparison.Ordinal);
-        // As Variables shows a value: a collection expression's list by the display Roslyn gives it, its interface's Count.
+        // A collection expression's list shows the display Roslyn gives it: its interface's Count.
         Assert.Equal("ItemsSource: Count = 3", Value(editor, Line(Xaml, "ItemsSource=")));
-        // A failed binding is marked as failed, where its path failed.
         int broken = Line(Xaml, "x:Name=\"Broken\"");
         LineAnnotation failed = Assert.Single(editor.LineAnnotations, a => a.Line == broken);
         Assert.Equal(LineAnnotationKind.Failed, failed.Kind);
         Assert.StartsWith("Text: binding failed at Nmae: ", failed.Text, StringComparison.Ordinal);
-        // The list's rows are one element made three times: none is shown until one is chosen.
         int row = Line(Xaml, "<TextBlock Text=\"{Binding}\"");
         Assert.Equal("Text: made 3 times, choose one in the Live Visual Tree", Value(editor, row));
 
-        // On hover, the value's type and its path walked from the window's DataContext.
         string card = Hover(window, editor, "Customer.Name");
         Assert.Contains("TextBlock#Customer.Text = {string} \"Grace Hopper\"", card, StringComparison.Ordinal);
         Assert.Contains("DataContext = {BindingValuesApp.MainViewModel}", card, StringComparison.Ordinal);
@@ -84,14 +80,12 @@ public sealed class BindingValuesTests : IClassFixture<RestoredFolders>, IDispos
         Assert.Contains("TextBlock#Broken.Text = {string} null", card, StringComparison.Ordinal);
         Assert.Contains("→ Nmae: failed here", card, StringComparison.Ordinal);
 
-        // The second row chosen in the Live Visual Tree: its own value.
         LiveTreeView tree = window.LiveTree;
         tree.Tree.SelectedItem = tree.Rows.Where(r => r.Element is { Type: "TextBlock", Name: null, FromTemplate: false }).ElementAt(1);
         Ui.WaitFor(() => Value(editor, row) == "Text: \"Two\"", $"the chosen row's value, not {Value(editor, row)}", TimeSpan.FromMinutes(1));
         card = Hover(window, editor, "{Binding}");
         Assert.Contains("TextBlock.Text = {string} \"Two\"\nDataContext = {string} \"Two\"", card, StringComparison.Ordinal);
 
-        // Running, the app reads them for the control chosen, and says when one changes.
         Resume(window);
         Ui.WaitFor(() => Value(editor, row) == "Text: \"Two\"" && Value(editor, customer) == "Text: \"Grace Hopper\"",
             $"the running app's values ({Value(editor, customer)}, {Value(editor, row)})", TimeSpan.FromMinutes(1));
@@ -100,7 +94,7 @@ public sealed class BindingValuesTests : IClassFixture<RestoredFolders>, IDispos
         Ui.TypeToDebugged(window, "rename");
         Ui.WaitFor(() => Value(editor, customer) == "Text: \"Ada Lovelace\"", $"the renamed customer's name, not {Value(editor, customer)}", TimeSpan.FromMinutes(1));
 
-        // A stop on another thread, while the UI thread waits where the runtime evaluates nothing: the file says so, and why.
+        // A stop on another thread, while the UI thread waits where the runtime evaluates nothing.
         string program = Path.Combine(folder, "Program.cs");
         window.Debugger.Breakpoints.Toggle(program, Line(program, "if (line.Trim() != \"rename\")"));
         Ui.Settle();

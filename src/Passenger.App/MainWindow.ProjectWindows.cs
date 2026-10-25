@@ -5,9 +5,9 @@ using Passenger.Core;
 
 namespace Passenger.App;
 
-/// <summary>The window among the process's others (<see cref="PassengerApp"/>): a solution opened from it goes where Settings'
-/// Open project in says, or where the person answers Rider's Open Solution question; the Window menu lists the solution
-/// windows open, the one in front checked, and Rider's Next and Previous Solution Window step through them; closing it
+/// <summary>The window among the process's others (<see cref="PassengerApp"/>): a solution opened from it goes where
+/// Settings' Open project in says, or where the person answers the Open Solution question; the Window menu lists the
+/// solution windows open, the one in front checked, and Next and Previous Solution Window step through them; closing it
 /// alone takes its solution off what the next start reopens, while quitting keeps every window's.</summary>
 public partial class MainWindow
 {
@@ -137,7 +137,7 @@ public partial class MainWindow
     }
 
     /// <summary>As the window closes: alone, while other windows stay, its solution is closed as Close Solution's is;
-    /// quitting, or the last window, it stays open for the next start to reopen, as Rider's do.</summary>
+    /// quitting, or the last window, it stays open for the next start to reopen.</summary>
     private void LeaveRecentOpen()
     {
         if (!quitting && PassengerApp.Windows.Any(w => w != this && w.IsVisible))

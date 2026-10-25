@@ -10,10 +10,10 @@ using Passenger.Profiler;
 
 namespace Passenger.Tests;
 
-/// <summary>dotMemory's memory snapshots, from the profiler window: two snapshots of a run compared object by object (new,
-/// dead and survived, however the GC moved what lived on), a type's objects opened to the shortest paths that keep them
-/// from the GC roots with each root's kind and what they retain, and a heap of a million objects read, compared and opened
-/// while the window goes on answering.</summary>
+/// <summary>Memory snapshots, from the profiler window: two snapshots of a run compared object by object (new, dead and
+/// survived, however the GC moved what lived on), a type's objects opened to the shortest paths that keep them from the
+/// GC roots with each root's kind and what they retain, and a heap of a million objects read, compared and opened while
+/// the window goes on answering.</summary>
 [Collection(Alone.Name)]
 public sealed class MemorySnapshotsTests : IDisposable
 {
@@ -24,8 +24,7 @@ public sealed class MemorySnapshotsTests : IDisposable
     [AvaloniaFact]
     public void Two_snapshots_compared_show_the_objects_made_and_collected_between_them_and_those_the_GC_moved_as_survived()
     {
-        // Survivors with garbage between them, so a compacting collection moves them; then, asked to grow, 4,000 new
-        // objects held, the doomed ones let go, and collections young and full.
+        // Survivors with garbage between them, so a compacting collection moves them.
         MainWindow window = Profiled("Grower", """
             using System.Runtime.CompilerServices;
             Holder.Start();
@@ -88,7 +87,6 @@ public sealed class MemorySnapshotsTests : IDisposable
         Assert.Equal([first, second], memory.Snapshots);
         Assert.Same(second, memory.Snapshot);
 
-        // Compare with… on the newer: the older chosen from its menu.
         Ui.ClickButton(memory, "Compare with…");
         MenuItem older = Assert.Single(memory.CompareMenu!.Items.OfType<MenuItem>());
         Assert.StartsWith("Snapshot #1", (string?)older.Header, StringComparison.Ordinal);
@@ -116,7 +114,6 @@ public sealed class MemorySnapshotsTests : IDisposable
         Assert.Equal(500, memory.ObjectRows.Count);
         Assert.True(moved > 250, $"Only {moved} of the 500 survivors moved: the compacting collection was to move them, so their being survived proves nothing");
 
-        // Back along the trail, the new objects of the type that grew opened: each one listed, in the newer snapshot.
         Button back = memory.GetVisualDescendants().OfType<Button>().Single(b => b.Content as string == "Comparison of Snapshot #1 to Snapshot #2");
         Ui.Click(back);
         Assert.NotNull(memory.Comparison);
@@ -129,7 +126,6 @@ public sealed class MemorySnapshotsTests : IDisposable
         Assert.All(memory.ObjectRows, o => Assert.Equal("Leak", o.Type));
         Assert.Equal(4000, memory.ObjectRows.Select(o => o.Address).Distinct().Count());
 
-        // Its dead objects are the older snapshot's.
         back = memory.GetVisualDescendants().OfType<Button>().Single(b => b.Content as string == "Comparison of Snapshot #1 to Snapshot #2");
         Ui.Click(back);
         memory.Choose(doomed);
@@ -182,7 +178,6 @@ public sealed class MemorySnapshotsTests : IDisposable
         Assert.Equal(1001, entries.Count);
         Assert.True(entries.RetainedBytes > entries.Bytes, "The entries' retained bytes leave out the names and data only they hold");
 
-        // The type opened, as a double-click or Enter opens it.
         Focus(memory.TypeList, entries);
         Ui.Press(window, "enter");
         Ui.WaitFor(() => memory.Set is not null, "the entries");
@@ -192,7 +187,6 @@ public sealed class MemorySnapshotsTests : IDisposable
         Assert.All(memory.ObjectRows, o => Assert.True(o.RetainedBytes >= o.Bytes + 64, $"An entry retains {o.RetainedBytes} bytes, less than itself and its data"));
         ulong held = memory.ObjectRows.Single(o => set.Snapshot.ObjectAt(o.Address)!.ShortestPathsToRoots().Children[0].Root?.Kind == RootKind.Handle).Address;
 
-        // Shortest Paths to Roots: the static field's, open from the entries down to it through what holds them.
         Ui.ClickButton(memory, "Shortest Paths to Roots");
         Assert.Equal(1, memory.SetTab);
         string[] shown = [.. memory.PathRows.Select(r => $"{new string(' ', r.Depth)}{r.Node.Text} {r.Node.Objects}")];
@@ -213,7 +207,6 @@ public sealed class MemorySnapshotsTests : IDisposable
         Assert.Equal(cached, memory.PathRows[2].Node.RetainedBytes);
         Assert.Equal(RootKind.Handle, memory.PathRows[4].Node.Root?.Kind);
 
-        // Key Retention Paths: each from its root, the most retaining first.
         Ui.ClickButton(memory, "Key Retention Paths");
         Assert.Equal(
             [
@@ -223,7 +216,6 @@ public sealed class MemorySnapshotsTests : IDisposable
             memory.KeyPathRows.Select(p => p.Text));
         Assert.Equal((1000, cached), (memory.KeyPathRows[0].Objects, memory.KeyPathRows[0].RetainedBytes));
 
-        // One entry opened alone: its own path, the element of the array it is.
         Ui.ClickButton(memory, "Objects");
         HeapObject one = memory.ObjectRows.First(o => o.Address != held);
         Focus(memory.ObjectList, one);
@@ -307,8 +299,6 @@ public sealed class MemorySnapshotsTests : IDisposable
     [AvaloniaFact]
     public void A_memory_snapshot_of_a_program_on_dotnet_11_lists_its_objects_and_the_static_that_keeps_them()
     {
-        // ClrMD 3 refused .NET 11's runtime, so the status bar said "Taking a memory snapshot" for good on every program
-        // the .NET 11 SDK's dotnet new makes; ClrMD 4 reads it.
         MainWindow window = Profiled("Eleven", """
             using System.Runtime.CompilerServices;
             Kept.Fill(100);

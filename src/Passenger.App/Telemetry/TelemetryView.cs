@@ -20,10 +20,9 @@ public enum TelemetryPage
     Traces,
 }
 
-/// <summary>A run's structured logs and traces as its dashboard keeps them (<see cref="TelemetrySource"/>), the one view of
-/// them every kind of run has: the Aspire and Containers windows' Telemetry tab is each one of these (<see cref="Both"/>). A
-/// page streams only while its host shows it (<see cref="Watch"/>), every resource's or one resource's or Compose service's;
-/// a log's trace and a span's logs are a click apart. Bounded recent history, as the dashboard's API gives it.</summary>
+/// <summary>A run's structured logs and traces as its dashboard keeps them (<see cref="TelemetrySource"/>), one view for
+/// every kind of run, its two pages in one place through <see cref="Both"/>. A page streams only while its host shows it
+/// (<see cref="Watch"/>), every resource's or one's; a log's trace and a span's logs are a click apart.</summary>
 public sealed class TelemetryView : IDisposable
 {
     private readonly OutputView logDetails = new(toolbar: false);
@@ -60,7 +59,7 @@ public sealed class TelemetryView : IDisposable
     private (string TraceId, string? SpanId)? wantedLogs;
 
     /// <summary>The pages, their two buttons (a log's trace, a span's logs) running a host's actions of those ids through
-    /// <paramref name="request"/> when it gives them, as the Aspire window's buttons do, else this view's own.</summary>
+    /// <paramref name="request"/> when it gives them, else this view's own.</summary>
     public TelemetryView(string? showTrace = null, string? showLogs = null, Func<string, bool>? request = null)
     {
         StructuredLogs = List(logItems, log => log.ToString(), "Structured logs");
@@ -140,7 +139,7 @@ public sealed class TelemetryView : IDisposable
     /// <summary>The page shown in <see cref="Both"/>, which a host with one place for telemetry gives it.</summary>
     public TelemetryPage Shown { get; private set; }
 
-    /// <summary>Both pages in one place, their tabs over them as a tool window's are (the Containers window's Telemetry tab).</summary>
+    /// <summary>Both pages in one place, their tabs over them as a tool window's are.</summary>
     public Control Both
     {
         get
@@ -177,7 +176,7 @@ public sealed class TelemetryView : IDisposable
     /// <summary>The page <see cref="Both"/> shows was chosen, which the host streams.</summary>
     public event EventHandler<TelemetryPage>? ShownChanged;
 
-    /// <summary>Shows a page in <see cref="Both"/>, as its tab's click does.</summary>
+    /// <summary>Shows a page in <see cref="Both"/>.</summary>
     public void ShowPage(TelemetryPage page)
     {
         _ = Both;
@@ -210,7 +209,7 @@ public sealed class TelemetryView : IDisposable
         _ = WatchAsync(stream.Item1, stream.Item2, stream.Item3, reading.Token);
     }
 
-    /// <summary>Empties both pages and stops streaming, as a host's run or AppHost changes.</summary>
+    /// <summary>Empties both pages and stops streaming.</summary>
     public void Clear()
     {
         UiThread.Check();
@@ -267,8 +266,7 @@ public sealed class TelemetryView : IDisposable
                     traces = found;
                     AspireTrace? chosen = SelectedTrace;
                     RunRows.Put(traceItems, Keyed(found, trace => trace.TraceId));
-                    // The chosen trace's spans as they stand now (a late span added), the span chosen kept; a trace the
-                    // envelope did not touch is the same as before, its tree not walked again.
+                    // Only a chosen trace a snapshot changed (a late span) is walked again, the span chosen kept.
                     if (!ReferenceEquals(SelectedTrace, chosen))
                     {
                         ShowTrace(again: true);

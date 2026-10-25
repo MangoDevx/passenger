@@ -99,8 +99,7 @@ public class VariableManager
     {
         lock (_lock)
         {
-            // Distinct because if an ICorDebugHandleValue (result of property or eval) has static members, we store the same ICorDebugHandleValue as a 'Static Members' alias variable.
-            // Meaning that without distinct, we would attempt to dispose the same ICorDebugHandleValue twice.
+            // Distinct: a handle with static members is stored again as their 'Static Members' row: disposed once.
             List<ICorDebugHandleValue> handleReferences = _references.Values.SelectMany(GetHandleValues).Distinct().ToList();
             handleReferences.ForEach(h => h.Dispose());
             _references.Clear();
@@ -123,8 +122,7 @@ public class VariableManager
     {
         lock (_lock)
         {
-            // Distinct because if an ICorDebugHandleValue (result of property or eval) has static members, we store the same ICorDebugHandleValue as a 'Static Members' alias variable.
-            // Meaning that without distinct, we would attempt to dispose the same ICorDebugHandleValue twice.
+            // Distinct: a handle with static members is stored again as their 'Static Members' row: disposed once.
             List<ICorDebugHandleValue> handleReferences = _references.Values.SelectMany(GetHandleValues).Distinct().ToList();
             handleReferences.ForEach(h => h.TryDispose());
             _references.Clear();

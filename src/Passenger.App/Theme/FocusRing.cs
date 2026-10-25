@@ -7,13 +7,12 @@ using Avalonia.VisualTree;
 
 namespace Passenger.App;
 
-/// <summary>The ring round what has the keys, every control's (ControlThemes.axaml's focus adorner), as Rider's
-/// DarculaUIUtil paints it: two pixels just outside the control's edge, its corners the control's own and the ring's
-/// width rounder, so it is centred on what it surrounds; a check box's or radio button's round its box alone, not round
-/// its words too as Fluent's was.</summary>
+/// <summary>The ring round what has the keys, every control's (ControlThemes.axaml's focus adorner): two pixels just
+/// outside the control's edge, its corners the control's own and the ring's width rounder, so it is centred on what it
+/// surrounds; a check box's or radio button's round its box alone, not round its words too.</summary>
 public sealed class FocusRing : Control
 {
-    /// <summary>How broad the ring is, outside the edge it surrounds (Rider's Component.focusWidth).</summary>
+    /// <summary>How broad the ring is, outside the edge it surrounds.</summary>
     public const double RingWidth = 2;
 
     public static readonly StyledProperty<IBrush?> BrushProperty = AvaloniaProperty.Register<FocusRing, IBrush?>(nameof(Brush));

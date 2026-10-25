@@ -51,11 +51,11 @@ public enum ProfilerPage
     Snapshots,
 }
 
-/// <summary>The profiler's tool window, as dotTrace's in Rider: while a run goes, its time and Get Snapshot (which ends
-/// the run and leaves the program going) and Kill; then the snapshot as a call tree by thread with the hot path opened,
-/// the hot spots by their own time, a flame graph, or an Avalonia app's frames (<see cref="FramesView"/>). A double-click on
-/// a method goes to its source. The Memory page is dotMemory's (<see cref="MemoryView"/>); the Snapshots page lists the
-/// open folder's earlier runs, as Rider's Recent Snapshots does.</summary>
+/// <summary>The profiler's tool window: while a run goes, its time and Get Snapshot (which ends the run and leaves the
+/// program going) and Kill; then the snapshot as a call tree by thread with the hot path opened, the hot spots by their
+/// own time, a flame graph, or an Avalonia app's frames (<see cref="FramesView"/>). A double-click on a method goes to its
+/// source. The Memory page shows the heap (<see cref="MemoryView"/>); the Snapshots page lists the open folder's earlier
+/// runs.</summary>
 public sealed class ProfilerView : DockPanel
 {
     private readonly ObservableCollection<TreeRow> rows = [];
@@ -279,7 +279,7 @@ public sealed class ProfilerView : DockPanel
     public event EventHandler? RevealSnapshotsRequested;
 
     /// <summary>Lists the snapshots kept for the open folder on the Snapshots page; with nothing else to show, the window
-    /// opens on them, as Rider's profiler opens on its recent snapshots.</summary>
+    /// opens on them.</summary>
     public void ShowKept(string folder, IReadOnlyList<SnapshotFile> files)
     {
         keptFolder = folder;
@@ -451,7 +451,6 @@ public sealed class ProfilerView : DockPanel
         {
             rows.Add(new TreeRow(thread, 0, rows, "ms", snapshot.Samples, snapshot.SampleMs));
         }
-        // The heaviest thread's hot path opened, as dotTrace opens it.
         if (rows.Count > 0)
         {
             TreeRow at = rows[0];
@@ -509,7 +508,6 @@ public sealed class ProfilerView : DockPanel
         }
         TreeRow root = new(type.BackTraces, 0, traces, "KB", type.BackTraces.Total);
         traces.Add(root);
-        // The allocating methods and their heaviest callers open, as dotMemory's back traces open.
         Expand(root);
         TreeRow at = root;
         for (int depth = 0; depth < 12 && at.Node.Children.Count > 0; depth++)
@@ -676,7 +674,7 @@ public sealed class ProfilerView : DockPanel
         return new ShrinkingRow { Height = ListRow.Height, Margin = new Thickness(6, 0), Children = { own, total, MethodName(spot.Name, false) } };
     }
 
-    /// <summary>A method as dotTrace writes it: its own name strong, its type's and namespace's muted before it.</summary>
+    /// <summary>A method's name: its own strong, its type's and namespace's muted before it.</summary>
     private static Control MethodName(string name, bool thread)
     {
         if (thread || name.StartsWith('['))

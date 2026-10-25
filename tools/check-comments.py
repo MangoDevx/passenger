@@ -116,13 +116,14 @@ def check_xml(lines):
         seen_comment = True
 
 
-def check_hash(lines, member_line):
-    """Python, shell, the justfile, YAML: '#' runs (a shebang aside), a run before a definition a member's."""
+def check_hash(lines, member_line, skip=r"^\s*(@.*)?$"):
+    """Python, shell, the justfile, YAML: '#' runs (a shebang aside), a run before a definition (past `skip`'s lines) a
+    member's."""
     comment = lambda l: re.match(r"^\s*#(?!!)", l) is not None
     for first, count in runs(lines, comment):
         if not code_before(lines, first, lambda l: comment(l) or l.startswith("#!")):
             yield first, "file", FILE_LIMIT, count
-        elif member_line(subject(lines, first + count, r"^\s*(@.*)?$")):
+        elif member_line(subject(lines, first + count, skip)):
             yield first, "member", MEMBER_LIMIT, count
         else:
             yield first, "body", BODY_LIMIT, count
@@ -170,7 +171,9 @@ def checker(path):
     if extension == ".py":
         return check_python
     if extension in (".sh",) or name == "justfile":
-        return lambda lines: check_hash(lines, lambda l: re.match(r"^\s*([\w-]+\s*\(\)\s*\{|function\s|[\w-]+.*:\s*$|@?[\w-]+( [^=]*)?:( .*)?$)", l) is not None)
+        # A recipe's attributes ([unix], [windows]) stand between it and its comment.
+        return lambda lines: check_hash(lines, lambda l: re.match(r"^\s*([\w-]+\s*\(\)\s*\{|function\s|[\w-]+.*:\s*$|@?[\w-]+( [^=]*)?:( .*)?$)", l) is not None,
+                                        r"^\s*(@.*|\[[^\]]*\])?$")
     if extension in (".yml", ".yaml"):
         return lambda lines: check_hash(lines, lambda l: re.match(r"^\s*(-\s+)?[\w-]+:", l) is not None)
     if extension in (".js", ".cjs", ".mjs", ".css"):

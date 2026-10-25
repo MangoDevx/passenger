@@ -9,14 +9,15 @@ using Passenger.Editor;
 
 namespace Passenger.Tests;
 
-/// <summary>Localized strings known from the code that reads them (#476): an <c>IStringLocalizer&lt;T&gt;</c>'s keys in C# and in a
-/// Razor component's <c>@inject</c>ed localizer, found in the .resx files ASP.NET Core reads for T (one a language, beside the
-/// type, no neutral one); a generated resource class's properties (a Designer file's, its neutral .resx and a satellite) and
-/// one whose translations are XLIFF files in xlf/ as Arcade's XliffTasks keeps them. A key a language lacks is warned of with
-/// a fix that asks the value and adds it as the file writes its entries, one undo step; a key's card says each language's
-/// value, Go to Declaration goes to each file's entry, completion in a localizer's string offers the keys, and an agent's
-/// diagnostics, code_actions, apply_code_action and definition give the same. A component whose files are named for its file
-/// rather than its type, which its localizer never reads, is warned of.</summary>
+/// <summary>Localized strings known from the code that reads them: an <c>IStringLocalizer&lt;T&gt;</c>'s keys in C# and
+/// in a Razor component's <c>@inject</c>ed localizer, found in the .resx files ASP.NET Core reads for T (one a
+/// language, beside the type, no neutral one); a generated resource class's properties (a Designer file's, its neutral
+/// .resx and a satellite) and one whose translations are XLIFF files in xlf/ as Arcade's XliffTasks keeps them. A key a
+/// language lacks is warned of with a fix that asks the value and adds it as the file writes its entries, one undo
+/// step; a key's card says each language's value, Go to Declaration goes to each file's entry, completion in a
+/// localizer's string offers the keys, and an agent's diagnostics, code_actions, apply_code_action and definition give
+/// the same. A component whose files are named for its file rather than its type, which its localizer never reads, is
+/// warned of.</summary>
 public sealed class LocalizationTests : IClassFixture<LocalizationTests.Project>
 {
     private readonly Project project;
@@ -62,7 +63,6 @@ public sealed class LocalizationTests : IClassFixture<LocalizationTests.Project>
             Ui.WaitFor(() => File.ReadAllText(spanish) == written, () => $"undo to take the entry back out ({window.Status}): {File.ReadAllText(spanish)}");
             Ui.WaitFor(() => Missing(window).Count == 1, "the warning to come back once undo took the entry away");
 
-            // Completion in the localizer's string: the keys of the type's files, the one chosen in place of what was there.
             CodeEditor editor = window.EditorArea.CodeEditor;
             Ui.Click(editor);
             Ui.PlaceAfter(editor, "localizer[\"");
@@ -140,7 +140,6 @@ public sealed class LocalizationTests : IClassFixture<LocalizationTests.Project>
             Assert.Equal(2, places.Count);
             Assert.All(places, p => Assert.Contains("<data name=\"Welcome\"", p.Text, StringComparison.Ordinal));
 
-            // A component whose files are named for its file (Sign-In) rather than its type (Sign_In): its localizer reads none.
             window.OpenFile(project.PathOf("Shop/Pages/Sign-In.razor"));
             Ui.WaitFor(() => window.EditorArea.Active!.Markers.Any(m => m.Message.StartsWith("No .resx gives", StringComparison.Ordinal)),
                 "the files its localizer never reads to be warned of");

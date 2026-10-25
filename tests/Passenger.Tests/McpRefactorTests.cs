@@ -13,8 +13,7 @@ namespace Passenger.Tests;
 /// <summary>Agents making the window's refactorings through refactor, attached to a person's window, which asks before the
 /// first: each kind's dialog described first and then applied with its options, on a small shop of files that call each
 /// other, every caller following; what the agent reads back and what is on disk after, the project still building after
-/// the member moves and the server's refactorings, and the
-/// person's Undo taking each change back whole.</summary>
+/// the member moves and the server's refactorings, and the person's Undo taking each change back whole.</summary>
 public sealed class McpRefactorTests : McpRig, IClassFixture<RestoredFolders>
 {
     public McpRefactorTests(RestoredFolders folders)
@@ -58,8 +57,6 @@ public sealed class McpRefactorTests : McpRig, IClassFixture<RestoredFolders>
         McpClient client = Await(Task.Run(() => Start(["--mcp-attach", ProcessId])), "the agent attaching");
         try
         {
-            // Asked without options, Change Signature says what its dialog shows, with the options as they stand; the person
-            // allows the agent's first refactoring.
             Task<JsonElement> describing = Task.Run(() => Call(client, "refactor", Place("change_signature", "Calc.cs", Calc, "int Sca")));
             Press(Question(window, "the question for the agent's refactoring"), "Allow");
             JsonElement dialog = Await(describing, "Change Signature described").GetProperty("dialog");
@@ -68,7 +65,6 @@ public sealed class McpRefactorTests : McpRig, IClassFixture<RestoredFolders>
             Assert.Equal(["value", "factor", "unused"], dialog.GetProperty("options").GetProperty("parameters").EnumerateArray().Select(p => p.GetProperty("from").GetString()));
             Assert.Equal(Calc, File.ReadAllText(PathOf("Calc.cs")));
 
-            // unused goes, factor moves first, value is renamed amount, and every call passes 0 for a new offset.
             JsonElement changed = Refactor(client, Place("change_signature", "Calc.cs", Calc, "int Sca", new
             {
                 parameters = new object[] { new { from = "factor" }, new { from = "value", name = "amount" }, new { type = "int", name = "offset", callValue = "0" } },
@@ -82,7 +78,6 @@ public sealed class McpRefactorTests : McpRig, IClassFixture<RestoredFolders>
                 File.ReadAllText(PathOf("Till.cs")));
             Assert.Equal(Report.Replace("Calc.Scale(1, 1, 1)", "Calc.Scale(1, 1, 0)", StringComparison.Ordinal), File.ReadAllText(PathOf("Report.cs")));
 
-            // The person's Undo, in the file the agent changed, takes the declaration and every call back at once.
             UndoInEditor(window, "Calc.cs");
             string question = Assert.Single(asked);
             Assert.True(question.StartsWith("Undo Change Signature? It changes ", StringComparison.Ordinal) && new[] { "Calc.cs", "Report.cs", "Till.cs" }.All(f => question.Contains(f, StringComparison.Ordinal)),
@@ -92,7 +87,6 @@ public sealed class McpRefactorTests : McpRig, IClassFixture<RestoredFolders>
             Assert.Equal(Report, File.ReadAllText(PathOf("Report.cs")));
             window.EditorArea.SaveAll();
 
-            // Extract Interface's dialog offers the public members; the agent names two by name.
             JsonElement source = Refactor(client, Place("extract_interface", "Order.cs", Order, "class Ord")).GetProperty("dialog");
             Assert.Equal(("IOrder", "IOrder.cs"), (source.GetProperty("options").GetProperty("name").GetString(), source.GetProperty("options").GetProperty("file").GetString()));
             Assert.Equal(["Total: int", "Add(int): void", "Describe(): string"], source.GetProperty("members").EnumerateArray().Select(m => m.GetProperty("text").GetString()));
@@ -102,7 +96,6 @@ public sealed class McpRefactorTests : McpRig, IClassFixture<RestoredFolders>
             Assert.Equal("namespace Shop;\n\npublic interface IOrder\n{\n    int Total { get; }\n\n    void Add(int amount);\n}\n", File.ReadAllText(PathOf("IOrder.cs")).ReplaceLineEndings("\n"));
             Assert.Equal(Order.Replace("public class Order", "public class Order : IOrder", StringComparison.Ordinal), File.ReadAllText(PathOf("Order.cs")));
 
-            // Move: to a namespace, the files that use it following; then a type out of a file of two into its own.
             JsonElement move = Refactor(client, Place("move", "Shapes.cs", Shapes, "class Circ")).GetProperty("dialog");
             Assert.Equal(("Circle.cs", 2), (move.GetProperty("toFile").GetProperty("file").GetString(), move.GetProperty("typesInFile").GetInt32()));
             JsonElement spaced = Refactor(client, Place("move", "OrderBook.cs", OrderBook, "class OrderBo", new { @namespace = "Sales" }));
@@ -113,11 +106,9 @@ public sealed class McpRefactorTests : McpRig, IClassFixture<RestoredFolders>
             Assert.Equal("namespace Shop;\n\npublic class Circle\n{\n    public double Area(double radius) => Math.PI * radius * radius;\n}\n", File.ReadAllText(PathOf("Circle.cs")).ReplaceLineEndings("\n"));
             Assert.Equal("namespace Shop;\n\npublic class Square\n{\n    public int Side;\n}\n", File.ReadAllText(PathOf("Shapes.cs")));
 
-            // Both at once is refused, saying how to do it; the files stay as they are.
             CallToolResult both = Await(Task.Run(() => Result(client, "refactor", Place("move", "Shapes.cs", File.ReadAllText(PathOf("Shapes.cs")), "class Squ", new { file = "Square.cs", @namespace = "Shop.Shapes" }))), "a move to a file and a namespace at once");
             Assert.True(both.IsError == true && Text(both).Contains("one at a time", StringComparison.Ordinal), $"A move to a file and a namespace at once answered: {Text(both)}");
 
-            // Undo in the Solution view takes the last one back, its new file gone.
             UndoInSolutionView(window, "Shapes.cs");
             Assert.Equal("Undo Move to Another File? It changes Shapes.cs and Circle.cs.", asked[^1]);
             Assert.False(File.Exists(PathOf("Circle.cs")), "Undo left the file Move to Another File made");
@@ -139,7 +130,6 @@ public sealed class McpRefactorTests : McpRig, IClassFixture<RestoredFolders>
         McpClient client = Await(Task.Run(() => Start(["--mcp-attach", ProcessId])), "the agent attaching");
         try
         {
-            // Safe Delete of a method Twice and Till call is refused, naming each usage; described, it lists them.
             Task<CallToolResult> refusing = Task.Run(() => Result(client, "refactor", Place("safe_delete", "Calc.cs", Calc, "int Sca")));
             Press(Question(window, "the question for the agent's refactoring"), "Allow");
             CallToolResult refused = Await(refusing, "Safe Delete of a used method");
@@ -150,13 +140,11 @@ public sealed class McpRefactorTests : McpRig, IClassFixture<RestoredFolders>
             JsonElement usages = Refactor(client, Place("safe_delete", "Calc.cs", Calc, "int Sca"), describe: true).GetProperty("usages");
             Assert.Equal(["Calc.cs:7", "Till.cs:5", "Till.cs:5"], usages.EnumerateArray().Select(u => $"{u.GetProperty("path").GetString()}:{u.GetProperty("line").GetInt32()}"));
 
-            // What nothing uses goes at once, its doc comment with it.
             JsonElement deleted = Refactor(client, Place("safe_delete", "Calc.cs", Calc, "int Unu"));
             Assert.Equal("Deleted the method 'Unused'", deleted.GetProperty("said").GetString());
             Assert.Equal(Calc.Replace("\n\n    /// <summary>Never called.</summary>\n    public static int Unused(int value) => value + 1;", string.Empty, StringComparison.Ordinal),
                 File.ReadAllText(PathOf("Calc.cs")));
 
-            // Pull Members Up: the base type offered, then two members moved by name with the usings they need.
             JsonElement hierarchy = Refactor(client, Place("pull_members_up", "Dog.cs", Dog, "class Do")).GetProperty("dialog");
             Assert.Equal("Animal", hierarchy.GetProperty("options").GetProperty("target").GetString());
             Assert.Equal(["Legs: int", "Describe(): string"], hierarchy.GetProperty("members").EnumerateArray().Select(m => m.GetProperty("text").GetString()));
@@ -167,14 +155,12 @@ public sealed class McpRefactorTests : McpRig, IClassFixture<RestoredFolders>
             Assert.True(animal.StartsWith("using System.Text;\n", StringComparison.Ordinal) && animal.Contains("    public int Legs => 4;", StringComparison.Ordinal),
                 $"Animal.cs after the pull up:\n{animal}");
 
-            // Push Members Down, made abstract where it stays: every inheritor gets it.
             JsonElement pushed = Refactor(client, Place("push_members_down", "Animal.cs", animal, "class Anim", new { members = new[] { "Sound" }, @abstract = new[] { "Sound" } }));
             Assert.Equal("Pushed 1 member of Animal down to 2 classes", pushed.GetProperty("said").GetString());
             Assert.Contains("    public abstract string Sound();", File.ReadAllText(PathOf("Animal.cs")), StringComparison.Ordinal);
             Assert.Contains("public override string Sound() => \"...\";", File.ReadAllText(PathOf("Cat.cs")), StringComparison.Ordinal);
             Assert.Contains("public override string Sound() => \"...\";", File.ReadAllText(PathOf("Dog.cs")), StringComparison.Ordinal);
 
-            // Introduce Field of a constant: its choices described, never a local, and the one named made.
             Dictionary<string, object?> constant = Selection("introduce_field", "Kilo.cs", ScaleText, "1024");
             JsonElement offered = Refactor(client, constant, describe: true).GetProperty("dialog").GetProperty("actions");
             string[] fieldChoices = [.. offered.EnumerateArray().SelectMany(a => a.GetProperty("choices").EnumerateArray()).Select(c => c.GetString()!)];
@@ -185,7 +171,6 @@ public sealed class McpRefactorTests : McpRig, IClassFixture<RestoredFolders>
             Assert.Equal(["Kilo.cs changed"], Files(field));
             Assert.Matches(@"\n    private const int \w+ = 1024;\n", File.ReadAllText(PathOf("Kilo.cs")));
 
-            // Introduce Parameter, passed at every call; Encapsulate Field, the property used.
             string mega = ScaleText.Replace("Kilo", "Mega", StringComparison.Ordinal);
             Dictionary<string, object?> expression = Selection("introduce_parameter", "Mega.cs", mega, "1024");
             JsonElement actions = Refactor(client, expression, describe: true).GetProperty("dialog").GetProperty("actions");
@@ -200,7 +185,6 @@ public sealed class McpRefactorTests : McpRig, IClassFixture<RestoredFolders>
             Assert.True(counter.Contains("public int Count", StringComparison.Ordinal) && counter.Contains("public void Add() => Count++;", StringComparison.Ordinal), $"Counter.cs after Encapsulate Field:\n{counter}");
             Builds("Safe Delete, the member moves and the server's refactorings");
 
-            // The person's Undo in the Solution view takes the last command of several files back whole.
             UndoInSolutionView(window, "Cat.cs");
             Assert.StartsWith("Undo Push Members Down?", asked[^1], StringComparison.Ordinal);
             Assert.DoesNotContain("override string Sound", File.ReadAllText(PathOf("Cat.cs")), StringComparison.Ordinal);
@@ -219,8 +203,7 @@ public sealed class McpRefactorTests : McpRig, IClassFixture<RestoredFolders>
         // Described first, so the server has read the files as the agent found them.
         await Call(client, "refactor", Place("change_signature", "Calc.cs", Calc, "int Sca"));
 
-        // The agent's own edit tool writes Report.cs, its call two lines further down and a second one beside it, and at once
-        // has factor go first: the language server has yet to read the file again as the change is worked out.
+        // The agent's own write, then at once the change: the language server has yet to read the file again.
         string written = "// Written by the agent\n// a moment ago\n"
             + Report.Replace("Calc.Scale(1, 1, 1)", "Calc.Scale(1, 1, 1) * Calc.Scale(7, 8, 9)", StringComparison.Ordinal);
         File.WriteAllText(PathOf("Report.cs"), written);
@@ -231,7 +214,6 @@ public sealed class McpRefactorTests : McpRig, IClassFixture<RestoredFolders>
         Assert.True(changing.IsError != true, $"Change Signature right after the agent wrote Report.cs answered: {Text(changing)}");
         Assert.Equal(written.Replace("Calc.Scale(7, 8, 9)", "Calc.Scale(8, 7, 9)", StringComparison.Ordinal), File.ReadAllText(PathOf("Report.cs")));
 
-        // So with a rename: written again, a line more at its top, and Scale renamed at once.
         string rewritten = "// And again\n" + File.ReadAllText(PathOf("Report.cs"));
         File.WriteAllText(PathOf("Report.cs"), rewritten);
         (int line, int column) = LineColumn(Calc, "Scale", Calc.IndexOf("Scale", StringComparison.Ordinal));
@@ -253,7 +235,7 @@ public sealed class McpRefactorTests : McpRig, IClassFixture<RestoredFolders>
         McpClient client = Await(Task.Run(() => Start(["--mcp-attach", ProcessId])), "the agent attaching");
         try
         {
-            // Optimize Imports on one file: the usings nothing needs go (System is the project's implicit using).
+            // System is the project's implicit using, so nothing needs it.
             Task<JsonElement> optimizing = Task.Run(() => Call(client, "refactor", new() { ["kind"] = "optimize_imports", ["path"] = "Tidy.cs" }));
             Press(Question(window, "the question for the agent's refactoring"), "Allow");
             JsonElement optimized = Await(optimizing, "Optimize Imports on a file");
@@ -262,8 +244,6 @@ public sealed class McpRefactorTests : McpRig, IClassFixture<RestoredFolders>
             Assert.True(!tidied.Contains("using", StringComparison.Ordinal) && tidied.Contains("public static int Length() => Console.Title.Length;", StringComparison.Ordinal),
                 $"Optimize Imports left Tidy.cs so:\n{tidied}");
 
-            // Code Cleanup over the project: the files not open tidied and reformatted, one command the Solution view's
-            // Undo takes back.
             JsonElement described = Refactor(client, new() { ["kind"] = "code_cleanup", ["path"] = "Sum.csproj", ["options"] = new { scope = "project" } }, describe: true);
             Assert.Contains("Messy.cs unchanged", Files(described));
             Assert.Equal(messy, File.ReadAllText(PathOf("Messy.cs")));
@@ -277,12 +257,10 @@ public sealed class McpRefactorTests : McpRig, IClassFixture<RestoredFolders>
             Assert.Equal("Undo Code Cleanup? It changes Messy.cs.", asked[^1]);
             Assert.Equal(messy, File.ReadAllText(PathOf("Messy.cs")));
 
-            // The solution's: only the file left to optimize changes.
             JsonElement solution = Refactor(client, new() { ["kind"] = "optimize_imports", ["options"] = new { scope = "solution" } });
             Assert.Equal(["Messy.cs changed"], Files(solution));
             Assert.DoesNotContain("using", File.ReadAllText(PathOf("Messy.cs")), StringComparison.Ordinal);
 
-            // A file of another language is told what it has instead; a kind no refactoring has, the kinds there are.
             foreach ((Dictionary<string, object?> arguments, string said) in new (Dictionary<string, object?>, string)[]
             {
                 (new() { ["kind"] = "change_signature", ["path"] = "Sum.csproj", ["line"] = 1, ["column"] = 2 }, "MSBuild files have no Change Signature in Passenger"),

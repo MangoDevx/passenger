@@ -7,17 +7,16 @@ using A = Passenger.App.AppActions;
 
 namespace Passenger.App;
 
-/// <summary>Rider's Attach to Process and Reattach to Process: the .NET programs running on this machine and in the
-/// container engine's running containers, listed in a dialog, and the debugger attached to the one chosen as a session
-/// like any other, which Detach (the debugger's own action) lets go of again with the program running on. On macOS nothing
-/// more is asked of the system than of a program the debugger starts: CoreCLR's debugger reaches the runtime through the
-/// pipes it opens for a debugger in the user's temporary folder, never through the task port Apple's debugger entitlement
-/// and get-task-allow guard. A container's program is debugged by Passenger's adapter inside its container, over docker
-/// exec (<see cref="ContainerTools"/>).</summary>
+/// <summary>Attach to Process and Reattach to Process: the .NET programs running on this machine and in the container
+/// engine's running containers, listed in a dialog, and the debugger attached to the one chosen as a session like any
+/// other, which Detach (the debugger's own action) lets go of again with the program running on. On macOS it asks
+/// nothing more of the system than a debugged start does: the runtime is reached through its debugger pipes, never the
+/// task port. A container's program is debugged by Passenger's adapter inside its container, over docker exec
+/// (<see cref="ContainerTools"/>).</summary>
 public partial class MainWindow
 {
-    /// <summary>The programs attached to in this window, newest last, as Rider's Recently attached keeps them: by name and
-    /// command line too (and container), so one started again under another process id is found again.</summary>
+    /// <summary>The programs attached to in this window, newest last: by name and command line too (and container), so
+    /// one started again under another process id is found again.</summary>
     private readonly List<DotnetProcess> attachedTo = [];
 
     /// <summary>The last session Attach to Process or Reattach opened, which Rerun reattaches.</summary>
@@ -26,13 +25,13 @@ public partial class MainWindow
     /// <summary>The Attach to Process dialog open over the window, or null.</summary>
     public AttachToProcessDialog? AttachToProcessDialog { get; private set; }
 
-    /// <summary>Where this window's container tools come from: by default beside the app, a dev build's artifacts and the
-    /// state's cache, downloaded from <see cref="Releases"/>' release of this version; a test's own.</summary>
+    /// <summary>Where this window's container tools come from: by default beside the app, a dev build's artifacts and
+    /// the state's cache, downloaded from <see cref="Releases"/>' release of this version.</summary>
     public ContainerToolsSource? ContainerToolsFrom { get; init; }
 
     private ContainerToolsSource ToolsSource => ContainerToolsFrom ?? ContainerToolsSource.Default(Releases);
 
-    /// <summary>Attach to Process and Reattach to Process, in Rider's Run menu before Edit Configurations.</summary>
+    /// <summary>Attach to Process and Reattach to Process, in the Run menu before Edit Configurations.</summary>
     private void AddAttaching()
     {
         Add(A.AttachToProcess, "Attach to Process…", "Debug", _ => ShowAttachToProcess(), menu: ("Run", 0, 3));
@@ -228,9 +227,9 @@ public partial class MainWindow
         return await dialog.ShowDialog<DotnetProcess?>(this);
     }
 
-    /// <summary>Rider's Reattach to Process: the program last attached to, by its process while it runs, else the one
-    /// running under its name and command line (in its container), or its name; the dialog, searched for it, when several
-    /// are or none is.</summary>
+    /// <summary>Reattach to Process: the program last attached to, by its process while it runs, else the one running
+    /// under its name and command line (in its container), or its name; the dialog, searched for it, when several are
+    /// or none is.</summary>
     private async Task Reattach()
     {
         DotnetProcess last = attachedTo[^1];

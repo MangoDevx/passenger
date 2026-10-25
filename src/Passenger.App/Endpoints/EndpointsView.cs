@@ -473,7 +473,7 @@ public sealed class EndpointsView : DockPanel
         return row;
     }
 
-    /// <summary>A method's tag, in the colour Rider's HTTP Client gives it.</summary>
+    /// <summary>A method's tag, in its method's colour.</summary>
     internal static Border MethodTag(string method)
     {
         TextBlock text = new() { Text = method, FontFamily = CSharp.Fonts.Mono, FontSize = 11, FontWeight = FontWeight.Bold, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };

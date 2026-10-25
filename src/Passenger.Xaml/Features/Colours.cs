@@ -29,8 +29,7 @@ public enum ColourForm
 /// write for one nothing can change in place (<c>Brushes.Red</c>).</summary>
 public sealed record ColourUse(int Offset, Argb Colour, string? WritePath, TextRange? WriteRange, ColourForm Form, string Receiver = "Color");
 
-/// <summary>The colours a XAML or C# file writes or names, for the gutter's swatches and the picker that writes a colour
-/// back as it was written.</summary>
+/// <summary>The colours a XAML or C# file writes or names, and a colour chosen for one written back as it was written.</summary>
 public static class Colours
 {
     private static readonly HashSet<string> BrushTypes = new(StringComparer.Ordinal)
@@ -167,7 +166,6 @@ public static class Colours
         if (method == "Parse" && type is "Color" or "Brush" or "SolidColorBrush" && arguments.Count == 1
             && arguments[0].Expression is LiteralExpressionSyntax { Token.Value: string written } literal && KnownColours.Parse(written) is { } parsed)
         {
-            // Inside the quotes of a plain string literal.
             TextRange inside = new(literal.SpanStart + 1, Math.Max(0, literal.Span.Length - 2));
             found.Add(new ColourUse(literal.SpanStart, parsed, null, literal.Token.Text.StartsWith('"') ? inside : null, ColourForm.Text));
             return;
@@ -236,6 +234,6 @@ public static class Colours
         ? string.Create(CultureInfo.InvariantCulture, $"{receiver}.FromRgb({colour.R}, {colour.G}, {colour.B})")
         : string.Create(CultureInfo.InvariantCulture, $"{receiver}.FromArgb({colour.A}, {colour.R}, {colour.G}, {colour.B})");
 
-    /// <summary>A file's C# syntax, parsed as the editor's own parser does, for a file with no parse to hand.</summary>
+    /// <summary>A file's C# syntax, for a file with no parse to hand.</summary>
     public static SyntaxNode Parse(string text) => CSharpSyntaxTree.ParseText(text).GetRoot();
 }

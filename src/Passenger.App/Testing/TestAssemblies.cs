@@ -10,7 +10,7 @@ public sealed record TestAssembly(ProjectModel Project, string Framework, string
 /// <summary>Where the test projects build their assemblies, one per target framework, asked of the warm project host with
 /// the global properties a build of each is given: each project's target frameworks as MSBuild evaluates them (from a
 /// property, an import, Directory.Build.props), then, for a project of several, each framework's TargetPath as its inner
-/// build sees it, as MSBuild's own project references ask (GetTargetFrameworks, GetTargetPath).</summary>
+/// build sees it (GetTargetFrameworks, GetTargetPath).</summary>
 public static class TestAssemblies
 {
     /// <summary>The assemblies, built or not, the projects' in their order; a project MSBuild cannot evaluate is logged and

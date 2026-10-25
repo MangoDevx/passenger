@@ -5,10 +5,9 @@ using Avalonia.Media;
 
 namespace Passenger.App;
 
-/// <summary>Rider's Open Solution question, asked as a solution or folder is opened from a window that has one: "Where
-/// would you like to open the solution 'Name'?", This Window (the default), New Window and Cancel, in that order as Rider
-/// asks it (its yes, no and cancel), and Don't ask again, which makes the answer Settings' Open project in. Escape
-/// cancels.</summary>
+/// <summary>The Open Solution question, asked as a solution or folder is opened from a window that has one: "Where
+/// would you like to open the solution 'Name'?", This Window (the default), New Window and Cancel, in that order, and
+/// Don't ask again, which makes the answer Settings' Open project in. Escape cancels.</summary>
 public sealed class OpenProjectDialog : Window
 {
     public const string ThisWindow = "This Window";
@@ -33,7 +32,6 @@ public sealed class OpenProjectDialog : Window
         apart.Click += (_, _) => Choose(OpenTarget.NewWindow);
 
         StackPanel choices = DialogFooter.Answers(here, apart, cancel);
-        // Don't ask again at the footer's left, beside the buttons, where every dialog of Passenger's has it.
         Content =DialogFooter.Page(new StackPanel
         {
             Margin = new Thickness(20),

@@ -43,7 +43,6 @@ public sealed class WhatsNewTests : IDisposable
         Ui.Settle();
         File.WriteAllText(Path.Combine(state, "updates.json"), """{ "version": 1, "notesShown": "0.1.0" }""");
 
-        // The new version starts: its notes show at once, and the folder it then opens comes back behind them, its own tab too.
         window = Started();
         window.ShowWhatsNewOnce();
         Ui.Settle();
@@ -63,8 +62,7 @@ public sealed class WhatsNewTests : IDisposable
         Assert.Equal($"What's New in Passenger {Version}", view.Title);
         Assert.True(notes.IsReadOnly && !notes.HoldsText, "The notes' tab can be edited, or reads as text to edit, though it is the installed app's file");
 
-        // A link opens in the browser, the one way the IDE opens one, wherever its block draws it: the first drawn below its
-        // block's first line, the file's own words and address.
+        // A link opens in the browser wherever its block draws it: the first drawn below its block's first line.
         (MarkdownText linked, string words, Uri address) = view.Blocks
             .SelectMany(block => block.Links.Select(link => (Block: block, link.Words, link.Target)))
             .First(link => link.Block.PointOf(link.Target).Y > link.Block.TextLayout.TextLines[0].Height);
@@ -73,13 +71,11 @@ public sealed class WhatsNewTests : IDisposable
         Ui.Click(linked, linked.PointOf(address));
         Assert.True(window.Browsed.LastOrDefault() == address, $"A click on the notes' link opened [{string.Join(", ", window.Browsed)}], not {address}");
 
-        // The person reads them and closes the tab; the window keeps that it showed them.
         Assert.True(window.EditorArea.CloseTab(window.EditorArea.Groups.First(g => g.Has(notes)), notes), "The notes' tab did not close");
         window.Close();
         Ui.Settle();
         Assert.True(Recorded() == Version, $"updates.json records '{Recorded()}' as the notes shown, not {Version}");
 
-        // The next start shows nothing new.
         window = Started();
         window.ShowWhatsNewOnce();
         window.OpenFolder(folder);
@@ -113,7 +109,6 @@ public sealed class WhatsNewTests : IDisposable
         Ui.Settle();
         Assert.True(window.EditorArea.Documents.Count == 0, $"A first start showed notes of what changed, though nothing came before it here: [{Open(window)}]");
 
-        // Help, What's New, where every system's Help menu has it.
         NativeMenu help = Ui.Submenu(window.MenuBar, "Help");
         NativeMenuItem item = help.Items.OfType<NativeMenuItem>().FirstOrDefault(i => i.Header == "What's New")
             ?? throw new Xunit.Sdk.XunitException($"Help has no What's New: [{string.Join(", ", help.Items.OfType<NativeMenuItem>().Select(i => i.Header))}]");
@@ -140,7 +135,6 @@ public sealed class WhatsNewTests : IDisposable
         double end = view.Extent.Height - page;
         Assert.True(end > page, $"The notes are {view.Extent.Height:0} high in a page of {page:0}, too short to move through");
 
-        // The arrows by a line, the page keys by a page, and the keymap's own line and text ends to the page's ends.
         double line = Moved(window, view, "DOWN", "a line down");
         Assert.True(line > 0 && line < page / 4, $"Down moved the notes {line:0}, not a line of a page {page:0} high");
         Assert.Equal(0, Moved(window, view, "UP", "a line up"));

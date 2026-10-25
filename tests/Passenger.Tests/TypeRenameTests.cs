@@ -14,11 +14,10 @@ using Passenger.Text;
 
 namespace Passenger.Tests;
 
-/// <summary>Rider's rename of a type with its file, both ways, on a real project in a Git working tree: Rename on a class
-/// named like its file renames the file too (Also rename files to reflect this change, on until turned off), its tab
-/// following, its uses changing and Git seeing a rename; Rename on the file in the Solution view offers to rename the
-/// class with it; a file named otherwise keeps its name; and Undo takes the whole rename back at once, asked first, as
-/// Rider's undo of a change to more than one file is.</summary>
+/// <summary>Rename of a type with its file, both ways, on a real project in a Git working tree: Rename on a class named
+/// like its file renames the file too (Also rename files to reflect this change, on until turned off), its tab following,
+/// its uses changing and Git seeing a rename; Rename on the file in the Solution view offers to rename the class with it;
+/// a file named otherwise keeps its name; and Undo takes the whole rename back at once, asked first.</summary>
 public sealed class TypeRenameTests : IClassFixture<RestoredFolders>, IDisposable
 {
     private const string Order = "namespace Shop;\n\npublic class Order\n{\n    public int Total;\n}\n";
@@ -37,8 +36,7 @@ public sealed class TypeRenameTests : IClassFixture<RestoredFolders>, IDisposabl
         TestFolders.Write(project, "Order.cs", Order);
         TestFolders.Write(project, "Till.cs", Till);
         TestFolders.Write(project, "Shapes.cs", Shapes);
-        // Files a test renames are the project's from the start, as a person's are: one written a moment before a rename
-        // is one the server may not have read again, which the rename refuses (WorkspaceEdits.StaleAsync).
+        // The files a test renames are the project's from the start: a rename refuses one written a moment before.
         TestFolders.Write(project, "Form1.cs", "namespace Shop;\n\npublic partial class Form1\n{\n    public int Width;\n}\n");
         TestFolders.Write(project, "Form1.Designer.cs", "namespace Shop;\n\npublic partial class Form1\n{\n    public int Height;\n}\n");
         TestFolders.Write(project, "Form1.resx", "<root />\n");
@@ -83,12 +81,10 @@ public sealed class TypeRenameTests : IClassFixture<RestoredFolders>, IDisposabl
         Assert.Equal(Order.Replace("Order", "Purchase", StringComparison.Ordinal), File.ReadAllText(PurchasePath));
         Assert.Equal(Till.Replace("Order", "Purchase", StringComparison.Ordinal), File.ReadAllText(till));
 
-        // Git sees the file moved, as git mv leaves it, not one file deleted and another new.
         Ui.WaitFor(() => window.Vcs.Changes.Any(c => c.Kind == ChangeKind.Renamed && c.Path == PurchasePath && c.From == OrderPath), "Git to list Order.cs renamed to Purchase.cs");
         string status = Git("status", "--porcelain");
         Assert.True(status.Split('\n').Any(l => l.StartsWith('R') && l.EndsWith("Order.cs -> Purchase.cs", StringComparison.Ordinal)), $"git status shows no rename:\n{status}");
 
-        // What was typed after it is the file's own to undo, asking nothing.
         editor.Focus();
         Ui.PlaceAfter(editor, "Total;");
         window.KeyTextInput(" // kept");
@@ -96,7 +92,6 @@ public sealed class TypeRenameTests : IClassFixture<RestoredFolders>, IDisposabl
         Assert.Empty(asked);
         Assert.Equal(Order.Replace("Order", "Purchase", StringComparison.Ordinal), document.Text.Snapshot.ToString());
 
-        // Then Undo reaches the rename: asked, and the file, its class and the other file go back together.
         Ui.Run(window, EditorActions.Undo);
         Assert.Equal([("Undo", "Undo Rename Order to Purchase? It changes Purchase.cs and Till.cs.")], asked);
         Assert.True(File.Exists(OrderPath), $"Undo did not rename Purchase.cs back: {window.Status}");
@@ -110,7 +105,6 @@ public sealed class TypeRenameTests : IClassFixture<RestoredFolders>, IDisposabl
         Ui.WaitFor(() => window.Vcs.Changes.Count == 0, "Git to list nothing changed once the rename was undone");
         Assert.Equal(string.Empty, Git("status", "--porcelain"));
 
-        // Redo makes all of it again, asked as Undo was.
         Ui.Run(window, EditorActions.Redo);
         Assert.Equal(("Redo", "Redo Rename Order to Purchase? It changes Order.cs and Till.cs."), asked[^1]);
         Assert.True(File.Exists(PurchasePath), $"Redo did not rename Order.cs again: {window.Status}");
@@ -155,7 +149,6 @@ public sealed class TypeRenameTests : IClassFixture<RestoredFolders>, IDisposabl
         Assert.Equal(Order.Replace("class Order", "class Purchase", StringComparison.Ordinal), window.EditorArea.Active?.Text.Snapshot.ToString());
         Assert.Equal(Till.Replace("Order", "Purchase", StringComparison.Ordinal), File.ReadAllText(Path.Combine(folder, "Till.cs")));
 
-        // The option stays as it was left for the next type named like its file, as Rider keeps it.
         window.OpenFile(Path.Combine(folder, "Till.cs"));
         Ui.Settle();
         Ui.PlaceAfter(window.EditorArea.CodeEditor, "class Ti");
@@ -194,7 +187,6 @@ public sealed class TypeRenameTests : IClassFixture<RestoredFolders>, IDisposabl
         Assert.Contains(window.ExplorerView.Tree.Rows, r => r.Path == PurchasePath);
         Ui.WaitFor(() => window.Vcs.Changes.Any(c => c.Kind == ChangeKind.Renamed && c.Path == PurchasePath), "Git to list Order.cs renamed");
 
-        // Undo in the Solution view takes the file's rename and the class's back together, asked first.
         Choose(window, PurchasePath);
         Ui.Run(window, EditorActions.Undo);
         Assert.Equal([("Undo", "Undo Rename Order to Purchase? It changes Till.cs and Purchase.cs.")], asked);
@@ -203,7 +195,6 @@ public sealed class TypeRenameTests : IClassFixture<RestoredFolders>, IDisposabl
         Assert.Equal(Order, File.ReadAllText(OrderPath));
         Assert.Equal(Till, editor.Document.Snapshot.ToString());
 
-        // A form renamed with its class takes the files nested under it along.
         Choose(window, Path.Combine(folder, "Form1.cs"));
         Ui.Run(window, AppActions.Rename);
         popup = Assert.IsType<NamePopup>(window.Popup);
@@ -215,7 +206,6 @@ public sealed class TypeRenameTests : IClassFixture<RestoredFolders>, IDisposabl
         Assert.Empty(Directory.GetFiles(folder, "Form1*"));
         Assert.Contains("public partial class Window1", File.ReadAllText(Path.Combine(folder, "Window1.Designer.cs")), StringComparison.Ordinal);
 
-        // A file holding types of other names: its class renamed, it stays as it is, since there is no file to offer.
         string shapes = Path.Combine(folder, "Shapes.cs");
         string figures = Path.Combine(folder, "Figures.cs");
         window.OpenFile(shapes);
@@ -224,7 +214,6 @@ public sealed class TypeRenameTests : IClassFixture<RestoredFolders>, IDisposabl
         Assert.True(File.Exists(shapes), "Shapes.cs was renamed with a class it is not named after");
         Assert.Contains("public class Ring", window.EditorArea.Active?.Text.Snapshot.ToString(), StringComparison.Ordinal);
 
-        // Renamed in the Solution view, it offers no type to rename and its code stays as it is.
         window.EditorArea.SaveAll();
         Choose(window, shapes);
         Ui.Run(window, AppActions.Rename);
@@ -237,7 +226,6 @@ public sealed class TypeRenameTests : IClassFixture<RestoredFolders>, IDisposabl
         Assert.Equal(Shapes.Replace("Circle", "Ring", StringComparison.Ordinal), File.ReadAllText(figures));
         Assert.Equal("Figures.cs", window.EditorArea.Active?.Name);
 
-        // Undo in the Solution view names it back, asked first.
         asked.Clear();
         Choose(window, figures);
         Ui.Run(window, EditorActions.Undo);

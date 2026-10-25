@@ -13,10 +13,10 @@ using Passenger.Text;
 
 namespace Passenger.Tests;
 
-/// <summary>Editor tabs in a window of their own, as Rider's: Open Tab in New Window (Shift+F4, or the tab's menu) or a
-/// tab let go outside the editors takes it into a window with its own tabs and splits, over the same open file as the
-/// main window's; the IDE's keys work there, a tab drags back, its last tab closed closes it, and the folder brings it
-/// back where it stood.</summary>
+/// <summary>Editor tabs in a window of their own: Open Tab in New Window (Shift+F4, or the tab's menu) or a tab let go
+/// outside the editors takes it into a window with its own tabs and splits, over the same open file as the main
+/// window's; the IDE's keys work there, a tab drags back, its last tab closed closes it, and the folder brings it back
+/// where it stood.</summary>
 public sealed class EditorWindowTests : IDisposable
 {
     private readonly string folder = TestFolders.Create("editor-windows-");
@@ -46,7 +46,6 @@ public sealed class EditorWindowTests : IDisposable
         Ui.Settle();
         EditorGroup left = area.Groups[0];
 
-        // Shift+F4 in the right split, which shows One.cs too: its tab goes to a window of its own, the split it left with it.
         Ui.Press(window, "shift F4");
         Window editors = EditorWindow("Shift+F4");
         EditorGroup there = Assert.Single(GroupsIn(editors));
@@ -55,19 +54,16 @@ public sealed class EditorWindowTests : IDisposable
         Assert.Equal(["Two.cs", "One.cs"], Names(left));
         Assert.Equal($"{Path.GetFileName(folder)} – One.cs", editors.Title);
 
-        // Typed in the new window, the text is the main window's file's: one file, which both show.
         editors.KeyTextInput("// ");
         Ui.Settle();
         Assert.Same(left.Active, there.Active);
         Assert.StartsWith("// class One", left.Editor.Document.Snapshot.ToString(), StringComparison.Ordinal);
         Assert.Equal(["Two.cs", "One.cs"], area.Documents.Select(d => d.Name));
 
-        // The IDE's Save, pressed there, writes it.
         Ui.Run(editors, AppActions.Save);
         Assert.Equal("// class One\n{\n}\n", File.ReadAllText(Path.Combine(folder, "One.cs")));
         Assert.False(there.Active!.IsModified, "Saved in the editor window, the file still shows as changed");
 
-        // Find Action opens over the window it was asked in, and what it runs acts there: Split Right splits the window.
         Ui.Run(editors, AppActions.FindAction);
         ActionPopup popup = Assert.IsType<ActionPopup>(window.Popup);
         Assert.True(editors.GetVisualDescendants().Contains(popup), "Find Action, pressed in the editor window, opened over the main window");
@@ -78,7 +74,6 @@ public sealed class EditorWindowTests : IDisposable
         Assert.Equal(2, GroupsIn(editors).Count);
         Assert.Single(GroupsIn(window));
 
-        // Close Tab there takes the window's tabs alone; with its last, the window goes, the file still open in the main one.
         Ui.Run(editors, AppActions.CloseTab);
         Assert.True(editors.IsVisible);
         // Pressed alone: the key's release goes to whatever is in front once the window has gone.
@@ -100,7 +95,6 @@ public sealed class EditorWindowTests : IDisposable
         editors.KeyTextInput("// ");
         Ui.Settle();
 
-        // Closed as the person closes it: Two.cs, which only it showed, is written and closed; One.cs stays in the main window.
         editors.Close();
         Ui.Settle();
         Assert.False(editors.IsVisible, "The editor window stayed open when closed");
@@ -130,7 +124,6 @@ public sealed class EditorWindowTests : IDisposable
         PixelRect onScreen = new(tab.PointToScreen(default), PixelSize.FromSize(tab.Bounds.Size, 1));
         Assert.True(onScreen.Contains(dropped), $"The tab was let go at {dropped} on the screen, and its window put it at {onScreen}");
 
-        // Back onto the main window's strip, after One.cs: the window goes, its tab in the main window again.
         Point back = Ui.Centre(tab, editors);
         Point strip = editors.PointToClient(first.TabStrip.PointToScreen(new Point(first.TabStrip.Bounds.Width - 30, first.TabStrip.Bounds.Height / 2)));
         Drag(editors, back, strip);
@@ -154,7 +147,6 @@ public sealed class EditorWindowTests : IDisposable
         first.OpenFile(Path.Combine(folder, "Two.cs"));
         Ui.Settle();
 
-        // From the tab's menu this time; then a split of the window's own, a file opened there, the window moved.
         ChooseFromTabMenu(Tab(first.EditorArea.ActiveGroup, "Two.cs"), "Open Tab in New Window");
         Window editors = EditorWindow("Open Tab in New Window on the tab's menu");
         Assert.True(first.Perform(AppActions.SplitDown));
@@ -182,13 +174,11 @@ public sealed class EditorWindowTests : IDisposable
         Assert.Equal(new TextPosition(2, 4), groups[1].Editor.CaretPosition);
         Assert.True(groups[1].TranslatePoint(default, again)!.Value.Y > groups[0].TranslatePoint(default, again)!.Value.Y,
             "The window's Split Down came back as a split beside, not below");
-        // The main window keeps what it had, and is the one the keys go to; the files are one set over both.
         Assert.Equal(["One.cs"], Names(Assert.Single(GroupsIn(second))));
         Assert.Equal("One.cs", second.EditorArea.Active?.Name);
         Assert.Equal(["One.cs", "Three.cs", "Two.cs"], second.EditorArea.Documents.Select(d => d.Name).Order());
         Assert.Same(groups[0].Active, groups[1].Tabs[0].Document);
 
-        // Another folder closes it with its files, and this one opened again brings it back.
         second.OpenFolder(TestFolders.Create("other-"));
         Assert.False(again.IsVisible, "The editor window stayed open over another folder");
         second.OpenFolder(folder);

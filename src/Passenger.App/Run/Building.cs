@@ -62,7 +62,7 @@ public sealed record BuildOutcome(BuildStatus Status, string Message)
     public string? Published { get; init; }
 }
 
-/// <summary>What a build does: Rider's Build, Rebuild (everything again, nothing taken from the last build) and Clean, and
+/// <summary>What a build does: Build, Rebuild (everything again, nothing taken from the last build) and Clean, and
 /// Publish, dotnet publish of one project (<see cref="PublishRequest"/>).</summary>
 public enum BuildKind
 {
@@ -72,16 +72,16 @@ public enum BuildKind
     Publish,
 }
 
-/// <summary>What started a build, which decides whether the Build window opens as it begins, as Rider decides.</summary>
+/// <summary>What started a build, which decides whether the Build window opens as it begins.</summary>
 public enum BuildCause
 {
     /// <summary>Asked for: the Build menu's, the Solution view's, the Build window's Rerun, an agent's.</summary>
     Explicit,
 
-    /// <summary>A run configuration's build before Run, Debug or Profile launches it, which Rider calls implicit.</summary>
+    /// <summary>A run configuration's build before Run, Debug or Profile launches it.</summary>
     BeforeLaunch,
 
-    /// <summary>A test run's, which Rider's unit testing starts with no Build window whatever the settings say.</summary>
+    /// <summary>A test run's, which opens no Build window whatever the settings say.</summary>
     Tests,
 }
 
@@ -90,9 +90,9 @@ public enum BuildCause
 public static partial class BuildOutput
 {
     /// <summary>The arguments a build, rebuild or clean runs with: no terminal logger animation, no repeated summary,
-    /// lines not wrapped, so every problem is one line read once. A framework given builds a project for that one alone,
-    /// as a run configuration's build before launch does. Windows targeting builds a WPF or Windows Forms project off
-    /// Windows, as the project host evaluates it (<see cref="WindowsTargeting(string, IReadOnlyList{ProjectModel})"/>).</summary>
+    /// lines not wrapped, so every problem is one line read once. A framework given builds a project for that one alone.
+    /// Windows targeting builds a WPF or Windows Forms project off Windows
+    /// (<see cref="WindowsTargeting(string, IReadOnlyList{ProjectModel})"/>).</summary>
     public static IReadOnlyList<string> Arguments(string target, BuildKind kind = BuildKind.Build, string? framework = null, bool windowsTargeting = false,
         string? output = null)
     {
@@ -198,10 +198,9 @@ public static partial class BuildOutput
     [GeneratedRegex(@"\b(?<word>Line) (?<line>\d{1,9})(?<between>,? [Pp]osition )(?<column>\d{1,9})\b")]
     private static partial Regex RepeatedPlace();
 
-    /// <summary>The problem before with this line's text added, when the line goes on with its message: MSBuild's console
-    /// logger writes each further line of a message (Avalonia's XAML compiler's stack trace, NuGet's dependency chains) as
-    /// a line of its own with the same place, code and project and the text indented past the one space after the code,
-    /// and it is one problem, as Rider lists it. Null when the line is a problem of its own, or none.</summary>
+    /// <summary>The problem before with this line's text added, when the line goes on with its message: MSBuild writes each
+    /// further line of one (an XAML compiler's stack trace, NuGet's dependency chains) with the same place, code and project,
+    /// its text indented past the code. Null when the line is a problem of its own, or none.</summary>
     public static Problem? Continuing(Problem before, string line)
     {
         if (Diagnostic().Match(line) is not { Success: true } match || Parse(line) is not { } more

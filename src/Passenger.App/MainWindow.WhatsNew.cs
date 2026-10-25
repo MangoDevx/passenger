@@ -9,7 +9,7 @@ namespace Passenger.App;
 /// agent's ide_action too.</summary>
 public partial class MainWindow
 {
-    /// <summary>The notes the window shows: this build's, by the version it is; a test names a version of its own.</summary>
+    /// <summary>The notes the window shows: this build's, by the version it is, unless others are given.</summary>
     public ReleaseNotes Notes { get; init; } = ReleaseNotes.Carried;
 
     private void AddWhatsNew()
@@ -34,11 +34,11 @@ public partial class MainWindow
         return OpenFile(Notes.File);
     }
 
-    /// <summary>The person's window as it starts (App, never a headless or agent's window, and a test only when it asks):
-    /// the notes of the version it is, once, when the state it keeps says an older Passenger ran here, its record of the
-    /// notes shown older or missing from an older Passenger's state, recorded as shown then. A folder the start is still
-    /// opening comes back with its own tabs behind them (<c>EditorArea.Restore</c>). A fresh state records
-    /// this version and shows nothing: the Welcome screen greets a first start.</summary>
+    /// <summary>The person's window as it starts (App, never a headless or agent's window): the notes of the version it
+    /// is, once, when the state it keeps says an older Passenger ran here, its record of the notes shown older or
+    /// missing from an older Passenger's state, recorded as shown then. A folder the start is still opening comes back
+    /// with its own tabs behind them (<c>EditorArea.Restore</c>). A fresh state records this version and shows nothing:
+    /// the Welcome screen greets a first start.</summary>
     public void ShowWhatsNewOnce()
     {
         if (!keepsSettings)

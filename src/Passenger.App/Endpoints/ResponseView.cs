@@ -7,8 +7,8 @@ using Avalonia.Media;
 
 namespace Passenger.App.Endpoints;
 
-/// <summary>A test's answer, in the Endpoints window and the Interactive Test dialog alike: the status, time and size,
-/// each criterion passed or failed with what the response had, and the body (JSON indented) or the headers.</summary>
+/// <summary>A test's answer: the status, time and size, each criterion passed or failed with what the response had, and
+/// the body (JSON indented) or the headers.</summary>
 public sealed class ResponseView : DockPanel
 {
     private readonly TextBlock summary = new() { VerticalAlignment = VerticalAlignment.Center, FontWeight = FontWeight.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis };

@@ -20,6 +20,8 @@ public sealed class ActionsTests : IDisposable
 
     public void Dispose() => TestFolders.Delete(folder);
 
+    /// <summary>Also: no key is bound to an action Find Action leaves out, and what ran last is offered first next
+    /// time, what could not run taking no place from it.</summary>
     [AvaloniaFact]
     public void Every_action_Find_Action_lists_runs_where_it_was_asked_for_or_says_why_it_cannot()
     {
@@ -33,11 +35,9 @@ public sealed class ActionsTests : IDisposable
         {
             IReadOnlyList<IdeAction> listed = FindAction(window).Rows;
             Ui.Press(window, "ESCAPE");
-            // No key is bound to an action Find Action does not list, which would run nothing.
             string[] unlisted = [.. window.Actions.Keymap.Actions.Where(id => listed.All(a => a.Id != id))];
             Assert.True(unlisted.Length == 0, $"Keys are bound to actions Find Action does not list, and run nothing: {string.Join(", ", unlisted)}");
 
-            // What ran last is offered first next time; what could not run takes no place from it.
             IdeAction first = listed[0];
             IdeAction? previous = null;
             foreach (IdeAction action in listed.Where(a => !LeftAlone.Contains(a.Id)))
@@ -66,7 +66,6 @@ public sealed class ActionsTests : IDisposable
                     Assert.True(window.Status == why, $"{action.Title} ({action.Id}) cannot run here because '{why}', but the status bar says '{window.Status}'");
                 }
                 previous = action;
-                // What an action opened over the window (Settings, a context menu) is closed before the next is found.
                 foreach (Window opened in window.OwnedWindows.ToList())
                 {
                     opened.Close();
@@ -81,9 +80,9 @@ public sealed class ActionsTests : IDisposable
         }
     }
 
-    /// <summary>The Containers and Aspire windows' service actions became one set (#409): a shortcut a person kept under the
-    /// id either window gave Debug before runs Debug Service now, which says why it cannot act here, and an agent's
-    /// ide_action naming a former id reaches the same action.</summary>
+    /// <summary>A shortcut a person kept under a service action's former id (one the Containers or Aspire window gave
+    /// Debug) runs Debug Service, which says why it cannot act here, and an agent's ide_action naming a former id
+    /// reaches the same action.</summary>
     [AvaloniaFact]
     public void A_shortcut_kept_under_a_service_actions_former_id_runs_the_one_action_it_is_now()
     {
@@ -124,7 +123,6 @@ public sealed class ActionsTests : IDisposable
         Ui.Settle();
         Ui.WaitFor(() => window.Vcs.Repository is not null, "the folder's repository");
 
-        // Another window whose person gave Commit and View Breakpoints keys of their own.
         string commitKeys = OperatingSystem.IsMacOS() ? "meta alt shift J" : "control alt shift J";
         string breakpointsKeys = OperatingSystem.IsMacOS() ? "meta alt shift U" : "control alt shift U";
         MainWindow other = new() { Width = 1200, Height = 800 };
@@ -146,7 +144,6 @@ public sealed class ActionsTests : IDisposable
             Assert.True(shown.Contains(commit),
                 $"The branch menu does not show Commit's shortcut in this window's keymap, {commit}: [{string.Join(", ", shown)}]");
 
-            // The keys it shows run Commit here.
             Ui.Press(window, platforms.ShortcutsFor(AppActions.Commit)[0].First.Notation());
             Assert.True(window.DockHost.IsShown(ToolWindowIds.Commit), $"{commit}, which the branch menu shows for Commit, did not commit in this window");
 

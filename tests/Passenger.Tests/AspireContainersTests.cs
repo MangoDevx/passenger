@@ -47,7 +47,6 @@ public sealed class AspireContainersTests : IClassFixture<AspireApp>
             string session = Running(Session);
             string kept = Running(Kept);
 
-            // Under their AppHost in the Containers window, as a Compose project's are under the project.
             window.ShowToolWindow(ToolWindowIds.Containers);
             ContainersView view = window.ContainersWindow;
             Ui.WaitFor(() =>
@@ -82,10 +81,10 @@ public sealed class AspireContainersTests : IClassFixture<AspireApp>
         }
     }
 
-    /// <summary>An AppHost with no Persistent container has its orchestrator put its containers on a session network of the
-    /// run's (DCP's <c>aspire-session-network-…</c>, labelled not Persistent), recorded with the session container as it is
-    /// made, and Stop takes it down with the container, as a container run's Stop takes its networks, whatever the
-    /// orchestrator did of it itself as its AppHost went.</summary>
+    /// <summary>An AppHost with no Persistent container has its orchestrator put its containers on a session network of
+    /// the run's (DCP's <c>aspire-session-network-…</c>, labelled not Persistent), recorded with the session container
+    /// as it is made, and Stop takes it down with the container, whatever the orchestrator did of it itself as its
+    /// AppHost went.</summary>
     [AvaloniaFact(Skip = AspireApp.AppHostSkipped, SkipType = typeof(AspireApp), SkipWhen = nameof(AspireApp.IsUnavailable))]
     public void Stop_takes_down_the_runs_session_network_with_its_session_container()
     {
@@ -148,7 +147,6 @@ public sealed class AspireContainersTests : IClassFixture<AspireApp>
             string kept = Podman.Running(Kept);
             Assert.Null(Docker.State(session));
 
-            // Recorded on Podman as it was made, and listed under its AppHost from there.
             string record = Path.Combine(window.StateFolder, "aspire-containers", "ownership.json");
             Ui.WaitFor(() => File.Exists(record) && Ui.Shared(record).Contains(session, StringComparison.Ordinal), "the session container recorded on Podman");
             using (System.Text.Json.JsonDocument recorded = System.Text.Json.JsonDocument.Parse(Ui.Shared(record)))

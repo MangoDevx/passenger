@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Writes the notices the app carries (THIRD-PARTY-NOTICES.txt) from the packages it carries; the app's build runs it
-       (Passenger.App.csproj's WriteNotices), never the app. -->
+  <!-- Writes the notices the app carries (THIRD-PARTY-NOTICES.txt) from the packages it carries: a tool of the build,
+       never part of the app. -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <RootNamespace>Passenger.Notices</RootNamespace>

@@ -5,9 +5,9 @@ using Passenger.Text;
 
 namespace Passenger.App;
 
-/// <summary>Rider's Extend Selection (Ctrl+W, Cmd+Alt+Right on the Mac) and Shrink Selection (Ctrl+Shift+W,
-/// Cmd+Alt+Left): every caret's selection grows to the next range of code around it, and shrinks back through the
-/// ranges it grew by, until a selection changes some other way.</summary>
+/// <summary>Extend Selection (Ctrl+W, Cmd+Alt+Right on the Mac) and Shrink Selection (Ctrl+Shift+W, Cmd+Alt+Left):
+/// every caret's selection grows to the next range of code around it, and shrinks back through the ranges it grew by,
+/// until a selection changes some other way.</summary>
 public partial class MainWindow
 {
     private readonly Stack<SelectionSet> grownFrom = [];

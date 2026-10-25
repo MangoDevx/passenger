@@ -4,8 +4,8 @@ using ModelContextProtocol.Client;
 
 namespace Passenger.Tests;
 
-/// <summary>An agent reads a running web app's requests and the SQL each issued, as the Requests window hears them: its own
-/// Passenger (<c>--mcp</c>) runs LiveRequestsTests' shop, and output with requests follows it and says what it served.</summary>
+/// <summary>An agent reads a running web app's requests and the SQL each issued: its own Passenger (<c>--mcp</c>) runs
+/// LiveRequestsTests' shop, and output with requests follows it and says what it served.</summary>
 public sealed class McpRequestsTests : McpRig
 {
     [Fact]
@@ -47,8 +47,7 @@ public sealed class McpRequestsTests : McpRig
             Assert.Equal(3, said.Split('\n').Count(l => l.Contains("run 3 times in this request", StringComparison.Ordinal)));
             Assert.Contains("FROM \"Orders\"", said, StringComparison.Ordinal);
 
-            // A sign-up writes, changes and looks up a customer's Password column, through parameters EF names @p0, @p1…:
-            // the agent reads each of their values as dots, by the column its command's text has it fill or meet.
+            // A sign-up's command parameters (@p0, @p1…) fill or meet the Password column, so their values read as dots.
             Assert.Equal("signed up", LiveRequestsTests.Get(http, $"http://127.0.0.1:{port.Port}/sign-up/ada"));
             string[] signUp = [];
             Assert.True(await Waiting.UntilAsync(async () =>

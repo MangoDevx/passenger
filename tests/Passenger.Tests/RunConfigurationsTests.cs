@@ -11,10 +11,10 @@ using Passenger.Core;
 
 namespace Passenger.Tests;
 
-/// <summary>Run configurations as Rider's Edit Configurations makes them: one added in the dialog runs with what was
-/// typed there and is there when the folder opens again; a generated one is changed in place, its changes kept with the
-/// folder over its launch profile or written to it, or copied to be the person's own; one removed is gone for good. The
-/// dialog opens from the Run menu's action and the toolbar's chooser. A test that runs Hello takes a restored folder
+/// <summary>Run configurations as Edit Configurations makes them: one added in the dialog runs with what was typed there
+/// and is there when the folder opens again; a generated one is changed in place, its changes kept with the folder over
+/// its launch profile or written to it, or copied to be the person's own; one removed is gone for good. The dialog opens
+/// from the Run menu's action and the toolbar's chooser. A test that runs Hello takes a restored folder
 /// (<see cref="Restored"/>); the rest open one no restore reached, as a fresh clone opens, since they build nothing.</summary>
 public sealed class RunConfigurationsTests : IClassFixture<RestoredFolders>, IDisposable
 {
@@ -110,7 +110,6 @@ public sealed class RunConfigurationsTests : IClassFixture<RestoredFolders>, IDi
         MainWindow window = Keeping();
         Assert.Equal(["Hello"], Names(window));
 
-        // The toolbar's chooser lists the configurations, and Edit Configurations below them opens the dialog.
         Ui.Click(window.FindControl<Button>("RunConfigButton")!);
         ContextMenu chooser = Assert.IsType<ContextMenu>(window.OpenContextMenu);
         Assert.Equal(["Hello", "Edit Configurations…"], chooser.Items.OfType<MenuItem>().Select(i => (string?)i.Header));
@@ -185,24 +184,21 @@ public sealed class RunConfigurationsTests : IClassFixture<RestoredFolders>, IDi
         try
         {
             Assert.Equal(["Hello: Greet", "Hello: Docker"], Names(window));
-            // A Docker profile is a container configuration of its project, which runs, not one greyed.
             RunConfiguration docker = window.Configurations.Single(c => c.Name == "Hello: Docker");
             Assert.Equal(RunKind.Dockerfile, docker.Kind);
             Assert.Null(window.WhyNotHere(docker));
 
-            // A profile that names no working folder runs in the project's, as Run, Debug and Profile all do (one LaunchPlan).
+            // A profile that names no working folder runs in the project's.
             Ui.Launched(window, window.RunAsync(), "the profile's run to start", TimeSpan.FromMinutes(2));
             Ui.WaitFor(() => window.Runner.Ended.IsCompleted, "the profile's run to end");
             string profiled = window.BottomPanel.Run.Document.Snapshot.ToString();
             Assert.True(profiled.Contains($"Hi [--name|Ada Lovelace] in {project}", StringComparison.Ordinal),
                 $"The program did not get its launch profile's arguments and variable in the project's folder:\n{profiled}");
-            // Arguments given for one run replace the profile's, and its environment stays.
             Ui.Launched(window, window.RunAsync("one \"two three\""), "the run with arguments of its own to start", TimeSpan.FromMinutes(2));
             Ui.WaitFor(() => window.Runner.Ended.IsCompleted, "the run with arguments of its own to end");
             string given = window.BottomPanel.Run.Document.Snapshot.ToString();
             Assert.True(given.Contains("Hi [one|two three]", StringComparison.Ordinal), $"The arguments given for one run did not replace the profile's:\n{given}");
-            // Run, Debug and Profile start it in a container (ContainerRunsTests, ContainerRunDebuggingTests, ContainerRunProfilingTests),
-            // which this project, with a Docker profile and no Dockerfile, cannot make: Profile says so rather than profiling it here.
+            // This project, with a Docker profile and no Dockerfile, cannot make a container, so Profile says so.
             Assert.True(window.SelectConfiguration("Hello: Docker"));
             Assert.Equal("Hello: Docker cannot run: Hello has no Dockerfile", Ui.Await(window.ProfileAsync(), "the profiler's refusal"));
             Assert.True(window.SelectConfiguration("Hello: Greet"));
@@ -329,7 +325,6 @@ public sealed class RunConfigurationsTests : IClassFixture<RestoredFolders>, IDi
             Assert.Equal(("--name \"Grace Hopper\"", "1", ConsoleKind.Terminal), (greet.Arguments, greet.Environment.GetValueOrDefault("NEW"), greet.Console));
             Assert.Equal("--name \"Grace Hopper\"", greet.Source?.Arguments);
 
-            // Undo, from the Solution view, asked first, takes the file and the configuration back as they were.
             List<string> asked = [];
             window.Confirm = (title, question, _) =>
             {
@@ -457,9 +452,9 @@ public sealed class RunConfigurationsTests : IClassFixture<RestoredFolders>, IDi
 
         """;
 
-    /// <summary>Rider's Use external console, chosen in the dialog for a copy of the generated configuration (whose own stays
-    /// the Run window's), runs the program in a tab of the Terminal window named for the configuration, and is still chosen
-    /// when the folder opens again.</summary>
+    /// <summary>Use external console, chosen in the dialog for a copy of the generated configuration (whose own stays the
+    /// Run window's), runs the program in a tab of the Terminal window named for the configuration, and is still chosen when
+    /// the folder opens again.</summary>
     [AvaloniaFact]
     public void Use_external_console_chosen_in_the_dialog_runs_the_program_in_the_terminal_and_is_kept_with_the_configuration()
     {
@@ -505,8 +500,8 @@ public sealed class RunConfigurationsTests : IClassFixture<RestoredFolders>, IDi
         }
     }
 
-    /// <summary>Rider's Open browser, After launch: a launch profile's launchBrowser shows ticked with the URL its launchUrl
-    /// and applicationUrl make, and opens that URL once the program listens; turned off in a copy, the copy opens none.</summary>
+    /// <summary>Open browser, After launch: a launch profile's launchBrowser shows ticked with the URL its launchUrl and
+    /// applicationUrl make, and opens that URL once the program listens; turned off in a copy, the copy opens none.</summary>
     [AvaloniaFact]
     public void A_launch_profiles_browser_shows_under_open_browser_and_a_copy_with_it_turned_off_opens_none()
     {
@@ -608,7 +603,6 @@ public sealed class RunConfigurationsTests : IClassFixture<RestoredFolders>, IDi
         Ui.Click(dialog.AddButton);
         Ui.Click(dialog.AddMenu!.Items.OfType<MenuItem>().Single(i => (string?)i.Header == "Docker Compose"));
         Assert.Equal("Docker Compose", dialog.KindText.Text);
-        // A Compose configuration's page: its files and services, no project's program, framework or working folder.
         Assert.True(dialog.ComposeFilesBox.IsEffectivelyVisible && dialog.ModeBox.IsEffectivelyVisible && dialog.KeepBackingBox.IsEffectivelyVisible, "The Compose page is not shown");
         Assert.False(dialog.ProgramBox.IsEffectivelyVisible || dialog.WorkingDirectoryBox.IsEffectivelyVisible || dialog.ProjectBox.IsEffectivelyVisible,
             "A Compose configuration shows a project's fields");
@@ -628,7 +622,6 @@ public sealed class RunConfigurationsTests : IClassFixture<RestoredFolders>, IDi
         Assert.True(made.KeepBackingServices, "Keep backing services was not kept");
         window.Close();
 
-        // The store keeps its files relative to the folder, and the folder opened again has it as it was.
         MainWindow again = Keeping();
         RunConfiguration kept = again.Configurations.Single(c => c.Name == "Everything");
         Assert.Equal(made.ComposeFiles, kept.ComposeFiles);
@@ -662,8 +655,7 @@ public sealed class RunConfigurationsTests : IClassFixture<RestoredFolders>, IDi
         }
     }
 
-    /// <summary>A name longer than the list is wide ends in an ellipsis inside its row, as the other narrowing rows do,
-    /// where it had been cut mid-letter at the list's edge.</summary>
+    /// <summary>A name longer than the list is wide ends in an ellipsis inside its row.</summary>
     [AvaloniaFact]
     public void A_configuration_named_longer_than_the_list_is_wide_ends_in_an_ellipsis_inside_its_row()
     {

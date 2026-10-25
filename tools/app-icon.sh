@@ -1,11 +1,8 @@
 #!/bin/sh
-# Passenger's own icon from its source, src/Passenger.App/Assets/passenger.svg: `just app-icon`. sips draws the SVG at
-# each size macOS asks of an app icon, iconutil packs them into Passenger.icns (the bundle's and the disk image's, which
-# tools/package-mac.sh copies in), and the 256-pixel one is the window's icon. Passenger.ico is Windows' (Passenger.exe's,
-# so its Start menu entry's and the file types', and the installer's): the sizes the shell draws, each a PNG inside, as
-# Windows reads them since Vista. macOS only, since sips draws it: macOS's image reader keeps the SVG's transparent
-# corners, where QuickLook's thumbnail painted them white (#171), so every picture the three files hold is read back and
-# fails the script unless its corner is fully transparent.
+# Passenger's own icons from src/Passenger.App/Assets/passenger.svg (`just app-icon`, on macOS, since sips draws them):
+# Passenger.icns at each size macOS asks of an app icon, passenger.png at 256 pixels for the window, and Passenger.ico
+# at the sizes Windows' shell draws, each a PNG inside. Every picture the three files hold is read back, failing the
+# script unless its corner is fully transparent.
 set -eu
 fail() {
     echo "app-icon: $*" >&2
@@ -49,7 +46,6 @@ with open(sys.argv[1], "wb") as ico:
     ico.write(head + b"".join(images))
 PY
 
-# What ships, read back: every size iconutil packed, every PNG in the .ico, and the window's.
 iconutil -c iconset "$assets/Passenger.icns" -o "$work/shipped.iconset"
 python3 -I - "$assets/Passenger.icns" "$work/shipped.iconset" "$assets/Passenger.ico" "$assets/passenger.png" <<'PY'
 import os, struct, sys, zlib

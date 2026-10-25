@@ -95,8 +95,7 @@ public sealed class ContainerConfigurationsTests
         }
         first.Close();
 
-        // As the last build before the properties were carried kept the folder's evaluations, at its version: each project's
-        // stamps still hold.
+        // The folder's evaluations as the last build before the properties were carried kept them.
         string cache = Directory.EnumerateFiles(settings, "projectModels.json", SearchOption.AllDirectories).Single();
         JsonObject kept = (JsonObject)JsonNode.Parse(File.ReadAllText(cache))!;
         kept["version"] = 3;
@@ -195,7 +194,6 @@ public sealed class ContainerConfigurationsTests
             dialog.Variables[^1].Name.Text = "LOG";
             dialog.Variables[^1].Value.Text = "1";
             Ui.Settle();
-            // OLD's row taken out by its own button, beside its value.
             Avalonia.Controls.Grid old = (Avalonia.Controls.Grid)dialog.Variables.Single(v => v.Name.Text == "OLD").Name.Parent!;
             Ui.Click(old.Children.OfType<Avalonia.Controls.Button>().Single());
             Assert.Equal(["Run arguments", "Environment variables"], dialog.Marked);
@@ -263,7 +261,6 @@ public sealed class ContainerConfigurationsTests
         Assert.Equal(ServiceStart.Debug, profile.ServiceActions["web"]);
         Assert.Equal(ServiceStart.DontStart, profile.ServiceActions["api"]);
         Assert.Equal(ServiceStart.Run, profile.ServiceActions["cache"]);
-        // A plain compose configuration of the same files is not listed beside the project's own.
         Assert.DoesNotContain(window.Configurations, c => c.Name.StartsWith("Compose:", StringComparison.Ordinal));
         window.Close();
     }

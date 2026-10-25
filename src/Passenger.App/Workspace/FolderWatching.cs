@@ -1,9 +1,8 @@
 namespace Passenger.App.Workspace;
 
-/// <summary>Where the platforms differ in watching a folder, and only here. FSEvents (macOS) and ReadDirectoryChangesW
-/// (Windows) watch a whole tree through one handle, so the folders passed over cost nothing. Linux's inotify takes a watch
-/// for every folder from a pool the user's programs share (fs.inotify.max_user_watches, 8,192 on older kernels), which
-/// .NET's recursive watcher spends on build output and dependencies too: there each kept folder is watched on its own.</summary>
+/// <summary>Where the platforms differ in watching a folder, and only here: macOS and Windows watch a whole tree
+/// through one handle, where Linux's inotify takes a watch for every folder from a small pool the user's programs
+/// share, so there each kept folder is watched on its own.</summary>
 public sealed class FolderWatching
 {
     /// <summary>What inotify_add_watch fails with once the user's watches are used up, ENOSPC, which .NET's watcher raises
@@ -12,7 +11,7 @@ public sealed class FolderWatching
 
     private const string LimitPath = "/proc/sys/fs/inotify/max_user_watches";
 
-    /// <summary>The limit suggested, as IntelliJ's and VS Code's guides do, unless it is that already.</summary>
+    /// <summary>The limit suggested, unless it is that already.</summary>
     private const long Suggested = 524_288;
 
     private FolderWatching(bool eachFolder) => EachFolder = eachFolder;
@@ -20,8 +19,8 @@ public sealed class FolderWatching
     /// <summary>One recursive watcher over the whole tree: macOS's and Windows'.</summary>
     public static FolderWatching WholeTree { get; } = new(eachFolder: false);
 
-    /// <summary>A watcher for each kept folder, and running out of watches said with how to raise the limit: Linux's,
-    /// which a test can choose on any system.</summary>
+    /// <summary>A watcher for each kept folder, and running out of watches said with how to raise the limit:
+    /// Linux's.</summary>
     public static FolderWatching Inotify { get; } = new(eachFolder: true);
 
     /// <summary>The running system's.</summary>

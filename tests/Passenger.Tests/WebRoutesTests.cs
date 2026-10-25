@@ -39,8 +39,7 @@ public sealed class WebRoutesTests
     public void The_endpoints_window_lists_each_kind_of_route_the_apps_code_declares_with_its_parameters()
     {
         string folder = Shop(port: 5555);
-        // A file of routes 20,000 lines long, whose icons a key must not cost as many lines, and one as long that declares none:
-        // the lines one comment, which the editor colours as one.
+        // A file of routes 20,000 lines long, and one as long that declares none: the lines one comment.
         string notes = $"/*\n{string.Concat(Enumerable.Range(0, 20_000).Select(i => $"The orders' notes, line {i}\n"))}*/\n";
         File.AppendAllText(Path.Combine(folder, "Orders.cs"), notes);
         TestFolders.Write(folder, "Notes.cs", "namespace Shop;\n\npublic static class Notes\n{\n}\n" + notes);
@@ -56,7 +55,6 @@ public sealed class WebRoutesTests
             WebRoute todo = Route(window, "GET /api/todos/{id:int}");
             RouteParameter id = Assert.Single(todo.Parameters);
             Assert.Equal(("id", "route", "int"), (id.Name, id.Source, id.Constraints));
-            // A group's prefix followed through the method that maps the orders and the local it is kept in.
             WebRoute order = Route(window, "PUT /orders/{id:guid}");
             Assert.Equal("Orders.Update", order.Handler);
             Assert.Equal("Order", order.BodyType);
@@ -67,8 +65,7 @@ public sealed class WebRoutesTests
             Assert.Equal("Product", Route(window, "POST /api/Products").BodyType);
             Assert.Equal(["Send"], Route(window, "HUB /chat").Operations);
 
-            // A key typed in a file of routes costs the UI thread what it costs in a file as long that declares none: its icons
-            // go until the routes are read again, the file's text hashed then, not at each key; and come back once read.
+            // A key typed in a file of routes costs the UI thread what it costs in a file as long that declares none.
             long plain = KeyCosts(Path.Combine(folder, "Notes.cs"), routes: false);
             long routed = KeyCosts(Path.Combine(folder, "Orders.cs"), routes: true);
             Assert.True(routed < plain + 512 * 1024,
@@ -76,7 +73,6 @@ public sealed class WebRoutesTests
             Passenger.App.Workspace.OpenDocument orders = window.EditorArea.Active!;
             Ui.WaitFor(() => orders.RouteMarks.Count > 0, "Orders.cs's icon back once its routes are read again", TimeSpan.FromMinutes(1));
 
-            // A route added to the code is listed once typing pauses, read from the editor's text, saved or not.
             window.OpenFile(Path.Combine(folder, "Program.cs"));
             Ui.Settle();
             Typing.Replace(window, "app.MapGet(\"/health\", () => \"ok\");", "app.MapGet(\"/health\", () => \"ok\");\napp.MapGet(\"/version\", () => \"1\");");
@@ -145,14 +141,12 @@ public sealed class WebRoutesTests
             Assert.True(window.Endpoints.Response.Passed, $"The route's request failed: {window.Endpoints.Response.Summary}");
             Assert.Contains("Write tests", window.Endpoints.Response.Shown, StringComparison.Ordinal);
 
-            // The project's .http file, made for it: its address, the route value as a variable, the request.
             string http = Path.Combine(folder, "Shop.http");
             Ui.WaitFor(() => File.Exists(http), "Shop.http, written for the request");
             string written = File.ReadAllText(http);
             Assert.Contains($"@Shop_HostAddress = http://127.0.0.1:{port.Port}\n", written, StringComparison.Ordinal);
             Assert.Contains("@id = 1\nGET {{Shop_HostAddress}}/api/todos/{{id}}\nAccept: application/json\n", written, StringComparison.Ordinal);
 
-            // A route with a body: its JSON shaped from the body's type, sent and echoed; the file gains it, its first request kept.
             int post = Line(program, "todos.MapPost(");
             Ui.WaitFor(() => program.RouteMarks.Any(m => m.Line == post), "the send icon beside the todo's POST");
             GutterMenu(window, post);
@@ -164,14 +158,12 @@ public sealed class WebRoutesTests
                 written, StringComparison.Ordinal);
             Assert.Equal(1, written.Split("GET {{Shop_HostAddress}}/api/todos/{{id}}").Length - 1);
 
-            // Sent again, the request the file has is the one sent: no second entry.
             GutterMenu(window, line);
             Ui.Choose(window.RouteMarkMenu!, "Send GET /api/todos/{id:int}");
             Ui.WaitFor(() => window.Endpoints.Response.Response is not null && window.Endpoints.Response.Shown.Contains("Write tests", StringComparison.Ordinal),
                 "the second answer", TimeSpan.FromMinutes(1));
             Assert.Equal(written, File.ReadAllText(http));
 
-            // A controller's action, its icon on its [HttpGet]: its query parameter goes into the URL as a variable of its own.
             window.OpenFile(Path.Combine(folder, "Controllers", "ProductsController.cs"));
             Ui.Settle();
             Passenger.App.Workspace.OpenDocument products = window.EditorArea.Active!;
@@ -184,7 +176,6 @@ public sealed class WebRoutesTests
             written = File.ReadAllText(http);
             Assert.Contains("# Controller: ProductsController.Get\n@details = true\nGET {{Shop_HostAddress}}/api/Products/{{id}}?details={{details}}\n", written, StringComparison.Ordinal);
 
-            // From the request to its route, and from the route to its request.
             window.OpenFile(Path.Combine(folder, "Program.cs"));
             Ui.Settle();
             window.OpenFile(http);

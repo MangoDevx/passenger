@@ -11,14 +11,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- The window's icon (X11's too); Passenger.icns is the macOS bundle's (tools/package-mac.sh), both from
-         Assets/passenger.svg, which with passenger.png is the Linux desktop entry's (tools/package-linux.sh). -->
+    <!-- The window's icon (X11's too), drawn from Assets/passenger.svg. -->
     <AvaloniaResource Include="Assets/passenger.png" />
     <!-- MSBuild's own schemas (dotnet/msbuild, MIT), which the .NET SDK does not carry: the elements, properties, items,
          metadata and tasks the code help in project files offers and describes (MSBuild/MSBuildSchema.cs). -->
     <EmbeddedResource Include="MSBuild/Schemas/*.xsd" LogicalName="MSBuild/%(Filename)%(Extension)" />
-    <!-- Passenger's own Prettier runner, run on the machine's Node.js with the project's own prettier (Web/Prettier.cs),
-         carried beside the web language servers. -->
+    <!-- Passenger's own Prettier runner (Web/Prettier.cs), carried beside the web language servers. -->
     <None Include="Web/prettier.cjs" Link="web/passenger/prettier.cjs" CopyToOutputDirectory="PreserveNewest" />
     <!-- Passenger's preload for the Dockerfile server, which keeps it from Docker Hub while Settings says so
          (Web/DockerHubTags.cs). -->
@@ -38,15 +36,14 @@
          checked in beside it (just aspire-protocol), so no build runs protoc. -->
     <PackageReference Include="Google.Protobuf" />
     <PackageReference Include="Grpc.Net.Client" />
-    <!-- A library's type opened from XAML, decompiled as the debugger decompiles frames without source (Xaml/LibrarySources.cs). -->
+    <!-- A library's type opened from XAML, decompiled when it has no source (Xaml/LibrarySources.cs). -->
     <PackageReference Include="ICSharpCode.Decompiler" />
     <!-- The Model Context Protocol server (Mcp/), the official SDK's core, without its ASP.NET half. -->
     <PackageReference Include="ModelContextProtocol.Core" />
     <PackageReference Include="Microsoft.TestPlatform.TranslationLayer" />
     <!-- The folder's nuget.config files as NuGet reads them: the NuGet window's feeds, credentials and source mapping. -->
     <PackageReference Include="NuGet.Configuration" />
-    <!-- Microsoft.Testing.Platform's test hosts speak JSON-RPC (Testing/TestingPlatformRunner.cs); the language server's
-         client keeps its own use of it to itself. -->
+    <!-- Microsoft.Testing.Platform's test hosts speak JSON-RPC (Testing/TestingPlatformRunner.cs). -->
     <PackageReference Include="StreamJsonRpc" />
     <!-- The Windows install's hooks: what its installer and uninstaller ask of Passenger.exe (Installation.cs). -->
     <PackageReference Include="Velopack" />
@@ -76,7 +73,7 @@
     <ProjectReference Include="../Passenger.Inspector.Wpf/Passenger.Inspector.Wpf.csproj" ReferenceOutputAssembly="false" Private="false"
                       SkipGetTargetFrameworkProperties="true" GlobalPropertiesToRemove="RuntimeIdentifier;SelfContained;PublishReadyToRun;TargetFramework" />
     <!-- Built first and carried under testframes/, never linked: a test run of an Avalonia headless project loads it
-         (Testing/TestFrames.cs), built once for every platform as the inspector is. -->
+         (Testing/TestFrames.cs). It is built once for every platform. -->
     <ProjectReference Include="../Passenger.TestFrames/Passenger.TestFrames.csproj" ReferenceOutputAssembly="false" Private="false"
                       GlobalPropertiesToRemove="RuntimeIdentifier;SelfContained;PublishReadyToRun" />
     <Compile Include="../Passenger.TestFrames/Variables.cs" Link="Testing/TestFramesVariables.cs" />
@@ -106,19 +103,16 @@
     </ItemGroup>
   </Target>
 
-  <!-- LICENSE.txt and THIRD-PARTY-NOTICES.txt beside the app in every build and publish (and in every referencing project's
-       output, as debugger/ and roslyn/ come), the notices written by tools/Passenger.Notices from the packages themselves:
-       those this build copies, the runtime a self-contained app carries, the debugger's and Roslyn's server's, each with
-       its copyright, licence text and own notices, then THIRD_PARTY_NOTICES.md's copied source and assets. A package whose
-       licence it cannot write fails the build, so the notices cannot fall behind what the app carries. -->
+  <!-- LICENSE.txt and THIRD-PARTY-NOTICES.txt beside the app in every build and publish (and in every referencing
+       project's output), the notices written by tools/Passenger.Notices from the packages the app carries, so they cannot
+       fall behind it. -->
   <ItemGroup>
     <ProjectReference Include="../../tools/Passenger.Notices/Passenger.Notices.csproj" ReferenceOutputAssembly="false" Private="false"
                       GlobalPropertiesToRemove="RuntimeIdentifier;SelfContained;PublishReadyToRun" />
     <None Include="../../LICENSE" Link="LICENSE.txt" CopyToOutputDirectory="PreserveNewest" Visible="false" />
   </ItemGroup>
 
-  <!-- Every version's release notes beside the app (release-notes/X.Y.Z.md), which What's New shows and the release
-       workflow makes the GitHub release's body (tools/release-notes.sh): carried, never fetched. -->
+  <!-- Every version's release notes beside the app (release-notes/X.Y.Z.md), for What's New: carried, never fetched. -->
   <ItemGroup>
     <None Include="../../docs/release-notes/*.md" Link="release-notes/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
   </ItemGroup>
@@ -184,8 +178,8 @@
     </ItemGroup>
   </Target>
 
-  <!-- The inspector becomes this project's output under inspector/, as the debug adapter's does under debugger/: its own
-       assembly alone, since the app it loads into brings the Avalonia it uses. -->
+  <!-- The inspector becomes this project's output under inspector/: its own assembly alone, since the app it loads into
+       brings the Avalonia it uses. -->
   <Target Name="IncludeInspector" BeforeTargets="AssignTargetPaths">
     <MSBuild Projects="../Passenger.Inspector/Passenger.Inspector.csproj" Targets="GetTargetPath"
              RemoveProperties="RuntimeIdentifier;SelfContained;PublishReadyToRun" BuildInParallel="$(BuildInParallel)">
@@ -214,8 +208,8 @@
     </ItemGroup>
   </Target>
 
-  <!-- The test frames hook becomes this project's output under testframes/, as the inspector does under inspector/: its own
-       assembly alone, since the test program it loads into brings the Avalonia and xunit it uses. -->
+  <!-- The test frames hook becomes this project's output under testframes/: its own assembly alone, since the test
+       program it loads into brings the Avalonia and xunit it uses. -->
   <Target Name="IncludeTestFrames" BeforeTargets="AssignTargetPaths">
     <MSBuild Projects="../Passenger.TestFrames/Passenger.TestFrames.csproj" Targets="GetTargetPath"
              RemoveProperties="RuntimeIdentifier;SelfContained;PublishReadyToRun" BuildInParallel="$(BuildInParallel)">
@@ -246,8 +240,8 @@
     </ItemGroup>
   </Target>
 
-  <!-- The project host's output becomes this project's output items under host/, as the debug adapter's does under
-       debugger/: the host and MSBuildLocator, the one package it carries. -->
+  <!-- The project host's output becomes this project's output items under host/: the host and MSBuildLocator, the one
+       package it carries. -->
   <Target Name="IncludeProjectHost" BeforeTargets="AssignTargetPaths">
     <MSBuild Projects="../Passenger.Host/Passenger.Host.csproj" Targets="GetTargetPath"
              RemoveProperties="RuntimeIdentifier;SelfContained;PublishReadyToRun" BuildInParallel="$(BuildInParallel)">
@@ -264,7 +258,7 @@
   </Target>
 
   <!-- The debug adapter's output becomes this project's output items under debugger/, so every project that
-       references this one (the tests) gets it beside its own binaries, as the roslyn/ server comes. -->
+       references this one gets it beside its own binaries. -->
   <Target Name="IncludeDebugAdapter" BeforeTargets="AssignTargetPaths">
     <MSBuild Projects="../Passenger.DebugAdapter/Passenger.DebugAdapter.csproj" Targets="GetTargetPath" BuildInParallel="$(BuildInParallel)">
       <Output TaskParameter="TargetOutputs" ItemName="DebugAdapterAssembly" />

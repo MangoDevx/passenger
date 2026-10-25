@@ -105,13 +105,10 @@ public sealed class ConsoleSink
     }
 
     /// <summary>Reads a program's stream into the console as it comes, a read at a time (a prompt with no line end too),
-    /// with colour-code state of its own, so two streams shown alike (Compose's progress, on its standard error) never
-    /// break each other's sequences; and ends it there as it ends, however it does (a pipe broken as its program is killed
-    /// too): a '\r' held back is let go. Each line read is told to <paramref name="lines"/> when given ('\r', '\n' or both
-    /// ending it, the last at the end). Once <paramref name="letGo"/> is cancelled (its program ended, what still holds the
-    /// stream out of the kill's reach), what comes is dropped and nothing ended, since the console may be another program's
-    /// by then. With <paramref name="shown"/>, what it shows of its text (a CLI's errors with their secrets masked) is
-    /// written whole lines at a time, so nothing it changes is split between two reads. From any thread; it never throws.</summary>
+    /// with colour-code state of its own so two streams never break each other's sequences, and ends it there however it
+    /// ends, a '\r' held back let go. Each line read is told to <paramref name="lines"/> when given. Once
+    /// <paramref name="letGo"/> is cancelled what comes is dropped, the console being another's; <paramref name="shown"/>
+    /// writes its text as shown (secrets masked), whole lines at a time. From any thread; never throws.</summary>
     public async Task PumpAsync(TextReader reader, ConsoleStream stream, CancellationToken letGo = default, Action<string>? lines = null,
         Action<string>? chunks = null, Func<string, string>? shown = null)
     {

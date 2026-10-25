@@ -8,8 +8,8 @@ namespace Passenger.App.Debugging;
 /// result. One with a reference opens into its children, asked of the debugger the first time.</summary>
 public sealed class VariableNode(string name, string value, string? type, int reference, int depth, VariableRole role) : Observable
 {
-    /// <summary>The most of a value its row, the row's tooltip and a hover show, as Rider cuts a long one: a string of
-    /// megabytes laid out whole held the window for seconds at every stop. Copy Value and Set Value take all of it.</summary>
+    /// <summary>The most of a value its row, the row's tooltip and a hover show: a string of megabytes laid out whole would
+    /// hold the window for seconds at every stop. Copy Value and Set Value take all of it.</summary>
     public const int Longest = 1000;
 
     /// <summary>The names the debugger gives its ranges of elements, <see cref="IsRange"/>.</summary>
@@ -25,7 +25,7 @@ public sealed class VariableNode(string name, string value, string? type, int re
     /// ("Count() returned") is $ReturnValue.</summary>
     public string? EvaluateName { get; init; }
 
-    /// <summary>A value a call of the last step returned, listed at the top of the frame's values as Rider lists them.</summary>
+    /// <summary>A value a call of the last step returned, listed at the top of the frame's values.</summary>
     public bool IsReturnValue => Depth == 0 && Role == VariableRole.Value && EvaluateName?.StartsWith("$ReturnValue", StringComparison.Ordinal) == true;
 
     /// <summary>The exception the program stopped at, $exception, or the failed binding, $bindingError.</summary>
@@ -44,7 +44,7 @@ public sealed class VariableNode(string name, string value, string? type, int re
     /// <summary>The row this lazy one read as, once it has.</summary>
     public VariableNode? ReadAs { get; internal set; }
 
-    /// <summary>The row of an EF Core query's SQL the debugger adds first among the query's members (#420), read or not.</summary>
+    /// <summary>The row of an EF Core query's SQL the debugger adds first among the query's members, read or not.</summary>
     public bool IsQuerySql => IsVirtual && Name == DapRows.QuerySql;
 
     /// <summary>An EF Core query's SQL as it read, whose text opens whole in a read-only editor tab.</summary>
@@ -121,7 +121,7 @@ public sealed class VariableNode(string name, string value, string? type, int re
     public VariableRole Role { get; } = role;
     public bool HasChildren => Reference > 0;
 
-    /// <summary>Rider's form: the type in braces before the value, unless the value already says it.</summary>
+    /// <summary>The type in braces before the value, unless the value already says it.</summary>
     public string TypeLabel => Type is { Length: > 0 } t && Value != t && !Value.StartsWith(t, StringComparison.Ordinal) ? $"{{{t}}} " : string.Empty;
 
     public Thickness Indent => new(Depth * 16, 0, 0, 0);

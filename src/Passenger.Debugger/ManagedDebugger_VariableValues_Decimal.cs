@@ -84,15 +84,13 @@ public partial class ManagedDebugger
             return "{decimal}"; // fallback if layout is unrecognised
         }
 
-        // Reconstruct the decimal string from the 96-bit integer + scale + sign
-        // The 96-bit mantissa is hi:mid:lo (big-endian 32-bit words)
+        // The 96-bit mantissa, hi:mid:lo, with its scale and sign.
         uint[] words = [lo, mid, hi]; // little-endian words for the big-integer arithmetic
         string digits = UInt96ToDecimalDigits(words);
 
         uint scale = (flags >> 16) & 0xFF;
         bool negative = (flags & 0x80000000u) != 0;
 
-        // Insert decimal point
         if (scale > 0)
         {
             if (digits.Length > (int)scale)

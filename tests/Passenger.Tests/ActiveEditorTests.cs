@@ -17,11 +17,10 @@ using Passenger.Text;
 
 namespace Passenger.Tests;
 
-/// <summary>Rider's View, Active Editor, through the window: Soft-Wrap (a Markdown or text file opens wrapped, as Settings'
+/// <summary>View, Active Editor, through the window: Soft-Wrap (a Markdown or text file opens wrapped, as Settings'
 /// masks say), each row from a word, the line's later rows from its indent, its number beside its first row only, and
-/// every key, click and mark finding the row it is on; Show Whitespaces' dots and arrows; and Increase, Decrease and Reset
-/// Font Size and Cmd+wheel (Ctrl+wheel elsewhere) changing the font Settings keeps. What a key costs in a long wrapped
-/// file is ActiveEditorResponsivenessTests'.</summary>
+/// every key, click and mark finding the row it is on; Show Whitespaces' dots and arrows; and Increase, Decrease and
+/// Reset Font Size and Cmd+wheel (Ctrl+wheel elsewhere) changing the font Settings keeps.</summary>
 public sealed class ActiveEditorTests : ActiveEditorFolders
 {
     [AvaloniaFact]
@@ -42,19 +41,16 @@ public sealed class ActiveEditorTests : ActiveEditorFolders
         {
             Assert.True(text[start - 1] == ' ' && text[start] == 'w', $"A row starts at {start}, inside a word.");
             Assert.True(Math.Abs(At(editor, start).X - At(editor, line.Start).X) < 0.5, "A row after the first starts away from the left edge of a line with no indent.");
-            // The row ends inside the view, and the next word would not have fitted on it.
             double end = At(editor, start - 1).X;
             Assert.True(end <= edge - width, $"A row's text ends at {end:F0}, past the view's text edge at {edge:F0}.");
             Assert.True(end + (7 * width) > edge - (2 * width), $"A row ends at {end:F0} with room for another word before {edge:F0}.");
         }
 
-        // The indented line's later rows start where its text does.
         LineSpan indented = text.GetLine(4);
         List<int> indentedStarts = RowStarts(editor, indented);
         Assert.NotEmpty(indentedStarts);
         Assert.All(indentedStarts, start => Assert.Equal(At(editor, indented.Start + 4).X, At(editor, start).X, 1));
 
-        // A run with nowhere to break goes on at the edge, every row of it inside the view, from the line's indent.
         LineSpan run = text.GetLine(6);
         List<int> runStarts = RowStarts(editor, run);
         Assert.True(runStarts.Count >= 2, "A run of 400 letters did not wrap.");
@@ -66,7 +62,6 @@ public sealed class ActiveEditorTests : ActiveEditorFolders
         }
         Assert.All(runStarts, start => Assert.Equal(At(editor, run.Start + 8).X, At(editor, start).X, 1));
 
-        // Letters beyond ASCII are measured one by one, and wrap at words the same.
         LineSpan accented = text.GetLine(7);
         List<int> accentedStarts = RowStarts(editor, accented);
         Assert.True(accentedStarts.Count >= 2, "A line of sixty accented words did not wrap.");
@@ -76,12 +71,10 @@ public sealed class ActiveEditorTests : ActiveEditorFolders
             Assert.True(At(editor, start - 1).X <= edge - width, $"A row of the accented line ends at {At(editor, start - 1).X:F0}, past the view's edge at {edge:F0}.");
         }
 
-        // The line's number is drawn beside its first row, nothing beside the rows after it.
         Color gutter = Token(window, "Passenger.Editor.Gutter");
         Assert.True(GutterBeside(window, editor, line.Start).Any(c => c != gutter), "The wrapped line's first row has no number beside it.");
         Assert.Equal([gutter], GutterBeside(window, editor, starts[0]));
 
-        // View, Active Editor, Soft-Wrap turns it off for the file, and on again.
         editor.Focus();
         Ui.Run(window, AppActions.SoftWrap);
         Assert.False(window.EditorArea.Active!.SoftWrap);
@@ -139,7 +132,6 @@ public sealed class ActiveEditorTests : ActiveEditorFolders
         editor.Focus();
         Ui.Settle();
 
-        // Down and Up by rows of the one line, at the same x.
         Ui.Press(window, "DOWN");
         Assert.Equal(2, editor.CaretPosition.Line);
         Assert.Equal(top + height, Caret(editor).Y, 1);
@@ -150,7 +142,6 @@ public sealed class ActiveEditorTests : ActiveEditorFolders
         Ui.Press(window, "UP");
         Assert.Equal(line.Start + 3, editor.Selections.Primary.Caret);
 
-        // End: the end of the caret's row, before the wrap; again, the end of the next row.
         Ui.Press(window, "END");
         Assert.Equal(starts[0], editor.Selections.Primary.Caret);
         Assert.True(Caret(editor).Y == top, "End on a wrapped line's first row left the caret off that row.");
@@ -158,14 +149,12 @@ public sealed class ActiveEditorTests : ActiveEditorFolders
         Ui.Press(window, "END");
         Assert.Equal(starts[1], editor.Selections.Primary.Caret);
         Assert.Equal(top + height, Caret(editor).Y, 1);
-        // Home: the start of the caret's row, then the row before's.
         Ui.Press(window, "HOME");
         Assert.Equal(starts[0], editor.Selections.Primary.Caret);
         Assert.Equal(top + height, Caret(editor).Y, 1);
         Ui.Press(window, "HOME");
         Assert.Equal(line.Start, editor.Selections.Primary.Caret);
 
-        // Right steps from the space ending a row to the end of that row, to the next row's start, and on.
         editor.Selections = SelectionSet.Single(starts[0] - 1);
         Ui.Press(window, "RIGHT");
         Assert.Equal(starts[0], editor.Selections.Primary.Caret);
@@ -181,13 +170,11 @@ public sealed class ActiveEditorTests : ActiveEditorFolders
         Assert.Equal(starts[0], editor.Selections.Primary.Caret);
         Assert.Equal(top, Caret(editor).Y, 1);
 
-        // Typed at the end of a row, a word's first letter goes on with that word, the caret after it.
         Ui.Type(window, "X", "X");
         Assert.Equal('X', editor.Document.Snapshot[starts[0]]);
         Assert.Equal(starts[0] + 1, editor.Selections.Primary.Caret);
         Assert.Equal(At(editor, starts[0]).Y, Caret(editor).Y, 1);
         Assert.Equal(At(editor, starts[0]).X + width, Caret(editor).X, 1);
-        // A space typed at the end of a row stays on that row, the caret after it there.
         editor.Selections = SelectionSet.Single(line.Start);
         Ui.Press(window, "END");
         int wrap = editor.Selections.Primary.Caret;
@@ -211,12 +198,10 @@ public sealed class ActiveEditorTests : ActiveEditorFolders
         Click(window, editor, editor.PointOf(target) + new Point(1, editor.LineHeight / 2));
         Assert.Equal(target, editor.Selections.Primary.Caret);
 
-        // Past the end of the first row, the caret goes to that row's end, not the next row's start.
         Click(window, editor, new Point(TextEdge(editor) - 4, editor.PointOf(line.Start).Y + (editor.LineHeight / 2)));
         Assert.Equal(starts[0], editor.Selections.Primary.Caret);
         Assert.Equal(top, Caret(editor).Y, 1);
 
-        // A double click on a word of the second row selects that word.
         Point word = editor.PointOf(starts[0] + 2) + new Point(1, editor.LineHeight / 2);
         Point inWindow = editor.TranslatePoint(word, window)!.Value;
         window.MouseDown(inWindow, MouseButton.Left);
@@ -275,7 +260,6 @@ public sealed class ActiveEditorTests : ActiveEditorFolders
         Assert.True(commentRows > 1, "The comment did not wrap.");
         Assert.Equal(At(editor, comment.Start).Y + (commentRows * editor.LineHeight), At(editor, text.GetLine(3).Start).Y, 1);
 
-        // A breakpoint on the wrapped line: its dot beside the line's first row, the line's tint on every row.
         editor.GoTo(new TextPosition(5, 8));
         editor.Focus();
         Ui.Run(window, AppActions.ToggleBreakpoint);
@@ -288,9 +272,7 @@ public sealed class ActiveEditorTests : ActiveEditorFolders
         Point tinted = editor.TranslatePoint(new Point(TextEdge(editor) - 3, editor.PointOf(sumStarts[0]).Y + 2), window)!.Value;
         Assert.Equal(Token(window, "Passenger.Editor.BreakpointLine"), Ui.Pixel(window, tinted));
 
-        // The method's chevron is on its signature's row, below the comment's rows: a click there folds the method, and
-        // the class's brace comes up to the row after the signature, where a click puts the caret. The rows are the six
-        // lines left showing and the comment's rows after its first; the folded sum's rows are none of them.
+        // Rows shown: the six lines outside the fold and the comment's rows after its first.
         Point chevron = editor.TranslatePoint(editor.GutterColumnPoint(GutterColumn.Folding, 3), window)!.Value;
         window.MouseDown(chevron, MouseButton.Left);
         window.MouseUp(chevron, MouseButton.Left);
@@ -305,7 +287,6 @@ public sealed class ActiveEditorTests : ActiveEditorFolders
         Ui.Settle();
         Assert.Equal(8, editor.CaretPosition.Line);
 
-        // A click in the folding column beside a wrapped line's second row folds nothing.
         double secondRow = editor.PointOf(RowStarts(editor, comment)[0]).Y + (editor.LineHeight / 2);
         Point beside = editor.TranslatePoint(new Point(editor.GutterColumnPoint(GutterColumn.Folding, 2).X, secondRow), window)!.Value;
         window.MouseDown(beside, MouseButton.Left);
@@ -313,7 +294,6 @@ public sealed class ActiveEditorTests : ActiveEditorFolders
         Ui.Settle();
         Assert.Single(editor.FoldRegions, r => r.Folded);
 
-        // Unfolded, the breakpoint's dot is beside its line's first row again.
         window.MouseDown(chevron, MouseButton.Left);
         window.MouseUp(chevron, MouseButton.Left);
         Ui.Settle();
@@ -360,7 +340,6 @@ public sealed class ActiveEditorTests : ActiveEditorFolders
         CodeEditor editor = window.EditorArea.CodeEditor;
         Assert.Equal(13, editor.FontSize);
 
-        // View, Active Editor lists them in Rider's order.
         MenuEntry view = MainMenu.Build(window.Actions.All).Single(m => m.Title == "View");
         MenuEntry active = view.Items!.Single(m => m.Title == "Active Editor");
         Assert.Equal([AppActions.SoftWrap, null, AppActions.ShowWhitespaces, null, AppActions.IncreaseFontSize, AppActions.DecreaseFontSize, AppActions.ResetFontSize],
@@ -374,7 +353,7 @@ public sealed class ActiveEditorTests : ActiveEditorFolders
         Assert.True(window.RunFromMenu(AppActions.ResetFontSize));
         Assert.Equal(13, editor.FontSize);
 
-        // The wheel with Cmd (Ctrl elsewhere) scrolls until Settings lets it change the font.
+        // Until Settings turns it on, the wheel with Cmd (Ctrl elsewhere) leaves the font as it is.
         Point over = editor.TranslatePoint(new Point(editor.Bounds.Width / 2, editor.Bounds.Height / 2), window)!.Value;
         RawInputModifiers zoom = OperatingSystem.IsMacOS() ? RawInputModifiers.Meta : RawInputModifiers.Control;
         window.MouseWheel(over, new Vector(0, 1), zoom);
@@ -459,11 +438,9 @@ public sealed class ActiveEditorResponsivenessTests : ActiveEditorFolders
         Assert.True(soft <= (3 * plain) + 1, $"A key took {soft:F2} ms soft-wrapped, against {plain:F2} ms with soft wrap off.");
     }
 
-    /// <summary>An open C# file has folds, which the file carries through each key before the editor hears of the key: with
-    /// soft wrap on, a key in a file of 2,000 members, a wrapped comment over each, wraps the line it changed and no more, as
-    /// in a file of 20, and allocates on the UI thread what a key there does, give or take 16 KB: the rows asked for as the
-    /// folds moved wrapped the whole file again, and the editor once more; then each key still copied the wraps of every
-    /// line, made the rows of every wrapped line again and moved every region.</summary>
+    /// <summary>With soft wrap on, a key in an open C# file (which has folds) of 2,000 members, a wrapped comment over
+    /// each, wraps the line it changed and no more, as in a file of 20, and allocates on the UI thread what a key there
+    /// does, give or take 16 KB.</summary>
     [AvaloniaFact]
     public void A_key_in_an_open_soft_wrapped_file_with_folds_wraps_only_its_line_however_long_the_file()
     {
@@ -476,10 +453,8 @@ public sealed class ActiveEditorResponsivenessTests : ActiveEditorFolders
             $"A key in 2,000 members allocated {largeBytes / 1024:N0} KB on the UI thread, {(largeBytes - smallBytes) / 1024:N0} KB more than in 20: it copied what every line or region has");
     }
 
-    /// <summary>A frame of lines with hints, a parameter's name before each argument, allocates on the UI thread about what
-    /// a frame of the same lines naming their arguments in their text does (#441): each hinted line's hints were made again
-    /// at every frame, a list, an array and a closure for each, and its text drawn whole once for each piece between them;
-    /// now a row's hints are kept while the text and its hints stand, and each run of its text is drawn once.</summary>
+    /// <summary>A frame of lines with hints, a parameter's name before each argument, allocates on the UI thread about
+    /// what a frame of the same lines naming their arguments in their text does.</summary>
     [AvaloniaFact]
     public void A_frame_of_hinted_lines_allocates_about_what_one_of_the_same_lines_naming_their_arguments_does()
     {
@@ -492,8 +467,7 @@ public sealed class ActiveEditorResponsivenessTests : ActiveEditorFolders
             $"A frame of 60 calls with two hints each allocated {hinted / 1024} KB on the UI thread, against {named / 1024} KB for the same calls naming their arguments: each line's hints were made again, or its text drawn once for each piece");
         window.Close();
 
-        // The least a frame drawing the editor again over a file of calls allocated on the UI thread, of a few: the calls
-        // naming their arguments, or their names as hints before them.
+        // The least of five frames' UI-thread allocations over 60 calls, naming their arguments or hinted.
         (long Bytes, string File) Frames(bool named)
         {
             StringBuilder text = new("static class Calls\n{\n    public static int Of(int width, int height) => width * height;\n\n    public static void Run()\n    {\n");

@@ -11,9 +11,9 @@ using Passenger.Editor;
 
 namespace Passenger.App.Editors;
 
-/// <summary>A group's view of release notes the app carries (What's New): Passenger's mark and the notes' title, as the
-/// Welcome screen heads its page, over their Markdown rendered (<see cref="Markdown"/>), on the editor's ground and
-/// scrolled as one page. Its links open in the person's browser through the window.</summary>
+/// <summary>A group's view of release notes the app carries (What's New): Passenger's mark and the notes' title over
+/// their Markdown rendered (<see cref="Markdown"/>), on the editor's ground and scrolled as one page. Its links open in
+/// the person's browser through the window.</summary>
 public sealed class ReleaseNotesView : ScrollViewer
 {
     protected override Type StyleKeyOverride => typeof(ScrollViewer);
@@ -51,8 +51,8 @@ public sealed class ReleaseNotesView : ScrollViewer
 
     private readonly StackPanel page;
 
-    /// <summary>Moves through the page by an editor's move, whichever keys the keymap gives it, as a reader moves through a
-    /// page: a line start or the text's to its top, an end to its bottom, a page or a line up or down. True once taken.</summary>
+    /// <summary>Moves through the page by an editor's move, whichever keys the keymap gives it: a line start or the
+    /// text's to its top, an end to its bottom, a page or a line up or down. True once taken.</summary>
     public bool Move(string action)
     {
         switch (action)
@@ -86,6 +86,6 @@ public sealed class ReleaseNotesView : ScrollViewer
     /// <summary>The notes' blocks of words, as drawn, in order.</summary>
     public IEnumerable<MarkdownText> Blocks => page.GetLogicalDescendants().OfType<MarkdownText>();
 
-    /// <summary>What the page says under its heading, a block a line, for a test to read what a person reads.</summary>
+    /// <summary>What the page says under its heading, a block a line.</summary>
     public string Text => string.Join('\n', Blocks.Select(b => b.Shown));
 }

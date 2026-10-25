@@ -26,7 +26,7 @@ public sealed record PackageRow(string Id, string Version, string Description, s
     public bool IsVulnerable => Advisories.Count > 0;
 }
 
-/// <summary>Rider's NuGet window, its Packages and Sources tabs in its header. Packages: the projects' packages with nothing
+/// <summary>The NuGet window, its Packages and Sources tabs in its header. Packages: the projects' packages with nothing
 /// typed, else what the feed chosen beside the query finds; the chosen package's versions and a row per project to Install,
 /// Update or Remove it through the .NET command line, whose restore uses those feeds and their credentials. A version with
 /// a known vulnerability (the audit's VulnerabilityInfo, as restore reads it) is marked with its advisories, and Update
@@ -90,8 +90,7 @@ public sealed class NuGetView : DockPanel
         typing = new Debounce(Pause, RefreshAsync);
         search.TextChanged += (_, _) => typing.Restart();
         prerelease.IsCheckedChanged += (_, _) => _ = RefreshAsync();
-        // In a narrow window the search field and the count give way, the count ending in an ellipsis, so the feed chooser,
-        // Prerelease and Refresh keep their room.
+        // In a narrow window the search and the count give way, so the feed chooser, Prerelease and Refresh keep their room.
         Grid row = new() { ColumnDefinitions = new ColumnDefinitions("3*,Auto,Auto,Auto,2*"), VerticalAlignment = VerticalAlignment.Center };
         row.ColumnDefinitions[0].MaxWidth = 276;
         Control[] parts = [search, chooser, prerelease, refresh, status];
@@ -191,15 +190,15 @@ public sealed class NuGetView : DockPanel
             ?? throw new ArgumentException($"The NuGet window has no feed {value}; it offers {string.Join(", ", FeedChoices)}");
     }
 
-    /// <summary>Where packages are searched: the chooser's feeds, unless a test sets a feed of its own.</summary>
+    /// <summary>Where packages are searched: the chooser's feeds, unless one is set.</summary>
     public IPackageFeed Feed
     {
         get => given ?? Chosen(ChosenFeed);
         set => given = value;
     }
 
-    /// <summary>A feed by its name, or All Feeds when none is given, once the folder's sources are read: an agent may ask
-    /// before the window was ever shown.</summary>
+    /// <summary>A feed by its name, or All Feeds when none is given, once the folder's sources are read, even before the
+    /// window was ever shown.</summary>
     public async Task<IPackageFeed> FeedAsync(string? name)
     {
         if (given is not null)
@@ -372,8 +371,8 @@ public sealed class NuGetView : DockPanel
         return audit ??= BackgroundWork.Run(() => VulnerabilityData.ReadAsync(audited, CancellationToken.None));
     }
 
-    /// <summary>The known vulnerabilities of the folder's audit feeds, read once its sources are (an agent or a project
-    /// file's code help may ask before the window was ever shown); none when no feed could say.</summary>
+    /// <summary>The known vulnerabilities of the folder's audit feeds, read once its sources are, even before the window was
+    /// ever shown; none when no feed could say.</summary>
     public async Task<VulnerabilityData> VulnerabilitiesAsync()
     {
         if (sources == PackageSourceSet.None || sources.Root != (root() ?? string.Empty))
@@ -436,7 +435,7 @@ public sealed class NuGetView : DockPanel
         return text;
     }
 
-    /// <summary>The status after a search: Rider's words for feeds that did not answer, else what was found.</summary>
+    /// <summary>The status after a search: the feeds that did not answer, else what was found.</summary>
     private static string Said(FeedSearch answer, IPackageFeed feed)
     {
         List<string> said = [];
@@ -469,8 +468,8 @@ public sealed class NuGetView : DockPanel
 
     public async Task<bool> RemoveAsync(ProjectModel project) => Selected is { } row && (await RemoveAsync(project, row.Id)).Done;
 
-    /// <summary>Adds a package to a project at a version, or moves it to that version, as the window's Install and Update do
-    /// and an agent's nuget_install: the one way a package goes in (<see cref="ChangeAsync"/>).</summary>
+    /// <summary>Adds a package to a project at a version, or moves it to that version: the one way a package goes in
+    /// (<see cref="ChangeAsync"/>).</summary>
     public Task<PackageOutcome> InstallAsync(ProjectModel project, string id, string version) =>
         ChangeAsync($"Installing {id} {version} in {project.Name}…", project, () => manager.InstallAsync(project.Path, id, version));
 
@@ -479,7 +478,7 @@ public sealed class NuGetView : DockPanel
     public Task<PackageOutcome> InstallSetAsync(ProjectModel project, IReadOnlyList<(string Id, string Version)> packages) =>
         ChangeAsync($"Moving {string.Join(", ", packages.Select(p => $"{p.Id} to {p.Version}"))} in {project.Name}…", project, () => manager.InstallSetAsync(project.Path, packages));
 
-    /// <summary>Takes a package out of a project, as the window's Remove does and an agent's nuget_remove.</summary>
+    /// <summary>Takes a package out of a project (Remove).</summary>
     public Task<PackageOutcome> RemoveAsync(ProjectModel project, string id) =>
         ChangeAsync($"Removing {id} from {project.Name}…", project, () => manager.RemoveAsync(project.Path, id));
 
@@ -716,7 +715,7 @@ public sealed class NuGetView : DockPanel
         ShowProjects(row);
     }
 
-    /// <summary>Rider's word on a vulnerable version, its advisories each with its severity, and the version that fixes
+    /// <summary>The word on a vulnerable version, its advisories each with its severity, and the version that fixes
     /// them, which the version picker and Update offer.</summary>
     private Border Vulnerability(IReadOnlyList<Advisory> advisories, string version, string? fix)
     {

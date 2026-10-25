@@ -93,7 +93,6 @@ internal static partial class Markdown
     /// <summary>A block's control, as the page draws it.</summary>
     public static Control Control(Block block, MarkdownPage page, int depth = 0) => block switch
     {
-        // What's New drew a fourth level and below as the third; its notes have none, and a page of a file shows each.
         Heading heading => MarkdownText.Of(Inlines(heading.Text), page, $"mdHeading{Math.Clamp(heading.Level, 1, 6)}"),
         Paragraph paragraph => ParagraphOf(Inlines(paragraph.Text), page),
         Listing listing => List(listing, page, depth),
@@ -326,7 +325,7 @@ internal static partial class Markdown
         while (i < lines.Count && !string.IsNullOrWhiteSpace(lines[i]) && !Interrupts(lines[i]))
         {
             List<string> cells = Cells(lines[i]);
-            // A row of more cells than the header drops the rest, as GitHub's does; one of fewer is filled out empty.
+            // A row of more cells than the header drops the rest; one of fewer is filled out empty.
             rows.Add([.. cells.Take(aligns.Count), .. Enumerable.Repeat("", Math.Max(0, aligns.Count - cells.Count))]);
             i++;
         }
@@ -488,7 +487,6 @@ internal static partial class Markdown
             }
             int content = indent + marker.Groups[2].Length + Math.Max(1, Math.Min(marker.Groups[4].Length, 4));
             string opening = marker.Groups[5].Value;
-            // GitHub's task list item: its check before its words.
             Match task = TaskMark().Match(opening);
             checks.Add(task.Success ? task.Groups[1].Value != " " : null);
             List<string> item = [task.Success ? task.Groups[2].Value : opening];
@@ -806,7 +804,7 @@ public sealed class MarkdownText : SelectableTextBlock
         Inlines ??= [];
     }
 
-    /// <summary>The words as drawn, for a test to read what a person reads.</summary>
+    /// <summary>The words as drawn.</summary>
     public string Shown => shown.ToString();
 
     /// <summary>Each link's words and address.</summary>
@@ -886,7 +884,7 @@ public sealed class MarkdownText : SelectableTextBlock
     /// <summary>The link drawn at a point of the block, or null: the one whose words are drawn there, on any of its lines.</summary>
     public Uri? LinkAt(Point point)
     {
-        // Not the hit's IsInside, which is false below a block's first line, where a link then opened nothing.
+        // Not the hit's IsInside, which is false below a block's first line.
         int at = TextLayout.HitTestPoint(point).TextPosition;
         (int start, int end, Uri? target) = links.FirstOrDefault(l => at >= l.Start && at < l.End);
         return target is not null && TextLayout.HitTestTextRange(start, end - start).Any(drawn => drawn.Contains(point)) ? target : null;

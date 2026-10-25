@@ -1,10 +1,9 @@
 namespace Passenger.Text;
 
-/// <summary>How well a typed query names a file, the way Rider's Go to File ranks: the file's own
-/// name (exact, then prefix, then CamelHumps initials like "CE" for CodeEditor, then anywhere in it,
-/// then its letters close together and in order), or its path when the query has a slash. Higher is
-/// better; null is no match. A name is read where it is in its path, nothing copied, since Go to File
-/// asks this of every file in the folder for every key.</summary>
+/// <summary>How well a typed query names a file: the file's own name (exact, then prefix, then CamelHumps initials like
+/// "CE" for CodeEditor, then anywhere in it, then its letters close together and in order), or its path when the query
+/// has a slash. Higher is better; null is no match. A name is read where it is in its path, nothing copied, since this
+/// is asked of every file in the folder for every key.</summary>
 public static class FuzzyMatch
 {
     public static int? Score(string query, string relativePath)
@@ -47,8 +46,7 @@ public static class FuzzyMatch
         {
             return 700 - at - name.Length - relativePath.Length / 8;
         }
-        // Letters in order only once there are enough of them to mean something: two letters found
-        // anywhere in a name match nearly every file.
+        // Letters in order only once there are enough to mean something: two found anywhere match nearly every file.
         if (query.Length >= 3 && InOrder(query, name) is { } nameSpread && nameSpread <= name.Length / 2)
         {
             return 500 - nameSpread - name.Length;

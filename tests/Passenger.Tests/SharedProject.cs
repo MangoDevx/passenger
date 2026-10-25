@@ -169,15 +169,13 @@ public abstract class SharedProject : IDisposable
                 }
             }
         }
-        // A file put back keeps the time it was written at (WorkspaceEdits.Catching refuses a server's edit to one written a
-        // moment before), but after any build since, which may have compiled the test's text that MSBuild would take as built.
+        // Its old time, so no edit takes it as just written, but after any build since, which then compiles it again.
         DateTime built = LastBuilt();
         foreach (string file in written.Keys.Where(file => File.GetLastWriteTimeUtc(file) != stamps[file]))
         {
             File.SetLastWriteTimeUtc(file, stamps[file] > built ? stamps[file] : Min(built + TimeSpan.FromSeconds(1), DateTime.UtcNow));
         }
-        // A folder's time is a file that came or went there, but for the temporary file a save writes beside a file and
-        // renames over it (AtomicFile), which no project globs: a folder none of whose files was rewritten had one come and go.
+        // A folder's time is a file that came or went there, but for a save's temporary file renamed over one rewritten.
         structure |= retimed.Any(folder => !rewritten.Any(file => PathNames.Same(Path.GetDirectoryName(file)!, folder)));
         bool kept = !structure && (rewritten.Count == 0
             || Task.Run(() => Server.HoldsAsync(rewritten.ToDictionary(file => file, File.ReadAllText, StringComparer.Ordinal), Rereading.Scaled())).GetAwaiter().GetResult());

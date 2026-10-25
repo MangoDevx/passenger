@@ -15,10 +15,10 @@ using Passenger.Text;
 
 namespace Passenger.Tests;
 
-/// <summary>The language server's help through the whole window, on a real project: completion as
-/// you type, go to definition, rename. Each test opens its own window, on the server the last one left running, warm, and
-/// on the project as written (<see cref="SharedProject"/>). What it holds to a time is CodeAssistResponsivenessTests',
-/// which run alone; what it counts (the UI thread's allocations, the server's requests) a busy machine leaves as it is.</summary>
+/// <summary>The language server's help through the whole window, on a real project: completion as you type, go to
+/// definition, rename. Each test opens its own window, on the server the last one left running, warm, and on the
+/// project as written (<see cref="SharedProject"/>); what it counts (the UI thread's allocations, the server's
+/// requests) a busy machine leaves as it is.</summary>
 public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
 {
     private readonly Project project;
@@ -41,7 +41,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Ui.PlaceAfter(editor, "Helper.Tw");
         Ui.WaitFor(() => window.Breadcrumbs.Count == 3, "the member the caret is in");
         Assert.Equal(["Program.cs", "Program", "Main()"], window.Breadcrumbs);
-        // Out of the method, only the type is left.
         editor.GoTo(new TextPosition(1, 0));
         Ui.Settle();
         Assert.Equal(["Program.cs", "Program"], window.Breadcrumbs);
@@ -84,8 +83,7 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
     [AvaloniaFact]
     public void The_structure_window_shows_the_shown_files_outline_whenever_it_is_shown_and_once_the_server_has_the_file_and_follows_the_editor()
     {
-        // A window with a server of its own, started after the file opened, as a folder reopened with its files starts one:
-        // what the window asked of the file before its server had it found nothing.
+        // A server started after the file opened, as a folder reopened with its files starts one.
         MainWindow window = new() { Width = 1200, Height = 800, Autosaves = false };
         window.Show();
         ClickStripe(window, "structure");
@@ -107,12 +105,10 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
             $"Structure opened from its stripe showed [{string.Join(", ", structure.Rows.Select(r => r.Name))}], not the file's members");
         Assert.Equal("Main()", structure.Selected?.Name);
 
-        // While it is shown, another file shown: its outline follows.
         window.OpenFile("Helper.cs");
         Ui.WaitFor(() => structure.Rows.FirstOrDefault()?.Name == "Helper", "the other file's outline");
         Assert.Contains(structure.Rows, r => r.Name == "Twice(int)");
 
-        // Closed, another file shown, and opened again: the file shown now.
         ClickStripe(window, "structure");
         window.OpenFile("Program.cs");
         ClickStripe(window, "structure");
@@ -209,7 +205,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Assert.Equal("Console", window.Assist.CompletionLabels.FirstOrDefault());
         Ui.WaitFor(() => window.Assist.ItemDocumentation?.Contains("standard input", StringComparison.Ordinal) == true, "the chosen item's documentation");
 
-        // The dot commits Console and is typed after it, and lists Console's members in turn.
         window.KeyTextInput(".");
         Ui.Settle();
         Assert.True(editor.Document.Snapshot.ToString().Contains("System.Console.", StringComparison.Ordinal), editor.Document.Snapshot.ToString());
@@ -327,8 +322,7 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Assert.False(window.Assist.IsCompletionOpen);
         Assert.Contains("System.Console.WriteLine", editor.Document.Snapshot.ToString(), StringComparison.Ordinal);
 
-        // Razor's start, in every server, is where it first loads Visual Studio's own assemblies: once it is done, the
-        // server has looked for none of those left out (a failed load is logged with the assembly's name).
+        // Razor's start is where the server first loads Visual Studio's assemblies; a failed load logs the name.
         int server = window.CSharpService!.Session!.Server.ProcessId;
         string log = string.Empty;
         Ui.WaitFor(() => (log = ServerLog(server)).Contains("Razor extension startup finished.", StringComparison.Ordinal), "the language server's Razor support to start");
@@ -342,16 +336,16 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Directory.EnumerateFiles(Passenger.App.CSharp.CSharpService.LogFolder, $"server-*-{process}.log").FirstOrDefault() is { } path
             ? Ui.Shared(path) : string.Empty;
 
-    /// <summary>Find Usages groups usages by what they do, project and file, previews the chosen one beside a divider that
-    /// drags, keeps each search, goes to a usage on Enter, lists a usage in a closed UTF-16 file at its line with its code,
-    /// and lists a declaration once where a primary constructor or a record's property is declared with it.</summary>
+    /// <summary>Find Usages says so with no search yet and shows nothing else; it groups usages by what they do,
+    /// project and file, previews the chosen one beside a divider that drags, keeps each search, goes to a usage on
+    /// Enter, lists a usage in a closed UTF-16 file at its line with its code, and lists a declaration once where a
+    /// primary constructor or a record's property is declared with it.</summary>
     [AvaloniaFact]
     public void Find_usages_groups_them_previews_the_chosen_one_keeps_each_search_and_lists_each_place_once_at_its_line()
     {
         MainWindow window = project.Open("Loop.cs");
         CodeEditor editor = window.EditorArea.CodeEditor;
         FindView find = window.Find;
-        // With no search yet the window says so and nothing else: no empty row of tabs with a rule under it.
         Ui.Run(window, AppActions.ShowFind);
         Avalonia.Controls.Border[] Rules() => [.. find.GetVisualDescendants().OfType<Avalonia.Controls.Border>().Where(b => b.IsEffectivelyVisible && b.BorderThickness.Bottom > 0 && b.TemplatedParent is null)];
         Assert.True(Rules().Length == 0, "The empty Find window shows a row with a rule under it, before any search has a tab there");
@@ -365,13 +359,11 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Assert.All(find.Rows.Where(r => r.Depth == 2), r => Assert.Equal("Loop.cs", r.Label));
         Assert.Equal(["int total = 0;", "total += i * 2;", "return total;"], find.Rows.Where(r => r.Usage is not null).Select(r => r.Label));
 
-        // The first usage is chosen, its line shown beside the tree with the name marked.
         Assert.Equal("int total = 0;", find.Selected?.Label);
         Assert.Contains("for (int i = 0", find.Preview.Document.Snapshot.ToString(), StringComparison.Ordinal);
         TextRange marked = Assert.Single(find.Preview.Highlights);
         Assert.Equal("total", find.Preview.Document.Snapshot.GetText(marked.Start, marked.Length));
 
-        // The divider between the usages and the preview, dragged, gives the preview the room the usages give up.
         Avalonia.Controls.ListBox usageList = find.GetVisualDescendants().OfType<Avalonia.Controls.ListBox>().Single();
         (double usagesWidth, double previewWidth) = (usageList.Bounds.Width, find.Preview.Bounds.Width);
         Avalonia.Controls.GridSplitter divider = find.GetVisualDescendants().OfType<Avalonia.Controls.GridSplitter>().Single();
@@ -386,7 +378,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Assert.True(Math.Abs(usageList.Bounds.Width - (usagesWidth - 150)) < 2 && Math.Abs(find.Preview.Bounds.Width - (previewWidth + 150)) < 2,
             $"The usages and the preview were {usagesWidth} and {previewWidth} wide, and {usageList.Bounds.Width} and {find.Preview.Bounds.Width} once the divider between them was dragged 150 px left");
 
-        // Another search has a tab of its own beside the first.
         window.OpenFile(project.PathOf("Program.cs"));
         Ui.PlaceAfter(window.EditorArea.CodeEditor, "Helper.Twi");
         Ui.Run(window, AppActions.FindUsages);
@@ -396,14 +387,12 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         find.ShowSearch("Usages of total");
         Assert.Equal(3, find.Rows.Count(r => r.Usage is not null));
 
-        // Enter goes to the usage chosen.
         find.Selected = find.Rows.Last(r => r.Usage is not null);
         find.FocusRows();
         Ui.Press(window, "ENTER");
         Assert.Equal("Loop.cs", window.EditorArea.Active?.Name);
         Assert.Equal(new TextPosition(9, 15), window.EditorArea.CodeEditor.CaretPosition);
 
-        // A usage in a closed UTF-16 file is listed at its line with its code.
         string wide = project.PathOf("Wide.cs");
         Assert.True(File.ReadAllBytes(wide) is [0xFF, 0xFE, ..], "Wide.cs is not written in UTF-16");
         window.OpenFile(project.PathOf("Area.cs"));
@@ -415,12 +404,10 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Assert.True((usage.Line, usage.Column, usage.LineText) == (4, 20, "        return Area.Of(2, 2);"),
             $"Find Usages listed the UTF-16 file's usage at {usage.Line + 1}:{usage.Column + 1} as '{usage.LineText}', not where it is with its line of code");
 
-        // A declaration is listed once where a primary constructor or a record's property is declared with it.
         window.OpenFile(project.PathOf("Pairs.cs"));
         Ui.Settle();
         editor = window.EditorArea.CodeEditor;
-        // A type with a primary constructor, a record, and a record's positional property: each declared where another
-        // symbol is, the server naming that place once for each.
+        // Each declared where another symbol is, which the server names once for each.
         foreach ((string at, string title, string declaration) in new[]
         {
             ("class Coun", "Usages of Counter", "class Counter(int start)"),
@@ -460,7 +447,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
 
         Point at = editor.TranslatePoint(editor.StripePoint(error), window)!.Value;
 
-        // A click on it takes the caret to the error's line.
         editor.GoTo(new TextPosition(0, 0));
         Ui.Settle();
         window.MouseDown(at, Avalonia.Input.MouseButton.Left);
@@ -468,7 +454,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Ui.Settle();
         Assert.Equal(editor.Document.Snapshot.GetLineFromOffset(error.Offset), editor.CaretPosition.Line);
 
-        // Drawn in the error colour on the scrollbar's track, over the thumb.
         Avalonia.Media.Color colour = Ui.Pixel(window, at);
         Assert.True(colour.R > 180 && colour.G < 140 && colour.B < 140, $"The error's mark is {colour}, not the error colour");
 
@@ -488,7 +473,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Ui.Press(window, "ENTER");
         Ui.Settle();
         Assert.Contains("Helper.Double(", editor.Document.Snapshot.ToString(), StringComparison.Ordinal);
-        // The declaration, in a file not open, renamed with the call.
         Assert.Contains("public static int Double(", File.ReadAllText(project.PathOf("Helper.cs")), StringComparison.Ordinal);
 
         window.OpenFile(project.PathOf("Shapes.cs"));
@@ -507,7 +491,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         MainWindow window = project.Open("Messy.cs");
         string helper = File.ReadAllText(project.PathOf("Helper.cs"));
         window.Perform(AppActions.Reformat);
-        // Before the server answers, another file is shown.
         window.OpenFile(project.PathOf("Helper.cs"));
         Ui.Settle();
         Passenger.App.Workspace.OpenDocument messy = window.EditorArea.Documents.First(d => d.Name == "Messy.cs");
@@ -515,8 +498,7 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Assert.Equal("Helper.cs", window.EditorArea.Active!.Name);
         Assert.Equal(helper, window.EditorArea.CodeEditor.Document.Snapshot.ToString());
 
-        // Roslyn writes the system's line break, CRLF on Windows and LF elsewhere, into whatever file it formats: a reformat
-        // breaks lines as the file does.
+        // Roslyn writes the system's line break into whatever file it formats.
         window.OpenFile(project.PathOf("Crlf.cs"));
         Ui.Settle();
         Ui.Run(window, AppActions.Reformat);
@@ -553,12 +535,11 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         window.Close();
     }
 
-    /// <summary>Edits that make and unmake the line breaks only Roslyn counts (a lone '\r', a '\r' parted from its '\n' or
-    /// given one, the Unicode separators, edits that meet at a break) keep the server's lines of the file in step without
-    /// reading it again: each change sent is where it was made, so code typed below them afterwards is squiggled and
-    /// coloured on its own words. So do changes that begin or end between a "\r\n"'s halves (text put between them, a
-    /// line's end replaced up to its '\r', a '\n' taken with what follows it), each sent alone, though Roslyn reads no
-    /// column there and would put each before the '\r'; and the server never ends over a change it cannot place.</summary>
+    /// <summary>Edits that make and unmake the line breaks only Roslyn counts (a lone '\r', a '\r' parted from its '\n'
+    /// or given one, the Unicode separators, edits that meet at a break) keep the server's lines of the file in step
+    /// without reading it again, so code typed below them afterwards is squiggled and coloured on its own words. So do
+    /// changes that begin or end between a "\r\n"'s halves (text put between them, a line's end replaced up to its
+    /// '\r', a '\n' taken with what follows it); and the server never ends over a change it cannot place.</summary>
     [AvaloniaFact]
     public void Edits_that_make_and_unmake_line_breaks_only_roslyn_counts_or_fall_between_a_crlfs_halves_keep_the_server_in_step()
     {
@@ -600,7 +581,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Edit("Edits meeting at a break", new TextEdit(At("xthree."), 1, "\r"), new TextEdit(At("xthree.") + 1, 0, "\n"));
         Edit("Text ending in a CR put before a LF", new TextEdit(At("y\ntwo,") + 1, 0, "end\r"));
         Edit("A CR at the end of the text", new TextEdit(document.Text.Snapshot.Length, 0, "\r"));
-        // Batches of up to three edits anywhere in the comment, of text that is mostly breaks.
         Random random = new(7);
         string[] pieces = ["\r", "\n", "\r\n", separator, paragraph, next, "a", "bc"];
         for (int batch = 0; batch < 150; batch++)
@@ -628,7 +608,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Ui.WaitFor(() => document.Highlighter!.GetSpans(editor.Document.Snapshot, use, 1).Any(s => s.Start == use && s.Kind == TokenKind.Local),
             "the server's colour on the local's use");
 
-        // Changes between a CRLF's halves in another file, each sent alone.
         window.OpenFile(project.PathOf("Halves.cs"));
         Ui.Settle();
         OpenDocument halves = window.EditorArea.Active!;
@@ -673,7 +652,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Ui.Settle();
         Assert.Contains("int result  = Helper.Twice(2);", editor.Document.Snapshot.ToString(), StringComparison.Ordinal);
 
-        // Asked for, and the letter typed between the two spaces, at the start of the second, which the answer deletes.
         Assert.Null(window.Actions.Run(AppActions.Reformat));
         window.KeyTextInput("s");
         Ui.WaitFor(() => window.Status is "Reformatted" or "Already formatted" || window.Status?.Contains("not applied", StringComparison.Ordinal) == true,
@@ -684,10 +662,9 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         window.Close();
     }
 
-    /// <summary>Undo and Redo of a paste at a file's end, the platform's input method following the editor as a desktop's
-    /// does: each changes the text and keeps its step for the other, and the language server holds the editor's text. The
-    /// file's folds move first with each, which told the input method of a caret past the text's new end, and that throw
-    /// ended the change's telling, losing the step and the server's copy of it.</summary>
+    /// <summary>Undo and Redo of a paste at a file's end, the platform's input method following the editor as a
+    /// desktop's does: each changes the text and keeps its step for the other, and the language server holds the
+    /// editor's text.</summary>
     [AvaloniaFact]
     public void Undo_and_redo_of_a_paste_at_a_files_end_keep_their_steps_and_the_servers_copy_with_an_input_method_following()
     {
@@ -701,7 +678,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Avalonia.Input.TextInput.TextInputMethodClientRequestedEventArgs asked = new() { RoutedEvent = Avalonia.Input.InputElement.TextInputMethodClientRequestedEvent };
         editor.RaiseEvent(asked);
         Avalonia.Input.TextInput.TextInputMethodClient client = asked.Client ?? throw new InvalidOperationException("The editor gave no input method client");
-        // Read back as the platform's input method reads it, when told it changed.
         List<string> told = [];
         client.SurroundingTextChanged += (_, _) => told.Add(client.SurroundingText);
         client.SelectionChanged += (_, _) => told.Add($"{client.Selection.Start}:{client.Selection.End}");
@@ -761,7 +737,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Ui.Run(window, AppActions.Rename);
         window.KeyTextInput("Double");
         Ui.Settle();
-        // Enter sends the rename; a line is typed above before the answer comes.
         window.KeyPress(Avalonia.Input.Key.Enter, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.None, null);
         editor.ApplyEdits([new TextEdit(0, 0, "// typed meanwhile\n")]);
         Ui.Settle();
@@ -811,7 +786,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Assert.Equal("Separators.cs:4", popup.Rows.First(r => r.Where?.StartsWith("Separators.cs", StringComparison.Ordinal) == true).Where);
         Ui.Press(window, "ESCAPE");
 
-        // Go to Declaration lands on its line, read in the file's own text: a file not open as it is on disk.
         CodeEditor editor = window.EditorArea.CodeEditor;
         Ui.PlaceAfter(editor, "=> Separators.Va");
         Ui.Run(window, AppActions.GoToDeclaration);
@@ -820,7 +794,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Assert.True(editor.CaretPosition == new TextPosition(3, 22),
             $"Go to Declaration landed on line {editor.CaretPosition.Line + 1} ('{editor.Document.Snapshot.GetLineText(editor.CaretPosition.Line)}'), not on Value's name on line 4");
 
-        // In the file shown, the places to choose from by their lines as the editor numbers them.
         window.OpenFile(project.PathOf("Separated.cs"));
         Ui.Settle();
         Ui.PlaceAfter(editor, "    int Val");
@@ -837,7 +810,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Ui.Settle();
         Assert.Equal("    public int |Value() => Separators.Value();", XamlTests.CaretLine(editor));
 
-        // An agent is told the editor's lines too, as it names its own.
         Passenger.App.Mcp.PassengerTools tools = new(window);
         Passenger.App.Mcp.Place declared = Assert.Single(Await(tools.Definition("Separated.cs", 14, 39), "the declaration an agent asks for"));
         Assert.Equal(("Separators.cs", 4, 23, "public static int Value()"), (declared.Path, declared.Line, declared.Column, declared.Text));
@@ -918,7 +890,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Assert.True(window.EditorArea.Active?.Name == "Helper.cs", "a caret moved after Back lost Forward's way to the definition");
         Assert.Equal(definition, editor.CaretPosition);
 
-        // Back lands on the call it left after a line is added above it.
         window.OpenFile(project.PathOf("Area.cs"));
         Ui.Settle();
         Ui.PlaceAfter(editor, "=> O");
@@ -935,7 +906,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Assert.True(new TextPosition(call.Line + 1, call.Column) == editor.CaretPosition,
             $"Back landed at {editor.CaretPosition}, not on the call it left, which a line added above moved to {new TextPosition(call.Line + 1, call.Column)}");
 
-        // Go to Declaration on a library type opens its decompiled source, read-only.
         window.OpenFile(project.PathOf("Program.cs"));
         Ui.Settle();
         Ui.PlaceAfter(editor, "        in");
@@ -944,10 +914,8 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Passenger.App.Workspace.OpenDocument decompiled = window.EditorArea.Active!;
         Assert.Equal("Int32.cs", decompiled.Name);
         Assert.Contains("struct Int32", decompiled.Text.Snapshot.ToString(), StringComparison.Ordinal);
-        // At the declaration, as for the project's own code.
         Assert.Contains("struct Int32", decompiled.Text.Snapshot.GetLineText(editor.CaretPosition.Line), StringComparison.Ordinal);
 
-        // Nothing typed there reaches the library, so nothing is typed there.
         string before = decompiled.Text.Snapshot.ToString();
         window.KeyTextInput("x");
         Ui.Settle();
@@ -1011,7 +979,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         string second = window.Assist.Renaming ?? throw new Xunit.Sdk.XunitException("No rename was offered for the method the product became");
         Assert.True(editor.Document.Snapshot.ToString().Contains($"total += {second}(i);", StringComparison.Ordinal),
             $"The rename offered {second}, not the method just made:\n{editor.Document.Snapshot}");
-        // Rider asks for the new method's name at once; it is the rename box at the call.
         window.KeyTextInput("Double");
         Ui.Press(window, "ENTER");
         Ui.WaitFor(() => editor.Document.Snapshot.ToString().Contains("Double(", StringComparison.Ordinal), "the second method to take its name");
@@ -1023,7 +990,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
 
         window.OpenFile(project.PathOf("Average.cs"));
         Ui.Settle();
-        // Shift+Down from the loop's first word to the return's: the selection ends in the indentation before it.
         editor.GoTo(new TextPosition(8, 8));
         for (int i = 0; i < 5; i++)
         {
@@ -1060,7 +1026,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         string lfFile = File.ReadAllText(project.PathOf("Breaks/LfFile.cs"));
         try
         {
-            // A CRLF file the server writes LF into, as on macOS: an override, then a method made in an LF file not open.
             MainWindow window = project.Open("Breaks/CrlfFile.cs");
             CodeEditor editor = window.EditorArea.CodeEditor;
             OverrideToString(window, editor);
@@ -1077,7 +1042,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
             AssertBreaks(File.ReadAllText(project.PathOf("Breaks/LfFile.cs")), "\n", "Twice(int made)\n    {\n", "the method made in the LF file on disk");
             window.Close();
 
-            // An LF file the server writes CRLF into, as on Windows: an override, then a type a fix nests in it.
             File.WriteAllText(project.PathOf("Breaks/LfFile.cs"), lfFile);
             window = project.Open("Breaks/LfFile.cs");
             editor = window.EditorArea.CodeEditor;
@@ -1138,7 +1102,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         CodeEditor editor = window.EditorArea.CodeEditor;
         Assert.Equal("Tab, from .editorconfig", IndentShown(window));
 
-        // Enter carries the line's tab, Tab adds one, Shift+Tab takes it back.
         Ui.PlaceAfter(editor, "public int X { get; }");
         editor.Focus();
         Ui.Press(window, "ENTER");
@@ -1148,11 +1111,9 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Ui.Press(window, "shift TAB");
         Assert.Contains("\tpublic int X { get; }\n\t// note\n", editor.Document.Snapshot.ToString(), StringComparison.Ordinal);
 
-        // Roslyn's override, from completion.
         OverrideAfter(window, editor, "// note");
         AssertTabbed(editor, "\t// note\n\tpublic override string ToString()\n\t{\n\t\treturn base.ToString();\n\t}\n", "the override");
 
-        // A live template's lines.
         Ui.PlaceAfter(editor, "int made = 0;");
         Ui.Press(window, "ENTER");
         window.KeyTextInput("if");
@@ -1161,7 +1122,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Ui.Press(window, "ESCAPE");
         AssertTabbed(editor, "\t\tint made = 0;\n\t\tif (true)\n\t\t{\n\t\t\t\n\t\t}\n", "the if template");
 
-        // Roslyn's fix: a type it makes.
         OpenDocument tabbed = window.EditorArea.Active!;
         Ui.PlaceAfter(editor, "int made = 0;");
         window.KeyTextInput(" Foo gadget = null;");
@@ -1260,7 +1220,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Ui.WaitFor(() => window.Assist.Offered.Contains("Generate type 'Foo'"), "the offer to generate Foo");
         Choose(window, "Generate type 'Foo'");
 
-        // Generating it nests a choice of where; the second list offers them, and the one chosen is made.
         Ui.WaitFor(() => window.Assist.Offered.Contains("Generate class 'Foo'"), "the choices Generate type offers");
         Assert.Contains("Generate nested class 'Foo'", window.Assist.Offered);
         Choose(window, "Generate class 'Foo'");
@@ -1343,7 +1302,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Ui.WaitFor(() => editor.Document.Snapshot.ToString().Contains("int one = 1;", StringComparison.Ordinal)
             && File.ReadAllText(closed).Contains("=> 3;", StringComparison.Ordinal), "the cast removed in the open file and in the one not open");
 
-        // Undo in the editor takes the whole Fix All back, the file not open with it, once asked.
         editor.Focus();
         Ui.Run(window, EditorActions.Undo);
         Assert.Equal(["Undo"], asked);
@@ -1411,7 +1369,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
             $"Inline temporary variable and Use implicit type do not say they are context actions: {Said(offered)}");
         Ui.Press(window, "ESCAPE");
 
-        // Rider's list never shows the protocol's kinds.
         string[] raw = [.. fixes.Concat(offered).Select(o => o.Item2).Where(d => System.Text.RegularExpressions.Regex.IsMatch(d, @"^(quickfix|refactor|source)(\.|$)"))];
         Assert.True(raw.Length == 0, $"Show Context Actions shows the language server's own kinds beside its actions, which are no words of Rider's: {string.Join(", ", raw)}");
         window.Close();
@@ -1424,7 +1381,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
     [AvaloniaFact]
     public void Parameter_info_keeps_a_sentence_apart_from_a_parameter_its_documentation_names_straight_after_it()
     {
-        // Joins.cs's Join is documented as .NET documents String.Join(String, IEnumerable<String>).
         MainWindow window = project.Open("Joins.cs");
         CodeEditor editor = window.EditorArea.CodeEditor;
         Ui.PlaceAfter(editor, "=> Join(");
@@ -1496,7 +1452,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
             Assert.Equal("Bar.cs", window.EditorArea.Active?.Name);
             Assert.EndsWith("/Bar.cs", window.CSharpService?.For(document)?.Lsp?.Uri, StringComparison.Ordinal);
 
-            // A later save writes Bar.cs, never Foo.cs back.
             window.KeyTextInput("// ");
             window.EditorArea.SaveAll();
             Assert.False(File.Exists(foo), "Saving the moved file wrote Foo.cs back");
@@ -1510,10 +1465,10 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         }
     }
 
-    /// <summary>The hints in one window: types the code leaves out show after their names where Rider shows them, a hint's
-    /// card says what its type is, and Settings turns type name hints off and on again, parameter name hints staying; the
-    /// caret steps across a hint as one place and typing at a name keeps its type after it; and a literal argument shows
-    /// its parameter's name before it, the text after making room, until Settings turns them off.</summary>
+    /// <summary>The hints in one window: types the code leaves out show after their names, a hint's card says what its
+    /// type is, and Settings turns type name hints off and on again, parameter name hints staying; the caret steps
+    /// across a hint as one place and typing at a name keeps its type after it; and a literal argument shows its
+    /// parameter's name before it, the text after making room, until Settings turns them off.</summary>
     [AvaloniaFact]
     public void Type_and_parameter_name_hints_show_where_Rider_shows_them_make_room_step_as_one_place_and_go_with_Settings()
     {
@@ -1523,8 +1478,7 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         int After(string text) => code.IndexOf(text, StringComparison.Ordinal) + text.Length;
         Ui.WaitFor(() => editor.InlayHints.Any(h => h.Kind == InlayHintKind.Type), "the type name hints");
 
-        // A var's type after its name, a lambda parameter's after it, a deconstruction's after each name, and a new()'s
-        // type after the new; none where the code shows the type: new List<int>(), a declared Func, a declared List.
+        // None where the code shows the type: new List<int>(), a declared Func, a declared List.
         Assert.Equal(
             [
                 (":int", After("var total")),
@@ -1536,12 +1490,10 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
             editor.InlayHints.Where(h => h.Kind == InlayHintKind.Type).Select(h => (h.Label, h.Offset)));
         Assert.Equal(["width:", "height:"], editor.InlayHints.Where(h => h.Kind == InlayHintKind.Parameter).Select(h => h.Label));
 
-        // The text after a hint stands its room on, the name before it where it was.
         double Step(int offset) => editor.PointOf(offset + 1).X - editor.PointOf(offset).X;
         double character = Step(After("var tot"));
         Assert.True(Step(After("var total")) > character * 3, $"'total' and ' =' stand {Step(After("var total"))} apart against a character's {character}");
 
-        // Resting the pointer on a hint shows what the server says of its type.
         Point hint = editor.PointOf(After("var total")) + new Point(character * 1.5, editor.LineHeight / 2);
         window.MouseMove(editor.TranslatePoint(hint, window)!.Value, Avalonia.Input.RawInputModifiers.None);
         Ui.WaitFor(() => window.Assist.HoverText is not null, "the hint's hover card");
@@ -1549,7 +1501,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         window.MouseMove(new Point(1, 1), Avalonia.Input.RawInputModifiers.None);
         Ui.Settle();
 
-        // Type name hints go when Settings turns them off, parameter name hints staying, and come back when it turns them on.
         int name = After("var total");
         int argument = code.IndexOf("Of(3", StringComparison.Ordinal) + "Of(".Length;
         Assert.True(window.Settings.TypeHints, "Type name hints are not on by default");
@@ -1571,13 +1522,11 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Ui.Settle();
         Assert.True(Step(name) > character * 3, "Type name hints turned on again did not come back");
 
-        // The caret steps across a hint as one place.
         Ui.WaitFor(() => editor.InlayHints.Any(h => h.Kind == InlayHintKind.Type && h.Offset == name), "the hint after 'total'");
         double nameEnd = editor.PointOf(name - 1).X + character;
         double Caret() => editor.PointOf(editor.Selections.Primary.Caret).X;
         Ui.PlaceAfter(editor, "var tota");
 
-        // Right: to the end of the name, before its type; Right again: past the hint, the caret still at the name's end.
         Ui.Press(window, "Right");
         Assert.Equal(name, editor.Selections.Primary.Caret);
         Assert.Equal(nameEnd, Caret(), 1);
@@ -1588,7 +1537,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Ui.Press(window, "Right");
         Assert.Equal(name + 1, editor.Selections.Primary.Caret);
 
-        // Left comes back the same way, a place at a time.
         Ui.Press(window, "Left");
         Assert.Equal((name, pastHint), (editor.Selections.Primary.Caret, Caret()));
         Ui.Press(window, "Left");
@@ -1597,7 +1545,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Ui.Press(window, "Left");
         Assert.Equal(name - 1, editor.Selections.Primary.Caret);
 
-        // A parameter's name before its argument is a place too: Right from the parenthesis stands before it, then after it.
         Ui.PlaceAfter(editor, "Area.Of");
         double parenthesis = Caret();
         Ui.Press(window, "Right");
@@ -1608,25 +1555,21 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Assert.Equal(argument, editor.Selections.Primary.Caret);
         Assert.True(Caret() - beforeWidth > 20, "Right before 'width:' did not step the caret past it");
 
-        // Typing at the end of the name, before its type, lengthens the name with the type still after it.
         editor.Selections = SelectionSet.Single(name);
         window.KeyTextInput("s");
         Assert.Contains(editor.InlayHints, h => h.Kind == InlayHintKind.Type && h.Offset == name + 1 && h.Label == ":int");
         Assert.Equal(name + 1, editor.Selections.Primary.Caret);
         Assert.Equal(nameEnd + character, Caret(), 1);
 
-        // A literal argument shows its parameter's name before it, and the text after makes room.
         window.OpenFile(project.PathOf("Area.cs"));
         Ui.Settle();
         int literal = editor.Document.Snapshot.ToString().IndexOf("Of(3, 4)", StringComparison.Ordinal) + "Of(".Length;
         Ui.WaitFor(() => editor.InlayHints.Count == 2, "the parameter name hints");
         Assert.Equal([("width:", literal), ("height:", literal + "3, ".Length)], editor.InlayHints.Select(h => (h.Label, h.Offset)));
 
-        // The argument stands a hint's room past the parenthesis; the caret at it stands after the hint.
         character = Step(literal);
         Assert.True(Step(literal - 1) > character * 4, $"{Step(literal - 1)} against a character's {character}");
 
-        // Off in Settings, the line stands as typed.
         editor.ShowParameterHints = false;
         Assert.Equal(character, Step(literal - 1), 3);
         window.Close();
@@ -1650,7 +1593,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Assert.Equal("total += i * 2;", grown[2]);
         Assert.StartsWith("{", grown[3], StringComparison.Ordinal);
         Assert.StartsWith("for (", grown[4], StringComparison.Ordinal);
-        // The method's statements, without the braces around them.
         Assert.StartsWith("int total = 0;", grown[5], StringComparison.Ordinal);
         Assert.EndsWith("return total;", grown[5], StringComparison.Ordinal);
 
@@ -1665,10 +1607,10 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         window.Close();
     }
 
-    /// <summary>Live and postfix templates in one window: an abbreviation and Tab become Rider's live template where it
-    /// belongs (prop in a type's body, cw in a method's); a live template fills every place of a variable at once, Tab goes
-    /// on and back, and a caret moved away ends it; and a postfix template after an expression and a dot wraps it where it
-    /// fits, asking which expression when more than one could be meant.</summary>
+    /// <summary>Live and postfix templates in one window: an abbreviation and Tab become a live template where it
+    /// belongs (prop in a type's body, cw in a method's); a live template fills every place of a variable at once, Tab
+    /// goes on and back, and a caret moved away ends it; and a postfix template after an expression and a dot wraps it
+    /// where it fits, asking which expression when more than one could be meant.</summary>
     [AvaloniaFact]
     public void Live_and_postfix_templates_expand_where_they_belong_fill_their_variables_and_wrap_what_they_follow()
     {
@@ -1676,7 +1618,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         CodeEditor editor = window.EditorArea.CodeEditor;
         string Text() => editor.Document.Snapshot.ToString();
         string Selected() => editor.Document.Snapshot.GetText(editor.Selections.Primary.Start, editor.Selections.Primary.Length);
-        // In a type's body, prop is a property, its type selected to be typed over.
         Ui.PlaceAfter(editor, "public int Y { get; }");
         editor.Focus();
         Ui.Press(window, "ENTER");
@@ -1693,7 +1634,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Assert.False(editor.IsInSnippet);
         Assert.Contains("    public string Label { get; set; }\n}", Text(), StringComparison.Ordinal);
 
-        // In a method's body, cw is a Console.WriteLine with the caret in its parentheses.
         window.OpenFile(project.PathOf("Loop.cs"));
         Ui.Settle();
         Ui.PlaceAfter(editor, "int total = 0;");
@@ -1706,7 +1646,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Assert.Equal(Text().IndexOf("Console.WriteLine(", StringComparison.Ordinal) + "Console.WriteLine(".Length, editor.Selections.Primary.Caret);
         Ui.Press(window, "ESCAPE");
 
-        // The for loop's index is in three places, all chosen, and what is typed goes into each.
         Ui.PlaceAfter(editor, "int total = 0;");
         Ui.Press(window, "ENTER");
         window.KeyTextInput("for");
@@ -1719,7 +1658,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Ui.Press(window, "TAB");
         Assert.Equal("length", Selected());
         window.KeyTextInput("rows");
-        // Shift+Tab goes back to the index, its three places chosen again; Tab twice more ends it at its end.
         Ui.Press(window, "shift TAB");
         Assert.Equal(3, editor.Selections.Count);
         Ui.Press(window, "TAB");
@@ -1729,7 +1667,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Assert.Contains(loop, Text(), StringComparison.Ordinal);
         Assert.Equal(Text().IndexOf(loop, StringComparison.Ordinal) + loop.IndexOf("            \n", StringComparison.Ordinal) + 12, editor.Selections.Primary.Caret);
 
-        // Another, left by the caret moving off its variable, is over.
         Ui.Press(window, "ENTER");
         window.KeyTextInput("thr");
         Ui.Settle();
@@ -1739,7 +1676,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Assert.False(editor.IsInSnippet, "The template went on with the caret off its variables");
         Assert.Contains("throw new InvalidOperationException();", Text(), StringComparison.Ordinal);
 
-        // .foreach wraps the whole call chain, its variable to be named first.
         Ui.PlaceAfter(editor, "int total = 0;");
         Ui.Press(window, "ENTER");
         window.KeyTextInput("Enumerable.Range(0, 3).foreach");
@@ -1749,7 +1685,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Assert.Equal("item", Selected());
         Ui.Press(window, "ESCAPE");
 
-        // .var names what it holds, the name selected to be typed over.
         Ui.PlaceAfter(editor, "int total = 0;");
         Ui.Press(window, "ENTER");
         window.KeyTextInput("total.var");
@@ -1760,8 +1695,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Ui.Press(window, "TAB");
         Assert.Contains("        var copy = total;", Text(), StringComparison.Ordinal);
 
-        // In the middle of an expression only an expression's template fits: .par asks which expression, the name before
-        // it first, and wraps the one chosen; .if is not offered.
         Ui.PlaceAfter(editor, "var copy = total;");
         Ui.Press(window, "ENTER");
         window.KeyTextInput("int doubled = 2 * total.par");
@@ -1797,7 +1730,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Assert.True(editor.IsInSnippet);
         string loop = editor.Document.Snapshot.ToString();
 
-        // The group's one editor shows Helper.cs again, its caret where it was left; Enter there is a line break.
         Ui.Run(window, AppActions.NextTab);
         Assert.Equal(PathNames.Canonical(project.PathOf("Helper.cs")), window.EditorArea.Active?.Path);
         Ui.Press(window, "ENTER");
@@ -1807,7 +1739,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Assert.Equal(new TextPosition(3, 4), editor.CaretPosition);
         Assert.False(editor.IsInSnippet, "Helper.cs is drawn with boxes at the places of Loop.cs's template");
 
-        // Back in Loop.cs the template has ended, its text as it was left.
         Ui.Run(window, AppActions.NextTab);
         Assert.False(editor.IsInSnippet, "Loop.cs's template took up again after its file was left");
         Assert.Equal(loop, editor.Document.Snapshot.ToString());
@@ -1831,7 +1762,6 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Assert.Equal(PathNames.Canonical(project.PathOf("Program.cs")), caller.Node.Path);
         Assert.Equal(4, caller.Node.Where.Line);
 
-        // Callees of Twice: none it calls of the project's own.
         Task callees = window.Hierarchy.ChooseAsync(first: false);
         Ui.WaitFor(() => callees.IsCompleted, "the callees");
         Assert.False(window.Hierarchy.IsFirst);
@@ -1847,13 +1777,11 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         window.Close();
     }
 
-    /// <summary>The server's completion list is read where its answer arrives, never on the UI thread: a statement's list
-    /// is every type and keyword in reach, each item with the server's data, which the key's frames waited for while it was
-    /// read there. What the window allocates is the count, not a time a busy machine stretches: a list of hundreds more
-    /// items (a file with the usings a project's implicit ones bring, against one with none) costs the UI thread, from the
-    /// key to the list open, less than a third of what reading those items takes. The window starts a server of its own,
-    /// which lists no type of a namespace not imported until it has indexed them: the class's warm server, once another test
-    /// had it index them, listed them in both files, each list cut at the server's thousand.</summary>
+    /// <summary>The server's completion list is read where its answer arrives, never on the UI thread: a list of
+    /// hundreds more items (a file with the usings a project's implicit ones bring, against one with none) costs the UI
+    /// thread, from the key to the list open, less than a third of what reading those items takes, counted rather than
+    /// timed. The window starts a server of its own: the class's warm server, once another test had it index the types
+    /// of namespaces not imported, lists them in both files, each list cut at the server's thousand.</summary>
     [AvaloniaFact]
     public void A_statements_completion_list_is_read_off_the_UI_thread()
     {
@@ -1876,10 +1804,9 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         window.Close();
     }
 
-    /// <summary>A statement's completion in a file: how many items it lists, what reading its answer allocates (the same
-    /// list asked for from the thread pool, the window's thread waiting), and what the UI thread allocates from the key
-    /// until the list is open, whichever of its frames the answer lands in (a quick one lands in the jobs the key's own
-    /// input runs, which a count of the frames after it alone took for nothing); the least of three.</summary>
+    /// <summary>A statement's completion in a file: how many items it lists, what reading its answer allocates (the
+    /// same list asked for from the thread pool, the window's thread waiting), and what the UI thread allocates from
+    /// the key until the list is open, whichever of its frames the answer lands in; the least of three.</summary>
     private static (int Items, long Read, long Frame) StatementCompletion(MainWindow window, string path)
     {
         window.OpenFile(path);
@@ -1913,12 +1840,11 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         return (items, read, frame);
     }
 
-    /// <summary>Typing on into an open completion list narrows it off the UI thread and shows it in the rows the list has:
-    /// as each letter narrows a statement's list, the controls on screen are the ones that showed it before, their words
-    /// changed in place, where every row's controls were made anew at each key; and a key into a list of hundreds more
-    /// items (a file with the usings a project's implicit ones bring, against one with none) costs the UI thread, from the
-    /// key to the narrower list shown, about what it does in the shorter one, its items scored and made into rows on the
-    /// thread pool. What the window allocates is the count, not a time a busy machine stretches.</summary>
+    /// <summary>Typing on into an open completion list narrows it off the UI thread and shows it in the rows the list
+    /// has: as each letter narrows a statement's list, the controls on screen are the ones that showed it before, their
+    /// words changed in place; and a key into a list of hundreds more items (a file with the usings a project's
+    /// implicit ones bring, against one with none) costs the UI thread about what it does in the shorter one, counted
+    /// rather than timed.</summary>
     [AvaloniaFact]
     public void Typing_into_a_completion_list_narrows_it_off_the_UI_thread_in_the_rows_it_shows()
     {
@@ -2065,10 +1991,9 @@ public sealed class CodeAssistResponsivenessTests : IClassFixture<CodeAssistTest
         project.Reset();
     }
 
-    /// <summary>The window takes keys while Find Usages lists ten thousand usages, each usage's place once grouped under its
-    /// file by a path made canonical on the UI thread, which asks the disk once a usage; and while Derived Symbols lists four
-    /// thousand implementations, each once given a path made canonical on the UI thread four times over and its line of code
-    /// read from its closed file. Both lists' files are written at once, so one server loads them.</summary>
+    /// <summary>The window takes keys while Find Usages lists ten thousand usages and while Derived Symbols lists four
+    /// thousand implementations, each with its line of code read from its closed file. Both lists' files are written at
+    /// once, so one server loads them.</summary>
     [AvaloniaFact]
     public void The_window_takes_keys_while_find_usages_lists_ten_thousand_usages_and_derived_symbols_four_thousand_implementations()
     {

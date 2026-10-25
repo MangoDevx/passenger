@@ -6,7 +6,7 @@ using Passenger.Core;
 
 namespace Passenger.App;
 
-/// <summary>Where a folder or solution opens: the window it is opened from, or one of its own (Rider's This Window and New
+/// <summary>Where a folder or solution opens: the window it is opened from, or one of its own (This Window or New
 /// Window).</summary>
 public enum OpenTarget
 {
@@ -14,12 +14,12 @@ public enum OpenTarget
     NewWindow,
 }
 
-/// <summary>The process: its project windows, a folder or solution each as Rider's frames are, and the one way anything
-/// opens one (<see cref="OpenProject"/>), which a start, File Open, the recent solutions, the Welcome screen, the Window
-/// menu, the system handing Passenger a solution and an agent's open all go through. A window it makes is made as the one
-/// it is opened from (the state folder, its layout and settings kept or not, agents let in or not, Discord shown or not),
-/// so every window is composed the same way; the updates are watched by one window at a time and Discord shows the window
-/// in front alone. Static because the process is one, as its windows are; UI thread only.</summary>
+/// <summary>The process: its project windows, a folder or solution each, and the one way anything opens one
+/// (<see cref="OpenProject"/>), which a start, File Open, the recent solutions, the Welcome screen, the Window menu,
+/// the system handing Passenger a solution and an agent's open all go through. A window it makes is made as the one it
+/// is opened from (the state folder, its layout and settings kept or not, agents let in or not, Discord shown or not),
+/// so every window is composed the same way; the updates are watched by one window at a time and Discord shows the
+/// window in front alone. Static because the process is one, as its windows are; UI thread only.</summary>
 public static class PassengerApp
 {
     /// <summary>How far a new window sits from the one it was opened from, as the system cascades them.</summary>
@@ -72,11 +72,11 @@ public static class PassengerApp
         window.Closed += (_, _) => Remove(window);
     }
 
-    /// <summary>Opens a folder, solution (.sln, .slnx) or C# project (.csproj), a path checked already (<see
-    /// cref="MainWindow.Open"/> says why one cannot be), in the window it is opened from or one of its own; a window with
-    /// nothing open takes it either way, as Rider's Welcome screen does. One another window has open (its folder) is
-    /// brought forward there instead, taking the solution named. The window it opened in; <paramref name="then"/> is told
-    /// that window once the solution's session has begun there, never when it was not opened.</summary>
+    /// <summary>Opens a folder, solution (.sln, .slnx) or C# project (.csproj), a path checked already
+    /// (<see cref="MainWindow.Open"/> says why one cannot be), in the window it is opened from or one of its own; a
+    /// window with nothing open takes it either way. One another window has open (its folder) is brought forward there
+    /// instead, taking the solution named. The window it opened in; <paramref name="then"/> is told that window once
+    /// the solution's session has begun there, never when it was not opened.</summary>
     public static MainWindow OpenProject(string path, OpenTarget target, MainWindow from, Action<MainWindow>? then = null)
     {
         UiThread.Check();
@@ -146,8 +146,8 @@ public static class PassengerApp
         return window;
     }
 
-    /// <summary>Rider's Next Solution Window (a step of 1) and Previous Solution Window (-1): the window after or before
-    /// this one, in the order they opened, brought forward; with one window, nothing.</summary>
+    /// <summary>Next Solution Window (a step of 1) and Previous Solution Window (-1): the window after or before this
+    /// one, in the order they opened, brought forward; with one window, nothing.</summary>
     public static void Step(MainWindow from, int step)
     {
         UiThread.Check();

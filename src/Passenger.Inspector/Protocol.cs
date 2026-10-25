@@ -1,23 +1,15 @@
 using System.Text.Json.Serialization;
 
+// What Passenger and its inspector inside an Avalonia app (src/Passenger.Inspector) or a WPF app
+// (src/Passenger.Inspector.Wpf) say to each other, compiled into all three: one JSON object a line over the socket
+// Passenger names in the app's environment. The messages are the same for both (a WPF dependency property is a
+// property, its value sources take the same words); what one framework has not (Avalonia's overlays, frames and binding
+// values) the other's inspector refuses. Passenger asks (Request) and the app answers each by its id (Reply); the app
+// also tells without being asked (a Reply with an Event): hello once its UI runs, treeChanged as controls come and go,
+// picked when the person points at one, bindingFailed as a binding fails (from before hello), untold when it could not
+// tell all it had. While the app is paused its binding values are read through the debugger's evaluation of
+// BindingValues.Read.
 namespace Passenger.Inspector;
-
-// What Passenger and its inspector inside an Avalonia app (src/Passenger.Inspector) or a WPF app (src/Passenger.Inspector.Wpf)
-// say to each other, compiled into all three: one JSON object a line over the socket Passenger names in the app's environment.
-// The messages are the same for both (a WPF dependency property is a property, its value sources take the same words); what
-// one framework has not (Avalonia's overlays, frames and binding values) the other's inspector refuses. Passenger asks
-// (Request) and the app answers each by its id (Reply); the app also tells without being asked (a Reply with an Event): hello
-// once its UI runs, treeChanged as controls come and go, picked when the person points at one, bindingFailed as a binding
-// fails (from before hello, as the app starts), untold when it could not tell all it had (failed bindings past the most it
-// lists, messages left out while too many waited). An agent's tools ask the same: the windows, the tree with each element's
-// layout and text, a picture the app draws of a window, and input to it as a person's goes. A property breakpoint (Break When
-// Value Changes) asks it to watch an element's property, which stops the debugged app at each change its hit count lets
-// through (PropertyBreaks.cs); in a debugged app each failed binding also calls a method the XAML Binding Errors breakpoint
-// stops in (Breaks.cs, by the same name in either inspector). The bindings of a XAML file's
-// elements are read with their values (values, BindingValues.cs): asked over the socket while the app runs, and through the
-// debugger's evaluation of BindingValues.Read while it is paused, when its UI thread answers nothing. Avalonia's renderer debug
-// overlays are set on the app's windows (overlays, Overlays.cs), from the launch on when its environment names them. The app's
-// frames, layout and rendering go to Passenger's profiler by EventPipe, not this socket (Frames.cs).
 
 /// <summary>The names both ends agree on.</summary>
 public static class Wire
@@ -150,9 +142,8 @@ public sealed record BoundValue(string Property, string Path, ShownValue? Value,
 /// the step before, and its value, none when the walk never reached it.</summary>
 public sealed record PathStep(string Name, ShownValue? Value);
 
-/// <summary>A value as the app writes it (a string quoted, an object of no words of its own by its type in braces) and its type;
-/// read through the debugger, also the slot of the evaluation's array that holds it (from one), which the debugger shows as
-/// Variables does.</summary>
+/// <summary>A value as the app writes it (a string quoted, an object of no words of its own by its type in braces) and
+/// its type; read through the debugger, also the slot of the evaluation's array that holds it (from one).</summary>
 public sealed record ShownValue(string Text, string Type, int Slot);
 
 /// <summary>Input to the app as a person gives it: into its window's own way in from the platform, so hit testing, routing,

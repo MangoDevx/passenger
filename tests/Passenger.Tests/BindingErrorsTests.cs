@@ -35,10 +35,10 @@ public sealed class BindingErrorsTests : IClassFixture<RestoredFolders>, IDispos
     /// <summary>Where the caption's binding names Nmae, on its start tag's third line, from zero.</summary>
     private TextPosition Misspelt => new(Line("{Binding Nmae}") - 1, Lines()[Line("{Binding Nmae}") - 1].IndexOf("Nmae", StringComparison.Ordinal));
 
-    /// <summary>Run while the temporary folder's path is longer than a Unix socket's address holds (an agent's TMPDIR can
-    /// be), the app gets its inspector all the same, in Passenger's own socket folder: a socket there had failed Run, Debug
-    /// and Profile of every Avalonia or WPF app with an IDE error. macOS and Linux read TMPDIR; Windows reads TMP, so there
-    /// the run is as any other. Then its misspelt binding shows in the Run window, linked, and in Problems with its fix.</summary>
+    /// <summary>Run while the temporary folder's path is longer than a Unix socket's address holds (an agent's TMPDIR
+    /// can be), the app gets its inspector all the same, in Passenger's own socket folder. macOS and Linux read TMPDIR;
+    /// Windows reads TMP, so there the run is as any other. Then its misspelt binding shows in the Run window, linked,
+    /// and in Problems with its fix.</summary>
     [AvaloniaFact]
     public void A_running_apps_misspelt_binding_shows_in_run_linked_to_its_line_and_in_problems_once_with_its_count_and_fix()
     {
@@ -61,7 +61,6 @@ public sealed class BindingErrorsTests : IClassFixture<RestoredFolders>, IDispos
         OutputView run = window.BottomPanel.Run;
         string line = WaitForLine(run, "the Run window to say the caption's binding failed");
 
-        // Its place first, linked: a click opens MainWindow.axaml at the misspelt member, its start tag's third line.
         Assert.StartsWith($"MainWindow.axaml({Misspelt.Line + 1},{Misspelt.Column + 1}): ", line, StringComparison.Ordinal);
         Assert.Contains("TextBlock#Caption.Text to Nmae", line, StringComparison.Ordinal);
         Assert.Contains("Did you mean Name?", line, StringComparison.Ordinal);
@@ -69,7 +68,6 @@ public sealed class BindingErrorsTests : IClassFixture<RestoredFolders>, IDispos
         Assert.Equal(Xaml, window.EditorArea.Active?.Path);
         Assert.Equal(Misspelt, window.EditorArea.CodeEditor.CaretPosition);
 
-        // In Problems' Bindings, under its file, once, with its control, property, path and count, at the misspelt member.
         ProblemsModel problems = window.BottomPanel.Problems;
         BindingProblem caption = Assert.Single(problems.BindingProblems);
         Assert.Equal(("TextBlock#Caption", "Text", "Nmae", 1), (caption.Failure.Control, caption.Failure.Property, caption.Failure.Path, caption.Failure.Count));
@@ -82,7 +80,6 @@ public sealed class BindingErrorsTests : IClassFixture<RestoredFolders>, IDispos
         Assert.Equal($"TextBlock#Caption.Text · Nmae · MainWindow.axaml:{Misspelt.Line + 1}:{Misspelt.Column + 1} · ×1",
             problems.Rows.Single(r => r.Problem is not null).Detail);
 
-        // Failing again, it is counted, not listed again, and the console says so.
         Ui.TypeToRun(window, "rebind");
         Ui.WaitFor(() => problems.BindingProblems.SingleOrDefault()?.Failure.Count == 2, "the caption's failure to be counted twice");
         Assert.Single(problems.BindingProblems);
@@ -90,14 +87,12 @@ public sealed class BindingErrorsTests : IClassFixture<RestoredFolders>, IDispos
         Ui.WaitFor(() => run.Document.Snapshot.ToString().Contains("Nmae: Could not find", StringComparison.Ordinal)
             && run.Document.Snapshot.ToString().Contains("(×2)", StringComparison.Ordinal), "the Run window to say it failed again");
 
-        // Its fix, from Problems: the editor goes to the misspelt member and offers the view model's nearest, which it takes.
         window.ShowToolWindow(ToolWindowIds.Problems);
         Ui.Settle();
         ListBox list = window.ProblemsWindow.GetVisualDescendants().OfType<ListBox>().First();
         list.SelectedItem = problems.Rows.Single(r => r.Problem is not null);
         Ui.ChooseFromMenu(list, "Show Context Actions");
         Ui.WaitFor(() => window.Assist.Offered.Count > 0, "the binding's fixes");
-        // The fix comes first; the XAML refactorings that apply at the element (Extract Style) follow it, as in Rider.
         Assert.Equal("Change 'Nmae' to 'Name'", window.Assist.Offered[0]);
         Assert.Single(window.Assist.Offered, offered => offered.StartsWith("Change ", StringComparison.Ordinal));
         Ui.Press(window, "ENTER");
@@ -137,7 +132,6 @@ public sealed class BindingErrorsTests : IClassFixture<RestoredFolders>, IDispos
             (caption.Failure.Place?.Line, caption.Failure.Place?.Column));
         Assert.Equal((Xaml, misspelt), (caption.Problem.Path, caption.Problem.Position));
 
-        // Its fix, from Problems, at the misspelt member.
         window.ShowToolWindow(ToolWindowIds.Problems);
         problems.Shown = ProblemsTab.Bindings;
         Ui.Settle();
@@ -163,7 +157,6 @@ public sealed class BindingErrorsTests : IClassFixture<RestoredFolders>, IDispos
         string app = Path.Combine(folder, "App.axaml.cs");
         string program = Path.Combine(folder, "Program.cs");
 
-        // Off until turned on, by its box in the Breakpoints window, under its own group after the CLR exception breakpoints.
         Assert.False(store.BindingErrors.Enabled, "XAML Binding Errors was on before anything turned it on");
         Ui.Run(window, AppActions.ViewBreakpoints);
         BreakpointsWindow breakpoints = Assert.IsType<BreakpointsWindow>(window.Popup);
@@ -173,31 +166,25 @@ public sealed class BindingErrorsTests : IClassFixture<RestoredFolders>, IDispos
         Ui.Click(Button(breakpoints, "Done"));
         Assert.True(store.BindingErrors.Enabled, "Its box did not turn XAML Binding Errors on");
 
-        // The caption's binding fails as the app gives its window a view model: the stop is there, in the app's own code.
         Ui.Launched(window, window.DebugAsync(), "the app to build and start under the debugger", TimeSpan.FromMinutes(4));
         DebugStop stop = Stopped(window, "the stop where the window's view model makes the caption's binding fail");
         AssertAt(stop, app, LineIn(app, "DataContext = new MainViewModel()"));
-        // Said where it is in the XAML, what it binds, its DataContext, the part of the path that failed and why.
         Assert.Equal((Xaml, Misspelt), (stop.Binding?.Problem.Path, stop.Binding?.Problem.Position));
         Says(window, $"paused on a binding error at MainWindow.axaml:{Misspelt.Line + 1}: TextBlock#Caption.Text to Nmae (DataContext MainViewModel): "
             + "Could not find a matching property accessor for 'Nmae' on 'BindingErrorsApp.MainViewModel'");
-        // Which the status bar's words go to see in Problems' Bindings.
         window.ShowToolWindow(ToolWindowIds.Debug);
         Ui.Click(window.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "StatusMessage"));
         Assert.True(window.DockHost.IsShown(ToolWindowIds.Problems) && window.BottomPanel.Problems.Shown == ProblemsTab.Bindings,
             $"A click on \"{window.Status}\" in the status bar showed {(window.DockHost.IsShown(ToolWindowIds.Problems) ? $"Problems' {window.BottomPanel.Problems.Shown} tab" : "nothing")}, not Problems' Bindings");
         window.ShowToolWindow(ToolWindowIds.Debug);
         Assert.Contains(window.EditorArea.CodeEditor.LineAnnotations, a => a.Kind == LineAnnotationKind.Exception && a.Text.StartsWith("Binding error at MainWindow.axaml", StringComparison.Ordinal));
-        // $bindingError above the frame's values, as $exception is, opening into the failure.
         Assert.Equal("\"Nmae\"", Member(window, "$bindingError", "Path"));
         Assert.Equal("\"Nmae\"", Member(window, "$bindingError", "FailedPart"));
         Assert.Contains("MainViewModel", Member(window, "$bindingError", "DataContext"), StringComparison.Ordinal);
         Assert.Contains("TextBlock", Member(window, "$bindingError", "Control"), StringComparison.Ordinal);
-        // Its control's element, where Avalonia records it, at the editor's line though XamlIl's runs one on past the lone '\r':
-        // the line, and the column of its name.
+        // At the editor's line, though XamlIl's runs one on past the lone '\r'.
         Assert.Equal($"\"MainWindow.axaml:{Line("x:Name=\"Caption\"")}:{Lines()[Line("x:Name=\"Caption\"") - 1].IndexOf("TextBlock", StringComparison.Ordinal) + 1}\"",
             Member(window, "$bindingError", "Xaml"));
-        // The Debug console links the binding's XAML: a click shows the misspelt member.
         window.BottomPanel.Debug.ShowTab(console: true);
         OutputView console = window.BottomPanel.Debug.Console;
         string line = WaitForLine(console, "the Debug console to link the binding that stopped the app", "paused on a binding error");
@@ -206,7 +193,6 @@ public sealed class BindingErrorsTests : IClassFixture<RestoredFolders>, IDispos
         Assert.Equal((Xaml, Misspelt), (window.EditorArea.Active?.Path, window.EditorArea.CodeEditor.CaretPosition));
         Resume(window);
 
-        // A condition reads the failure: one that holds for none lets the next failure go by, one that holds stops there.
         Condition(window, "$bindingError.Path == \"Name\"");
         Ui.TypeToDebugged(window, "rebind");
         Ui.WaitFor(() => Console(window).Contains("Bound again", StringComparison.Ordinal), "the app to bind its window again");
@@ -219,7 +205,6 @@ public sealed class BindingErrorsTests : IClassFixture<RestoredFolders>, IDispos
         Resume(window);
         Ui.WaitFor(() => Console(window).Split("Bound again").Length == 3, "the app to bind its window a second time");
 
-        // Not suspending, it logs its message, which reads the failure, and the app goes on.
         Ui.Run(window, AppActions.ViewBreakpoints);
         breakpoints = Assert.IsType<BreakpointsWindow>(window.Popup);
         Ui.Click(Row(breakpoints, BindingErrorBreakpoint.AnyBindingError));
@@ -262,7 +247,6 @@ public sealed class BindingErrorsTests : IClassFixture<RestoredFolders>, IDispos
         BindingProblem caption = Assert.Single(window.BottomPanel.Problems.BindingProblems);
         Assert.Equal(("TextBlock#Caption", "Text", "Nmae", Xaml), (caption.Failure.Control, caption.Failure.Property, caption.Failure.Path, caption.Problem.Path));
         Assert.Equal(["Name"], caption.Failure.Nearest);
-        // The window's bindings that worked said nothing.
         Assert.DoesNotContain("Greeting", console.Document.Snapshot.ToString(), StringComparison.Ordinal);
 
         Ui.WaitFor(() => window.LiveTree.Rows.Any(r => r.Element.Name == "Caption"),
@@ -271,7 +255,6 @@ public sealed class BindingErrorsTests : IClassFixture<RestoredFolders>, IDispos
         Ui.WaitFor(() => Console(window).Contains("Bound again", StringComparison.Ordinal), "the app's second failed binding, which the hit count lets go by");
         Assert.True(window.Debugger.Session?.State == DebugState.Running, $"XAML Binding Errors stopped before its third hit: {window.Status}");
 
-        // Break When Value Changes on the caption sends the function breakpoints again, XAML Binding Errors' unchanged.
         LiveTreeView tree = window.LiveTree;
         tree.Tree.SelectedItem = tree.Rows.First(r => r.Element.Name == "Caption");
         Ui.WaitFor(() => tree.Details?.Name == "Caption", "the caption's details");
@@ -316,8 +299,7 @@ public sealed class BindingErrorsTests : IClassFixture<RestoredFolders>, IDispos
         LiveTreeView tree = window.LiveTree;
         Ui.PumpUntil(() => window.LiveApp?.State is LiveAppState.Connected or LiveAppState.Refused or LiveAppState.Ended, "the app's inspector to say hello", TimeSpan.FromMinutes(2));
         Assert.True(window.LiveApp?.State == LiveAppState.Connected, $"The app's inspector did not connect: {window.LiveApp?.State} {window.LiveApp?.Problem}");
-        // Past its first thousand failed bindings as it opens, the Debug console says the rest are counted, not listed (looked
-        // at as it comes, before the repeats' lines push it out of the console's head).
+        // Looked at as it comes, before the repeats' lines push it out of the console's head.
         OutputView console = window.BottomPanel.Debug.Console;
         Ui.PumpUntil(() =>
         {
@@ -337,7 +319,6 @@ public sealed class BindingErrorsTests : IClassFixture<RestoredFolders>, IDispos
         }
         Assert.DoesNotContain(LiveApp.NotAnswered(window.LiveApp!.Name), tree.StatusLine, StringComparison.Ordinal);
 
-        // Calmed, the app says how many failures Avalonia logged in all.
         window.ShowToolWindow(ToolWindowIds.Debug);
         window.BottomPanel.Debug.ShowTab(console: true);
         Ui.PumpUntil(() => console.Editor.IsEffectivelyVisible && console.Editor.Bounds.Width > 0, "the Debug window's console to show");
@@ -354,7 +335,6 @@ public sealed class BindingErrorsTests : IClassFixture<RestoredFolders>, IDispos
         }, "the app to say how many of its bindings failed", TimeSpan.FromMinutes(1));
         Assert.True(failed >= 2 * 3001, $"The app's 3,001 failing bindings failed only {failed} times before it was calmed, not as it opened and again since");
 
-        // Problems lists the first thousand, each with its count, and counts the rest beneath them: every failure, once.
         ProblemsModel problems = window.BottomPanel.Problems;
         LiveApp app = window.LiveApp!;
         int Accounted() => problems.BindingProblems.Sum(b => b.Failure.Count) + app.Untold.Bindings;

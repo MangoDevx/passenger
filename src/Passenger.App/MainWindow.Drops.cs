@@ -9,9 +9,9 @@ using Passenger.Terminal;
 
 namespace Passenger.App;
 
-/// <summary>Files dropped on the window from the system's file manager (Files, Finder, Explorer), as on Rider's frame: a
-/// folder, solution or project opens as File, Open opens one, any other file in the editor of the window it was dropped
-/// on, and on the terminal each path is typed for the shell, as Rider's terminal takes a drop.</summary>
+/// <summary>Files dropped on the window from the system's file manager (Files, Finder, Explorer): a folder, solution or
+/// project opens as File, Open opens one, any other file in the editor of the window it was dropped on, and on the
+/// terminal each path is typed for the shell.</summary>
 public partial class MainWindow
 {
     private void AcceptDrops(Window window)

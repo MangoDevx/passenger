@@ -6,9 +6,9 @@ using Debuggees = Passenger.Tests.Debugging.Helpers.Debuggees;
 
 namespace Passenger.Tests;
 
-/// <summary>Agents testing a WPF app Passenger runs, through the same tools as an Avalonia app's: tests/Debuggees/WpfTreeApp
-/// (a counter's button, a name box that greets on Enter, a misspelt binding, a drop-down and a list to scroll), written into a
-/// folder of the test's own and restored from the run's feed. WPF runs on Windows alone, so elsewhere the test skips.</summary>
+/// <summary>Agents testing a WPF app Passenger runs: tests/Debuggees/WpfTreeApp (a counter's button, a name box that greets
+/// on Enter, a misspelt binding, a drop-down and a list to scroll), written into a folder of the test's own and restored
+/// from the run's feed. WPF runs on Windows alone, so elsewhere the test skips.</summary>
 [Collection(Alone.Name)]
 public sealed class McpWpfAppTests : McpRig
 {
@@ -34,7 +34,6 @@ public sealed class McpWpfAppTests : McpRig
         JsonElement ran = await Call(client, "run", new() { ["waitSeconds"] = 0 });
         Assert.True(ran.GetProperty("stillRunning").GetBoolean(), $"The app ended as it started: {ran}");
 
-        // Its one window, as WPF has it: its title, its client area in units, WPF named.
         JsonElement windows = await Call(client, "app_windows");
         Assert.StartsWith("WPF ", windows.GetProperty("framework").GetString(), StringComparison.Ordinal);
         Assert.True(windows.GetProperty("windows").GetArrayLength() == 1,
@@ -42,7 +41,6 @@ public sealed class McpWpfAppTests : McpRig
         JsonElement main = windows.GetProperty("windows")[0];
         Assert.Equal("WPF Tree App", main.GetProperty("title").GetString());
 
-        // A picture the app drew of it, at its own scaling.
         CallToolResult picture = await Result(client, "app_screenshot");
         Assert.True(picture.IsError != true && picture.Content.OfType<ImageContentBlock>().Count() == 1,
             $"The app drew no picture: {Text(picture)}; the inspector traced:\n{(File.Exists(trace) ? Ui.Shared(trace) : "(nothing)")}");
@@ -53,14 +51,11 @@ public sealed class McpWpfAppTests : McpRig
             $"The picture is {width}x{height} pixels for a window of {main}");
         Assert.True(image.DecodedData.Length > 4000, $"The app's picture is {image.DecodedData.Length} bytes, as a blank one would be");
 
-        // The button found in the tree, clicked through UI Automation, and the text it changes.
         Assert.Contains("Button#Count \"Count\"", Text(await Call(client, "app_tree", new() { ["filter"] = "Button" })), StringComparison.Ordinal);
         string clicked = Text(await Call(client, "app_click", new() { ["control"] = "#Count" }));
         Assert.StartsWith("Clicked Button#Count @", clicked, StringComparison.Ordinal);
         Assert.Contains("\"Clicked once\"", Text(await Call(client, "app_tree", new() { ["control"] = "#Counter" })), StringComparison.Ordinal);
 
-        // The button as the Live Visual Tree's details show it: its margin from App.xaml's implicit style, which applies, and
-        // its default style's hover trigger, which does not while the pointer is elsewhere, saying why.
         JsonElement button = await Call(client, "app_details", new() { ["control"] = "#Count" });
         JsonElement margin = Assert.Single(button.GetProperty("properties").EnumerateArray(), p => p.GetProperty("name").GetString() == "Margin");
         Assert.True(margin.GetProperty("source").GetString() == "Style" && margin.GetProperty("place").GetString()!.StartsWith("App.xaml:", StringComparison.Ordinal),
@@ -70,22 +65,18 @@ public sealed class McpWpfAppTests : McpRig
         Assert.Contains(styles, s => s.GetProperty("selector").GetString() == "Trigger IsMouseOver=True" && !s.GetProperty("applies").GetBoolean()
             && s.GetProperty("whyNot").GetString() == "IsMouseOver is False, not True");
 
-        // Typed into the name box and Enter pressed, its handler greets; replace types over what is there.
         Assert.Contains("it shows \"Ada\"", Text(await Call(client, "app_type", new() { ["control"] = "#NameBox", ["text"] = "Ada" })), StringComparison.Ordinal);
         await Call(client, "app_key", new() { ["keys"] = "Enter" });
         Assert.Contains("\"Hello, Ada\"", Text(await Call(client, "app_tree", new() { ["control"] = "#Hello" })), StringComparison.Ordinal);
         Assert.Contains("it shows \"Grace\"", Text(await Call(client, "app_type", new() { ["control"] = "#NameBox", ["text"] = "Grace", ["replace"] = true })), StringComparison.Ordinal);
 
-        // A drop-down opens its list as a popup over the window, where the agent picks from it.
         await Call(client, "app_click", new() { ["control"] = "#Colour" });
         string picked = Text(await Call(client, "app_click", new() { ["control"] = "ComboBoxItem \"Blue\"" }));
         string colour = Text(await Call(client, "app_tree", new() { ["filter"] = "#Colour" }));
         Assert.True(colour.Contains("ComboBox#Colour \"Blue\"", StringComparison.Ordinal), $"Blue, clicked in the drop-down ({picked}), is not chosen: {colour}");
 
-        // The wheel over the list scrolls it.
         Assert.Contains("ScrollViewer", Text(await Call(client, "app_scroll", new() { ["control"] = "#List", ["dy"] = 3 })), StringComparison.Ordinal);
 
-        // The misspelt binding, once, at its place in the XAML with the member nearest.
         JsonElement failed = Assert.Single((await Call(client, "app_binding_errors")).EnumerateArray());
         Assert.Equal(("TextBlock#Caption", "Nmae", "Name"), (failed.GetProperty("control").GetString(), failed.GetProperty("path").GetString(),
             failed.GetProperty("nearest").EnumerateArray().Single().GetString()));

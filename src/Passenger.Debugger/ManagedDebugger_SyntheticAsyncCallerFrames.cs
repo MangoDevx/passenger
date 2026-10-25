@@ -72,8 +72,7 @@ public partial class ManagedDebugger
                 yield break;
             }
 
-            // A repeated state machine means the continuation chain is cyclic, e.g. two async methods awaiting
-            // each other's tasks. Stop instead of fabricating frames forever.
+            // A repeated state machine is a cyclic continuation chain (two methods awaiting each other): stop.
             if (stateMachine is ICorDebugReferenceValue stateMachineReference && !visitedStateMachines.Add(stateMachineReference.Value))
             {
                 yield break;
@@ -206,8 +205,7 @@ public partial class ManagedDebugger
         DecompiledSourceInfo? decompiledSourceInfo = null;
         if (module.SymbolsFromDecompiled)
         {
-            // Synthetic frames have no physical caller chain, so start the search from the physical frame the
-            // synthetic chain was built from
+            // A synthetic frame has no physical callers: the search starts at the frame its chain was built from.
             ICorDebugFrame originatingFrame = GetFrameForThreadIdAndStackDepth(threadId, physicalFrameStackDepth);
             string? callingUserCodeAssemblyPath = FindCallingUserCodeAssemblyPath(originatingFrame);
             decompiledSourceInfo = CreateDecompiledSourceInfo(module, frame.MoveNextToken, callingUserCodeAssemblyPath);

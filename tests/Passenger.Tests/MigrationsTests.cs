@@ -35,8 +35,7 @@ public sealed class MigrationsTests
             Tool(window, AppActions.UpdateDatabase);
             Ui.WaitFor(() => Rows(window) is [(_, true)], $"Initial applied to the database ({window.Status})", Slow);
 
-            // A model change no migration covers: the build after it says so in Problems, at the context, whose Show Context
-            // Actions offers Add Migration…; the migration it adds is pending until the database is updated again.
+            // A model change no migration covers, which the build after it says in Problems at the context.
             ShopApp.AddPrice(folder);
             Ui.Run(window, AppActions.Build);
             string said = "ShopContext's model has changes no migration covers: Add Migration… makes one";
@@ -58,7 +57,6 @@ public sealed class MigrationsTests
             Tool(window, AppActions.UpdateDatabase);
             Ui.WaitFor(() => Rows(window) is [(_, true), (_, true)], $"both applied ({window.Status})", Slow);
 
-            // Back to Initial: rolling AddPrice back asks first, naming it.
             ListBox list = window.MigrationsView.GetVisualDescendants().OfType<ListBox>().Single(l => l.Name == "MigrationsList");
             Ui.RightClick(Assert.IsType<ListBoxItem>(list.ContainerFromItem(window.Migrations.Migrations.Single(m => m.Name == "Initial"))));
             Ui.Choose(list.ContextMenu, "Update Database to Initial");
@@ -67,7 +65,6 @@ public sealed class MigrationsTests
             Ui.ClickButton(asked, "Roll Back");
             Ui.WaitFor(() => Rows(window) is [(_, true), (_, false)], $"AddPrice rolled back ({window.Status})", Slow);
 
-            // A script of every migration, into a tab of its own.
             Tool(window, AppActions.ScriptMigrations);
             MigrationScriptDialog script = Asked<MigrationScriptDialog>(window, "Script Migrations' question");
             Ui.ClickButton(script, "Script");
@@ -76,7 +73,6 @@ public sealed class MigrationsTests
             Assert.Contains("CREATE TABLE \"Products\"", sql, StringComparison.Ordinal);
             Assert.Contains("\"Price\"", sql, StringComparison.Ordinal);
 
-            // Remove Last takes AddPrice's files away, asked first, and the list follows.
             Tool(window, AppActions.RemoveLastMigration);
             ChoiceDialog remove = Asked<ChoiceDialog>(window, "Remove Last's question");
             Assert.Contains("AddPrice", string.Join(' ', remove.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text)), StringComparison.Ordinal);
@@ -97,7 +93,7 @@ public sealed class MigrationsTests
         MainWindow window = Ui.OpenFolder(folder, languageServer: false);
         try
         {
-            // Found as the projects are read, the window hidden, with no view built until it shows them.
+            // Found as the projects are read, the window hidden.
             string found = string.Empty;
             Ui.WaitFor(() => (found = string.Join(" | ", window.Migrations.Gaps.Select(g => g.Said))).Contains("dotnet ef is not installed here", StringComparison.Ordinal)
                 && found.Contains("lacks Microsoft.EntityFrameworkCore.Design", StringComparison.Ordinal), () => $"both gaps found with the window hidden ({found})");
@@ -123,7 +119,6 @@ public sealed class MigrationsTests
             Assert.Contains("<PrivateAssets>all</PrivateAssets>", project, StringComparison.Ordinal);
             Ui.WaitFor(() => Gaps(window).Length == 0, $"no gap left ({Gaps(window)})");
 
-            // Each fix is one step of global undo: the Design package's, then the tool's, its manifest gone.
             UndoFromExplorer(window, Path.Combine(folder, "Shop.csproj"));
             Assert.DoesNotContain("Microsoft.EntityFrameworkCore.Design", File.ReadAllText(Path.Combine(folder, "Shop.csproj")), StringComparison.Ordinal);
             UndoFromExplorer(window, Path.Combine(folder, "Shop.csproj"));
@@ -184,7 +179,6 @@ public sealed class MigrationsTests
                 $"EF Core's packages moved to {ShopApp.Older} and the gap gone ({window.Status}; gaps: {Gaps(window)})", Slow);
             Assert.Contains($"{ShopApp.Provider}\" Version=\"1.0.0\"", File.ReadAllText(project), StringComparison.Ordinal);
 
-            // One step of global undo takes both back.
             UndoFromExplorer(window, Path.Combine(folder, "Shop.csproj"));
             Assert.Contains($"Microsoft.EntityFrameworkCore.Sqlite\" Version=\"{ShopApp.Version}\"", File.ReadAllText(project), StringComparison.Ordinal);
             Assert.Contains($"Microsoft.EntityFrameworkCore.Design\" Version=\"{ShopApp.Version}\"", File.ReadAllText(project), StringComparison.Ordinal);

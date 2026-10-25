@@ -2,9 +2,9 @@ using A = Passenger.App.AppActions;
 
 namespace Passenger.App;
 
-/// <summary>Rider's places, from the navigation history (<see cref="Navigation.Navigator"/>): Last and Next Edit Location
-/// step through where the files were edited, Recent Locations lists the places left and edited with their lines of code,
-/// and Recently Changed Files (Recent Files with Show edited only) the files edited.</summary>
+/// <summary>The places, from the navigation history (<see cref="Navigation.Navigator"/>): Last and Next Edit Location
+/// step through where the files were edited, Recent Locations lists the places left and edited with their lines of
+/// code, and Recently Changed Files (Recent Files with Show edited only) the files edited.</summary>
 public partial class MainWindow
 {
     private void AddPlaces()
@@ -15,6 +15,6 @@ public partial class MainWindow
         Add(A.RecentLocations, "Recent Locations", "IDE", _ => ShowRecentLocations(), menu: ("View", 2, 2));
     }
 
-    /// <summary>Rider's Recent Locations, for the tests: <see cref="Navigation.Navigator.ShowRecentLocations"/>.</summary>
+    /// <summary>Recent Locations (<see cref="Navigation.Navigator.ShowRecentLocations"/>).</summary>
     public Navigation.RecentLocationsPopup ShowRecentLocations() => navigator.ShowRecentLocations();
 }

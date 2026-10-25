@@ -9,13 +9,13 @@ using Avalonia.Media.Fonts.Tables.Cmap;
 
 namespace Passenger.Terminal;
 
-/// <summary>Draws a <see cref="TerminalSession"/>'s screen in the editor's font and sends it the keys, as Rider's
-/// terminal does: xterm's encodings for every key (the arrows' application forms when a program asks), the clipboard
-/// on Cmd+C and Cmd+V (Ctrl+Shift+C and V, or Ctrl+C with a selection, elsewhere), a drag to select and a double-click
-/// for a word, the wheel through the scrollback (or to the program, when it asked for the mouse). The size follows the
-/// control's, in whole cells. Its links are Rider's terminal's: web addresses and stack frames drawn as links, opened by a
-/// click (one that drags selects instead); file paths drawn as text, underlined faintly under the pointer and as links
-/// while Cmd (Ctrl elsewhere) is held. Cmd+click (Ctrl+click) opens either.</summary>
+/// <summary>Draws a <see cref="TerminalSession"/>'s screen in the editor's font and sends it the keys: xterm's
+/// encodings for every key (the arrows' application forms when a program asks), the clipboard on Cmd+C and Cmd+V
+/// (Ctrl+Shift+C and V, or Ctrl+C with a selection, elsewhere), a drag to select and a double-click for a word, the
+/// wheel through the scrollback (or to the program, when it asked for the mouse). The size follows the control's, in
+/// whole cells. Web addresses and stack frames are drawn as links, opened by a click (one that drags selects instead);
+/// file paths are drawn as text, underlined faintly under the pointer and as links while Cmd (Ctrl elsewhere) is held.
+/// Cmd+click (Ctrl+click) opens either.</summary>
 public sealed class TerminalView : Control
 {
     public static readonly StyledProperty<double> FontSizeProperty =
@@ -69,7 +69,7 @@ public sealed class TerminalView : Control
         ContextMenu = Menu();
     }
 
-    /// <summary>Rider's terminal menu: Copy, Paste and Clear Buffer, with their keys.</summary>
+    /// <summary>The terminal's menu: Copy, Paste and Clear Buffer, with their keys.</summary>
     private ContextMenu Menu()
     {
         bool mac = OperatingSystem.IsMacOS();
@@ -99,7 +99,7 @@ public sealed class TerminalView : Control
     /// <summary>The key that opens a link with a click: Cmd on the Mac, Ctrl elsewhere.</summary>
     private static KeyModifiers LinkKey => OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control;
 
-    /// <summary>Clears the scrollback and the screen but for the prompt, as Rider's Clear Buffer does.</summary>
+    /// <summary>Clear Buffer: the scrollback and the screen cleared but for the prompt.</summary>
     public void ClearBuffer()
     {
         if (session is null)
@@ -498,8 +498,8 @@ public sealed class TerminalView : Control
         return linked;
     }
 
-    /// <summary>A hidden link under the pointer with no key held: underlined faintly in the text's colour, as Rider's
-    /// terminal shows a file path a Cmd+click opens.</summary>
+    /// <summary>A hidden link under the pointer with no key held: underlined faintly in the text's colour, so a file
+    /// path shows that a Cmd+click opens it.</summary>
     private void DrawHiddenLink(DrawingContext context, long line, double y, int columns)
     {
         if (HoveredLink is not { Hidden: true } hovered || held.HasFlag(LinkKey) || line < hovered.FromLine || line > hovered.ToLine)
@@ -614,7 +614,7 @@ public sealed class TerminalView : Control
     }
 
     /// <summary>A grapheme drawn within its cells: another font's glyph (an emoji's, a Devanagari letter's) is made smaller
-    /// when it is wider than they are, so it never covers the next, and centred in them, as kitty and WezTerm fit them.</summary>
+    /// when it is wider than they are, so it never covers the next, and centred in them.</summary>
     private void DrawFitted(DrawingContext context, string text, Rect cells, Typeface face, IBrush brush)
     {
         FormattedText formatted = new(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, face, FontSize, brush);
@@ -825,7 +825,7 @@ public sealed class TerminalView : Control
         }
         else if (screen.IsAlternate)
         {
-            // A full-screen program with no mouse of its own (less, man) scrolls by its arrow keys, as xterm sends them.
+            // A full-screen program with no mouse of its own (less, man) scrolls by its arrow keys.
             string arrow = lines > 0 ? "\x1b[A" : "\x1b[B";
             session.Write(string.Concat(Enumerable.Repeat(arrow, Math.Abs(lines))));
         }
@@ -900,7 +900,6 @@ public sealed class TerminalView : Control
         }
         KeyModifiers mods = e.KeyModifiers;
         bool mac = OperatingSystem.IsMacOS();
-        // The clipboard, as Rider's terminal has it.
         if ((mac && mods == KeyModifiers.Meta && e.Key == Key.C) || (!mac && mods == (KeyModifiers.Control | KeyModifiers.Shift) && e.Key == Key.C)
             || (!mac && mods == KeyModifiers.Control && e.Key == Key.C && SelectedText.Length > 0))
         {
@@ -956,7 +955,7 @@ public sealed class TerminalView : Control
     }
 
     /// <summary>Windows sends AltGr as Ctrl+Alt: a key the layout gives a character to with them (AltGr+Q's @ on a German
-    /// layout) is typing, not Ctrl and Alt for the shell. The editor's keymap tells the two apart the same way.</summary>
+    /// layout) is typing, not Ctrl and Alt for the shell.</summary>
     private static bool IsAltGrTyping(KeyEventArgs e) => OperatingSystem.IsWindows()
         && (e.KeyModifiers & ~KeyModifiers.Shift) == (KeyModifiers.Control | KeyModifiers.Alt)
         && e.KeySymbol is { Length: > 0 } symbol && !char.IsControl(symbol[0]) && !char.IsWhiteSpace(symbol[0]);
@@ -1033,7 +1032,7 @@ public sealed class TerminalView : Control
         _ => null,
     };
 
-    /// <summary>Copies the selection to the clipboard, as Copy does.</summary>
+    /// <summary>Copies the selection to the clipboard.</summary>
     public async Task CopyAsync()
     {
         if (SelectedText is { Length: > 0 } text && TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard)
@@ -1042,7 +1041,7 @@ public sealed class TerminalView : Control
         }
     }
 
-    /// <summary>Types the clipboard's text into the shell, as Paste does.</summary>
+    /// <summary>Types the clipboard's text into the shell.</summary>
     public async Task PasteAsync()
     {
         if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard && await clipboard.TryGetTextAsync() is { Length: > 0 } text)

@@ -6,9 +6,9 @@ using Passenger.Core;
 
 namespace Passenger.App.Templates;
 
-/// <summary>The project templates <c>dotnet new</c> has installed for one SDK, with the known packages' kinds it lacks, as
-/// Rider's New Project dialog lists them: in families (Console, Unit Test, Web), each Type a template group (xUnit Test
-/// Project) with its languages, target frameworks and options; and the solution formats <c>dotnet new sln</c> makes.</summary>
+/// <summary>The project templates <c>dotnet new</c> has installed for one SDK, with the known packages' kinds it lacks:
+/// in families (Console, Unit Test, Web), each Type a template group (xUnit Test Project) with its languages, target
+/// frameworks and options; and the solution formats <c>dotnet new sln</c> makes.</summary>
 public sealed record TemplateCatalog(string Sdk, IReadOnlyList<TemplateFamily> Families, IReadOnlyList<string> SolutionFormats, string SolutionFormat)
 {
     /// <summary>Every template, family by family.</summary>
@@ -84,7 +84,8 @@ public enum TemplateOptionKind
 }
 
 /// <summary>One of a template's options, as an IDE shows it: its label, kind, default and choices, the command line's
-/// name for it, whether the checkbox means its opposite (Visual Studio's <c>invertBoolean</c>), and when it is enabled.</summary>
+/// name for it, whether the checkbox means its opposite (ide.host.json's <c>invertBoolean</c>), and when it is
+/// enabled.</summary>
 public sealed record TemplateOption(string Name, string Option, string Label, string? Description, TemplateOptionKind Kind, string Default,
     IReadOnlyList<TemplateChoice> Choices, bool Inverted, bool Required, string? EnabledWhen);
 
@@ -92,9 +93,9 @@ public sealed record TemplateChoice(string Value, string Label, string? Descript
 
 /// <summary>Reads the templates from what <c>dotnet new</c> itself keeps: <c>dotnet new list</c> brings its cache of the
 /// installed templates up to date, and the cache (templatecache.json, per SDK under DOTNET_CLI_HOME or the home folder)
-/// has each template's parameters, which its help prints without their display names. An IDE shows the options a
-/// template's ide.host.json makes visible, as Visual Studio and Rider do. Read once per SDK, ahead of the dialog and again
-/// on a change (ProjectTemplates.Ahead.cs), with the kinds of <see cref="TemplatePacks"/> not installed, in families.</summary>
+/// has each template's parameters. The options shown are those a template's ide.host.json makes visible. Read once per
+/// SDK, ahead of the dialog and again on a change (ProjectTemplates.Ahead.cs), with the kinds of
+/// <see cref="TemplatePacks"/> not installed, in families.</summary>
 public static partial class ProjectTemplates
 {
     private static readonly ConcurrentDictionary<(string Sdk, string? Hive), Lazy<Task<TemplateCatalog>>> Read = new();
@@ -107,8 +108,8 @@ public static partial class ProjectTemplates
         "name", "type", "language", "Framework", "TargetFrameworkOverride", "skipRestore", "langVersion", "HostIdentifier",
     };
 
-    /// <summary>Where dotnet new keeps the IDE's templates when not in its own home (its <c>--debug:custom-hive</c>): the
-    /// tests' run on Windows, which has no home of its own there; null, as for a person, for dotnet new's own.</summary>
+    /// <summary>Where dotnet new keeps the IDE's templates when not in its own home (its <c>--debug:custom-hive</c>); null
+    /// for dotnet new's own.</summary>
     public static string? Hive { get; set; }
 
     /// <summary>The .NET command line's arguments for <c>dotnet new</c> with these, in the IDE's hive.</summary>
@@ -169,7 +170,7 @@ public static partial class ProjectTemplates
 
     internal static int LanguageOrder(string language) => language switch { "C#" => 0, "F#" => 1, "VB" => 2, _ => 3 };
 
-    /// <summary>Whether an option is enabled by its template's condition ("UseMSTestSdk && (TestRunner == MSTest)") over
+    /// <summary>Whether an option is enabled by its template's condition ("UseMSTestSdk &amp;&amp; (TestRunner == MSTest)") over
     /// the values the options have now, a word no option is named being itself; one that does not read leaves it enabled.</summary>
     public static bool IsEnabled(string? condition, IReadOnlyDictionary<string, string> values)
     {
@@ -334,8 +335,8 @@ public static partial class ProjectTemplates
         }
     }
 
-    /// <summary>Whether a template can make a project Passenger builds here: WPF and Windows Forms only on Windows, as Rider
-    /// lists them, and a template that says which systems it runs on only on those.</summary>
+    /// <summary>Whether a template can make a project Passenger builds here: WPF and Windows Forms only on Windows, and a
+    /// template that says which systems it runs on only on those.</summary>
     private static bool Usable(JsonElement template)
     {
         string[] classifications = [.. Strings(template, "Classifications")];

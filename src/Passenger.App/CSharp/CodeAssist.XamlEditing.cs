@@ -12,13 +12,13 @@ using Passenger.Xaml.Syntax;
 
 namespace Passenger.App.CSharp;
 
-/// <summary>Rider's XAML editing tools, Avalonia's and WPF's alike: Reformat Code (and Code Cleanup) by Rider's XAML code
-/// style with the file's .editorconfig over it, Extract Resource and Extract Style with their dialogs, the fixes that
-/// create what a binding or a converter names, and Surround With's elements. What changes more than one file, or makes
-/// one, is one command Undo takes back whole.</summary>
+/// <summary>The XAML editing tools, Avalonia's and WPF's alike: Reformat Code (and Code Cleanup) by the XAML code style
+/// with the file's .editorconfig over it, Extract Resource and Extract Style with their dialogs, the fixes that create
+/// what a binding or a converter names, and Surround With's elements. What changes more than one file, or makes one, is
+/// one command Undo takes back whole.</summary>
 public sealed partial class CodeAssist
 {
-    /// <summary>Rider's XAML code style as Settings leaves it, which a file's .editorconfig overrides.</summary>
+    /// <summary>The XAML code style as Settings leaves it, which a file's .editorconfig overrides.</summary>
     public XamlFormatSettings XamlFormat { get; set; } = new();
 
     /// <summary>Reformat Code's edits for an open XAML file as it stands, by <paramref name="settings"/> with its
@@ -63,7 +63,8 @@ public sealed partial class CodeAssist
         return true;
     }
 
-    /// <summary>Rider's Extract Resource (Extract XAML Resource): the value at the caret to a keyed resource, through its dialog.</summary>
+    /// <summary>Extract Resource (Extract XAML Resource): the value at the caret to a keyed resource, through its
+    /// dialog.</summary>
     private async Task ExtractResource()
     {
         const string name = "Extract Resource";
@@ -105,7 +106,8 @@ public sealed partial class CodeAssist
         }
     }
 
-    /// <summary>Rider's Extract Style (Extract XAML Style): the element's properties at the caret to a style, through its dialog.</summary>
+    /// <summary>Extract Style (Extract XAML Style): the element's properties at the caret to a style, through its
+    /// dialog.</summary>
     private async Task ExtractStyle()
     {
         const string name = "Extract Style";
@@ -213,7 +215,7 @@ public sealed partial class CodeAssist
         return dropped.Count > 0 ? $"{name} was not applied to {string.Join(", ", dropped)}: it was edited meanwhile" : null;
     }
 
-    /// <summary>The refactorings Rider offers at the caret of a XAML file (Refactor This, and after the fixes in Show
+    /// <summary>The refactorings offered at the caret of a XAML file (Refactor This, and after the fixes in Show
     /// Context Actions): Extract Resource on a value, Extract Style on an element.</summary>
     private static IReadOnlyList<Choice> XamlRefactoringsAt(XamlFile file, int caret)
     {

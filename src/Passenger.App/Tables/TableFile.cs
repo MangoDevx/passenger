@@ -72,7 +72,7 @@ public sealed class TableFile
     /// <summary>Whether a CSV shows as its table, else as its text; a workbook always shows as its table.</summary>
     public bool ShowsTable { get; private set; } = true;
 
-    /// <summary>Whether a CSV's first record names its columns, as Rider's CSV editor takes it at first.</summary>
+    /// <summary>Whether a CSV's first record names its columns.</summary>
     public bool HeaderRow
     {
         get => header;
@@ -127,9 +127,8 @@ public sealed class TableFile
         }
     }
 
-    /// <summary>Holds each of the next reads back until its task ends, as a long sheet holds its answer back: for a test of
-    /// reads that land out of order, which it cannot time. A held read is no background work yet, so the window settles
-    /// around it; a read past them waits for nothing.</summary>
+    /// <summary>Holds each of the next reads back until its task ends, for a test to land reads out of order. A held read is
+    /// no background work yet, so the window settles around it; a read past them waits for nothing.</summary>
     public void HoldNext(params Task[] until)
     {
         foreach (Task hold in until)

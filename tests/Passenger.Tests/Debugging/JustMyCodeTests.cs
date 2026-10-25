@@ -3,10 +3,9 @@ using Passenger.Tests.Debugging.Helpers;
 
 namespace Passenger.Tests.Debugging;
 
-/// <summary>Just My Code down to the method: what the user's own code marks as not theirs
-/// ([DebuggerStepThrough], [DebuggerNonUserCode], [DebuggerHidden]) is passed over by Step Into, and
-/// a catch in it leaves an exception unhandled by the user, as Visual Studio and Rider treat them
-/// (upstream SharpDbg #52 and #49).</summary>
+/// <summary>Just My Code down to the method: what the user's own code marks as not theirs ([DebuggerStepThrough],
+/// [DebuggerNonUserCode], [DebuggerHidden]) is passed over by Step Into, and a catch in it leaves an exception
+/// unhandled by the user (upstream SharpDbg #52 and #49).</summary>
 [Collection(Alone.Name)]
 public class JustMyCodeTests(ITestOutputHelper testOutputHelper)
 {
@@ -37,20 +36,17 @@ public class JustMyCodeTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("userUnhandled", exception.BreakMode);
         Assert.Equal("System.InvalidOperationException", exception.Details?.FullTypeName);
 
-        // Past the handler outside the user's code that caught it, back in the code that called it, as from a step out.
         stop = await host.WithStepOverRequest(thread).WaitForStoppedEvent();
         Assert.True(stop.Reason == "step", $"The step from the exception ran on to the {stop.Reason} at line {stop.Line}");
         Assert.Equal(Line("Wrapper.CallWithCatch("), stop.ReadStopInfo().line);
         stop = await host.WithStepOverRequest(thread).WaitForStoppedEvent();
         Assert.Equal(("step", Line("Attributed.StepThrough();")), (stop.Reason, stop.ReadStopInfo().line));
 
-        // Step Into passes over each marked method, the breakpoint in StepThrough's never stopping it.
         stop = await host.WithStepInRequest(thread).WaitForStoppedEvent();
         Assert.Equal((Source, Line("Attributed.NonUser();")), (stop.ReadStopInfo().filePath, stop.ReadStopInfo().line));
         stop = await host.WithStepInRequest(thread).WaitForStoppedEvent();
         Assert.Equal((Source, Line("Attributed.Hidden();")), (stop.ReadStopInfo().filePath, stop.ReadStopInfo().line));
 
-        // A failed evaluation is a value saying so, as the engine answers any error, and the debugger goes on from it.
         int frame = host.GetTopStackFrame(thread).Id;
         host.WithEvaluateRequest(frame, "Slow.Forever", out EvaluateResponse timedOut);
         Assert.Contains("was stopped", timedOut.Result, StringComparison.Ordinal);
@@ -59,7 +55,6 @@ public class JustMyCodeTests(ITestOutputHelper testOutputHelper)
         stop = await host.WithStepInRequest(thread).WaitForStoppedEvent();
         Assert.Equal((Source, end), (stop.ReadStopInfo().filePath, stop.ReadStopInfo().line));
 
-        // Just My Code passes over the breakpoint in the marked method, as Visual Studio's does, and says so.
         SetBreakpointsResponse again = host.Request<SetBreakpointsResponse>("setBreakpoints",
             new SetBreakpointsArguments(new DapSource { Path = Source }, [new DapSourceBreakpoint(marked)]));
         DapBreakpoint unbound = Assert.Single(again.Breakpoints);
@@ -119,8 +114,8 @@ public class JustMyCodeTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(("step", Line("Attributed.StepThrough();")), (stop.Reason, stop.ReadStopInfo().line));
     }
 
-    /// <summary>The thread running Main is marked as Main's whatever the program named it, as an app names its UI thread:
-    /// what reads an app's binding values at a stop looked for it by the name the debugger gives one left unnamed.</summary>
+    /// <summary>The thread running Main is marked as Main's whatever the program named it, as an app names its UI
+    /// thread.</summary>
     [Fact]
     public async Task The_thread_running_Main_is_marked_as_Mains_under_the_name_the_program_gave_it()
     {

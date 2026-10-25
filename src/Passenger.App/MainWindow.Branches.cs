@@ -38,8 +38,8 @@ public partial class MainWindow
         return true;
     }
 
-    /// <summary>Rider's New Branch from: its name asked for (a remote branch's own name to begin with, as Rider fills it),
-    /// then made there and checked out.</summary>
+    /// <summary>New Branch from: its name asked for (a remote branch's own name to begin with), then made there and
+    /// checked out.</summary>
     public NamePopup ShowNewBranchFrom(BranchInfo from)
     {
         string initial = from.Kind switch
@@ -54,7 +54,7 @@ public partial class MainWindow
         return popup;
     }
 
-    /// <summary>Rider's Rename of a local branch; a log filtered to it follows it to its new name.</summary>
+    /// <summary>Rename of a local branch; a log filtered to it follows it to its new name.</summary>
     public NamePopup ShowRenameBranch(BranchInfo branch)
     {
         NamePopup popup = new($"Rename Branch {branch.Name}", branch.Name, async name =>
@@ -73,8 +73,8 @@ public partial class MainWindow
         return popup;
     }
 
-    /// <summary>Rider's Delete: a local branch at once when its commits are all in HEAD's history, else once the person
-    /// agrees to lose them; a remote's branch, on the remote, once they agree; a tag at once.</summary>
+    /// <summary>Delete: a local branch at once when its commits are all in HEAD's history, else once the person agrees
+    /// to lose them; a remote's branch, on the remote, once they agree; a tag at once.</summary>
     public async Task<VcsOutcome?> DeleteBranchAsync(BranchInfo branch)
     {
         bool force = false;
@@ -94,7 +94,7 @@ public partial class MainWindow
         return await session.Vcs.DeleteRefAsync(branch, force, GitBranches.Remotes);
     }
 
-    /// <summary>Rider's Compare with Current: a tab of the Git window with the commits the branch has that the current one
+    /// <summary>Compare with Current: a tab of the Git window with the commits the branch has that the current one
     /// lacks above, and those it lacks below.</summary>
     public GitLogView CompareWithCurrent(BranchInfo branch)
     {
@@ -104,8 +104,8 @@ public partial class MainWindow
         return GitWindow.ShowCompare(new LogRange(currentRef, current, branch.Ref.FullName, branch.Name), new LogRange(branch.Ref.FullName, branch.Name, currentRef, current));
     }
 
-    /// <summary>Rider's Show Diff with Working Tree: the files that differ between a branch and the working tree, each
-    /// opening as the branch has it beside the file.</summary>
+    /// <summary>Show Diff with Working Tree: the files that differ between a branch and the working tree, each opening
+    /// as the branch has it beside the file.</summary>
     public async Task<ChangesWindow?> ShowWorkingTreeDiffAsync(BranchInfo branch)
     {
         if (session.Vcs.Repository is not { } repository)

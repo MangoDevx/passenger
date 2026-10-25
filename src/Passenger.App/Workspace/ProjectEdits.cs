@@ -4,12 +4,12 @@ using Passenger.Core;
 
 namespace Passenger.App.Workspace;
 
-/// <summary>Rider's Add Reference and Remove on a project reference, its items following a file moved, and a property set
-/// (Add > Docker Support's container properties), made to the project file's text: a reference goes beside the project's others, or in an item group of its own before
-/// &lt;/Project&gt;, written as dotnet add reference writes it (relative, with backslashes); taking it out takes the group
-/// it leaves empty, so the file is as it was. The rest of the file keeps its bytes, its byte order mark, line endings and
-/// indentation: dotnet add reference reformats what it writes back. Paths are canonical. A reference's edit returns null
-/// when it was done, else why not; a file that cannot be read or written throws.</summary>
+/// <summary>Add Reference and Remove on a project reference, its items following a file moved, and a property set (Add
+/// > Docker Support's container properties), made to the project file's text: a reference goes beside the project's
+/// others, or in an item group of its own before &lt;/Project&gt;, written relative with backslashes; taking it out
+/// takes the group it leaves empty, so the file is as it was. The rest of the file keeps its bytes, its byte order
+/// mark, line endings and indentation. Paths are canonical. A reference's edit returns null when it was done, else why
+/// not; a file that cannot be read or written throws.</summary>
 public static partial class ProjectEdits
 {
     public static string? AddReference(string project, string referenced)
@@ -24,7 +24,6 @@ public static partial class ProjectEdits
         string eol = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
         string indent = IndentUnit(text);
         string element = $"<ProjectReference Include=\"{include}\" />";
-        // Beside the project's other references, in an item group of no condition.
         if (file.References().LastOrDefault(r => r.Group is { Conditioned: false }) is { Group: not null } last)
         {
             int lineEnd = text.IndexOf('\n', last.End);
@@ -215,7 +214,6 @@ public static partial class ProjectEdits
     {
         ProjectText file = new(project);
         string folder = Path.GetDirectoryName(project)!;
-        // A file moved, or one inside a folder that was.
         string Moved(string path) => moves.FirstOrDefault(m => PathNames.Within(path, m.From)) is { From: not null } move ? PathNames.Moved(path, move.From, move.To) : path;
         string before = Path.GetDirectoryName(moves.FirstOrDefault(m => PathNames.Within(project, m.To)) is { To: not null } back ? PathNames.Moved(project, back.To, back.From) : project)!;
         List<(int Start, int End)> comments = [.. Comment().Matches(file.Text).Select(m => (m.Index, m.Index + m.Length))];
@@ -225,8 +223,7 @@ public static partial class ProjectEdits
             {
                 return item.Value;
             }
-            // Each path written from where the project was names where that file is now, from where the project is now; a
-            // glob by the folder it begins in, so Remove="Legacy\**" still removes what it did, and a folder's ("Legacy\").
+            // Each path names where its file is now, from where the project is now; a glob by the folder it begins in.
             string start = ItemAttribute().Replace(item.Groups["start"].Value, attribute =>
             {
                 string items = attribute.Groups["items"].Value;
@@ -389,10 +386,8 @@ public static partial class ProjectEdits
                 groups.FirstOrDefault(g => m.Index >= g.OpenEnd && m.Index < g.CloseStart)))];
         }
 
-        /// <summary>Writes the project back as an editor's save does (<see cref="FileText.Save"/>): through a temporary file,
-        /// so a crash or a full disk leaves it whole, through a symlink to its target with its permissions, never over a
-        /// read-only one, to Local History with what it held, and waiting out another program reading it, as a project load
-        /// does the moment the files the project names have moved.</summary>
+        /// <summary>Writes the project back as an editor's save does (<see cref="FileText.Save"/>), in the encoding and
+        /// line breaks it came with.</summary>
         public void Write(string text) => FileText.Save(path, text, file.Encoding, file.HasBom, file.CrBreaks);
     }
 }

@@ -8,9 +8,9 @@ using Passenger.Editor;
 
 namespace Passenger.App.Vcs;
 
-/// <summary>What a click on a change bar shows, as Rider's does: the lines as the last commit had them, the words that
-/// changed marked in them while Highlight Words is on, and the change's actions (previous and next change, Rollback, Show
-/// Diff, Highlight Words).</summary>
+/// <summary>What a click on a change bar shows: the lines as the last commit had them, the words that changed marked in
+/// them while Highlight Words is on, and the change's actions (previous and next change, Rollback, Show Diff, Highlight
+/// Words).</summary>
 public sealed class ChangePopup : UserControl
 {
     private readonly TextBlock? old;
@@ -73,7 +73,7 @@ public sealed class ChangePopup : UserControl
     /// <summary>The words marked in what the lines were: none while Highlight Words is off.</summary>
     public IReadOnlyList<InlineChange> WordsShown => highlightWords ? Words : [];
 
-    /// <summary>Rider's Highlight Words.</summary>
+    /// <summary>The Highlight Words toggle.</summary>
     public ToggleButton HighlightToggle { get; }
 
     /// <summary>What the lines were, the changed words on a background of their own while Highlight Words is on.</summary>

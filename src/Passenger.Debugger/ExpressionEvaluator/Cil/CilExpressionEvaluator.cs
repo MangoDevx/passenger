@@ -49,9 +49,9 @@ internal sealed class CilExpressionEvaluator(RuntimeAssemblyPrimitiveTypeClasses
         }
     }
 
-    /// <summary>Loads into the program the assemblies an expression needs and it has not loaded, as Visual Studio's debugger
-    /// does: a program that has called no LINQ method has no System.Linq, so a watch's Where was "not a definition".
-    /// Whether each loaded, the runtime's module load having added it to what the next compile reads.</summary>
+    /// <summary>Loads into the program the assemblies an expression needs and it has not loaded (a program that has
+    /// called no LINQ method has no System.Linq). Whether each loaded, the runtime's module load having added it to
+    /// what the next compile reads.</summary>
     private async Task<bool> LoadAsync(ImmutableArray<string> assemblies, CompiledExpressionEvaluationContext context)
     {
         foreach (string assembly in assemblies.Distinct(StringComparer.Ordinal))

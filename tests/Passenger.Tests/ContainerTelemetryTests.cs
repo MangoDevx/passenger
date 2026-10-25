@@ -15,11 +15,11 @@ using Passenger.Core;
 
 namespace Passenger.Tests;
 
-/// <summary>A container run's logs and traces (#405): a configuration that collects them runs Aspire's dashboard beside its
-/// services (chosen in Edit Configurations, off until then), which its .NET service sends OpenTelemetry to; the Containers
-/// window's Telemetry tab and an agent's <c>telemetry</c> read them as an AppHost's are read, and Stop leaves nothing of the
-/// dashboard. Against a Linux engine, only where it already holds the dashboard's and the runtime's images, which no test
-/// pulls; the app restores from the package cache alone.</summary>
+/// <summary>A container run's logs and traces: a configuration that collects them runs Aspire's dashboard beside its
+/// services (chosen in Edit Configurations, off until then), which its .NET service sends OpenTelemetry to; the
+/// Containers window's Telemetry tab and an agent's <c>telemetry</c> read them, and Stop leaves nothing of the
+/// dashboard. Against a Linux engine, only where it already holds the dashboard's and the runtime's images, which no
+/// test pulls; the app restores from the package cache alone.</summary>
 public sealed class ContainerTelemetryTests : McpRig
 {
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(5) };
@@ -54,16 +54,13 @@ public sealed class ContainerTelemetryTests : McpRig
             Assert.Equal("127.0.0.1", Docker.Run("compose", "-p", project, "port", ContainerTelemetry.Service, "18888").Split(':')[0]);
             Assert.Equal(string.Empty, Docker.Said("compose", "-p", project, "port", ContainerTelemetry.Service, "18889") ?? string.Empty);
 
-            // A request to web, which logs and asks itself for its stock.
             int port = ContainerRunsTests.Published(project, "web");
             string? answered = null;
             Assert.True(Ui.Pumped(() => (answered = Answer(port)) == "in stock", TimeSpan.FromMinutes(1)), $"web did not answer: {answered}\n{ContainerRunsTests.Run(window)}");
 
-            // The Run console follows the services, never the dashboard's own log of its container's login address.
             Ui.WaitFor(() => ContainerRunsTests.Run(window).Contains("Now listening on", StringComparison.Ordinal), "web's log in the Run window", TimeSpan.FromMinutes(1));
             Assert.DoesNotContain("Login to the dashboard", ContainerRunsTests.Run(window), StringComparison.Ordinal);
 
-            // The Containers window's Telemetry tab for web: its log, and the request's trace, the request web made under it.
             window.ShowToolWindow(ToolWindowIds.Containers);
             ContainersView view = window.ContainersWindow;
             Ui.WaitFor(() => view.Choose(row => row.Key == $"service:{project}/web"), "web's row in the Containers window", TimeSpan.FromMinutes(1));
@@ -74,7 +71,6 @@ public sealed class ContainerTelemetryTests : McpRig
             AspireStructuredLog log = Logged(view.Telemetry)!;
             Assert.StartsWith("web", log.Data.GetProperty("resourceName").GetString(), StringComparison.Ordinal);
             Assert.False(string.IsNullOrEmpty(log.TraceId), "web's log has no trace, though it was written handling a request");
-            // The log chosen, its trace a click away: the traces page shown, the log's own span chosen there.
             view.Telemetry.StructuredLogs.ScrollIntoView(view.Telemetry.ItemOf(log)!);
             Ui.Settle();
             Ui.Click(Assert.IsType<ListBoxItem>(view.Telemetry.StructuredLogs.ContainerFromItem(view.Telemetry.ItemOf(log)!)));
@@ -83,7 +79,6 @@ public sealed class ContainerTelemetryTests : McpRig
                 && chosen.TraceId == log.TraceId && view.Telemetry.SelectedSpan?.Span.SpanId == log.SpanId,
                 $"the request's trace, with web's request to itself, its log's span chosen ({view.Telemetry.TracesStatus})", TimeSpan.FromMinutes(1));
 
-            // An agent reads the same, by the service's name.
             client = Await(Task.Run(() => Start(["--mcp-attach", ProcessId])), "the agent attaching");
             Task<JsonElement> logs = Task.Run(() => Call(client, "telemetry", new() { ["resource"] = "web", ["limit"] = 50 }));
             Press(Admission(window, "the window to ask whether the agent may work there"), AgentAdmissionDialog.Allow);

@@ -7,10 +7,10 @@ using Passenger.Editor;
 
 namespace Passenger.App.Settings;
 
-/// <summary>Rider's Keyboard Shortcut dialog (Add Keyboard Shortcut): the action and where it is, the first keystroke's
+/// <summary>The Keyboard Shortcut dialog (Add Keyboard Shortcut): the action and where it is, the first keystroke's
 /// field, Second stroke and its field, and below them, as the keys are pressed, the actions the shortcut is "Already
-/// assigned to". OK (or Enter once the first field holds a keystroke) closes it with the shortcut; Cancel or Escape with
-/// null.</summary>
+/// assigned to". OK (or Enter once the first field holds a keystroke) closes it with the shortcut; Cancel or Escape
+/// with null.</summary>
 public sealed class KeyboardShortcutDialog : Window
 {
     private readonly Func<Shortcut, IReadOnlyList<(string Title, string Where)>> conflictsOf;
@@ -39,7 +39,6 @@ public sealed class KeyboardShortcutDialog : Window
         };
         cancel.Click += (_, _) => Close(null);
 
-        // Rider's warning beside "Already assigned to:" and the actions under it, shown only while there are any.
         PathIcon warning = new() { VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 1, 8, 0) };
         warning.Bind(PathIcon.DataProperty, warning.GetResourceObservable("Icon.Problems"));
         warning.Bind(PathIcon.ForegroundProperty, warning.GetResourceObservable("Passenger.Warning"));
@@ -92,7 +91,8 @@ public sealed class KeyboardShortcutDialog : Window
         conflictsPanel.IsVisible = conflictsList.Children.Count > 0;
     }
 
-    /// <summary>An action as Rider names one here: its name, then where it is, greyed ("Comment in Main Menu | Code").</summary>
+    /// <summary>An action as the dialog names one: its name, then where it is, greyed ("Comment in Main Menu |
+    /// Code").</summary>
     private static DockPanel Named(string title, string where)
     {
         TextBlock name = new() { Text = title };

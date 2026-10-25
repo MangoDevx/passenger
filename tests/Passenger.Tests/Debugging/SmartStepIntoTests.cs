@@ -3,8 +3,8 @@ using Passenger.Tests.Debugging.Helpers;
 
 namespace Passenger.Tests.Debugging;
 
-/// <summary>Rider's Smart Step Into: the calls of the line a thread stopped at, in the order they run, each placed where it
-/// is written, and a step straight into the one chosen, lambdas and awaited async methods included.</summary>
+/// <summary>Smart Step Into: the calls of the line a thread stopped at, in the order they run, each placed where it is
+/// written, and a step straight into the one chosen, lambdas and awaited async methods included.</summary>
 [Collection(DebugSession.Collection)]
 public class SmartStepIntoTests(ITestOutputHelper testOutputHelper)
 {
@@ -23,13 +23,12 @@ public class SmartStepIntoTests(ITestOutputHelper testOutputHelper)
 
         IReadOnlyList<StepInTarget> targets = Targets(host, thread);
         Assert.Equal(["Inner()", "Outer(int)"], targets.Select(t => t.Label));
-        // Each is placed on its name, as Rider marks the calls on the line.
         string text = File.ReadAllLines(Debuggees.Source(Stepping, "Program.cs"))[line - 1];
         Assert.Equal((line, text.IndexOf("Inner", StringComparison.Ordinal) + 1, line, text.IndexOf("Inner", StringComparison.Ordinal) + 6),
             (targets[0].Line, targets[0].Column, targets[0].EndLine, targets[0].EndColumn));
         Assert.Equal(text.IndexOf("Outer", StringComparison.Ordinal) + 1, targets[1].Column);
 
-        // Straight into Outer, past Inner, which has run by then: Outer is given what it returned.
+        // Inner has run by then, so Outer is given what it returned.
         stop = await host.Step(thread, targets[1]);
         Assert.Equal(("step", Line("static int Outer(int value)") + 1), (stop.Reason, stop.ReadStopInfo().line));
         Assert.Contains("Outer", host.GetTopStackFrame(thread).Name, StringComparison.Ordinal);
@@ -57,7 +56,7 @@ public class SmartStepIntoTests(ITestOutputHelper testOutputHelper)
     {
         const string code = "int[] doubled = [.. Numbers().Select(n => Twice(n))];";
         int line = Line(code);
-        // At the statement's column: a breakpoint on the line alone binds to the lambda's body, which shares it.
+        // A breakpoint on the line alone binds to the lambda's body, which shares it.
         int column = File.ReadAllLines(Debuggees.Source(Stepping, "Program.cs"))[line - 1].IndexOf(code, StringComparison.Ordinal) + 1;
         using DebugSession host = DebugSession.ForLaunch(testOutputHelper);
         await host.WithInitializeRequest().WithLaunchRequest(Debuggees.Program(Stepping), stopAtEntry: false, justMyCode: true).WaitForInitializedEvent();
@@ -66,12 +65,11 @@ public class SmartStepIntoTests(ITestOutputHelper testOutputHelper)
         Assert.Equal((line, column), (stop.ReadStopInfo().line, stop.ReadStopInfo().column));
         int thread = stop.ThreadId!.Value;
 
-        // Select is the framework's, which Just My Code does not step into; the lambda's body is the user's.
+        // Select is the framework's, so only the lambda's body is offered.
         IReadOnlyList<StepInTarget> targets = Targets(host, thread);
         Assert.Equal(["Numbers()", "n => Twice(n)"], targets.Select(t => t.Label));
         stop = await host.Step(thread, targets[1]);
         Assert.Equal(("step", line), (stop.Reason, stop.ReadStopInfo().line));
-        // In the lambda's own method, not Run's.
         Assert.Contains(">b__", host.GetTopStackFrame(thread).Name, StringComparison.Ordinal);
         Assert.Equal("1", Assert.Single(host.Locals(stop), v => v.Name == "n").Value);
     }

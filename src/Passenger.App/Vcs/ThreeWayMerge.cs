@@ -22,10 +22,10 @@ public enum MergeSide
     Right,
 }
 
-/// <summary>Three texts compared as Rider's merge window compares them: each side's changes against the base they both
-/// came from, a change of one side touching a change of the other taken with it as one, a conflict unless they agree;
-/// and a conflict tried again word by word, which resolves it when the two sides changed different words (Resolve Simple
-/// Conflicts). Any thread may compare.</summary>
+/// <summary>Three texts compared: each side's changes against the base they both came from, a change of one side
+/// touching a change of the other taken with it as one, a conflict unless they agree; and a conflict tried again word
+/// by word, which resolves it when the two sides changed different words (Resolve Simple Conflicts). Any thread may
+/// compare.</summary>
 public static class ThreeWayMerge
 {
     /// <summary>The changes between the base's lines and each side's.</summary>
@@ -47,8 +47,7 @@ public static class ThreeWayMerge
             int leftGrowth = 0;
             int rightGrowth = 0;
             bool empty = true;
-            // A hunk of either side that starts inside the stretch, or where it ends, joins it, as git takes changes on
-            // touching lines for one conflict.
+            // A hunk of either side starting inside the stretch, or where it ends, joins it, as git joins touching changes.
             while (true)
             {
                 if (i < lefts.Count && (empty ? lefts[i].OldStart == start : lefts[i].OldStart <= end))
@@ -84,8 +83,8 @@ public static class ThreeWayMerge
         return chunks;
     }
 
-    /// <summary>A conflict's lines merged word by word: each side's changes to the base's words where none of them touches
-    /// a change of the other side, as Rider's Resolve Simple Conflicts merges them; null where they do.</summary>
+    /// <summary>A conflict's lines merged word by word (Resolve Simple Conflicts): each side's changes to the base's words
+    /// where none of them touches a change of the other side; null where they do.</summary>
     public static string[]? ResolveSimply(string[] common, string[] left, string[] right)
     {
         string[] words = Words(string.Join('\n', common));

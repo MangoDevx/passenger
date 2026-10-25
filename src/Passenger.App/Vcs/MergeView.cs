@@ -19,13 +19,13 @@ public sealed record MergeChange(MergeChunk Chunk, int ResultStart, int ResultEn
     public bool Resolved(MergeSide side) => side == MergeSide.Left ? LeftResolved : RightResolved;
 }
 
-/// <summary>Rider's three-way merge: yours on the left and theirs on the right (read-only), the result between them,
-/// which starts as the version both came from. Each change is tinted on its sides and joined to the result by a band
-/// whose arrow takes that side's lines into the result (a conflict's second arrow adds them after the first's, and a
-/// Ctrl+click on either resolves it with that side) and whose X ignores it; Apply All Non-Conflicting Changes takes every change only one side made, and Resolve Simple Conflicts
-/// those and every conflict whose sides changed different words. The result can be edited too; undo takes back a change
-/// taken. F7 and Shift+F7 go to the next and previous change; Rider's Accept Left Side and Accept Right Side take the one
-/// at the caret.</summary>
+/// <summary>The three-way merge: yours on the left and theirs on the right (read-only), the result between them, which
+/// starts as the version both came from. Each change is tinted on its sides and joined to the result by a band whose
+/// arrow takes that side's lines into the result (a conflict's second arrow adds them after the first's, and a
+/// Ctrl+click on either resolves it with that side) and whose X ignores it; Apply All Non-Conflicting Changes takes
+/// every change only one side made, and Resolve Simple Conflicts those and every conflict whose sides changed different
+/// words. The result can be edited too; undo takes back a change taken. F7 and Shift+F7 go to the next and previous
+/// change; Accept Left Side and Accept Right Side take the one at the caret.</summary>
 public sealed class MergeView : DockPanel
 {
     private const double StripWidth = 48;
@@ -69,7 +69,7 @@ public sealed class MergeView : DockPanel
         simple = [.. chunks.Select(c => c.IsConflict ? ThreeWayMerge.ResolveSimply(common[c.BaseStart..c.BaseEnd], leftLines[c.LeftStart..c.LeftEnd], rightLines[c.RightStart..c.RightEnd]) : null)];
         Texts = texts;
 
-        // The IDE's keymap sends each its keys from the merge's window (IdeKeys), as it does a diff's.
+        // The IDE's keymap sends each its keys from the merge's window (IdeKeys).
         Left = new CodeEditor { IsReadOnly = true, ChangeBackgrounds = true };
         Left.Show(new TextDocument(texts.Left), SelectionSet.Single(0), default);
         result = new TextDocument(texts.Base);
@@ -98,7 +98,7 @@ public sealed class MergeView : DockPanel
         status = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0) };
         status.Bind(TextBlock.ForegroundProperty, status.GetResourceObservable("Passenger.TextMuted"));
         applyNonConflicting = ToolButtons.Of("Icon.ApplyNonConflicts", "Apply All Non-Conflicting Changes", ApplyNonConflicting);
-        // Rider's icon is two arrows meeting in the middle: the vertical one turned on its side.
+        // Two arrows meeting in the middle: the vertical one turned on its side.
         applyNonConflicting.Content = new PathIcon { RenderTransform = new RotateTransform(90) };
         ((PathIcon)applyNonConflicting.Content).Bind(PathIcon.DataProperty, applyNonConflicting.GetResourceObservable("Icon.ApplyNonConflicts"));
         resolveSimple = ToolButtons.Of("Icon.Wand", "Resolve Simple Conflicts", ResolveSimpleConflicts);
@@ -195,8 +195,8 @@ public sealed class MergeView : DockPanel
     public int UnresolvedConflicts => Enumerable.Range(0, chunks.Count).Count(i => chunks[i].IsConflict && !Done(i));
 
     /// <summary>A change's arrow: that side's lines into the result in place of what is there, or after what the
-    /// conflict's other arrow put there. A conflict stays open for its other side's arrow or X, as Rider leaves it,
-    /// unless <paramref name="resolve"/> (Rider's Ctrl+click) closes it with this side's lines.</summary>
+    /// conflict's other arrow put there. A conflict stays open for its other side's arrow or X, unless
+    /// <paramref name="resolve"/> (a Ctrl+click) closes it with this side's lines.</summary>
     public void Accept(int index, MergeSide side, bool resolve = false)
     {
         MergeChunk chunk = chunks[index];
@@ -235,8 +235,8 @@ public sealed class MergeView : DockPanel
     /// <summary>Apply All Non-Conflicting Changes: every change only one side made (or both alike) taken.</summary>
     public void ApplyNonConflicting() => Take([.. NonConflicting()]);
 
-    /// <summary>Resolve Simple Conflicts, Rider's magic wand: the non-conflicting changes, and each conflict whose sides
-    /// changed different words of its lines, both sides' words taken.</summary>
+    /// <summary>Resolve Simple Conflicts: the non-conflicting changes, and each conflict whose sides changed different words
+    /// of its lines, both sides' words taken.</summary>
     public void ResolveSimpleConflicts()
     {
         List<(int, string[]?, Resolution)> taken = [.. NonConflicting()];
@@ -375,7 +375,7 @@ public sealed class MergeView : DockPanel
     }
 
     /// <summary>The changes' places after an edit of the result's own: those below it move with the lines it added or
-    /// took away, and one it falls in grows or shrinks with it, as Rider's do.</summary>
+    /// took away, and one it falls in grows or shrinks with it.</summary>
     private static Resolution[] Moved(Resolution[] before, DocumentChangedEventArgs e)
     {
         Resolution[] after = [.. before];
@@ -457,7 +457,7 @@ public sealed class MergeView : DockPanel
     }
 
     /// <summary>The changed words of each change not dealt with: on a side while that side's lines wait to be taken, and in
-    /// the result while it still holds the base's lines there, as Rider marks them.</summary>
+    /// the result while it still holds the base's lines there.</summary>
     private void ShowWords()
     {
         if (words.Length != chunks.Count)
@@ -743,7 +743,7 @@ public sealed class MergeView : DockPanel
                 Pen pen = new(line, 1.6, lineCap: PenLineCap.Round);
                 if (Icon(i, ignore: false) is { } arrow)
                 {
-                    // Rider's ">>" on the left, "<<" on the right: the side's lines toward the result.
+                    // ">>" on the left, "<<" on the right: the side's lines toward the result.
                     double point = side == MergeSide.Left ? 1 : -1;
                     for (int k = 0; k < 2; k++)
                     {

@@ -48,7 +48,6 @@ public class EvalTests(ITestOutputHelper testOutputHelper)
         debugProtocolHost.WithVariablesRequest(scope.VariablesReference, out List<DapVariable>? variables);
 
         Assert.Equal(11, variables.Count);
-        //variables.ShouldBeEquivalentToDebuggerVariables(expectedVariables);
 
         int stackFrameId = stackTraceResponse.StackFrames!.First().Id;
         debugProtocolHost.WithEvaluateRequest(stackFrameId, "myInt + 10", out EvaluateResponse? evaluateResponse);
@@ -217,8 +216,7 @@ public class EvalTests(ITestOutputHelper testOutputHelper)
         debugProtocolHost.WithEvaluateRequest(stackFrameId, "_doubler(4)", out EvaluateResponse? evaluateResponse63);
         Assert.Equal("8", evaluateResponse63.Result);
 
-        // User-defined operators are resolved from the bound tree (Roslyn), so value-type operands and operators
-        // declared on the right operand's type work (structVar.Id == 5)
+        // Operators resolved from Roslyn's bound tree: value-type operands, one declared on the right operand's type.
         debugProtocolHost.WithEvaluateRequest(stackFrameId, "(structVar + structVar).Id", out EvaluateResponse? evaluateResponse64);
         Assert.Equal("10", evaluateResponse64.Result);
         debugProtocolHost.WithEvaluateRequest(stackFrameId, "(5 + structVar).Id", out EvaluateResponse? evaluateResponse65);
@@ -274,10 +272,6 @@ public class EvalTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("43", sameExpressionCaptureValueResponse.Result);
         debugProtocolHost.WithEvaluateRequest(stackFrameId, "myInt = 42", out EvaluateResponse? restoreMyIntAfterLambdaResponse);
         Assert.Equal("42", restoreMyIntAfterLambdaResponse.Result);
-
-        // We don't support this.
-        // debugProtocolHost.WithEvaluateRequest(stackFrameId, "new[] { 1 }.Select(delegate(int value) { return value + 1; }).Single()", out var anonymousMethodResponse);
-        // Assert.Equal("2", anonymousMethodResponse.Result);
 
         debugProtocolHost.WithEvaluateRequest(stackFrameId, "nullableRefType == null", out EvaluateResponse? nullEqualityResponse);
         Assert.Equal("true", nullEqualityResponse.Result);
@@ -438,8 +432,7 @@ public class EvalTests(ITestOutputHelper testOutputHelper)
         debugProtocolHost.WithEvaluateRequest(stackFrameId, "anotherVar == \"updated\"", out EvaluateResponse? referenceStringEqualityResponse);
         Assert.Equal("true", referenceStringEqualityResponse.Result);
 
-        // String reference identity: reading a debuggee string must preserve the original reference instead of
-        // materializing a fresh string, so identity comparisons and assignments preserve aliasing.
+        // A string read from the debuggee keeps its reference, so identity comparisons and assignments alias.
         debugProtocolHost.WithEvaluateRequest(stackFrameId, "IsSameString(anotherVar, anotherVar)", out EvaluateResponse? stringIdentityResponse);
         Assert.Equal("true", stringIdentityResponse.Result);
         debugProtocolHost.WithEvaluateRequest(stackFrameId, "object.ReferenceEquals(anotherVar, anotherVar)", out EvaluateResponse? stringReferenceEqualsResponse);
@@ -531,8 +524,7 @@ public class EvalTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task A_LINQ_watch_evaluates_in_a_program_that_has_called_no_LINQ_method_yet()
     {
-        // Stopped at the entry of a program with implicit usings that has loaded no System.Linq: Visual Studio's debugger,
-        // and now Passenger's, loads it for the expression rather than saying int[] has no Where.
+        // At the entry of a program that has loaded no System.Linq, which the expression loads.
         using DebugSession host = DebugSession.ForLaunch(testOutputHelper);
         await host
             .WithInitializeRequest()

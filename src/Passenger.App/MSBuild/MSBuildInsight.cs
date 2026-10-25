@@ -48,8 +48,8 @@ public sealed class MSBuildInsight
 
     public string Value(string name) => Property(name)?.Value ?? string.Empty;
 
-    /// <summary>Whether a file or folder come or gone may change what the evaluation's wildcards took in: it lies in a folder
-    /// they walked, or above the project (the folder watcher names the open folder when it lost track of what changed).</summary>
+    /// <summary>Whether a file or folder come or gone may change what the evaluation's wildcards took in: it lies in a
+    /// folder they walked, or above the project (the open folder, named when what changed is not known).</summary>
     public bool Walked(string path) => Path.GetDirectoryName(path) is { } folder && walked.Contains(folder) || PathNames.IsUnder(Project, path);
 
     public MSBuildPlace Place(InsightPlace place) => new(place.File >= 0 && place.File < paths.Length ? paths[place.File] : string.Empty, place.Line, place.Column);

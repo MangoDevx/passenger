@@ -10,11 +10,10 @@ using Passenger.Text;
 
 namespace Passenger.Tests;
 
-/// <summary>Test projects on Microsoft.Testing.Platform with no VSTest adapter, as Rider and Visual Studio run them through
-/// the platform's own protocol: an xUnit v3 project and an MSTest project on MSTest's runner show their tests from code,
-/// Run All runs them in their own programs and marks each, a theory's rows land under it, Stop ends a run and its test
-/// host, and a solution with a VSTest project too shows and runs both. Debug Tests on the platform is
-/// <see cref="TestingPlatformDebuggingTests"/>', alone.</summary>
+/// <summary>Test projects on Microsoft.Testing.Platform with no VSTest adapter, run through the platform's own protocol:
+/// an xUnit v3 project and an MSTest project on MSTest's runner show their tests from code, Run All runs them in their own
+/// programs and marks each, a theory's rows land under it, Stop ends a run and its test host, and a solution with a
+/// VSTest project too shows and runs both.</summary>
 public sealed class TestingPlatformTests : TestingPlatformFolders, IClassFixture<RestoredFolders>
 {
     public TestingPlatformTests(RestoredFolders restored)
@@ -27,7 +26,6 @@ public sealed class TestingPlatformTests : TestingPlatformFolders, IClassFixture
     {
         MainWindow window = Open();
         CodeEditor editor = window.EditorArea.CodeEditor;
-        // From the code, before any build: the class and each test have a run icon, not yet run.
         Assert.Equal(["Sums.Tests", "  Sums.Tests", "    SumTests", "      Doubles", "      Not_yet", "      Takes_a_while", "      Two_and_two_make_five", "      Two_and_two_make_four"],
             Shown(window));
         Assert.Contains(new TestMark(4, TestMarkKind.NotRun), editor.TestMarks);
@@ -41,7 +39,6 @@ public sealed class TestingPlatformTests : TestingPlatformFolders, IClassFixture
         TestNode four = Method(window, "Two_and_two_make_four")!;
         Assert.True(four.State == TestState.Passed, $"An xUnit v3 test on the Testing Platform alone did not pass, so the project was not run through the platform's protocol:\n{four.Details}\n{window.BottomPanel.Tests.Status}");
         Assert.Equal("Tests passed: 4, failed: 1, skipped: 1 of 6", System.Text.RegularExpressions.Regex.Replace(window.BottomPanel.Tests.Status, @" in \d+\.\d s$", string.Empty));
-        // Each result where the code put it, with what the test wrote, why it failed and where, why it was skipped.
         Assert.Contains("adding two and two", four.Details, StringComparison.Ordinal);
         TestNode five = Method(window, "Two_and_two_make_five")!;
         Assert.Equal(TestState.Failed, five.State);
@@ -81,7 +78,6 @@ public sealed class TestingPlatformTests : TestingPlatformFolders, IClassFixture
         Assert.All(sides.Children, r => Assert.Equal(TestState.Passed, r.State));
         Assert.Equal(TestState.NotRun, Method(window, "Two_and_two_make_four")!.State);
 
-        // A row opened shows under its method, and chosen shows its own result.
         window.Tests.Tree.Toggle(doubles);
         TestNode row = doubles.Children[0];
         Assert.Equal(window.Tests.Tree.Rows.IndexOf(doubles) + 1, window.Tests.Tree.Rows.IndexOf(row));
@@ -214,7 +210,6 @@ public sealed class TestingPlatformDebuggingTests : TestingPlatformFolders, ICla
             Assert.True(running.Count == 0, $"A run stopped as its test host started left these shown as running: {string.Join(", ", running)}");
             Assert.Equal(TestState.NotRun, four.State);
             Assert.DoesNotContain(editor.TestMarks, m => m.Kind == TestMarkKind.Running);
-            // Stopped, as a run Stop ends at any other moment, said after the debugger's word that its test host was stopped.
             string? why = window.BottomPanel.Tests.Status;
             Assert.True(why is not null && System.Text.RegularExpressions.Regex.IsMatch(why, @"^Tests passed: 0, failed: 0 of 0 in \d+\.\d s, stopped$"),
                 $"A debugged run Stop ended as its test host started did not say it was stopped, but '{why}' (the status bar '{window.Status}')");

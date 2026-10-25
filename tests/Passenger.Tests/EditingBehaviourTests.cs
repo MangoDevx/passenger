@@ -54,7 +54,6 @@ public sealed class EditingBehaviourTests
         Assert.True(rig.Text == "{\n    first();\n\n    second();\n}", $"Enter at the line's start took its indentation away:\n{rig.Text}");
         Assert.Equal(new TextPosition(3, 4), rig.Editor.CaretPosition);
 
-        // From the middle of the indentation the line keeps it all too.
         rig.PlaceCaret("{\n    first();\n\n  ".Length);
         rig.Press("ENTER");
         Assert.True(rig.Text == "{\n    first();\n\n  \n    second();\n}", $"Enter inside the line's indentation took part of it away:\n{rig.Text}");
@@ -199,8 +198,8 @@ public sealed class EditingBehaviourTests
     }
 
     /// <summary>Text on the clipboard whose lines end in a lone carriage return (as classic Mac text and some apps' put
-    /// it there) goes in as lines in the file's breaks, as Rider pastes it: the editor's lines end only at a line feed, so
-    /// the CRs went in as one line the editor drew whole, which the compiler read as several.</summary>
+    /// it there) goes in as lines in the file's breaks, never as one line the editor draws whole and the compiler reads
+    /// as several.</summary>
     [AvaloniaFact]
     public void Text_pasted_with_lone_carriage_returns_goes_in_as_lines_with_the_files_breaks()
     {
@@ -245,11 +244,10 @@ public sealed class EditingBehaviourTests
         window.Close();
     }
 
-    /// <summary>A key draws the editor once: the parse it makes lands with the colours the key carried its words to, and a
-    /// parse that changes nothing on screen draws nothing, where every parse that landed drew the whole editor again (a
-    /// key now makes one). A parse that does change a colour on screen draws it: a word typed becomes a keyword. The caret's
-    /// blink draws the editor too, whenever a key's wait for its work outlasts 530 ms (a loaded machine's): its frames are
-    /// not the key's.</summary>
+    /// <summary>A key draws the editor once: the parse it makes lands with the colours the key carried its words to,
+    /// and a parse that changes nothing on screen draws nothing. A parse that does change a colour on screen draws it:
+    /// a word typed becomes a keyword. The caret's blink draws the editor too, whenever a key's wait for its work
+    /// outlasts 530 ms (a loaded machine's): its frames are not the key's.</summary>
     [AvaloniaFact]
     public void A_key_draws_the_editor_once_and_a_parse_that_changes_a_colour_on_screen_draws_it()
     {
@@ -270,7 +268,6 @@ public sealed class EditingBehaviourTests
             Assert.Equal(Passenger.Editor.TokenKind.Number, KindAt(editor, literal + i));
         }
 
-        // A word the parse finds to be a keyword: the line takes its new colour in a frame of its own.
         int end = editor.Document.Snapshot.ToString().IndexOf("int last = 1;", StringComparison.Ordinal) + "int last = 1;".Length;
         editor.Selections = SelectionSet.Single(end);
         window.KeyTextInput(" retur");
@@ -357,14 +354,12 @@ public sealed class EditingBehaviourTests
         rig.Type("z");
         Assert.True(seen.Contains("text", StringComparison.Ordinal) && seen.Contains("cursor", StringComparison.Ordinal),
             $"A letter typed and the input method heard only [{seen}]");
-        // Unfolding above the caret moves it down the page, and the window with it.
         seen = string.Empty;
         double folded = client.CursorRectangle.Y;
         rig.Editor.SetFoldRegions([]);
         Assert.True(seen.Contains("cursor", StringComparison.Ordinal), $"The lines above the caret unfolded and the input method heard only [{seen}]");
         Assert.Equal(folded + (20 * rig.Editor.LineHeight), client.CursorRectangle.Y, 3);
 
-        // Far along a long line the window opens at the caret drawn there, inside the view.
         int far = rig.Document.Snapshot.GetLineStart(40) + 50_000;
         rig.PlaceCaret(far);
         Ui.Settle();
@@ -428,9 +423,8 @@ public sealed class EditingBehaviourTests
             .Cast<Passenger.Editor.SyntaxSpan?>()
             .FirstOrDefault()?.Kind;
 
-    /// <summary>A C# file opened in the window, with no project: its colours are the window's own, read from its syntax.</summary>
-    /// <summary>The frames the editor drew for a key and the work it set off, once that has landed, less those its caret's
-    /// blink asked for meanwhile.</summary>
+    /// <summary>The frames the editor drew for a key and the work it set off, once that has landed, less those its
+    /// caret's blink asked for meanwhile.</summary>
     private static long Drawn(Passenger.Editor.CodeEditor editor, Action key)
     {
         long frames = editor.Frames;
@@ -440,6 +434,8 @@ public sealed class EditingBehaviourTests
         return editor.Frames - frames - (editor.Blinks - blinks);
     }
 
+    /// <summary>A C# file opened in the window, with no project: its colours are the window's own, read from its
+    /// syntax.</summary>
     private static (Passenger.App.MainWindow Window, Passenger.Editor.CodeEditor Editor) OpenCSharp(string source)
     {
         string folder = TestFolders.Create("colours-");

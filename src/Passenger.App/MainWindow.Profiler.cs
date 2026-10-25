@@ -5,8 +5,8 @@ using Passenger.Profiler;
 
 namespace Passenger.App;
 
-/// <summary>The window's profiler (<see cref="ProfilerCommands"/>), over its session: what the tests and agents ask of it,
-/// and the toolbar's Profile button.</summary>
+/// <summary>The window's profiler (<see cref="ProfilerCommands"/>), over its session: what agents ask of it, and the
+/// toolbar's Profile button.</summary>
 public partial class MainWindow
 {
     private ProfilerCommands? profiler;

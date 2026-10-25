@@ -9,9 +9,9 @@ public partial class MainWindow
     private bool leftoversScheduled;
     private bool leftoversLooked;
 
-    /// <summary>A window keeping its state apart from the process's (a test's) removes what a crash left for that state as it
-    /// first shows, labelled or recorded (<see cref="ContainerLabels.LookForLeftovers"/>), as the process's start does for
-    /// its own: held, so what it removes has gone once the window is quiet.</summary>
+    /// <summary>A window keeping its state apart from the process's removes what a crash left for that state as it
+    /// first shows, labelled or recorded (<see cref="ContainerLabels.LookForLeftovers"/>), as the process's start does
+    /// for its own: held, so what it removes has gone once the window is quiet.</summary>
     private void LookForLeftovers(ProjectSession current)
     {
         if (current.Folder is not null)

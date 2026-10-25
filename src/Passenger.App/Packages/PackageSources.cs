@@ -8,7 +8,7 @@ using Passenger.Core;
 namespace Passenger.App.Packages;
 
 /// <summary>Where a nuget.config file stands in NuGet's order: the solution's folder, a folder above it, the user's own,
-/// or the machine's, which NuGet never writes and neither does the Sources tab.</summary>
+/// or the machine's, which is never written.</summary>
 public enum ConfigPlace
 {
     Solution,
@@ -54,8 +54,7 @@ public sealed record FeedSource(string Name, string Source, bool Enabled, string
     public bool IsHttp => Source.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || Source.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
 }
 
-/// <summary>The package sources a folder's restore uses, read as NuGet reads them: the nuget.config files from the
-/// folder up, then the user's and the machine's, each <c>&lt;clear /&gt;</c> ending those after it, with NuGet's
+/// <summary>The package sources a folder's restore uses, read through NuGet's own configuration, with its
 /// packageSourceMapping. Read off the window's thread; a snapshot, read again after any change.</summary>
 public sealed class PackageSourceSet
 {
@@ -87,12 +86,11 @@ public sealed class PackageSourceSet
 
     public IEnumerable<FeedSource> Enabled => Feeds.Where(f => f.Enabled);
 
-    /// <summary>The feeds the files' auditSources name, which restore's audit asks for known vulnerabilities in place of
-    /// the package sources; none when no file names any.</summary>
+    /// <summary>The feeds the files' auditSources name, asked for known vulnerabilities in place of the package sources;
+    /// none when no file names any.</summary>
     public IReadOnlyList<FeedSource> AuditSources { get; }
 
-    /// <summary>Where restore's audit, and so the NuGet window, learns of vulnerable packages: the audit sources, else
-    /// every enabled package source.</summary>
+    /// <summary>Where vulnerable packages are learnt of: the audit sources, else every enabled package source.</summary>
     public IReadOnlyList<FeedSource> Audited => AuditSources.Count > 0 ? AuditSources : [.. Enabled];
 
     /// <summary>Why the files could not be read as a whole, or null.</summary>
@@ -109,8 +107,8 @@ public sealed class PackageSourceSet
     public bool Allows(string feed, string id) =>
         mapping?.IsEnabled != true || mapping.GetConfiguredPackageSources(id).Contains(feed, StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>Reads the sources for a folder. NuGet makes the user's nuget.config, naming nuget.org, when there is
-    /// none, as any restore would.</summary>
+    /// <summary>Reads the sources for a folder; NuGet makes the user's nuget.config, naming nuget.org, when there is
+    /// none.</summary>
     public static PackageSourceSet Load(string root)
     {
         ISettings settings;

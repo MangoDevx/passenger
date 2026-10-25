@@ -8,10 +8,9 @@ using Passenger.Xaml.Syntax;
 
 namespace Passenger.App.MSBuild;
 
-/// <summary>One open MSBuild file's code help. Completion reads its text as typed (the XML tree, a parse a version) with
-/// the project's last evaluation; the evaluation itself is the project host's of the text as typed, asked once typing
-/// pauses (the open files' unsaved text read in place of the disk's, so its errors and values are the screen's, never a
-/// save behind), and its errors and warnings in this file, with the advisories of the packages it references, are the
+/// <summary>One open MSBuild file's code help. Completion reads its text as typed with the project's last evaluation;
+/// the project is evaluated again with the open files' unsaved text once typing pauses, so its errors and values are
+/// the screen's, and its errors and warnings in this file, with the advisories of the packages it references, are the
 /// file's markers. An evaluation that fails (XML that does not read, an unknown SDK) keeps the last one that did for
 /// names and values, and says why on its line.</summary>
 public sealed class MSBuildDocument : IDisposable
@@ -46,7 +45,7 @@ public sealed class MSBuildDocument : IDisposable
     /// <summary>The text version the last evaluation (successful or not) was of.</summary>
     public int? EvaluatedVersion { get; private set; }
 
-    /// <summary>The file's first evaluation, which hover and Go to Declaration wait for, as a test may.</summary>
+    /// <summary>The file's first evaluation, which hover and Go to Declaration wait for.</summary>
     public Task First { get; }
 
     /// <summary>The file's markup as it stands, parsed once a version.</summary>

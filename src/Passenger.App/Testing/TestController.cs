@@ -5,7 +5,7 @@ using Passenger.Editor;
 
 namespace Passenger.App.Testing;
 
-/// <summary>Unit testing in the IDE, as Rider's: the solution's tests shown as their code declares them from the moment
+/// <summary>Unit testing in the IDE: the solution's tests shown as their code declares them from the moment
 /// it opens, the test projects built and their tests found by a runner, runs of all of them, a chosen few or the ones
 /// that failed, results as they come, and a test debugged under Passenger's own debugger. It works in the IDE's own
 /// tests and outcomes, through <see cref="ITestRunner"/> (VSTest's and Microsoft.Testing.Platform's, <see cref="TestRunners"/>).
@@ -66,8 +66,8 @@ public sealed class TestController : IAsyncDisposable
 
     public TestTree Tree { get; }
 
-    /// <summary>The window's work under way, which a run shows itself in from its first moment to its end, Stop ending it
-    /// as the Unit Tests window's Stop does: null with no window to show it in.</summary>
+    /// <summary>The window's work under way, which a run shows itself in from its first moment to its end, Stop ending it;
+    /// null with no window to show it in.</summary>
     public ActionWork? Work { get; init; }
 
     /// <summary>The run under way as the window shows it.</summary>
@@ -104,7 +104,7 @@ public sealed class TestController : IAsyncDisposable
     /// <summary>Something for the status bar.</summary>
     public event EventHandler<string>? Message;
 
-    /// <summary>A run of tests ended, whether every test passed: Local History's Tests Passed or Tests Failed label.</summary>
+    /// <summary>A run of tests ended, whether every test passed.</summary>
     public event EventHandler<bool>? Ran;
 
     /// <summary>Asks the container engine before a run of a project that references Testcontainers: why it cannot serve
@@ -185,7 +185,7 @@ public sealed class TestController : IAsyncDisposable
         }
     }
 
-    /// <summary>Rider's Run Until Failure: these rows' tests run again and again, built once, until one fails or Stop is
+    /// <summary>Run Until Failure: these rows' tests run again and again, built once, until one fails or Stop is
     /// pressed, each run counted as it goes; the failing run's results stay to read.</summary>
     public async Task<string?> RunUntilFailureAsync(string workspace, IEnumerable<TestNode> rows)
     {
@@ -238,7 +238,6 @@ public sealed class TestController : IAsyncDisposable
         using CancellationTokenRegistration stopped = working?.Stopping.Register(stop.Cancel) ?? default;
         try
         {
-            // A run builds first, as Rider's does, and finds what is new.
             if ((build || runner is null) && await DiscoverCore(workspace, build, stop.Token) is { } problem)
             {
                 return problem;
@@ -457,8 +456,7 @@ public sealed class TestController : IAsyncDisposable
     {
         if (runner is { IsUsable: false } stuck)
         {
-            // A discovery that never said it had stopped: its runner ends, its test hosts with it, and the next run
-            // starts another.
+            // A discovery that never said it had stopped: its runner ends, its test hosts with it.
             runner = null;
             _ = Task.Run(stuck.Dispose);
         }
@@ -551,8 +549,8 @@ public sealed class TestController : IAsyncDisposable
     }
 
     /// <summary>The environment a test project's tests run with: its first launch profile that runs the project, its
-    /// variables, as Rider's VSTest runner gives a test project's launchSettings.json to its test host; and for a project
-    /// testing Avalonia headless under xunit v3, the hook that draws a failing test's windows into its result.</summary>
+    /// variables; and for a project testing Avalonia headless under xunit v3, the hook that draws a failing test's windows
+    /// into its result.</summary>
     private IReadOnlyDictionary<string, string> EnvironmentOf(string project)
     {
         List<TestAssembly> its = [.. resolved?.Assemblies.Where(a => a.Project.Path == project) ?? []];

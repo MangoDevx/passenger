@@ -155,10 +155,10 @@ public sealed partial record LaunchPlan
     public static string InContainers(string name) =>
         $"{name} runs in containers, which Run, Debug and Profile bring up: it starts no program on this computer";
 
-    /// <summary>The state folder a Passenger launched from this one is given, as IntelliJ's DevKit runs the IDE it develops
-    /// on a sandbox: sandbox/ in this one's, so the two never share settings, recent solutions, a folder's editors and
-    /// breakpoints, the log or agents' sockets, and the one debugged starts on Passenger's defaults (no MCP server, no
-    /// Discord). Null for any other program, or when the configuration names a state folder itself.</summary>
+    /// <summary>The state folder a Passenger launched from this one is given: sandbox/ in this one's, so the two never share
+    /// settings, recent solutions, a folder's editors and breakpoints, the log or agents' sockets, and the one debugged
+    /// starts on Passenger's defaults (no MCP server, no Discord). Null for any other program, or when the configuration names
+    /// a state folder itself.</summary>
     private static string? SandboxedState(string launched, IReadOnlyDictionary<string, string> environment, string stateFolder) =>
         string.Equals(System.IO.Path.GetFileNameWithoutExtension(launched), typeof(LaunchPlan).Assembly.GetName().Name, StringComparison.OrdinalIgnoreCase)
         && !environment.Keys.Any(k => string.Equals(k, StateStore.Variable, StringComparison.OrdinalIgnoreCase))
@@ -237,7 +237,7 @@ public sealed partial record LaunchPlan
         }
     }
 
-    /// <summary>An MSBuild property named in a value, <c>$(TargetDir)</c>, as Visual Studio expands it in a launch profile.</summary>
+    /// <summary>An MSBuild property named in a launch profile's value, <c>$(TargetDir)</c>.</summary>
     [GeneratedRegex(@"\$\(([A-Za-z_][A-Za-z0-9_.-]*)\)")]
     private static partial Regex Macro();
 }

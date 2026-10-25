@@ -408,9 +408,7 @@ public sealed partial class AspireInteractions
         {
             throw new InvalidDataException("The AppHost sent duplicate resources.");
         }
-        // What a resource says is shown as a container's is (Containers' Details): a secret by Passenger's one rule masked
-        // (ContainerSecrets: by its name, a URL's password, a connection string's part so named), one the AppHost marks
-        // sensitive masked whatever its name, the rest as it is.
+        // A secret masked by ContainerSecrets' rule, and one the AppHost marks sensitive whatever its name.
         Resource resource = incoming.Clone();
         foreach (ResourceProperty property in resource.Properties)
         {

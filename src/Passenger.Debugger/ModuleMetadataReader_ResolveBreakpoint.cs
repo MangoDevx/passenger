@@ -193,11 +193,7 @@ public partial class ModuleMetadataReader
             return NewResolvedBreakpoint(covering[0].Token, covering[0].CoveringSp!.Value, covering[0].DocPath);
         }
 
-        // Keep only the candidates whose covering SP starts latest — i.e. whose SP most
-        // specifically matches the target line from above or at.  This naturally picks the
-        // innermost lambda when the enclosing method only covers the line via a large
-        // spanning SP (e.g. a delegate-assignment SP that spans the whole lambda body),
-        // without needing explicit case analysis.
+        // The candidates whose covering point starts latest: the innermost lambda, not the method spanning its body.
         LineCol maxCoverStart = covering.Max(c => c.CoveringSp!.Value.Start());
         List<MethodCandidate> primary = covering.Where(c => c.CoveringSp!.Value.Start() == maxCoverStart).ToList();
 
@@ -208,17 +204,14 @@ public partial class ModuleMetadataReader
 
         if (rewritten)
         {
-            // XamlIl maps a template's root element twice: where the template is made (its deferred content, mid-method)
-            // and where it builds its content, the method its point begins. The builder's runs for each control made.
+            // A template's root is mapped where it is made and in its content's builder, which runs per control made.
             MethodCandidate builder = primary.MinBy(c => c.CoveringSp!.Value.Offset)!;
             return NewResolvedBreakpoint(builder.Token, builder.CoveringSp!.Value, builder.DocPath);
         }
 
         // https://github.com/Samsung/netcoredbg/blob/8b8b22200fecdb1aec5f47af63215462d8c79a4b/src/managed/SymbolReader.cs#L801-L817
 
-        // Only reach here when multiple methods have a covering SP starting at the exact
-        // same source position — the same-line lambda case (e.g. items.Select(i => i * 2)).
-        // Apply netcoredbg's two-case containment check for that narrow scenario.
+        // Methods whose covering points start at one place (a lambda on its call's line): netcoredbg's two cases.
         List<MethodCandidate> sorted = primary.OrderBy(c => c.FirstSp.Start()).ToList();
         MethodCandidate outer = sorted[^2];
         MethodCandidate nested = sorted[^1];

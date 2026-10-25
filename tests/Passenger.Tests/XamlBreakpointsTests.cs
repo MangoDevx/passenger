@@ -59,12 +59,10 @@ public sealed class XamlBreakpointsTests : IClassFixture<RestoredFolders>, IDisp
         BreakpointStore store = window.Debugger.Breakpoints;
         Assert.Equal([$"MainWindow.axaml:{top + 1} Width", $"MainWindow.axaml:{save + 1}", $"MainWindow.axaml:{save + 1} Background", $"MainWindow.axaml:{row + 1}"],
             store.In(Xaml).Select(b => b.Location));
-        // The attribute's breakpoint tints the attribute, not its line.
         TextSnapshot text = editor.Document.Snapshot;
         LineMark background = editor.LineMarks.Single(m => m.Range is not null && text.GetText(m.Range.Value.Start, m.Range.Value.Length).StartsWith("Background", StringComparison.Ordinal));
         Assert.Equal("Background=\"Orange\"", text.GetText(background.Range!.Value.Start, background.Range.Value.Length));
 
-        // The template's row stops at the second row made, as its hit count, typed in the Breakpoints window, says.
         Ui.Run(window, AppActions.ViewBreakpoints);
         BreakpointsWindow breakpoints = Assert.IsType<BreakpointsWindow>(window.Popup);
         Assert.Equal([$"MainWindow.axaml:{top + 1} Width", $"MainWindow.axaml:{save + 1}", $"MainWindow.axaml:{save + 1} Background", $"MainWindow.axaml:{row + 1}", ExceptionBreakpoint.AnyException,
@@ -82,7 +80,6 @@ public sealed class XamlBreakpointsTests : IClassFixture<RestoredFolders>, IDisp
         Assert.Equal("NaN", Member(window, "arg_1", "Width"));
         Assert.Equal("\"XAML Breakpoints\"", Member(window, "arg_1", "Title"));
 
-        // Save's element: the stop as its control is made, the window's own code that made it below on the stack.
         Resume(window);
         stop = Stopped(window, "the stop where Save is made");
         AssertAt(stop, Xaml, save, Column(Xaml, save, "Button"));
@@ -90,12 +87,10 @@ public sealed class XamlBreakpointsTests : IClassFixture<RestoredFolders>, IDisp
             $"The stack did not show the window's constructor making its XAML: {string.Join(" < ", stop.Frames.Select(f => $"{f.Name} {Path.GetFileName(f.Source?.Path)}:{f.Line}"))}");
         Assert.Contains(window.BottomPanel.Debug.Frames, f => f.Source?.Path == Xaml);
 
-        // Its Background, on the same line: the stop as that property is set.
         Resume(window);
         stop = Stopped(window, "the stop where Save's Background is set");
         AssertAt(stop, Xaml, save, Column(Xaml, save, "Background"));
 
-        // The template's row, the second one made.
         Resume(window);
         stop = Stopped(window, "the stop where the second row is made");
         AssertAt(stop, Xaml, row, Column(Xaml, row, "local:Row"));
@@ -103,7 +98,6 @@ public sealed class XamlBreakpointsTests : IClassFixture<RestoredFolders>, IDisp
 
         Ui.Run(window, AppActions.Stop);
         Ui.WaitFor(() => !window.Debugger.IsDebugging, "the debugging to end");
-        // XAML's breakpoints are the folder's, kept as line breakpoints are.
         Assert.Equal(4, store.In(Xaml).Count);
         window.Close();
     }
@@ -146,14 +140,12 @@ public sealed class XamlBreakpointsTests : IClassFixture<RestoredFolders>, IDisp
         Assert.Equal($"MainWindow.axaml:{save + 1}:{background + 1}", told.Location);
         Assert.EndsWith($"at MainWindow.axaml:{save + 1}", told.Frames[0], StringComparison.Ordinal);
 
-        // A line broken at the top while paused: the arrow and the frame's row go down with Save's code.
         editor.GoTo(new TextPosition(0, 0));
         editor.Focus();
         Ui.Press(window, "Enter");
         Assert.Contains(new LineMark(save + 1, LineMarkKind.ExecutionPoint), editor.LineMarks);
         Assert.Contains($"MainWindow.axaml:{save + 2}", FrameRows(window));
 
-        // Delete's element, below them all: its breakpoint, moved by the line, still stops where it was set.
         Resume(window);
         stop = Stopped(window, "the stop where Delete is made");
         Assert.Equal(delete + 3, stop.Top!.Line);
@@ -178,7 +170,6 @@ public sealed class XamlBreakpointsTests : IClassFixture<RestoredFolders>, IDisp
             $"the Live Visual Tree to show the app's window ({window.LiveApp?.State} {window.LiveApp?.Problem})", TimeSpan.FromMinutes(2));
         BreakpointStore store = window.Debugger.Breakpoints;
 
-        // Code-behind: Save's Background, set twice by "paint"; each change stops where the code-behind set it.
         PropertyBreakpoint background = Watch(window, "Save", "Background");
         Assert.Equal("Background on Button#Save", background.Location);
         Ui.WaitFor(() => background.Status == BreakpointStatus.Bound, $"the debugger to take the property breakpoint, not to say {background.Message}");
@@ -192,7 +183,6 @@ public sealed class XamlBreakpointsTests : IClassFixture<RestoredFolders>, IDisp
         Resume(window);
         Ui.WaitFor(() => Console(window).Contains("Painted", StringComparison.Ordinal), "paint to finish");
 
-        // Listed in the Breakpoints window, where its hit count lets the first change go by.
         Ui.Run(window, AppActions.ViewBreakpoints);
         BreakpointsWindow breakpoints = Assert.IsType<BreakpointsWindow>(window.Popup);
         Assert.Equal([background.Location, ExceptionBreakpoint.AnyException, BindingErrorBreakpoint.AnyBindingError], breakpoints.Listed.Select(b => b.Location));
@@ -209,7 +199,6 @@ public sealed class XamlBreakpointsTests : IClassFixture<RestoredFolders>, IDisp
         Resume(window);
         Ui.WaitFor(() => Console(window).Split("Painted").Length == 3, "paint to finish again");
 
-        // A condition reads the change: of Save's two widths, the one over 150 alone stops. Background is let go.
         Watch(window, "Save", "Background");
         Assert.DoesNotContain(background, store.Properties);
         PropertyBreakpoint width = Watch(window, "Save", "Width");
@@ -227,7 +216,6 @@ public sealed class XamlBreakpointsTests : IClassFixture<RestoredFolders>, IDisp
         Assert.DoesNotContain(BreakpointConditions.NotEvaluated(DebugSession.EngineCondition(width)), Console(window), StringComparison.Ordinal);
         Resume(window);
 
-        // A style, which a class added in code turns on: Delete's change, another control's, does not stop.
         PropertyBreakpoint foreground = Watch(window, "Save", "Foreground");
         Ui.TypeToDebugged(window, "warn");
         stop = Stopped(window, "the stop where the danger style sets Save's Foreground");
@@ -238,7 +226,6 @@ public sealed class XamlBreakpointsTests : IClassFixture<RestoredFolders>, IDisp
         Says(window, $" at MainWindow.axaml:{red + 1})");
         Resume(window);
 
-        // A binding: the caption's Text, which the view model's caption changes.
         Watch(window, "Caption", "Text");
         Ui.TypeToDebugged(window, "rename");
         stop = Stopped(window, "the stop where the caption's binding sets its Text");

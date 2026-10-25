@@ -6,8 +6,8 @@ using Passenger.Text;
 
 namespace Passenger.App;
 
-/// <summary>Call Hierarchy and Type Hierarchy, as Rider's: the symbol at the caret in the Hierarchy window, its callers
-/// or callees, its supertypes or subtypes, from the language server.</summary>
+/// <summary>Call Hierarchy and Type Hierarchy: the symbol at the caret in the Hierarchy window, its callers or callees,
+/// its supertypes or subtypes, from the language server.</summary>
 public partial class MainWindow
 {
     private HierarchyView? hierarchy;

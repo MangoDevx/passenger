@@ -69,8 +69,8 @@ public partial class FindBar : UserControl
         }
     }
 
-    /// <summary>Hides the bar and lets go of the editor and its text, as its group does when its last tab closes: nothing the
-    /// file holds keeps the bar, or the group around it, alive.</summary>
+    /// <summary>Hides the bar and lets go of the editor and its text, as its group's last tab closes: nothing the file
+    /// holds keeps the bar, or the group around it, alive.</summary>
     public void Detach()
     {
         IsVisible = false;

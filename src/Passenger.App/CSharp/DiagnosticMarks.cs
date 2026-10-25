@@ -76,9 +76,9 @@ internal static class DiagnosticMarks
     }
 }
 
-/// <summary>An open file's diagnostics from one server (C#'s, a web language's, ESLint's): pulled after a pause, each pull
-/// ending the one before it and held as background work a screenshot waits for, or taken as pushed, and carried with the
-/// text between reports, so a squiggle never drifts off its code. What each asks of its server is its own.</summary>
+/// <summary>An open file's diagnostics from one server (C#'s, a web language's, ESLint's): pulled after a pause, each
+/// pull ending the one before it and held as background work, or taken as pushed, and carried with the text between
+/// reports, so a squiggle never drifts off its code. What each asks of its server is its own.</summary>
 internal sealed class ServerDiagnostics(OpenDocument document, bool holdsChecks)
 {
     private CancellationTokenSource? pulling;

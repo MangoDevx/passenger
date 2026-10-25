@@ -95,19 +95,16 @@ public sealed class ContainerRunProfilingTests(ContainerRunDebuggingTests.Tools 
             Assert.True(window.Profiling?.Place?.Where.StartsWith(web, StringComparison.Ordinal) == true,
                 $"The profiler is not recording web's container {web}: {window.Profiling?.Place?.Where} / {window.Status} / {window.ProfilerView.Placeholder}");
             Assert.StartsWith("Profiling web of Shop, web profiled", window.Status, StringComparison.Ordinal);
-            // The rest run as Run runs them, the Run window following their log.
             Assert.Equal(["api", "cache", "web"], ContainerRunsTests.States(project).Keys.Order(StringComparer.Ordinal));
             Assert.True(window.IsRunning, "The run's log is not followed in the Run window");
             int port = ContainerRunsTests.Published(project, "web");
             Assert.True(Ui.Pumped(() => ContainerRunsTests.Answer(port) == "web 1", TimeSpan.FromMinutes(1)), "web, let go by the profiler, did not answer");
 
-            // A memory snapshot is taken in web's container.
             Ui.ClickButton(window.ProfilerView, "Get Memory Snapshot");
             Ui.WaitFor(() => window.ProfilerView.Memory is not null || window.Status?.StartsWith("No memory snapshot", StringComparison.Ordinal) == true,
                 "the memory snapshot of web", TimeSpan.FromMinutes(2));
             Assert.True(window.ProfilerView.Memory?.Types.Any(t => t.Name == "Keepsake" && t.Count > 0) == true, $"web's memory snapshot keeps no Keepsake: {window.Status}");
 
-            // Get Snapshot ends the recording; the run goes on.
             SnapshotRead read = Ui.Await(window.SnapshotAsync(), "web's snapshot", TimeSpan.FromMinutes(2));
             Snapshot snapshot = read.Snapshot ?? throw new Xunit.Sdk.XunitException($"No snapshot of web: {read.Message}");
             Assert.True(window.IsRunning && window.Profiling is null, "The run did not go on after web's snapshot");
@@ -115,14 +112,11 @@ public sealed class ContainerRunProfilingTests(ContainerRunDebuggingTests.Tools 
             // A web app's idle threads wait in the runtime's own code: of web's own methods, the hot one leads.
             HotSpot[] own = [.. snapshot.HotSpots.Where(h => h.Module == spin.Module)];
             Assert.True(own[0] == spin, $"web's hot method does not lead its own ({spin.Module}): {string.Join(", ", own.Take(5).Select(h => $"{h.Name} {h.Self}"))}");
-            // Its line, from the PDB in the container, is the workspace file's.
             MethodCode code = spin.Code ?? throw new Xunit.Sdk.XunitException("web's hot method has no module and token to find its source by");
             IReadOnlyDictionary<MethodCode, (string File, int Line)> sources = Ui.Await(MethodSources.FindAsync(snapshot, [code], CancellationToken.None), "the hot method's source");
             Assert.True(sources.TryGetValue(code, out (string File, int Line) at), $"web's hot method has no source in the PDB in its container: {Asked(snapshot, code)}");
             Assert.Equal((PathNames.Canonical(Path.Combine(folder, "Web", "Program.cs")), SpinLine), (PathNames.Canonical(at.File), at.Line));
 
-            // Attach Profiler with the run up records its service as it runs; Stop reads that snapshot before the containers go,
-            // the recording ended with its rundown rather than cut with its container.
             Assert.True(window.Perform(AppActions.AttachProfiler), "Attach Profiler could not run");
             Ui.WaitFor(() => window.Profiling is { Place: not null } || window.ProfilerView.Placeholder.StartsWith("Could not", StringComparison.Ordinal),
                 "Attach Profiler to record web as it runs", TimeSpan.FromMinutes(2));

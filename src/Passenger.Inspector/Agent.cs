@@ -16,15 +16,14 @@ public static class Agent
     /// <summary>The app's UI dispatcher, once the app has made it.</summary>
     internal static Dispatcher? Ui { get; private set; }
 
-    /// <summary>The inspector on the app's UI thread, once made: what an evaluation's read of binding values names elements by.</summary>
+    /// <summary>The inspector on the app's UI thread, once made.</summary>
     internal static Inspector? Current { get; private set; }
 
     /// <summary>Why the app keeps a top level from an agent's input, else null (<see cref="Guard"/>).</summary>
     internal static Func<object, string?>? Refusing { get; private set; }
 
-    /// <summary>Keeps the agent's input from the top levels the app names a reason for, called with each one input would
-    /// reach: Passenger's own windows, inspected in Passenger, keep its questions to the person and its Settings so. Set
-    /// before <see cref="Start"/>, on the app's UI thread.</summary>
+    /// <summary>Keeps the agent's input from the top levels the app names a reason for, called with each one input
+    /// would reach. Set before <see cref="Start"/>, on the app's UI thread.</summary>
     public static void Guard(Func<object, string?> refusing) => Refusing = refusing;
 
     /// <param name="overlays">The renderer debug overlays the launch named (<see cref="Wire.OverlaysVariable"/>), or null.</param>
@@ -104,8 +103,7 @@ public static class Agent
             bool input = request.Method == Wire.Input;
             if (input)
             {
-                // Hit testing reads the scene as last rendered, so what changed since (a popup just opened) is drawn first,
-                // as a person sees it before clicking.
+                // Hit testing reads the scene last rendered, so what changed since (a popup opening) is drawn first.
                 await dispatcher.InvokeAsync(inspector.RenderedAsync);
             }
             reply = await dispatcher.InvokeAsync(() => inspector.Handle(request));

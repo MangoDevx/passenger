@@ -51,12 +51,11 @@ public sealed partial class CSharpDocument
     /// its sections read as the words of one name (Payments:ApiKey as Payments_ApiKey).</summary>
     internal static bool SecretKey(string key) => Containers.ContainerSecrets.Secret(key.Replace(':', '_'));
 
-    /// <summary>The file's reads of configuration keys that nothing the project runs with gives (<see cref="ConfigurationFiles.Given"/>),
-    /// each a warning where its key is written: a value read (an indexer, GetValue, GetConnectionString, a section's Value)
-    /// with no default and its result never checked for null, or a section GetRequiredSection wants. A read already warned of
-    /// by Aspire's or a compose file's checks (<paramref name="beside"/>) is left to them, and so is a connection string an
-    /// Aspire service reads, which its AppHost gives. The reads are asked of Passenger's extension by the project, the one
-    /// reading of what it reads; the files read off the UI thread.</summary>
+    /// <summary>The file's reads of keys nothing the project runs with gives (<see cref="ConfigurationFiles.Given"/>),
+    /// each a warning on its key: a value read (an indexer, GetValue, GetConnectionString, a section's Value) with no
+    /// default and its result never checked for null, or a section GetRequiredSection wants; but those
+    /// <paramref name="beside"/> warns of and an Aspire service's connection strings. The reads are asked of the
+    /// extension by the project; the files read off the UI thread.</summary>
     internal async Task<IReadOnlyList<Diagnostic>> ConfigurationFindingsAsync(IReadOnlyList<Diagnostic> beside, CancellationToken cancel)
     {
         if (service.Session is not { } roslyn || service.ConfigurationOf?.Invoke(document.Path) is not { } project || !MayReadConfiguration)

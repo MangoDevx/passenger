@@ -4,11 +4,11 @@ using Passenger.Host;
 
 namespace Passenger.App.Explorer;
 
-/// <summary>An evaluated project's files by where the Solution view shows them, as Rider's does: each file the project holds
-/// (its item types that are files, Visible but for false) in its folder under the project's, a file from elsewhere at its
-/// Link or else at the project's top, and its Folder items; a file the project leaves out (a Remove, an Exclude) is not
-/// there, nor its folder unless something of the project is in it. A folder on disk with nothing in it at all shows too,
-/// since MSBuild has nothing to say of it and one just made would otherwise vanish.</summary>
+/// <summary>An evaluated project's files by where the Solution view shows them: each file the project holds (its item
+/// types that are files, Visible but for false) in its folder under the project's, a file from elsewhere at its Link or
+/// else at the project's top, and its Folder items; a file the project leaves out (a Remove, an Exclude) is not there,
+/// nor its folder unless something of the project is in it. A folder on disk with nothing in it at all shows too, since
+/// MSBuild has nothing to say of it and one just made would otherwise vanish.</summary>
 internal sealed class ProjectFiles
 {
     private readonly string root;

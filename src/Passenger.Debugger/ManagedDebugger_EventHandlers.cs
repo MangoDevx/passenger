@@ -36,10 +36,10 @@ public partial class ManagedDebugger
         Continue(clearVariables: false);
     }
 
-    /// <summary>Notes the thread running Main. The runtime announces it first (as netcoredbg relies on, upstream #59), but
-    /// to a debugger that takes hold once the program is under way it lists the threads in the order they were made, and
-    /// Windows makes the finalizer's before Main's. So where the thread the program was started on is known
-    /// (<see cref="_initialThreadId"/>, a launch on Windows), that one is Main's.</summary>
+    /// <summary>Notes the thread running Main. The runtime announces it first, but to a debugger that takes hold once
+    /// the program is under way it lists the threads in the order they were made, and Windows makes the finalizer's
+    /// before Main's. So where the thread the program was started on is known (<see cref="_initialThreadId"/>, a launch
+    /// on Windows), that one is Main's.</summary>
     private void NoteMainThread(ICorDebugThread thread)
     {
         if (_mainThreadId is null || thread.Id == _initialThreadId)
@@ -111,13 +111,11 @@ public partial class ManagedDebugger
             return;
         }
 
-        // EnC is enabled for assemblies/projects that are authored by the user, so we can use it as a heuristic to determine if this is user code or system code.
-        // Emitted code is never the user's: it has no source to stop in.
+        // Unoptimized code (a Debug build's, Edit and Continue's) is the user's; emitted code, with no source, never.
         bool isUserCode = !emitted && corModule.JITCompilerFlags is CorDebugJITCompilerFlags.CORDEBUG_JIT_DISABLE_OPTIMIZATION or CorDebugJITCompilerFlags.CORDEBUG_JIT_ENABLE_ENC;
         if (_justMyCode && isUserCode && metadataReader.HasSymbols)
         {
-            // JMC Status starts as false. The module is the user's, but not the methods its own code says are
-            // not (upstream #49, #52): steppers pass over them and their catch blocks are not the user's.
+            // The module is the user's, but not the methods its own code says are not: steppers pass over them.
             corModule.SetJMCStatus(true, 0, []);
             foreach (int token in metadataReader.NonUserCodeMethodTokens())
             {
@@ -140,17 +138,15 @@ public partial class ManagedDebugger
         if (moduleName is "System.Private.CoreLib.dll")
         {
             Passenger.Debugger.ExpressionEvaluator.Cil.CilValue.PointerSize = metadataReader.PointerSize;
-            // we need to map value classes to primitive types to allow evaluation to invoke methods on them
+            // Evaluations call methods on primitives through their value classes.
             MapRuntimePrimitiveTypesToCorDebugClass(corModule);
-            // We can now initialize the expression interpreter, and assume that modules will be loaded before any stop event is allowed to be returned
+            // Made with CoreLib, which loads before any stop.
             RuntimeAssemblyPrimitiveTypeClasses runtimeAssemblyPrimitiveTypeClasses = new RuntimeAssemblyPrimitiveTypeClasses(CorElementToValueClassMap, CorVoidClass, CorDecimalClass);
             _expressionEvaluator = new CilExpressionEvaluator(runtimeAssemblyPrimitiveTypeClasses, this);
         }
 
-        // Fire the module loaded event
         OnModuleLoaded?.Invoke(modulePath, Path.GetFileName(modulePath), modulePath);
 
-        // Try to bind any pending breakpoints now that we have a new module with symbols
         if (metadataReader.HasSymbols)
         {
             TryBindPendingBreakpoints();
@@ -303,11 +299,9 @@ public partial class ManagedDebugger
             return;
         }
 
-        // Check if async stepper handles this breakpoint
         if (_asyncStepper is not null)
         {
-            // The step's own breakpoints at an await, where the async step takes the step over from its stepper and hands it
-            // to the thread its run resumes on, never stop.
+            // The async step's own breakpoints at an await, where it hands the step to the run's thread, never stop.
             (bool asyncHandled, bool? shouldStop) = await _asyncStepper.TryHandleBreakpoint(corThread, functionBreakpoint);
             if (asyncHandled)
             {
@@ -326,8 +320,7 @@ public partial class ManagedDebugger
                 SourceInfo? sourceInfo = GetSourceInfoAtFrame(corThread.ActiveFrame, _justMyCode is false);
                 if (sourceInfo is null)
                 {
-                    // Step into Task.NotifyDebuggerOfWaitCompletion to continue the async
-                    // step-out toward the awaiting caller's next user-code location.
+                    // Into Task.NotifyDebuggerOfWaitCompletion, on toward the awaiting caller's next user code.
                     SetupStepper(corThread, StepType.StepIn);
                     Continue(clearVariables: true);
                     return;
@@ -377,12 +370,11 @@ public partial class ManagedDebugger
         }
         else if (!managedBreakpoint.Suspend)
         {
-            // Rider's message for a breakpoint that neither stops nor says anything of its own.
+            // What a breakpoint that neither stops nor says anything of its own writes.
             OnConsole?.Invoke($"Breakpoint reached at {Path.GetFileName(managedBreakpoint.FilePath)}:{managedBreakpoint.ResolvedBreakpointFromPdb?.StartLine ?? managedBreakpoint.Line}\n");
         }
         if (!managedBreakpoint.Suspend)
         {
-            // A tracepoint lets the program go on, as Visual Studio's and Rider's do.
             Continue(clearVariables: true);
             return;
         }
@@ -391,7 +383,7 @@ public partial class ManagedDebugger
         if (managedBreakpoint.IsFunctionBreakpoint)
         {
             SourceInfo? sourceInfo = GetSourceInfoAtFrame(corThread.ActiveFrame, _justMyCode is false);
-            // There exists a 'function breakpoint' type, but netcoredbg et al do not use it, so lets just use 'breakpoint'
+            // Told as a breakpoint's stop, not with the protocol's function breakpoint reason.
             if (sourceInfo is null)
             {
                 ReportStop(corThread.Id, StopReasons.Breakpoint);
@@ -475,8 +467,7 @@ public partial class ManagedDebugger
         EndSmartStep();
         if (stepCompleteEventArgs.Reason is CorDebugStepReason.STEP_RETURN)
         {
-            // Back in a caller, right after the call that returned; reading a value type's runs the program, so the frame
-            // is read again after.
+            // Back in a caller; reading a value type's return runs the program, so the frame is read again.
             await TakeValueReturnedTo(corThread, ilFrame);
             ilFrame = (ICorDebugILFrame)corThread.ActiveFrame;
         }
@@ -508,7 +499,6 @@ public partial class ManagedDebugger
 
         if (nextUserCodeIlOffset is null)
         {
-            // Check attributes
             IMetaDataImport metadataImport = ilFrame.Function.Module.GetMetaDataInterface<IMetaDataImport>();
             mdMethodDef mdMethodDef = ilFrame.Function.Token;
             bool methodIsNotDebuggable =
@@ -527,9 +517,9 @@ public partial class ManagedDebugger
         ReportStop(corThread.Id, StopReasons.Step, sourceFilePath, line, column, null);
     }
 
-    /// <summary>A breakpoint that stops ends the step in progress, on its own thread or another, as Rider's does: the
-    /// stepper, an async step's breakpoints at an await, and the step a remap would make again in the new code. One whose
-    /// condition is false, or a tracepoint, leaves it going.</summary>
+    /// <summary>A breakpoint that stops ends the step in progress, on its own thread or another: the stepper, an async
+    /// step's breakpoints at an await, and the step a remap would make again in the new code. One whose condition is
+    /// false, or a tracepoint, leaves it going.</summary>
     private void EndStepForStop()
     {
         _asyncStepper?.Disable();
@@ -582,8 +572,7 @@ public partial class ManagedDebugger
             {
                 return false;
             }
-            // On its way as a pause stopped the program: answered, it waits for the client's continue, and the pause's
-            // own hold keeps the program where the client sees it.
+            // On its way as a pause stopped the program: answered, it waits for the continue under the pause's hold.
             _logger?.Invoke($"Put off: {callbackEvent.GetType().Name} on thread {thread.Id}, while a stop is shown");
             _deferredEvents.Enqueue(callbackEvent);
             _process!.Continue(false);
@@ -711,8 +700,7 @@ public partial class ManagedDebugger
 
         if (EvalStatus.IsRunning || _stopShown)
         {
-            // Another thread's, queued with the evaluation's own event or on its way as a pause stopped the program:
-            // decided while its frame is good, its stop put off, and its breakpoints tried when it is taken.
+            // Another thread's, queued or come with a pause: decided while its frame is good, its stop put off.
             if (shouldStop || rules.Count > 0)
             {
                 _logger?.Invoke($"Put off: a stop at an exception on thread {corThread.Id}, during an evaluation on thread {EvalStatus.ThreadId} or a stop shown");

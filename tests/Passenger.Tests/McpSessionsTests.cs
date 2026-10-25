@@ -16,8 +16,7 @@ public sealed class McpSessionsTests : McpRig
 {
     /// <summary>Both launched, then one launched and one attached to, in one window over the pair: the agent steps and stops
     /// the one it names, and lets go of the one the debugger attached to, which runs on to its end while the other stays
-    /// paused; one the debugger started is refused as Detach refuses it, and with both paused one named by neither cannot
-    /// be told.</summary>
+    /// paused; one the debugger started is refused, and with both paused one named by neither cannot be told.</summary>
     [AvaloniaFact]
     public void An_agent_names_which_of_two_programs_debugged_at_once_it_acts_on_or_detaches_and_is_refused_when_it_names_none_it_can_tell()
     {
@@ -38,13 +37,11 @@ public sealed class McpSessionsTests : McpRig
             Assert.Equal(["First: paused", "Second: paused"], state.GetProperty("sessions").EnumerateArray().Select(s => s.GetString()));
             Assert.Equal("First", state.GetProperty("session").GetString());
 
-            // Both paused, a step that names neither cannot be told which to step.
             CallToolResult refused = Await(Task.Run(() => Result(client, "debug_step")), "the agent's unnamed step");
             string why = Text(refused);
             Assert.True(refused.IsError == true && why.Contains("First: paused", StringComparison.Ordinal) && why.Contains("Second: paused", StringComparison.Ordinal)
                 && why.Contains("session", StringComparison.Ordinal), $"An unnamed step with two programs paused was answered: {why}");
 
-            // Named, the step is that program's alone, and its tab is the window's.
             JsonElement stepped = Unasked(window, client, "debug_step", new() { ["session"] = "First" });
             Assert.True(stepped.GetProperty("session").GetString() == "First" && stepped.GetProperty("location").GetString()!.Contains($"Counter.cs:{DebugSessionsTests.Pair.Next + 2}:", StringComparison.Ordinal),
                 $"The agent's step of First was answered: {stepped}");
@@ -54,7 +51,6 @@ public sealed class McpSessionsTests : McpRig
             Assert.True(other.GetProperty("location").GetString()!.Contains($"Counter.cs:{DebugSessionsTests.Pair.Next + 1}:", StringComparison.Ordinal),
                 $"Stepping First moved Second, whose state is: {other}");
 
-            // stop names the one it ends; the other, alone, is the one an unnamed tool acts on.
             Assert.Equal("Stopped Second", Unasked(window, client, "stop", new() { ["session"] = "Second" }).GetString());
             WaitFor(() => second.State == DebugState.Ended, "the second program to end");
             Assert.Equal(DebugState.Paused, first.State);
@@ -64,8 +60,7 @@ public sealed class McpSessionsTests : McpRig
             Assert.Equal("Stopped", Unasked(window, client, "stop").GetString());
             WaitFor(() => !window.Debugger.IsDebugging, "every program to end");
 
-            // Second launched again and First, built by its first launch, started held for the debugger, as a container's
-            // service is, and attached to; each stops on its Main's line 3.
+            // First, built by its first launch, started held for the debugger and attached to; each stops on Main's line 3.
             window.Debugger.Breakpoints.Toggle(counter, DebugSessionsTests.Pair.Next);
             window.Debugger.Breakpoints.Toggle(Path.Combine(PathNames.Canonical(pair), "First", "Program.cs"), 3);
             window.Debugger.Breakpoints.Toggle(Path.Combine(PathNames.Canonical(pair), "Second", "Program.cs"), 3);

@@ -9,15 +9,13 @@ using Passenger.Inspector;
 
 namespace Passenger.App.Mcp;
 
-/// <summary>The Avalonia or WPF app Passenger runs or debugs, as an agent tests it: its windows, pictures the app draws of
-/// them, its visual tree, clicks, typing, keys and scrolling given as a person's are, and its failed bindings. All through the
-/// inspector Run and Debug launch an Avalonia 12 app or a WPF app with (<see cref="LiveApp"/>), the Live Visual Tree's, or for
-/// Passenger's own windows the same inspector loaded into Passenger. A WPF app's clicks go through UI Automation and its keys
-/// through WPF's input manager (src/Passenger.Inspector.Wpf/Driver.cs).</summary>
+/// <summary>The Avalonia or WPF app Passenger runs or debugs, as an agent tests it: its windows, pictures the app draws
+/// of them, its visual tree, clicks, typing, keys and scrolling given as a person's are, and its failed bindings, all
+/// through the Live Visual Tree's inspector (<see cref="LiveApp"/>), loaded into Passenger too for its own
+/// windows.</summary>
 public sealed partial class PassengerTools
 {
-    // What every app_ tool's app and window take is said once, in app_windows' description; the element query's syntax
-    // (control, filter) once, in app_tree's.
+    // app_windows' description says once what every app_ tool's app and window take; app_tree's, the query's syntax.
 
     /// <summary>How long a tool waits for an app launched a moment ago to show its UI.</summary>
     private static readonly TimeSpan AppUiLimit = TimeSpan.FromSeconds(60);
@@ -536,7 +534,6 @@ public sealed partial class PassengerTools
     /// <summary>A window as an answer names it: its type, @id and title.</summary>
     private static string Titled(Element window) => window.Text is { Length: > 0 } title ? $"{AppQuery.Short(window)} \"{title}\"" : AppQuery.Short(window);
 
-    /// <summary>Where a pointer input went, as its answer says it.</summary>
     /// <summary>Input into the app, and what it did; or, when it ran the debugged app into a breakpoint, where that paused it,
     /// said at once rather than the answer waited out, which the app's paused UI gives only once it runs again.</summary>
     private async Task<(InputDone? Done, string? Paused)> SendAsync(LiveApp live, InputAction input, CancellationToken cancel)

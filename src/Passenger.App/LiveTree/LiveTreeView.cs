@@ -30,11 +30,11 @@ public enum LiveTreePage
     Layout,
 }
 
-/// <summary>The Live Visual Tree window, as Visual Studio's for WPF with its Live Property Explorer under it: Select Element
-/// and Refresh atop the app's windows and their visual trees (a control's type, #name and .classes; a template's parts
-/// dimmed; at first open down to the app's own XAML), and under them the chosen control: its XAML (a link to it, or why
-/// there is none), then its properties with each value's source, the styles that apply and those that do not with why,
-/// and its layout's boxes. The window only shows; <see cref="LiveTreeController"/> asks the app.</summary>
+/// <summary>The Live Visual Tree window: Select Element and Refresh atop the app's windows and their visual trees (a
+/// control's type, #name and .classes; a template's parts dimmed; at first open down to the app's own XAML), and under
+/// them the chosen control: its XAML (a link to it, or why there is none), then its properties with each value's source,
+/// the styles that apply and those that do not with why, and its layout's boxes. The window only shows;
+/// <see cref="LiveTreeController"/> asks the app.</summary>
 public sealed class LiveTreeView : DockPanel
 {
     private readonly ObservableCollection<LiveTreeRow> rows = [];
@@ -190,8 +190,8 @@ public sealed class LiveTreeView : DockPanel
         properties.SelectedItem = kept is null ? null : PropertyRows.FirstOrDefault(p => p.Name == kept.Name);
     }
 
-    /// <summary>The menu of a property's row: Visual Studio's Break When Value Changes (checked while it has one), and Go to
-    /// Source where its value is written.</summary>
+    /// <summary>The menu of a property's row: Break When Value Changes (checked while it has one), and Go to Source where
+    /// its value is written.</summary>
     private IReadOnlyList<Control> PropertyMenu()
     {
         if (properties.SelectedItem is not PropertyValue value)
@@ -211,7 +211,7 @@ public sealed class LiveTreeView : DockPanel
         return items;
     }
 
-    /// <summary>The menu item's words, Visual Studio's for a data breakpoint.</summary>
+    /// <summary>The menu item's words.</summary>
     public const string BreakWhenValueChanges = "Break When Value Changes";
 
     /// <summary>Select Element, pressed while it is on.</summary>
@@ -539,7 +539,7 @@ public sealed class LiveTreeView : DockPanel
         DockPanel name = new() { Margin = new Thickness(0, 0, 8, 0), Children = { label } };
         if (Watched?.Invoke(value) == true)
         {
-            // A breakpoint's dot, as the editor's gutter draws one, before a property that stops the app when it changes.
+            // A breakpoint's dot before a property that stops the app when it changes.
             Avalonia.Controls.Shapes.Ellipse dot = new() { Width = 8, Height = 8, Margin = new Thickness(0, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center };
             dot.Bind(Avalonia.Controls.Shapes.Shape.FillProperty, dot.GetResourceObservable("Passenger.Editor.Breakpoint"));
             ToolTip.SetTip(dot, $"The app stops wherever {value.Name} is changed");
@@ -614,7 +614,7 @@ public sealed class LiveTreeView : DockPanel
 
     private void ShowLayout(LayoutInfo info)
     {
-        // The content's box at the middle, as a browser's box model has it: the bounds less the border and padding.
+        // The content's box at the middle: the bounds less the border and padding.
         Edges inside = new((info.Border?.Left ?? 0) + (info.Padding?.Left ?? 0), (info.Border?.Top ?? 0) + (info.Padding?.Top ?? 0),
             (info.Border?.Right ?? 0) + (info.Padding?.Right ?? 0), (info.Border?.Bottom ?? 0) + (info.Padding?.Bottom ?? 0));
         double width = Math.Max(0, info.Bounds.Width - inside.Left - inside.Right);
@@ -631,8 +631,7 @@ public sealed class LiveTreeView : DockPanel
         layout.Children.Add(Fact("Alignment", $"{info.HorizontalAlignment}, {info.VerticalAlignment}"));
     }
 
-    /// <summary>One of the layout's boxes, as the old Avalonia DevTools and a browser's draw them: its name in its corner,
-    /// its four sides' sizes around what it holds.</summary>
+    /// <summary>One of the layout's boxes: its name in its corner, its four sides' sizes around what it holds.</summary>
     private static Control Boxed(string label, Edges edges, Control inner)
     {
         Grid grid = new() { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), RowDefinitions = new RowDefinitions("Auto,*,Auto") };

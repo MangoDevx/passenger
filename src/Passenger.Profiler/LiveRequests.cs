@@ -57,10 +57,9 @@ public sealed class LiveRequests : IAsyncDisposable
         "Microsoft.EntityFrameworkCore/Microsoft.EntityFrameworkCore.Database.Command.DataReaderDisposing:-Id=CommandId;Reads=ReadCount;Trace=*Activity.RootId",
     ]);
 
-    /// <summary>The logs asked of the app's logging: EF Core's commands' category, with no level of its own, so the session's
-    /// (Informational) gives Information. A session begun before the app makes its LoggingEventSource (one followed from its
-    /// start) is told to it as it is made, which before .NET 11 reads the spec with its separators not yet set, splitting it
-    /// at white space alone: a ":Information" stayed part of the category's name, which no logger's matched, so none came.</summary>
+    /// <summary>The logs asked of the app's logging: EF Core's commands' category, with no level of its own, so the
+    /// session's (Informational) gives Information: before .NET 11, a session begun before the app's LoggingEventSource
+    /// is made reads a ":Information" as part of the category's name, which no logger's matches.</summary>
     internal const string LogsSpec = "Microsoft.EntityFrameworkCore.Database.Command";
 
     private readonly EventPipeEventSource source;
@@ -80,11 +79,9 @@ public sealed class LiveRequests : IAsyncDisposable
     internal static EventPipeProvider[] Providers =>
     [
         new EventPipeProvider(Bridge, EventLevel.Verbose, 0x3, new Dictionary<string, string> { ["FilterAndPayloadSpecs"] = Specs }),
-        // The runtime's counters once a second, passed over: the stream's reader hands on what it holds as more comes, so a
-        // request's last events are heard within a second of it, not only once the app serves another.
+        // Counters once a second, passed over: more coming hands on a request's last events within a second.
         new EventPipeProvider("System.Runtime", EventLevel.Informational, 0, new Dictionary<string, string> { ["EventCounterIntervalSec"] = "1" }),
-        // EF Core's log of each command, through the app's own logging: its parameters, which the bridge's events cannot name.
-        // Its category alone, at the session's level (LogsSpec says why).
+        // EF Core's log of each command, for its parameters, which the bridge's events cannot name.
         new EventPipeProvider(Logging, EventLevel.Informational, 0x4, new Dictionary<string, string> { ["FilterSpecs"] = LogsSpec }),
     ];
 
@@ -116,8 +113,8 @@ public sealed class LiveRequests : IAsyncDisposable
     }
 
     /// <summary>Starts hearing a program in a container (<paramref name="place"/>) through Passenger's tools there
-    /// (<c>trace --requests</c>, the same session at the program's own diagnostic port, its stream on their output), as the
-    /// profiler records one. Tools that cannot start or reach it are a <see cref="ProfilingException"/> with their last word.</summary>
+    /// (<c>trace --requests</c>, the same session at the program's own diagnostic port, its stream on their output).
+    /// Tools that cannot start or reach it are a <see cref="ProfilingException"/> with their last word.</summary>
     public static async Task<LiveRequests> AttachAsync(int processId, ProfilePlace place, Action<WebEvent> heard, CancellationToken cancel = default)
     {
         Process tools;

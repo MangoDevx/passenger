@@ -21,12 +21,12 @@ public sealed record MergeState(MergeOperation Operation, string Ours, string? T
     /// <summary>Whether a commit finishes the operation, which git makes only of the whole index.</summary>
     public bool CommitsWhole => Operation is MergeOperation.Merge or MergeOperation.CherryPick or MergeOperation.Revert;
 
-    /// <summary>The words the Conflicts dialog and the merge window use for the sides, as Rider's Git words them.
+    /// <summary>The words the Conflicts dialog and the merge window use for the sides.
     /// <paramref name="stash"/> names the stash an unstash with conflicts applied, which git keeps no record of.</summary>
     public ConflictSides Sides(string? stash) => Operation switch
     {
         MergeOperation.Merge => new($"Merging branch {Theirs} into branch {Ours}", Ours, Theirs, $"Your version, branch {Ours}", $"Changes from branch {Theirs}", Swapped: false),
-        // Rebasing, "yours" is the branch being rebased, which git calls theirs, as Rider has it.
+        // Rebasing, "yours" is the branch being rebased, which git calls theirs.
         MergeOperation.Rebase => new($"Rebasing branch {Theirs} onto branch {Ours}", Theirs, Ours,
             Commit is null ? $"Rebasing {Theirs}" : $"Rebasing {Commit} from {Theirs}", $"Already rebased commits and commits from {Ours}", Swapped: true),
         MergeOperation.CherryPick => new($"Conflicts during cherry-picking commit {Commit}", Ours, null, "Local Changes", $"Changes from cherry-pick {Commit}", Swapped: false),

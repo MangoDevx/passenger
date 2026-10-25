@@ -19,11 +19,11 @@ using Passenger.Text;
 
 namespace Passenger.Tests;
 
-/// <summary>The Solution view's file commands as Rider's: Cut, Copy and Paste by their keys and its Edit menu, and drags,
-/// move or copy files and folders into another folder or another project's, an open file's tab, undo and edits going with
-/// it; Add, Reference... adds and takes out a project reference, however the others are laid out, which the Dependencies,
-/// the build and the language server follow, the rest of the project file as it was; Add, Class/Interface... writes each of
-/// Rider's kinds of type; Open In, Terminal starts a shell in the folder; and Tools' Compare shows two files' differences.</summary>
+/// <summary>The Solution view's file commands: Cut, Copy and Paste by their keys and its Edit menu, and drags, move or copy
+/// files and folders into another folder or another project's, an open file's tab, undo and edits going with it; Add,
+/// Reference... adds and takes out a project reference, however the others are laid out, which the Dependencies, the
+/// build and the language server follow, the rest of the project file as it was; Add, Class/Interface... writes each kind
+/// of type; Open In, Terminal starts a shell in the folder; and Tools' Compare shows two files' differences.</summary>
 public sealed class SolutionViewTests : IDisposable
 {
     private static readonly string Library = TestProjects.Library();
@@ -67,13 +67,11 @@ public sealed class SolutionViewTests : IDisposable
         window.KeyTextInput(" // the sum");
         Ui.Settle();
 
-        // Cut by its key on the file's row: the row dims until it is pasted.
         Ui.ClickRow(window, Show(window, order));
         Ui.Run(window, EditorActions.Cut);
         Assert.True(Show(window, order).IsCut, "The file cut is not dimmed, so nothing shows it waits to be pasted");
         Assert.Equal(order, Ui.Clipboard(window));
 
-        // Paste by its key on a folder of the other project.
         string catalog = Path.Combine(folder, "Shop.Core", "Catalog");
         Ui.ClickRow(window, Show(window, catalog));
         Ui.Run(window, EditorActions.Paste);
@@ -89,11 +87,9 @@ public sealed class SolutionViewTests : IDisposable
         Assert.False(row.IsCut);
         Assert.DoesNotContain(window.ExplorerView.Tree.Rows, r => r.Path == order);
 
-        // A cut is pasted once.
         Ui.Run(window, EditorActions.Paste);
         Assert.StartsWith("Nothing to paste", window.Status, StringComparison.Ordinal);
 
-        // Undo still reaches the edit made before the move.
         window.EditorArea.CodeEditor.Focus();
         Ui.Run(window, EditorActions.Undo);
         Assert.Equal(Order, document.Text.Snapshot.ToString());
@@ -101,9 +97,7 @@ public sealed class SolutionViewTests : IDisposable
     }
 
     /// <summary>Every file of a folder of 400 chosen and cut allocates on the UI thread, for each file, under twice what every
-    /// file of a folder of 40 does, each row dimmed and a file's dependent going with it: each file's dependents were found
-    /// by listing and nesting its whole folder again, and each row compared with every file cut, so cutting them all cost
-    /// the folder once for each file.</summary>
+    /// file of a folder of 40 does, each row dimmed and a file's dependent going with it.</summary>
     [AvaloniaFact]
     public void Cutting_every_file_of_a_folder_of_four_hundred_costs_each_file_about_what_it_does_in_a_folder_of_forty()
     {
@@ -137,7 +131,6 @@ public sealed class SolutionViewTests : IDisposable
         Show(window, Path.Combine(at, "Item0.cs"));
         ExplorerNode[] Rows() => [.. window.ExplorerView.Tree.Rows.Where(r => r.Path is { } path && PathNames.IsUnder(path, at))];
         Assert.Equal(count + 1, Rows().Length);
-        // The first clicked, the last with Shift.
         Ui.ClickRow(window, Rows()[0]);
         Ui.Click(Ui.Row(window.ExplorerView, Rows()[^1]), modifiers: Avalonia.Input.RawInputModifiers.Shift);
         Assert.Equal(count + 1, window.ExplorerView.SelectedNodes.Count);
@@ -146,7 +139,6 @@ public sealed class SolutionViewTests : IDisposable
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         Assert.StartsWith("Cut ", window.Status, StringComparison.Ordinal);
         Assert.All(Rows(), row => Assert.True(row.IsCut, $"{row.Name} was cut but is not dimmed"));
-        // The code-behind nested under the component is cut with it, dimmed as it shows.
         ExplorerNode card = Assert.Single(Rows(), r => r.Name == "Card.razor");
         Ui.ClickRow(window, card);
         Ui.Press(window, "RIGHT");
@@ -162,7 +154,6 @@ public sealed class SolutionViewTests : IDisposable
         string models = Path.Combine(folder, "Shop.App", "Models");
         MainWindow window = Open();
 
-        // Copy from the folder's Edit menu, Paste by its key on the other project.
         Ui.ChooseFromRowMenu(window, Show(window, models), "Edit", "Copy");
         Assert.False(Show(window, models).IsCut, "A copied folder is dimmed as a cut one is");
         Ui.ClickRow(window, Row(window, NodeKind.Project, "Shop.Core"));
@@ -174,7 +165,6 @@ public sealed class SolutionViewTests : IDisposable
         Assert.Equal(Order, File.ReadAllText(Path.Combine(models, "Order.cs")));
         Assert.Same(Row(window, NodeKind.Folder, "Models", copy), window.ExplorerView.Selected);
 
-        // Pasted again where it came from, the copy needs a name of its own.
         Ui.ChooseFromRowMenu(window, Row(window, NodeKind.Project, "Shop.App"), "Edit", "Paste");
         NamePopup popup = Assert.IsType<NamePopup>(window.Popup);
         Assert.Equal("Models", popup.Text);
@@ -187,7 +177,6 @@ public sealed class SolutionViewTests : IDisposable
         Assert.Equal(Order, File.ReadAllText(Path.Combine(folder, "Shop.App", "Archive", "Order.cs")));
         Assert.True(File.Exists(Path.Combine(folder, "Shop.App", "Archive", "Lines", "Line.cs")), "The duplicate left the folder inside behind");
 
-        // Pasted onto a project that has a folder of that name, it asks before replacing it.
         List<string> asked = [];
         window.Confirm = (title, _, _) =>
         {
@@ -200,7 +189,6 @@ public sealed class SolutionViewTests : IDisposable
         Assert.Equal(["Files Already Exist"], asked);
         Assert.Equal("changed\n", File.ReadAllText(Path.Combine(copy, "Order.cs")));
 
-        // A file dragged onto another project's folder moves there.
         string order = Path.Combine(folder, "Shop.App", "Models", "Order.cs");
         string catalog = Path.Combine(folder, "Shop.Core", "Catalog");
         window.OpenFile(order);
@@ -209,7 +197,6 @@ public sealed class SolutionViewTests : IDisposable
         ExplorerNode target = Show(window, catalog);
         DropOverlay overlay = window.ExplorerView.GetVisualDescendants().OfType<DropOverlay>().Single();
 
-        // Held over the folder, the folder and what shows under it light up.
         Point from = Ui.Centre(Ui.Row(window.ExplorerView, file), window);
         Point to = Ui.Centre(Ui.Row(window.ExplorerView, target), window);
         window.MouseDown(from, MouseButton.Left);
@@ -224,7 +211,6 @@ public sealed class SolutionViewTests : IDisposable
         Assert.Equal(Order, File.ReadAllText(moved));
         Assert.Equal(moved, Assert.Single(window.EditorArea.Documents).Path);
 
-        // Dropped onto a file, it goes into that file's folder; with the copy key held it is copied.
         string program = Path.Combine(folder, "Shop.App", "Program.cs");
         from = Ui.Centre(Ui.Row(window.ExplorerView, Show(window, moved)), window);
         to = Ui.Centre(Ui.Row(window.ExplorerView, Show(window, program)), window);
@@ -236,7 +222,6 @@ public sealed class SolutionViewTests : IDisposable
         Assert.Equal(Order, File.ReadAllText(Path.Combine(folder, "Shop.App", "Order.cs")));
         Assert.True(File.Exists(moved), "The file copied by a drag left where it was");
 
-        // A folder never goes inside itself: nothing lights up there, and nothing moves.
         ExplorerNode lines = Show(window, Path.Combine(models, "Lines"));
         from = Ui.Centre(Ui.Row(window.ExplorerView, Show(window, models)), window);
         to = Ui.Centre(Ui.Row(window.ExplorerView, lines), window);
@@ -264,14 +249,13 @@ public sealed class SolutionViewTests : IDisposable
         ProblemsModel problems = window.BottomPanel.Problems;
         Ui.WaitFor(() => problems.FileProblems.Any(p => p.Severity == ProblemSeverity.Error), "the language server's error for the type of a project not referenced", TimeSpan.FromMinutes(2));
 
-        // Add, Reference... on the project: the other project offered, checked with Space, OK with Enter.
         Ui.ChooseFromRowMenu(window, Row(window, NodeKind.Project, "Shop.App"), "Add", "Reference…");
         AddReferenceDialog dialog = DialogButtonsTests.Check(Assert.Single(window.OwnedWindows.OfType<AddReferenceDialog>()));
         ReferenceChoice offered = Assert.Single(dialog.Choices);
         Assert.Equal(("Shop.Core", core, false), (offered.Name, offered.Path, offered.IsChosen));
         Ui.Press(dialog, "SPACE");
         Assert.True(offered.IsChosen, "Space did not check the project chosen");
-        // Enter is OK; the dialog it closes takes no key's release.
+        // The dialog Enter closes takes no key's release.
         Heard(window, app, () => dialog.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.None, null));
         Assert.Empty(window.OwnedWindows.OfType<AddReferenceDialog>());
         Assert.Equal("Added a reference to Shop.Core to Shop.App", window.Status);
@@ -281,7 +265,6 @@ public sealed class SolutionViewTests : IDisposable
                 + "  <ItemGroup>\r\n    <ProjectReference Include=\"..\\Shop.Core\\Shop.Core.csproj\" />\r\n  </ItemGroup>\r\n\r\n</Project>\r\n",
             added);
 
-        // The project's Dependencies list it, the language server finds the type, and the solution builds.
         ExplorerNode dependencies = Dependencies(window, "Shop.App");
         Ui.ClickRow(window, dependencies);
         Ui.Press(window, "RIGHT");
@@ -292,7 +275,6 @@ public sealed class SolutionViewTests : IDisposable
         // What the build writes (a restore's .props among it) has the solution read again: once the folder is quiet.
         Quiet(window);
 
-        // Remove on the reference, by its key once asked: the project file is as it was, byte for byte.
         List<string> asked = Answer(window);
         Ui.ClickRow(window, Assert.Single(window.ExplorerView.Tree.Rows, r => r.Kind == NodeKind.ProjectReference));
         Heard(window, app, () => Ui.Press(window, OperatingSystem.IsMacOS() ? "BACK_SPACE" : "DELETE"));
@@ -303,7 +285,6 @@ public sealed class SolutionViewTests : IDisposable
         Assert.DoesNotContain(window.ExplorerView.Tree.Rows, r => r.Kind == NodeKind.ProjectReference);
         Ui.WaitFor(() => problems.FileProblems.Any(p => p.Severity == ProblemSeverity.Error), "the language server's error once the reference is gone", TimeSpan.FromMinutes(2));
 
-        // The dialog, from the Dependencies' own menu, offers what references the project back as nothing to check.
         Heard(window, core, () => Assert.Null(window.SetReferences(core, [app])));
         Ui.ChooseFromRowMenu(window, Dependencies(window, "Shop.App"), "Add Reference…");
         dialog = Assert.Single(window.OwnedWindows.OfType<AddReferenceDialog>());
@@ -349,7 +330,6 @@ public sealed class SolutionViewTests : IDisposable
                 $"MSBuild does not load {Path.GetFileName(project)} with the reference added: {Project(project).Problem}");
         }
 
-        // Each taken out again, the project files are as they were.
         Heard(window, app, () => Assert.Null(window.SetReferences(app, [lib])));
         Heard(window, core, () => Assert.Null(window.SetReferences(core, [lib])));
         Assert.Equal<string>(written, [File.ReadAllText(app), File.ReadAllText(core)]);
@@ -374,7 +354,6 @@ public sealed class SolutionViewTests : IDisposable
             return Task.FromResult(false);
         };
 
-        // The project file edited and not saved, then Add, Reference... on its project.
         window.OpenFile(app);
         Typing.Replace(window, ">Exe<", ">WinExe<");
         OpenDocument project = window.EditorArea.Active!;
@@ -388,7 +367,6 @@ public sealed class SolutionViewTests : IDisposable
         Assert.Equal(written.TrimStart('﻿'), project.Text.Snapshot.ToString());
         Assert.False(project.IsModified, "The project file shows unsaved changes it does not have");
 
-        // The solution edited and not saved, then New Solution Folder.
         window.OpenFile(solution);
         Typing.Replace(window, "<Solution>", "<Solution><!-- shop -->");
         OpenDocument slnx = window.EditorArea.Active!;
@@ -401,7 +379,6 @@ public sealed class SolutionViewTests : IDisposable
         Assert.Equal(written, slnx.Text.Snapshot.ToString());
         Assert.False(slnx.IsModified, "The solution shows unsaved changes it does not have");
 
-        // The project file shown, a file it names renamed: its item follows in the open file, and Undo takes both back.
         window.OpenFile(app);
         List<string> undoing = Answer(window);
         string notes = Path.Combine(folder, "Shop.App", "notes.txt");
@@ -420,7 +397,7 @@ public sealed class SolutionViewTests : IDisposable
     }
 
     /// <summary>A file, folder or class its folder refuses is refused in the popup saying why, with no IDE error; once the
-    /// folder takes them, Add, Class/Interface... writes each of Rider's kinds of type in its folder's namespace.</summary>
+    /// folder takes them, Add, Class/Interface... writes each kind of type in its folder's namespace.</summary>
     [AvaloniaFact]
     public void Add_refused_by_its_folder_says_why_with_no_ide_error_and_add_class_interface_writes_each_of_Riders_kinds_of_type_in_its_folders_namespace()
     {
@@ -537,7 +514,6 @@ public sealed class SolutionViewTests : IDisposable
             $"The solution's Build Solution shows {shown?.ToString() ?? "no keys"}, not Build Solution's {build.Display()} as the main menu does");
         Ui.Settle();
 
-        // A chord, as the main menu shows one.
         Ui.RightClick(Ui.Row(window.ExplorerView, Row(window, NodeKind.Project, "Shop.Core")));
         Shortcut chord = keymap.ShortcutsFor(AppActions.RunTests)[0];
         string? keys = MenuItemOf(window, "Run Unit Tests").GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Name == "PART_InputGestureText")?.Text;
@@ -545,7 +521,6 @@ public sealed class SolutionViewTests : IDisposable
         Assert.True(keys == chord.Display(), $"A project's Run Unit Tests shows '{keys}' for its keys, not {chord.Display()} as the main menu does");
         Ui.Settle();
 
-        // Compare With... by its key: the file chosen on the left, the one picked on the right.
         Ui.ClickRow(window, Show(window, a));
         Ui.Press(window, OperatingSystem.IsMacOS() ? "meta D" : "control D");
         Ui.Landed(() => window.Frontmost is DiffWindow, "the diff window");
@@ -557,7 +532,6 @@ public sealed class SolutionViewTests : IDisposable
         window.Frontmost.Close();
         Ui.Settle();
 
-        // Compare Files on the two chosen together, from Tools.
         ExplorerNode second = Show(window, b);
         Ui.ClickRow(window, Show(window, a));
         Ui.Click(Ui.Row(window.ExplorerView, second), modifiers: RawInputModifiers.Shift);
@@ -592,8 +566,7 @@ public sealed class SolutionViewTests : IDisposable
 
     /// <summary>Where the file system tells letter case apart (Linux), Models and models are two folders of a project, each
     /// showing its own files, and a rename of a file to the name of another in other letter case is refused before anything
-    /// changes, the type it is named after too: the Solution view merged the two folders into one, and the rename went on
-    /// over the other file, a type rename's edits made before the move failed.</summary>
+    /// changes, the type it is named after too.</summary>
     [AvaloniaFact]
     public void Where_letter_case_tells_names_apart_Models_and_models_stay_two_folders_and_a_rename_onto_another_case_is_refused()
     {

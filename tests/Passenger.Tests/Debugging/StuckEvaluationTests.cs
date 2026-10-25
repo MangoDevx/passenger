@@ -5,9 +5,8 @@ using Passenger.Tests.Debugging.Helpers;
 namespace Passenger.Tests.Debugging;
 
 /// <summary>An evaluation that cannot be stopped (a getter blocked reading input, outside the runtime), or that a continue
-/// leaves behind: the debugger takes the program back, as Visual Studio and Rider do, so it is paused as the IDE shows it,
-/// and it continues as from any stop. Its stop still there to read, with no getter run until it goes on, and the step from
-/// it, are DebuggerTests' window test of it.</summary>
+/// leaves behind: the debugger takes the program back, so it is paused as the IDE shows it, and it continues as from any
+/// stop.</summary>
 [Collection(Alone.Name)]
 public class StuckEvaluationTests(ITestOutputHelper testOutputHelper)
 {
@@ -52,17 +51,16 @@ public class StuckEvaluationTests(ITestOutputHelper testOutputHelper)
         host.WithEvaluateRequest(host.GetTopStackFrame(thread).Id, "Reads.Input", out EvaluateResponse stuck);
         Assert.Contains("could not be stopped", stuck.Result, StringComparison.Ordinal);
 
-        // Read from the exception's own fields, as no code runs on the thread while the evaluation does.
+        // No code runs on the thread while the evaluation does.
         ExceptionInfoResponse info = host.Request<ExceptionInfoResponse>("exceptionInfo", new ThreadArguments(thread));
         Assert.Equal(("System.InvalidOperationException", "thrown in user code"), (info.Details?.FullTypeName, info.Details?.Message));
         Assert.Contains("Implicit evaluation is disabled", info.Description, StringComparison.Ordinal);
         Assert.Single(host.Locals(stop), v => v.Name == "$exception");
     }
 
-    /// <summary>A continue sent while the stop's values are still being read is answered at once, as a person pressing
-    /// Continue expects, where it waited its turn behind every read (here an evaluation that never returns: its time limit
-    /// and the aborts' waits). The evaluation under way is left to the program, which goes on with it and has it aborted
-    /// once its time is up; a read still waiting finds the stop gone and runs nothing.</summary>
+    /// <summary>A continue sent while the stop's values are still being read (here by an evaluation that never returns) is
+    /// answered at once. The evaluation under way is left to the program, which goes on with it and has it aborted once its
+    /// time is up; a read still waiting finds the stop gone and runs nothing.</summary>
     [Fact]
     public async Task A_continue_goes_ahead_of_the_stops_reads_and_leaves_the_evaluation_under_way_to_the_program()
     {
@@ -82,16 +80,15 @@ public class StuckEvaluationTests(ITestOutputHelper testOutputHelper)
         DapException dropped = await Assert.ThrowsAsync<DapException>(() => counted);
         Assert.Contains("earlier stop", dropped.Reason, StringComparison.Ordinal);
 
-        // The program goes on from the evaluation once its time is up and it is aborted; the getter that counts never ran.
+        // The getter that counts never ran.
         (string output, int? exitCode) = await host.WaitForEnd();
         Assert.Contains("counted 0", output, StringComparison.Ordinal);
         Assert.Equal(0, exitCode);
     }
 
-    /// <summary>A program attached to and let go (Detach) a moment after a read of its stop began an evaluation, under the
-    /// run's 3 s evaluation limit: the let-go waits for that evaluation's end alone, never for its whole time nor for the
-    /// threads the wait has run off their stop already, so the detach is answered soon after the evaluation returns, well
-    /// within the time the IDE gives it, and the program runs on to its own end.</summary>
+    /// <summary>A program attached to and let go (Detach) a moment after a read of its stop began an evaluation: the detach
+    /// waits for that evaluation's end alone, never for its whole time, so it is answered soon after the evaluation returns,
+    /// and the program runs on to its own end.</summary>
     [Fact]
     public async Task A_detach_just_after_an_evaluation_began_waits_for_its_end_alone_and_the_program_runs_on()
     {
@@ -138,9 +135,8 @@ public class StuckEvaluationTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(0, program.ExitCode);
     }
 
-    /// <summary>An evaluation that could not be stopped has had its time and its abort's window already: a Detach after it never waits
-    /// it out again, nor waits for its thread to run off a stop it cannot leave until the evaluation returns, so it is
-    /// answered at once, where it took another evaluation limit and the let-go's every round.</summary>
+    /// <summary>A Detach after an evaluation that could not be stopped, which has had its time and its abort's window
+    /// already, never waits it out again, nor for its thread to leave its stop: it is answered at once.</summary>
     [Fact]
     public async Task A_detach_after_an_evaluation_that_could_not_be_stopped_is_answered_at_once()
     {
@@ -168,10 +164,8 @@ public class StuckEvaluationTests(ITestOutputHelper testOutputHelper)
     }
 
     /// <summary>An evaluation at a stop that takes a lock another thread holds there waits on it until the program goes on,
-    /// and is never aborted there: the abort could take only once the wait ended, after the program had gone on, with the
-    /// lock the evaluation's, and a rude one runs no finally, so the lock was never let go and every thread that wanted it
-    /// waited for good. Once the program goes on the evaluation runs to its end as written, and the lock is every thread's
-    /// again: another thread's evaluation takes it, and so does that thread.</summary>
+    /// and is never aborted there, which would leave the lock held for good. Once the program goes on the evaluation runs to
+    /// its end, and the lock is every thread's again: another thread's evaluation takes it, and so does that thread.</summary>
     [Fact]
     public async Task An_evaluation_waiting_on_a_lock_a_paused_thread_holds_leaves_the_lock_free_once_the_program_goes_on()
     {
@@ -184,9 +178,8 @@ public class StuckEvaluationTests(ITestOutputHelper testOutputHelper)
         await TheLockIsFreeOnceTheFirstEvaluationRanToItsEnd(host);
     }
 
-    /// <summary>As above, the evaluation left to the program by a continue before its time was up, as a stop's reads leave
-    /// theirs: once its time is up it waits still, and is not aborted there, where the abort would take only once the lock
-    /// was its; it runs to its end once the holder lets the lock go.</summary>
+    /// <summary>As above, with the evaluation left to the program by a continue before its time was up: past its time it
+    /// waits still, never aborted, and runs to its end once the holder lets the lock go.</summary>
     [Fact]
     public async Task An_evaluation_a_continue_leaves_waiting_on_a_lock_past_its_time_runs_to_its_end_once_the_lock_is_free()
     {
@@ -201,9 +194,8 @@ public class StuckEvaluationTests(ITestOutputHelper testOutputHelper)
         await TheLockIsFreeOnceTheFirstEvaluationRanToItsEnd(host);
     }
 
-    /// <summary>An evaluation that spins in a finally block past its time is not aborted there, where the runtime would put
-    /// the abort off until the block was left, by then after the program had gone on: it runs to its end once another
-    /// thread lets it out, past the code after the block.</summary>
+    /// <summary>An evaluation that spins in a finally block past its time is not aborted there: it runs to its end once
+    /// another thread lets it out, past the code after the block.</summary>
     [Fact]
     public async Task An_evaluation_spinning_in_a_finally_block_runs_to_its_end_once_let_out()
     {

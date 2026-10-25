@@ -20,8 +20,8 @@ public readonly record struct Selection(int Anchor, int Caret, double PreferredX
 /// most recently added one primary. Immutable: each change returns a new set.</summary>
 public sealed class SelectionSet
 {
-    /// <summary>The most carets an editor keeps, IntelliJ's (its editor.max.caret.count): every key acts at each, and
-    /// past this a key would take longer than a person waits.</summary>
+    /// <summary>The most carets an editor keeps: every key acts at each, and past this a key would take longer than a
+    /// person waits.</summary>
     public const int MaxCount = 1000;
 
     private SelectionSet(Selection[] items, int primary)

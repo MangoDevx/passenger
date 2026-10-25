@@ -17,7 +17,7 @@ public sealed record ConflictRow(GitConflict Conflict, string Folder, string You
     public bool CanMerge => Conflict.CanMerge;
 }
 
-/// <summary>Rider's Conflicts dialog: what is under way (Merging branch feature into branch main), the files in conflict
+/// <summary>The Conflicts dialog: what is under way (Merging branch feature into branch main), the files in conflict
 /// with what yours and theirs did to each (the branches named over the columns, yours the rebased branch in a rebase),
 /// and Accept Yours, Accept Theirs and Merge... for the chosen ones; a double-click merges. It follows the working tree,
 /// a file resolved leaving the list, and closes once none is left. Escape closes it.</summary>
@@ -239,7 +239,7 @@ public sealed class ConflictsDialog : Window
 
     private static Button ActionButton(string label, Func<Task> run)
     {
-        // The column's buttons one width, the widest's, as Rider's Conflicts dialog has them.
+        // The column's buttons one width, the widest's.
         Button button = new() { Content = label, MinWidth = 120, HorizontalAlignment = HorizontalAlignment.Stretch };
         button.Click += (_, _) => _ = run();
         return button;

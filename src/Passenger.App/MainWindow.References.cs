@@ -4,11 +4,11 @@ using Passenger.Core;
 
 namespace Passenger.App;
 
-/// <summary>A project's references to the solution's other projects, as Rider's Solution view edits them: Add, Reference...
-/// (and Add Reference... on its Dependencies) checks and unchecks them in <see cref="AddReferenceDialog"/>, and Remove on
-/// one under Dependencies takes it out. Each changes the project file's text through <see cref="ProjectEdits"/>, and the
-/// solution is read again, so the Explorer's Dependencies, Build and the language server (which reloads a project file
-/// that changes) follow.</summary>
+/// <summary>A project's references to the solution's other projects: Add, Reference... (and Add Reference... on its
+/// Dependencies) checks and unchecks them in <see cref="AddReferenceDialog"/>, and Remove on one under Dependencies
+/// takes it out. Each changes the project file's text through <see cref="ProjectEdits"/>, and the solution is read
+/// again, so the Explorer's Dependencies, Build and the language server (which reloads a project file that changes)
+/// follow.</summary>
 public partial class MainWindow
 {
     /// <summary>The dialog over the solution's other projects, those the project references checked; OK makes the project
@@ -82,7 +82,7 @@ public partial class MainWindow
         return null;
     }
 
-    /// <summary>Rider's Remove on a project reference under Dependencies, once asked: the project file loses it.</summary>
+    /// <summary>Remove on a project reference under Dependencies, once asked: the project file loses it.</summary>
     public async Task<bool> RemoveReferenceAsync(string project, string referenced)
     {
         string name = Path.GetFileNameWithoutExtension(project);

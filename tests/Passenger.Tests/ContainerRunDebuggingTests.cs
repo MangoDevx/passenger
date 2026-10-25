@@ -75,7 +75,6 @@ public sealed class ContainerRunDebuggingTests(ContainerRunDebuggingTests.Tools 
             Resume(window, web);
             Resume(window, api);
 
-            // A request to each stops in its handler, where its message is evaluated, and answers once it goes on.
             foreach ((DebugTab tab, string service, string app) in (ReadOnlySpan<(DebugTab, string, string)>)[(web, "web", "Web"), (api, "api", "Api")])
             {
                 Task<string> answer = Get(ContainerRunsTests.Published(project, service));
@@ -88,8 +87,6 @@ public sealed class ContainerRunDebuggingTests(ContainerRunDebuggingTests.Tools 
             Ui.WaitFor(() => window.Debugger.Output(web.Session).ToString().Contains("Now listening on", StringComparison.Ordinal), "web's log in its console");
             Assert.DoesNotContain(DebugController.AttachedConsole, window.Debugger.Output(api.Session).ToString(), StringComparison.Ordinal);
 
-            // The project's Restart in the Containers window: every service restarted, web and api held again and attached to
-            // again, running on with their breakpoints taken out.
             foreach (string app in (string[])["Web", "Api"])
             {
                 window.Debugger.Breakpoints.Toggle(Source(folder, app), InMain);
@@ -108,7 +105,6 @@ public sealed class ContainerRunDebuggingTests(ContainerRunDebuggingTests.Tools 
             Ui.WaitFor(() => web.Session is { State: DebugState.Running } && web.Session != webBefore && api.Session is { State: DebugState.Running },
                 "web and api to run under the debugger again");
 
-            // A debugged service's Stop and Remove go through the run, its session ended first, the other's going on.
             ContainerServicesTests.Act(window, view, project, "api", AppActions.ContainerStop);
             Ui.WaitFor(() => !api.IsLive && ContainerRunsTests.StatesNow(project)?.GetValueOrDefault("api") == "exited", "api's session to end and its container to stop",
                 TimeSpan.FromMinutes(2));
@@ -117,7 +113,6 @@ public sealed class ContainerRunDebuggingTests(ContainerRunDebuggingTests.Tools 
             Ui.WaitFor(() => !web.IsLive && ContainerRunsTests.StatesNow(project) is { } states && !states.ContainsKey("web"), "web's session to end and its container to go", TimeSpan.FromMinutes(2));
             Assert.Equal("running", ContainerRunsTests.States(project)["cache"]);
 
-            // The project's Stop is the run's: nothing of it left, its log no longer followed.
             Ui.WaitFor(() => view.Choose(r => r.Kind == ContainerRowKind.Project && r.Project?.Name == project), $"{project}'s row");
             Assert.True(window.Perform(AppActions.ContainerStop), $"Stop could not run on {project}: {window.Status}");
             Docker.TakenDown(project, "the project's Stop to take the run down");
@@ -128,7 +123,6 @@ public sealed class ContainerRunDebuggingTests(ContainerRunDebuggingTests.Tools 
         {
             Docker.Stopped(window, project, "Stop to take every container down");
         }
-        // A debugger that lost its container under it would be an IDE error, which fails the test.
         Ui.WaitFor(() => !window.Debugger.IsDebugging, "both sessions to end with the run");
         window.Close();
     }
@@ -143,7 +137,6 @@ public sealed class ContainerRunDebuggingTests(ContainerRunDebuggingTests.Tools 
         string message = Path.Combine(folder, "Web", "Message.cs");
         try
         {
-            // The gutter's Debug of one service debugs it alone.
             window.OpenFile(Path.Combine(folder, "compose.yaml"));
             Ui.Settle();
             Passenger.App.Workspace.OpenDocument compose = window.EditorArea.Active!;
@@ -153,7 +146,6 @@ public sealed class ContainerRunDebuggingTests(ContainerRunDebuggingTests.Tools 
             DebugTab web = Tab(window, "web");
             Assert.DoesNotContain(window.Debugger.Tabs, t => t.Name == "api");
 
-            // Paused in its handler, an edit to the message is applied as it goes on.
             Task<string> answer = Get(ContainerRunsTests.Published(project, "web"));
             StoppedAt(window, web, Source(folder, "Web"), InRequest, "web's request to stop in its handler");
             window.OpenFile(message);
@@ -167,7 +159,6 @@ public sealed class ContainerRunDebuggingTests(ContainerRunDebuggingTests.Tools 
                 "Stop to end web's session and take it down", TimeSpan.FromMinutes(2));
             window.Debugger.Breakpoints.Toggle(Source(folder, "Web"), InRequest);
 
-            // Run with Hot Reload: every .NET service attached to quietly, an edit applied through the debugger.
             Assert.True(window.SelectConfiguration("Compose: compose.yaml"));
             Assert.Null(Ui.Await(window.Builds.RunAsync(hotReload: true), "the services to come up with Hot Reload", TimeSpan.FromMinutes(5)));
             Ui.WaitFor(() => window.Debugger.Running.Count == 2, "web and api to be attached to for Hot Reload");
@@ -175,8 +166,7 @@ public sealed class ContainerRunDebuggingTests(ContainerRunDebuggingTests.Tools 
             int port = ContainerRunsTests.Published(project, "web");
             Assert.Equal("web 2", Ui.Await(Get(port), "web's answer", TimeSpan.FromMinutes(1)));
 
-            // Another program debugged meanwhile, with Hot Reload of its own, takes nothing from them: the services still take
-            // the edits, on Apply and on a save.
+            // Another program debugged meanwhile, with Hot Reload of its own, takes nothing from them.
             string looping = Debugging.Helpers.Debuggees.Program("LoopingConsoleApp");
             LaunchPlan other = new() { Name = "Looping", Program = looping, Arguments = ["sleep"], WorkingDirectory = Path.GetDirectoryName(looping)! };
             Assert.Null(Ui.Await(window.Debugger.StartAsync(other), "another program to be debugged beside the run"));
@@ -193,7 +183,7 @@ public sealed class ContainerRunDebuggingTests(ContainerRunDebuggingTests.Tools 
             _ = window.Debugger.StopAsync("Looping");
             Ui.WaitFor(() => !window.Debugger.IsDebugging, "the other program to end with Stop");
 
-            // A field's type the runtime cannot change: web is built again, restarted and attached to again.
+            // A field's type the runtime cannot change, so web is built again and restarted.
             Typing.Replace(window, "public static int Count;", "public static long Count;");
             Typing.Replace(window, "\"web 5\"", "\"web 4\"");
             Ui.Run(window, AppActions.ApplyHotReloadChanges);

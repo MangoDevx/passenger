@@ -6,7 +6,7 @@ using Passenger.Core;
 
 namespace Passenger.App.Testing;
 
-/// <summary>Where a test or a group of them stands, as Rider's Unit Tests window marks them.</summary>
+/// <summary>Where a test or a group of them stands.</summary>
 public enum TestState
 {
     NotRun,
@@ -20,7 +20,7 @@ public enum TestNodeKind
 {
     Project,
 
-    /// <summary>One of a multi-targeted project's target frameworks, as Rider shows each under its project.</summary>
+    /// <summary>One of a multi-targeted project's target frameworks, under its project.</summary>
     Framework,
     Namespace,
     Class,
@@ -29,13 +29,13 @@ public enum TestNodeKind
     /// <summary>One of a theory's data rows (or NUnit's cases), found by a runner or made by its run.</summary>
     Row,
 
-    /// <summary>A folder of a project's files, as Rider's File System grouping shows the folders a test's file is in.</summary>
+    /// <summary>A folder of a project's files that a test's file is in, as the File System grouping nests them.</summary>
     Folder,
 
-    /// <summary>A category or trait the tests under it have, as Rider's Category grouping shows them.</summary>
+    /// <summary>A category or trait the tests under it have.</summary>
     Category,
 
-    /// <summary>How long the tests under it took, in Rider's grades.</summary>
+    /// <summary>How long the tests under it took, by grade.</summary>
     Duration,
 }
 
@@ -309,11 +309,11 @@ public sealed record ProjectTests(string Project, string Name, CodeTests Code, I
     public string? DeclaredFramework { get; init; }
 }
 
-/// <summary>The Unit Tests window's tree: the tests grouped as Rider's Group By has them (by project and namespace unless
-/// another grouping is chosen), then by class, method and data row, flattened to the rows that are open and pass the
-/// outcomes and search chosen, so a virtualizing list draws only what is on screen. The code's tests and a runner's merge
-/// on their method's id, so a run's results land on the rows the code showed, and a test the code declares stays
-/// whatever a run reported; a regrouping moves each row, its results and whether it is open with it.</summary>
+/// <summary>The Unit Tests window's tree: the tests grouped (by project and namespace unless another grouping is
+/// chosen), then by class, method and data row, flattened to the rows that are open and pass the outcomes and search
+/// chosen, so a virtualizing list draws only what is on screen. The code's tests and a runner's merge on their method's
+/// id, so a run's results land on the rows the code showed, and a test the code declares stays whatever a run reported;
+/// a regrouping moves each row, its results and whether it is open with it.</summary>
 public sealed class TestTree
 {
     /// <summary>The projects' tests the tree was last made from, and the grouping it was made with.</summary>
@@ -344,7 +344,7 @@ public sealed class TestTree
     /// <summary>The grouping, the outcomes shown or the search changed.</summary>
     public event EventHandler? ViewChanged;
 
-    /// <summary>The tree's top rows: its projects in Rider's default grouping, else the first level's groups.</summary>
+    /// <summary>The tree's top rows: its projects in the default grouping, else the first level's groups.</summary>
     public IReadOnlyList<TestNode> Roots { get; private set; } = [];
 
     /// <summary>Every test method once, in the tree's order, whatever it is grouped by.</summary>
@@ -390,8 +390,8 @@ public sealed class TestTree
         Updated?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>Groups the tests by these levels, as Rider's Group By does: each row moves with its results, and whether it
-    /// is open, to where the levels put it.</summary>
+    /// <summary>Groups the tests by these levels: each row moves with its results, and whether it is open, to where the
+    /// levels put it.</summary>
     public void Group(IEnumerable<TestGroupLevel> levels)
     {
         IReadOnlyList<TestGroupLevel> ordered = TestGroupings.Ordered(levels);
@@ -837,8 +837,7 @@ public sealed class TestTree
         byKey = keyed;
         byFile = files;
 
-        // The node the key names: the one made already in this build, else the one before it there, else the one before
-        // it for the same test elsewhere, emptied, else a new one.
+        // The key's node: this build's, else the one before there, else the same test's elsewhere (emptied), else a new one.
         TestNode Node(TestNode? parent, TestNodeKind kind, string name, string key, string? identity, Action<TestNode>? reusing = null)
         {
             if (made.TryGetValue(key, out TestNode? node))

@@ -11,12 +11,12 @@ using Passenger.Text;
 
 namespace Passenger.App.Editors;
 
-/// <summary>A Markdown file's preview beside its editor, a group's own (each split and editor window has one), drawn by the
-/// renderer What's New uses (<see cref="Markdown"/>). It follows the text as typing pauses, read off the window's thread,
-/// and keeps the control of every block whose lines did not change, so a key in a long README costs the window the blocks
-/// it changed; and it follows the editor's scroll, the block at the editor's top line at its own top. Its web links open
-/// through the window's browser, a link to a file beside it opens that file, a <c>#heading</c> scrolls to the heading, and
-/// it draws the images of files inside the open folder alone, the rest as their words.</summary>
+/// <summary>A Markdown file's preview beside its editor, a group's own (each split and editor window has one), drawn by
+/// <see cref="Markdown"/>. It follows the text as typing pauses, read off the window's thread, and keeps the control of
+/// every block whose lines did not change, so a key in a long README costs the window the blocks it changed; and it
+/// follows the editor's scroll, the block at the editor's top line at its own top. Its web links open through the
+/// window's browser, a link to a file beside it opens that file, a <c>#heading</c> scrolls to the heading, and it draws
+/// the images of files inside the open folder alone, the rest as their words.</summary>
 public sealed class MarkdownPreview : ScrollViewer
 {
     /// <summary>How long typing pauses before the text is read again.</summary>
@@ -61,7 +61,7 @@ public sealed class MarkdownPreview : ScrollViewer
     /// <summary>The top-level blocks' controls, in order.</summary>
     public IReadOnlyList<Control> Blocks => [.. entries.Select(e => e.Control)];
 
-    /// <summary>The words drawn, a block of words a line, for a test to read what a person reads.</summary>
+    /// <summary>The words drawn, a block of words a line.</summary>
     public string Text => string.Join('\n', page.GetLogicalDescendants().OfType<MarkdownText>().Select(b => b.Shown));
 
     /// <summary>The control of the block whose lines hold a line of the file (from zero), null for a line of none.</summary>
@@ -353,8 +353,7 @@ public sealed class MarkdownPreview : ScrollViewer
         }
         string relative = Uri.UnescapeDataString(written.Split('?', 2)[0]);
         string rest = relative.TrimStart('/');
-        // A rest still rooted (a drive, or a share's \\host) names nothing of the folder's, and resolving it would reach
-        // that host before anything could check where it is.
+        // Still rooted (a drive, a share's \\host): none of the folder's, and resolving it would reach that host.
         if (Path.IsPathRooted(rest) || rest.StartsWith('\\'))
         {
             return null;
@@ -389,8 +388,8 @@ public sealed class MarkdownPreview : ScrollViewer
             : null;
     }
 
-    /// <summary>A picture's decode off the window's thread, once while the preview is shown, as an image's preview reads it
-    /// (its size and pixels held to the same limits); null when it could not be read.</summary>
+    /// <summary>A picture's decode off the window's thread, once while the preview is shown, its size and pixels held
+    /// to an image preview's limits; null when it could not be read.</summary>
     private async Task<Bitmap?> LoadAsync(string file)
     {
         if (!pictures.TryGetValue(file, out Task<AssetPreview?>? loading))

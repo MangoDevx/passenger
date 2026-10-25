@@ -1,8 +1,8 @@
 #!/bin/sh
 # Passenger as an MCP server over a folder (the current one by default), for an agent to start: `just mcp`.
-# It runs from a clone of the last Debug build, so building Passenger while an agent uses it (with the
-# server's own build tool, say) never changes a file under the running IDE. The clone is APFS's (or a
-# reflink), so it costs no space, and it goes when the server does. Standard output is the protocol's.
+# It runs from a clone of the last Debug build, so building Passenger while an agent uses it never changes a
+# file under the running IDE. The clone is APFS's (or a reflink), so it costs no space, and it goes when the
+# server does. Standard output is the protocol's.
 set -eu
 root=$(cd "$(dirname "$0")/.." && pwd)
 build="$root/artifacts/bin/Passenger.App/debug"

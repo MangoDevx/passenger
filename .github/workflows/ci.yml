@@ -1,11 +1,9 @@
-# Run by hand only, as the owner decided to spend Actions' minutes (Actions > CI > Run workflow, or
-# `gh workflow run CI --ref main`; a pull request's branch the same way): the solution built (warnings are errors) and
-# every test run, on macOS (arm64), Windows and Linux, as `just build` and `just test` run them (test.yml, which a
-# release runs first too); the macOS disk image (Apple Silicon) made and checked, as `just package-mac` makes it;
-# the Windows installer and the Linux archive built, installed, used and uninstalled, as `just package-win` and
-# `just package-linux` build them; and on Linux, the solution restored from nothing and every package checked against
-# THIRD_PARTY_NOTICES.md. Every restore is locked to the packages.lock.json files (GitHub sets CI, which
-# Directory.Build.props makes RestoreLockedMode). Actions are pinned to a release's commit.
+# Run by hand only, as the owner decided to spend Actions' minutes (Actions > CI > Run workflow, or `gh workflow run CI
+# --ref main`; a pull request's branch the same way): the solution built (warnings are errors) and every test run on
+# macOS (arm64), Windows and Linux; the macOS disk image made and checked; the Windows installer and the Linux archive
+# built, installed, used and uninstalled; and on Linux, the solution restored from nothing and every package checked
+# against THIRD_PARTY_NOTICES.md. Every restore is locked to the packages.lock.json files. Actions are pinned to a
+# release's commit.
 name: CI
 
 on:
@@ -27,22 +25,18 @@ env:
 
 jobs:
   # The solution built and every test run on macOS, Windows and Linux, each system's in shards that run at once, then a
-  # summary job per system named as the system (test.yml), as a release runs them too.
+  # summary job per system named as the system.
   test:
     name: Test
     uses: ./.github/workflows/test.yml
 
-  # #36: each processor's disk image, made with no Developer ID here (the app signed ad hoc, nothing notarized), which
-  # tools/package-mac.sh mounts read-only and checks before it is done: the app's signature, its version and the volume's,
-  # Roslyn's server and the debugger's adapter in it, every Mach-O file built for the image's processor, and a copy of the
-  # app still sealed after it has run on a C# project (#450). The x64
-  # image is cross-published on the arm64 runner. A release (release.yml) makes the same images, with the Developer ID
-  # when the repository's secrets hold one.
+  # The disk image, made with no Developer ID here (the app signed ad hoc, nothing notarized) and mounted read-only and
+  # checked before it is done.
   package:
     name: Disk image (${{ matrix.rid }})
     strategy:
       fail-fast: false
-      # Apple Silicon only: the owner dropped Intel Macs from the release.
+      # Apple Silicon only: no Intel Mac build ships.
       matrix:
         rid: [osx-arm64]
     runs-on: macos-latest
@@ -68,10 +62,9 @@ jobs:
       - name: Make and check the disk image
         run: tools/package-mac.sh ${{ matrix.rid }}
 
-  # #34: the Windows installer as `just package-win` builds it, installed silently as a person's would be (per user, no
-  # administrator), an agent debugging a project through the Passenger it installed (so its Roslyn server and debugger
-  # run from the install), then uninstalled, with what each step must leave checked. Unsigned: a release (#56) signs it
-  # through the variables tools/package-win.sh reads, from the repository's secrets; a check need not spend signatures.
+  # The Windows installer installed silently (per user, no administrator), an agent debugging a project through the
+  # Passenger it installed (so its Roslyn server and debugger run from the install), then uninstalled, with what each
+  # step must leave checked. Unsigned: a check need not spend signatures.
   installer:
     name: Windows installer (x64)
     runs-on: windows-latest
@@ -85,7 +78,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      # .NET 10 runs vpk and the test's project, as in the test job.
+      # .NET 10 runs vpk and the test's project.
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
@@ -164,7 +157,7 @@ jobs:
           if ($left) { throw "The uninstall left $($left -join '; ')" }
           if (-not (Test-Path (Join-Path $env:LOCALAPPDATA 'Passenger\kept-by-uninstall.txt'))) { throw "The uninstall took the person's state" }
 
-      # For trying a pull request's installer by hand; not a release (#56).
+      # For trying a pull request's installer by hand; not a release.
       - name: Upload the installer
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -172,11 +165,9 @@ jobs:
           path: artifacts/package/Passenger-windows-x64.exe
           retention-days: 7
 
-  # #57: the Linux archive as `just package-linux` makes and checks it, installed by its install.sh as site/linux.html
-  # says (for one person, then for everyone), an agent debugging a project through each install's Passenger (so its
-  # Roslyn server and debugger run from the install, read-only to the person in /opt), then uninstalled, with what each
-  # step must leave checked. The desktop entry is checked as desktops read it, and the file types it opens in the shared
-  # MIME database and the desktop's cache of what opens each.
+  # The Linux archive installed by its install.sh (for one person, then for everyone), an agent debugging a project
+  # through each install's Passenger (read-only to the person in /opt), then uninstalled, with what each step must leave
+  # checked: the desktop entry as desktops read it, and the file types it opens among them.
   archive:
     name: Linux archive (x64)
     runs-on: ubuntu-24.04
@@ -187,13 +178,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      # .NET 10 for the test's project, as in the test job.
+      # .NET 10 for the test's project.
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
           dotnet-version: 10.0.x
 
-      # What site/linux.html asks a person to install, and the desktop's own tools that read what install.sh adds.
+      # The libraries a person installs (site/linux.html), and the desktop's own tools that read what install.sh adds.
       - name: The libraries Passenger needs, and the desktop's tools
         run: |
           sudo apt-get update
@@ -288,7 +279,7 @@ jobs:
           done
           [ -z "$left" ] || { echo "::error::The uninstall for everyone left$left"; exit 1; }
 
-      # For trying a pull request's archive by hand; not a release (#56).
+      # For trying a pull request's archive by hand; not a release.
       - name: Upload the archive
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -297,10 +288,8 @@ jobs:
           compression-level: 0
           retention-days: 7
 
-  # #57's first step: the solution restores on Linux, in locked mode, with no package cache, so every package is
-  # downloaded again and its signature checked against nuget.config's trusted signers, as NuGet does on Linux (and
-  # Windows) but not on macOS. Then every package restored, and every one Roslyn's server carries, must be named in
-  # the notices.
+  # The solution restored on Linux in locked mode with no package cache, so every package's signature is checked against
+  # nuget.config's trusted signers (NuGet checks none on macOS); then every package must be named in the notices.
   packages:
     name: Packages (Linux)
     runs-on: ubuntu-latest

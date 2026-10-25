@@ -10,12 +10,11 @@ using Passenger.Editor;
 
 namespace Passenger.App;
 
-/// <summary>Renders the main window to a PNG and exits (<c>--screenshot PATH</c>), after opening what
-/// the command line names and taking its steps. It runs on Avalonia's headless platform with real Skia
-/// drawing, so nothing appears on screen and nothing takes the focus. The picture is the compositor's
-/// own frame, the path the desktop draws through, not a re-render into a bitmap (which once drew text
-/// differently), so it shows what a person would see minus the system's window chrome; <c>--window-buttons</c> draws
-/// macOS's traffic lights back in (<see cref="TrafficLights"/>).</summary>
+/// <summary>Renders the main window to a PNG and exits (<c>--screenshot PATH</c>), after opening what the command line
+/// names and taking its steps. It runs on Avalonia's headless platform with real Skia drawing, so nothing appears on
+/// screen and nothing takes the focus. The picture is the compositor's own frame, the path the desktop draws through,
+/// not a re-render into a bitmap, so it shows what a person would see minus the system's window chrome;
+/// <c>--window-buttons</c> draws macOS's traffic lights back in (<see cref="TrafficLights"/>).</summary>
 public static class Screenshot
 {
     /// <summary>How long to wait for background work (colouring, indexing) before capturing anyway.</summary>
@@ -116,8 +115,7 @@ public static class Screenshot
                 Take(window.Frontmost, step);
             }
             settled &= Settle();
-            // A dialog the step opened is drawn at the window's scale from the start: scaled later, it would find what is
-            // under the pointer again at the pointer's place divided by the scale, and light that up.
+            // A dialog the step opened takes the window's scale at once, or what is under the pointer is found wrongly.
             if (window.Frontmost is { } front && front != window && front.RenderScaling != window.RenderScaling)
             {
                 front.SetRenderScaling(window.RenderScaling);

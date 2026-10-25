@@ -10,10 +10,10 @@ using Passenger.Text;
 
 namespace Passenger.App.CSharp;
 
-/// <summary>A type's rename and the files named after it, as Rider's: a C# file is named after a type it declares when
-/// its name up to the first dot is the type's (Foo.cs, Foo.Designer.cs), and the rename gives it the new name before that
-/// dot; a file declaring the type under another name (Shapes.cs) keeps its own. The code's rename and the files' moves
-/// are one command, which Undo takes back whole (<see cref="CommandHistory"/>).</summary>
+/// <summary>A type's rename and the files named after it: a C# file is named after a type it declares when its name up
+/// to the first dot is the type's (Foo.cs, Foo.Designer.cs), and the rename gives it the new name before that dot; a
+/// file declaring the type under another name (Shapes.cs) keeps its own. The code's rename and the files' moves are one
+/// command, which Undo takes back whole (<see cref="CommandHistory"/>).</summary>
 public static class TypeRename
 {
     /// <summary>The type whose name is at an offset of a file the server has open, and its declarations' files inside

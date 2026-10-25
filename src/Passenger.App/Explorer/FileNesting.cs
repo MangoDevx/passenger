@@ -4,24 +4,21 @@ using Passenger.Core;
 
 namespace Passenger.App.Explorer;
 
-/// <summary>Rider's file nesting in the Solution view: a file shown under the one it belongs to, one level deep, by its
-/// project's DependentUpon and, while Rider's "Show files with the same names as nested" is on, by Rider's rules, a
-/// suffix on a parent's name and another on its dependent's after the same start (Counter.razor, Counter.razor.cs). A
-/// move or rename of the parent takes its dependents along, renamed as it is (Rider's IProjectModelEditor.Rename with
-/// renameDependant).</summary>
+/// <summary>File nesting in the Solution view: a file shown under the one it belongs to, one level deep, by its
+/// project's DependentUpon and, while "Show files with the same names as nested" is on, by name, a suffix on a parent's
+/// name and another on its dependent's after the same start (Counter.razor, Counter.razor.cs). A move or rename of the
+/// parent takes its dependents along, renamed as it is.</summary>
 public static partial class FileNesting
 {
-    /// <summary>The languages Rider's CLR rules are made for (its nestingRulesLanguageExtensions).</summary>
+    /// <summary>The languages the CLR rules are made for.</summary>
     private static readonly string[] Languages = [".cs", ".vb"];
 
-    /// <summary>Rider 2026.2's own rules, (parent suffix, child suffix), as its ProjectViewNestingRulesProvider extensions
-    /// add them: Rider's defaults (RiderDefaultNestingRulesProvider), Razor's and Web Forms' (the Razor plugin's
-    /// RazorNestingRulesProvider and AspNestingRuleProvider), JavaScript's and TypeScript's (JSNestingRulesProvider),
-    /// Less's and Sass's; shown by File Nesting.</summary>
+    /// <summary>The default rules, (parent suffix, child suffix), Rider 2026.2's: its own, Razor's and Web Forms',
+    /// JavaScript's and TypeScript's, Less's and Sass's; shown by File Nesting.</summary>
     public static IReadOnlyList<(string Parent, string Child)> Defaults { get; } = [.. RiderRules().Distinct()];
 
-    /// <summary>The rules matched: Rider's, each combined with those that go on from its child or lead to its parent, as
-    /// IntelliJ's FileNestingBuilder combines them (.cs to .resx and .resx to .designer.cs make .cs to .designer.cs).</summary>
+    /// <summary>The rules matched: the defaults, each combined with those that go on from its child or lead to its
+    /// parent (.cs to .resx and .resx to .designer.cs make .cs to .designer.cs).</summary>
     private static readonly IReadOnlyList<(string Parent, string Child)> Combined = Combine(Defaults);
 
     private static IEnumerable<(string Parent, string Child)> RiderRules()
@@ -101,7 +98,7 @@ public static partial class FileNesting
     }
 
     /// <summary>ASP.NET Core's settings for an environment (appsettings.Development.json) go under its settings for all
-    /// (appsettings.json), as Visual Studio nests them; none of Rider's suffix rules says it.</summary>
+    /// (appsettings.json), which no suffix rule says.</summary>
     public const string EnvironmentParent = "appsettings.json";
 
     public const string EnvironmentChildren = "appsettings.*.json";
@@ -110,8 +107,8 @@ public static partial class FileNesting
     private static partial Regex EnvironmentSettings();
 
     /// <summary>The files of one folder shown under another of them, each to the file it goes under, by path: what the
-    /// project says it depends on first, then Rider's rules when <paramref name="byName"/>. Nesting is one level, as
-    /// Rider shows it: a file whose parent is nested itself goes under that one's parent.</summary>
+    /// project says it depends on first, then the name rules when <paramref name="byName"/>. Nesting is one level: a
+    /// file whose parent is nested itself goes under that one's parent.</summary>
     public static IReadOnlyDictionary<string, string> Parents(IReadOnlyCollection<string> files, ProjectModel? project, bool byName)
     {
         Dictionary<string, string> named = new(StringComparer.OrdinalIgnoreCase);

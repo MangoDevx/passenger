@@ -1,17 +1,12 @@
 #!/usr/bin/env python3
 """Which of a system's CI shards runs each test class, and the checks that every test runs in exactly one of them.
 
-CI (.github/workflows/test.yml) splits each system's tests across parallel shards, each a runner of its own. A shard
-lists the whole suite (`list`, which runs `dotnet test --list-tests` again when its listing names no test or says
-discovery failed, and fails quoting what it printed) and `split` deals its classes out by their seconds on that system in
-tests/Passenger.Tests/TestTimes.json, the longest first, each to the shard with the fewest seconds so far, so every
-shard of a commit deals the same; each runs its own hand with `dotnet test --settings shard-N.runsettings`, whose
-TestCaseFilter names its classes. A class the times lack weighs its budget in TestBudget.json. Before any test runs, the
-first shard's `check` takes what each shard's settings list and fails unless every test of the suite is in exactly
-one. Once the shards have run, each system's summary job runs `cover`: every shard's job succeeded and every test of the
-suite has exactly one result across their .trx; and when dealing by that run's own times would end its slowest shard
-two minutes sooner or more, it says to deal again from them. `update` (`just test-times RUN`) rewrites TestTimes.json
-from one or more CI runs' results, for a person to commit.
+`list` writes the suite as `dotnet test --list-tests` prints it, listing again while it names no test or says discovery
+failed. `split` deals the classes by their seconds on that system in TestTimes.json (else their budget), the longest
+first, each to the shard with the fewest so far, so every shard of a commit deals the same. `check` fails unless every
+test is in exactly one shard's settings; `cover`, after the shards, unless each succeeded and every test has exactly one
+result, saying when dealing by the run's own times would end the slowest shard two minutes sooner. `update` (`just
+test-times RUN`) rewrites TestTimes.json from CI runs' results.
 """
 import argparse
 import importlib.util
@@ -33,8 +28,7 @@ DISCOVERY_FAILED = "Exception discovering tests"
 # How much sooner the slowest shard must end, dealt from a run's own times, before the summary asks for a new deal.
 WORTH_DEALING_AGAIN = 120
 
-# The .trx reading is test-times.py's; -I keeps this folder off the import path, so it is loaded by its file, with no
-# __pycache__ left beside it.
+# test-times.py's .trx reading, loaded by its file since -I keeps this folder off the path, leaving no __pycache__.
 sys.dont_write_bytecode = True
 _spec = importlib.util.spec_from_file_location("test_times", os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                                                           "test-times.py"))
@@ -295,7 +289,6 @@ def cover(arguments):
     else:
         lines.append(f"Each of the suite's {sum(suite.values())} tests ran in exactly one of {len(folders)} shards.")
         print(lines[-1])
-        # Dealt again from this run's own seconds, would the slowest shard end sooner by enough to be worth a commit?
         seconds = {name: spent for hand in hands.values() for name, spent in hand.items()}
         slowest = max(sum(hand.values()) for hand in hands.values())
         _, totals = deal(seconds, len(hands))

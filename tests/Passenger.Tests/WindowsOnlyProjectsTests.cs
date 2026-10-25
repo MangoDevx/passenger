@@ -29,8 +29,7 @@ public sealed class WindowsOnlyProjectsTests : IClassFixture<WindowsOnlyProjects
         MainWindow window = apps.Open();
         try
         {
-            // The server sees WPF's and Windows Forms' types once the server's restore is in: each probe is checked (its own
-            // #warning) with no error for a type it uses (CS0234 before, the framework's reference assemblies missing).
+            // Each probe is checked (its own #warning) with no error for a type it uses once the server's restore is in.
             foreach ((string probe, string type) in new[] { ("Gallery/Probe.cs", "System.Windows.Controls.Button"), ("Forms/Probe.cs", "System.Windows.Forms.Button") })
             {
                 window.OpenFile(apps.PathOf(probe));
@@ -83,7 +82,6 @@ public sealed class WindowsOnlyProjectsTests : IClassFixture<WindowsOnlyProjects
             Assert.StartsWith("WPF runs only on Windows: Passenger builds Gallery here for its code help", gallery.Tip, StringComparison.Ordinal);
             Assert.StartsWith("Windows Forms runs only on Windows", forms.Tip, StringComparison.Ordinal);
 
-            // The toolbar's chooser lists both, greyed with why, and either can still be chosen.
             Assert.Equal("Gallery cannot run here: WPF runs only on Windows", ToolTip.GetTip(window.FindControl<Button>("RunConfigButton")!));
             Ui.Click(window.FindControl<Button>("RunConfigButton")!);
             ContextMenu chooser = Assert.IsType<ContextMenu>(window.OpenContextMenu);
@@ -104,7 +102,6 @@ public sealed class WindowsOnlyProjectsTests : IClassFixture<WindowsOnlyProjects
             Assert.Equal("Gallery cannot run here: WPF runs only on Windows", Ui.Await(window.ProfileAsync(), "Profile's refusal"));
             Assert.True(window.BottomPanel.Build.Document.Snapshot.Length == 0, "Run, Debug or Profile built an app that cannot run here before saying so");
 
-            // Edit Configurations says why too.
             Assert.True(window.Perform(AppActions.EditConfigurations));
             RunConfigurationsDialog dialog = Assert.IsType<RunConfigurationsDialog>(window.RunConfigurationsDialog);
             Assert.Equal("Generated for the executable project Gallery: a field changed here is kept with the folder over its project, the rest follow it. "

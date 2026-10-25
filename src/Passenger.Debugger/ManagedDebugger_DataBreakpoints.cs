@@ -14,11 +14,12 @@ public sealed record DataBreakpointAnswer(string? DataId, string Description);
 /// <summary>What became of a data breakpoint asked for: its id, and whether it watches, or why not.</summary>
 public sealed record DataBreakpointResult(int Id, bool Verified, string? Message);
 
-/// <summary>Rider's data breakpoints (Set Data Breakpoint on a member in Variables): the program stops at the line that
-/// changes a field of an object, an auto-property's backing field or an array element. The runtime watches memory for
-/// a debugger on Windows x64 alone (FEATURE_DATABREAKPOINT): the debugger puts the address in a debug register of every
-/// thread, and the runtime tells of a write in managed code (ICorDebugManagedCallback4.DataBreakpoint) at the first place
-/// after it where the thread can stop. The object is pinned while watched, as the runtime advises over re-arming.</summary>
+/// <summary>Data breakpoints (Set Data Breakpoint on a member in Variables): the program stops at the line that changes
+/// a field of an object, an auto-property's backing field or an array element. The runtime watches memory for a
+/// debugger on Windows x64 alone (FEATURE_DATABREAKPOINT): the debugger puts the address in a debug register of every
+/// thread, and the runtime tells of a write in managed code (ICorDebugManagedCallback4.DataBreakpoint) at the first
+/// place after it where the thread can stop. The object is pinned while watched, as the runtime advises over
+/// re-arming.</summary>
 public partial class ManagedDebugger
 {
     private const int DataSlots = 4;
@@ -28,8 +29,8 @@ public partial class ManagedDebugger
 
     private const string NotAMember = "A data breakpoint watches a field or property of an object, or an element of an array, and this is neither";
 
-    /// <summary>Why no data breakpoint can be set where the debugger runs, or null where one can: Windows on x64, the one
-    /// system whose .NET runtime watches memory for a debugger, and the one Rider sets them on.</summary>
+    /// <summary>Why no data breakpoint can be set where the debugger runs, or null where one can: Windows on x64, the
+    /// one system whose .NET runtime watches memory for a debugger.</summary>
     public static string? DataBreakpointsUnavailable { get; } =
         OperatingSystem.IsWindows() && RuntimeInformation.OSArchitecture == Architecture.X64 && RuntimeInformation.ProcessArchitecture == Architecture.X64
             ? null
@@ -435,9 +436,9 @@ public partial class ManagedDebugger
         }
     }
 
-    /// <summary>A write the runtime caught: it stops the program when it changed the value (Rider's rule: the same value
-    /// written again does not), its hit count and condition allow, and it suspends; it is shown at the statement that
-    /// wrote, the value before and after in the stop's words.</summary>
+    /// <summary>A write the runtime caught: it stops the program when it changed the value (the same value written
+    /// again does not), its hit count and condition allow, and it suspends; it is shown at the statement that wrote,
+    /// the value before and after in the stop's words.</summary>
     private async Task HandleDataBreakpoint(DataBreakpointCorDebugManagedCallbackEventArgs written)
     {
         ICorDebugThread thread = written.Thread;

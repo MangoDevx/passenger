@@ -70,8 +70,8 @@ public sealed record AttachArguments
     public int? ProcessId { get; init; }
     public bool? JustMyCode { get; init; }
 
-    /// <summary>Passenger's own: the program was started held with DOTNET_MODIFIABLE_ASSEMBLIES=debug, so each of the user's
-    /// modules, loading after the attach, gets Edit and Continue as a launch's does (Hot Reload, applyChanges).</summary>
+    /// <summary>Passenger's own: the program was started held with DOTNET_MODIFIABLE_ASSEMBLIES=debug, so each of the
+    /// user's modules, loading after the attach, gets Edit and Continue (Hot Reload, applyChanges).</summary>
     public bool? HotReload { get; init; }
 }
 
@@ -142,16 +142,17 @@ public sealed record SetDataBreakpointsArguments(IReadOnlyList<DapDataBreakpoint
 /// <summary>What the debugger made of each data breakpoint, in the order asked.</summary>
 public sealed record SetDataBreakpointsResponse(IReadOnlyList<DapBreakpoint> Breakpoints);
 
-/// <summary>The exception breakpoints: filters, filters with a condition (a list of types, ! before it for every type but
-/// those), and exception options, one for each of Rider's CLR exception breakpoints. A client that sends exception options,
-/// even none, has an unhandled exception stop only where one of them says so; without, every unhandled exception stops.</summary>
+/// <summary>The exception breakpoints: filters, filters with a condition (a list of types, ! before it for every type
+/// but those), and exception options, one for each CLR exception breakpoint. A client that sends exception options,
+/// even none, has an unhandled exception stop only where one of them says so; without, every unhandled exception
+/// stops.</summary>
 public sealed record SetExceptionBreakpointsArguments(
     IReadOnlyList<string>? Filters, IReadOnlyList<DapExceptionFilterOptions>? FilterOptions = null, IReadOnlyList<DapExceptionOptions>? ExceptionOptions = null);
 
 public sealed record DapExceptionFilterOptions(string FilterId, string? Condition = null);
 
-/// <summary>Exceptions by their path ("CLR", then the types' full names; "CLR" alone is every exception) and when to stop
-/// (never, always, unhandled or userUnhandled). The rest is Passenger's own: Rider's scenarios in place of the break mode,
+/// <summary>Exceptions by their path ("CLR", then the types' full names; "CLR" alone is every exception) and when to
+/// stop (never, always, unhandled or userUnhandled). The rest is Passenger's own: scenarios in place of the break mode,
 /// and a condition, hit count and log message as a line breakpoint has.</summary>
 public sealed record DapExceptionOptions(IReadOnlyList<DapExceptionPathSegment>? Path, string BreakMode)
 {
@@ -171,9 +172,9 @@ public sealed record DapExceptionPathSegment(IReadOnlyList<string> Names, bool? 
 /// <summary>What the debugger made of each filter, filter option and exception option, in that order.</summary>
 public sealed record SetExceptionBreakpointsResponse(IReadOnlyList<DapBreakpoint>? Breakpoints = null);
 
-/// <summary>Rider's "Suspend If" for a CLR exception breakpoint: where the exception was thrown (the user's code or code
-/// outside it) and where it is handled (the user's code, code outside it, or nowhere). A breakpoint stops when one of
-/// each holds.</summary>
+/// <summary>When a CLR exception breakpoint stops: where the exception was thrown (the user's code or code outside it)
+/// and where it is handled (the user's code, code outside it, or nowhere). A breakpoint stops when one of each
+/// holds.</summary>
 [Flags]
 public enum ExceptionScenarios
 {
@@ -216,8 +217,8 @@ public static class ExceptionScenarioNames
         return scenarios;
     }
 
-    /// <summary>A break mode's scenarios: always is every one, userUnhandled Visual Studio's (handled outside the user's
-    /// code, or not at all), unhandled only that.</summary>
+    /// <summary>A break mode's scenarios: always is every one, userUnhandled those handled outside the user's code or
+    /// not at all, unhandled only the last.</summary>
     public static ExceptionScenarios OfBreakMode(string breakMode) => breakMode switch
     {
         "always" => ExceptionScenarios.All,
@@ -304,7 +305,6 @@ public sealed record EvaluateResponse
     public DapPresentationHint? PresentationHint { get; init; }
 }
 
-/// <summary>Assign a value to what an expression names in a frame (a local, a member, an element): Set Value.</summary>
 /// <summary>Where a paused thread could go on from in a source at a line (Set Next Statement's question).</summary>
 public sealed record GotoTargetsArguments(DapSource Source, int Line, int? Column = null);
 
@@ -318,6 +318,7 @@ public sealed record GotoTargetsResponse
 /// <summary>Set Next Statement: the thread goes on from a target gotoTargets gave.</summary>
 public sealed record GotoArguments(int ThreadId, int TargetId);
 
+/// <summary>Assign a value to what an expression names in a frame (a local, a member, an element): Set Value.</summary>
 public sealed record SetExpressionArguments(string Expression, string Value, int? FrameId = null);
 
 public sealed record SetExpressionResponse
@@ -353,9 +354,9 @@ public sealed record StepInTarget
 
 public sealed record ContinueResponse(bool? AllThreadsContinued = null);
 
-/// <summary>A disconnect; Passenger's own <paramref name="LetGoWithin"/> is how long, in milliseconds, the client waits for
-/// a program let go (not terminated) to be run off its stop and detached, which the adapter keeps its let-go within: a
-/// window that closes waits less than a Detach does.</summary>
+/// <summary>A disconnect; Passenger's own <paramref name="LetGoWithin"/> is how long, in milliseconds, the client waits
+/// for a program let go (not terminated) to be run off its stop and detached, which the adapter keeps its let-go
+/// within.</summary>
 public sealed record DisconnectArguments(bool? Restart = null, bool? TerminateDebuggee = null, int? LetGoWithin = null);
 
 public sealed record TerminateArguments(bool? Restart = null);
@@ -368,7 +369,7 @@ public sealed record ExceptionInfoResponse
     /// <summary>never, always, unhandled or userUnhandled.</summary>
     public string BreakMode { get; init; } = "unhandled";
 
-    /// <summary>The exception's HRESULT, as Visual Studio's adapters add.</summary>
+    /// <summary>The exception's HRESULT.</summary>
     public int? Code { get; init; }
 
     public DapExceptionDetails? Details { get; init; }

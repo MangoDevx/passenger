@@ -65,7 +65,7 @@ internal static partial class Lifeline
     public static void Adopt(Process process) => AdoptGroup(process.Id);
 
     /// <summary>Puts a process group that leads itself on the watchdog's list: a child's, or a program the terminal started
-    /// in its pseudo-terminal, which leads a session and group of its own as a child here does.</summary>
+    /// in its pseudo-terminal.</summary>
     public static void AdoptGroup(int group)
     {
         if (OperatingSystem.IsWindows())

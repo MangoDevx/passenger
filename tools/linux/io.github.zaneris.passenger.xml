@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- The file types Passenger's desktop entry opens, which the shared MIME database (shared-mime-info) does not name:
-     install.sh puts this in <data>/mime/packages, so a double-click on one offers Passenger. -->
+<!-- The file types Passenger's desktop entry opens, which the shared MIME database does not name, so a double-click on
+     one offers Passenger. -->
 <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
     <mime-type type="application/x-ms-sln">
         <comment>Visual Studio solution</comment>

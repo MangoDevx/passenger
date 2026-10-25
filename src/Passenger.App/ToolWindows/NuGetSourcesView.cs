@@ -10,7 +10,7 @@ using Passenger.Editor;
 
 namespace Passenger.App.ToolWindows;
 
-/// <summary>Rider's Sources tab of the NuGet window: the nuget.config files in effect for the folder, NuGet's order (the
+/// <summary>The Sources tab of the NuGet window: the nuget.config files in effect for the folder, NuGet's order (the
 /// solution's, the folders' above it, the user's, the machine's), and for the one chosen its Feeds, each enabled or not,
 /// added, edited and deleted in that file; its Properties; and the Summary, the feeds a restore uses. A feed disabled is
 /// disabled in the file that names it; one enabled is enabled wherever a file had disabled it, as dotnet nuget enables it.
@@ -278,8 +278,7 @@ public sealed class NuGetSourcesView : Grid
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(8, 0, 8, 0),
         };
-        // Its name, then its folder, which gives way first in a narrow pane, as Rider lists a file and where it is: the
-        // path's own ellipsis cut into the name ("…et.config").
+        // Its name, then its folder, which gives way first in a narrow pane so the name stays whole.
         TextBlock folder = new() { Classes = { "muted" }, Text = RecentRow.Home(Path.GetDirectoryName(file.Path) ?? string.Empty), FontSize = 12, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0, 0, 0) };
         ShrinkingRow path = new() { Children = { new TextBlock { Text = Path.GetFileName(file.Path), VerticalAlignment = VerticalAlignment.Center }, folder } };
         Grid line = new() { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), Height = ListRow.Height };

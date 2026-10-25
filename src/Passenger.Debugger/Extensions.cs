@@ -56,7 +56,7 @@ public static class Extensions
         return isStatic;
     }
 
-    // To my knowledge, only strings from CustomAttributes 'Type' ctor use this '+' format
+    // The '+' form of a nested type's name, which a custom attribute's Type argument writes.
     public static mdTypeDef? FindMaybeNestedTypeDefByNameOrNull(this IMetaDataImport metadataImport, string typeName)
     {
         string[] nestedClasses = typeName.Split('+');
@@ -162,7 +162,7 @@ public static class Extensions
 
         ICorDebugType[] typeParameterArgs = corDebugValue.ExactType.TypeParameters;
 
-        // For instance properties, pass the object; for static, pass nothing. Must pass the original CorDebugReferenceValue, not the dereferenced one.
+        // An instance property is given the original reference value, never the dereferenced one.
         ICorDebugValue[] corDebugValues = isStatic ? [] : [corDebugValue];
         ICorDebugValue? result = await eval.CallParameterizedFunctionAsync(processEventsUntilEvalEventFunc, evalStatus, corDebugFunction, typeParameterArgs.Length, typeParameterArgs, corDebugValues.Length, corDebugValues);
         return result;
@@ -170,7 +170,6 @@ public static class Extensions
 
     internal static async Task<ICorDebugValue?> CallParameterizedFunctionAsync(this ICorDebugEval eval, Func<Task<CorDebugManagedCallbackEventArgs>> processEventsUntilEvalEventFunc, EvalStatus evalStatus, ICorDebugFunction corDebugFunction, int typeParamCount, ICorDebugType[]? typeParameterArgs, int paramCount, ICorDebugValue[] corDebugValues, bool throwOnException = false)
     {
-        // Ensure that the object passed in corDebugValues is a CorDebugReferenceValue (when containing object is an instance class), ie must not be dereferenced
         return await RunEvalAsync(eval, processEventsUntilEvalEventFunc, evalStatus, throwOnException,
             () => eval.CallParameterizedFunction(corDebugFunction, typeParamCount, typeParameterArgs, paramCount, corDebugValues),
             e =>
@@ -213,11 +212,10 @@ public static class Extensions
             e => e.Eval.Result))!;
     }
 
-    /// <summary>How long code the debugger runs in the program (a getter, a watch's call) may take before
-    /// it is stopped, so one that never returns cannot hang the debugger (upstream #30). A static of the adapter's
-    /// process, one per debug session whichever window started it; the adapter takes <see
-    /// cref="Dap.AdapterEnvironment.EvaluationTimeout"/> (the tests' run gives 3 s), and the waits for an abort to take scale
-    /// with it.</summary>
+    /// <summary>How long code the debugger runs in the program (a getter, a watch's call) may take before it is
+    /// stopped, so one that never returns cannot hang the debugger. A static of the adapter's process, which sets it
+    /// from <see cref="Dap.AdapterEnvironment.EvaluationTimeout"/>; the waits for an abort to take scale with
+    /// it.</summary>
     public static TimeSpan EvaluationTimeout { get; set; } = Dap.AdapterEnvironment.DefaultEvaluationTimeout;
 
     /// <summary>How long an evaluation past its time is looked at for a moment it runs managed code, and how long an abort
@@ -267,7 +265,7 @@ public static class Extensions
         Task<CorDebugManagedCallbackEventArgs> waiting = Task.FromCanceled<CorDebugManagedCallbackEventArgs>(new CancellationToken(true));
         try
         {
-            // Only the evaluation's thread runs, as in Visual Studio: the others' values hold still and none meets a breakpoint unseen.
+            // Only the evaluation's thread runs: the others' values hold still and none meets a breakpoint unseen.
             process.SetAllThreadsDebugState(CorDebugThreadState.THREAD_SUSPEND, thread);
             process.Continue(false);
             waiting = Read();
@@ -311,9 +309,7 @@ public static class Extensions
             }
             if (!ended && leaving.IsCancellationRequested)
             {
-                // Left to a request that leaves the stop, which neither waits on it nor aborts it early (an abort holds the
-                // runtime half a second): the program is taken back to go on with it, its end let go whenever it comes, and
-                // it is aborted once its time is up, where that takes. One that ended as it was given up is read.
+                // Left to the request that leaves the stop, aborted only once due: an abort holds the runtime 0.5 s.
                 ended = await GiveUp() is not null;
                 if (!ended)
                 {

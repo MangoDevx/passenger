@@ -8,8 +8,8 @@ using Passenger.Text;
 
 namespace Passenger.Tests;
 
-/// <summary>Problems as Rider keeps them without a build: the current file's as they are typed, and with solution-wide
-/// analysis on, every file's, a file nobody has open included, grouped by project and file.</summary>
+/// <summary>Problems without a build: the current file's as they are typed, and with solution-wide analysis on, every
+/// file's, a file nobody has open included, grouped by project and file.</summary>
 public sealed class ProblemsTests : IClassFixture<RestoredFolders>, IDisposable
 {
     private readonly string folder;
@@ -47,7 +47,6 @@ public sealed class ProblemsTests : IClassFixture<RestoredFolders>, IDisposable
         problems.Shown = ProblemsTab.Solution;
         Assert.Equal(["Sample", "Bad.cs"], problems.Rows.Where(r => r.Problem is null).Select(r => r.Label).Take(2));
 
-        // Helper's method renamed by typing: Caller, closed, no longer compiles, and says so without a build.
         string text = window.EditorArea.CodeEditor.Document.Snapshot.ToString();
         int at = text.IndexOf("Twice", StringComparison.Ordinal);
         window.EditorArea.CodeEditor.Selections = SelectionSet.Single(new Selection(at, at + "Twice".Length));
@@ -55,11 +54,9 @@ public sealed class ProblemsTests : IClassFixture<RestoredFolders>, IDisposable
         Ui.WaitFor(() => problems.SolutionProblems?.Any(p => p.Path?.EndsWith("Caller.cs", StringComparison.Ordinal) == true) == true,
             "the broken caller's error", TimeSpan.FromMinutes(1));
         Assert.Empty(problems.FileProblems);
-        // The Solution tab, shown all along, put the caller's rows in their place among the files'.
         Assert.Equal(["Sample", "Bad.cs", "Caller.cs"], problems.Rows.Where(r => r.Problem is null).Select(r => r.Label));
         ListedAsAfresh(problems, "once the caller broke");
 
-        // The open file's own problems are the File tab's, as they are typed, and the Solution tab's as its pull lands.
         window.KeyTextInput(" x");
         Ui.WaitFor(() => problems.FileProblems.Any(p => p.Severity == ProblemSeverity.Error), "the open file's error");
         Assert.Empty(problems.Problems);
@@ -67,7 +64,6 @@ public sealed class ProblemsTests : IClassFixture<RestoredFolders>, IDisposable
         Ui.WaitFor(() => problems.Rows.Any(r => r.Problem?.Path == helper), "the open file's error in the Solution tab");
         ListedAsAfresh(problems, "once the open file had an error");
 
-        // A problem's menu copies its message.
         window.ShowToolWindow(ToolWindowIds.Problems);
         problems.Shown = ProblemsTab.File;
         Avalonia.Controls.ListBox rows = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window.ProblemsWindow).OfType<Avalonia.Controls.ListBox>().First();
@@ -76,7 +72,6 @@ public sealed class ProblemsTests : IClassFixture<RestoredFolders>, IDisposable
         Ui.Choose(rows.ContextMenu, "Copy Message");
         Ui.WaitFor(() => Ui.Clipboard(window) == chosen.Problem!.Message, "the message on the clipboard");
 
-        // The open file mended: its rows leave the Solution tab, the caller's staying.
         problems.Shown = ProblemsTab.Solution;
         int typed = window.EditorArea.CodeEditor.Document.Snapshot.ToString().IndexOf(" x", StringComparison.Ordinal);
         window.EditorArea.CodeEditor.Selections = SelectionSet.Single(new Selection(typed, typed + " x".Length));
@@ -105,7 +100,7 @@ public sealed class ProblemsTests : IClassFixture<RestoredFolders>, IDisposable
     }
 
     /// <summary>A pull the server refuses or cuts short (Roslyn cancels one a change made stale) is asked again, so the
-    /// solution's problems go on following edits, where one refusal had ended the analysis for good.</summary>
+    /// solution's problems go on following edits.</summary>
     [AvaloniaFact]
     public void Solution_wide_analysis_goes_on_following_edits_after_the_server_refuses_a_pull()
     {
@@ -126,7 +121,6 @@ public sealed class ProblemsTests : IClassFixture<RestoredFolders>, IDisposable
         Ui.WaitFor(CallerBroken, "the broken caller's error", TimeSpan.FromMinutes(1));
         Ui.WaitFor(() => refused.IsCompleted, "the server to refuse the next pull of every source", TimeSpan.FromMinutes(1));
 
-        // The edit after the refusals is followed too: the caller compiles again, and says so without a build.
         Rename(window, "Thrice", "Twice");
         Ui.WaitFor(() => problems.SolutionProblems is { } listed && !CallerBroken(), "the mended caller's error to go, after the server refused a pull",
             TimeSpan.FromMinutes(1));
@@ -144,8 +138,8 @@ public sealed class ProblemsTests : IClassFixture<RestoredFolders>, IDisposable
     }
 
     /// <summary>Lines typed above a file's problems move them, and the File tab says where they are now after every key,
-    /// each row's place shown on its own line of the list as it was: the list's rows are not made again for every key, as
-    /// they were while the file had problems (every row's controls made, styled and laid out again a key).</summary>
+    /// each row's place shown on its own line of the list as it was: the list's rows are not made again for every
+    /// key.</summary>
     [AvaloniaFact]
     public void Lines_typed_above_a_files_problems_move_their_rows_without_making_the_list_again()
     {
@@ -160,7 +154,7 @@ public sealed class ProblemsTests : IClassFixture<RestoredFolders>, IDisposable
         Assert.Equal(ProblemsTab.File, problems.Shown);
         Ui.WaitFor(() => problems.FileProblems.Count(p => p.Severity == ProblemSeverity.Error) == 3, "the file's three errors");
         Avalonia.Controls.ListBox list = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window.ProblemsWindow).OfType<Avalonia.Controls.ListBox>().First();
-        // The text on each row that says where its problem is, as the list shows it (its rows' boxes are reused anyway).
+        // The text on each row that says where its problem is, as the list shows it.
         Avalonia.Controls.TextBlock[] Shown() => [.. Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(list).OfType<Avalonia.Controls.ListBoxItem>()
             .Select(item => Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(item).OfType<Avalonia.Controls.TextBlock>()
                 .First(t => t.Text?.StartsWith("Several.cs:", StringComparison.Ordinal) == true))];
@@ -180,16 +174,14 @@ public sealed class ProblemsTests : IClassFixture<RestoredFolders>, IDisposable
             Assert.Equal([$"Several.cs:{3 + i}:17", $"Several.cs:{4 + i}:18", $"Several.cs:{5 + i}:20"], Places());
         }
 
-        // Once the server's own diagnostics come again, they are where the rows say.
         Ui.Settle();
         Assert.Equal(["Several.cs:6:17", "Several.cs:7:18", "Several.cs:8:20"], Places());
         window.Close();
     }
 
     /// <summary>A file with thousands of problems types as one with few does: every key moves the file's markers, and the
-    /// File tab lists where they went once typing pauses, rather than placing and listing every one again for each key (each
-    /// row's line and column read from the text, the list sorted and compared, the shown rows moved), which with 3,000
-    /// warnings took 23 ms of every key's 85 on the UI thread.</summary>
+    /// File tab lists where they went once typing pauses, rather than placing and listing every one again for each
+    /// key.</summary>
     [AvaloniaFact]
     public void Keys_typed_above_thousands_of_problems_list_them_again_once_typing_pauses()
     {
@@ -226,7 +218,6 @@ public sealed class ProblemsTests : IClassFixture<RestoredFolders>, IDisposable
         }
         Assert.True(listed <= Keys / 4, $"The File tab listed the file's 3,000 problems again {listed} times for {Keys} keys typed in quick succession");
 
-        // Once typing pauses, the tab says where the keys moved them.
         Ui.Settle();
         Assert.Equal(3000, problems.FileProblems.Count);
         Assert.Equal(new TextPosition(4 + Keys, 12), problems.FileProblems[0].Position);
@@ -236,8 +227,7 @@ public sealed class ProblemsTests : IClassFixture<RestoredFolders>, IDisposable
 
     /// <summary>A typing pause lists again only the problems it changed, the open file's as its pull lands, however many the
     /// solution has: with 4,000 warnings in twenty files nobody has open, the Solution tab shown, a pause allocates on the UI
-    /// thread under 8 bytes a problem more than with one in each, where it allocated 1,700, making every problem and row again,
-    /// each file's URI a path by asking the disk and each problem's project found from a fresh list of the projects.</summary>
+    /// thread under 8 bytes a problem more than with one in each.</summary>
     [AvaloniaFact]
     public void A_typing_pause_lists_again_only_the_open_files_problems_however_many_the_solution_has()
     {
@@ -306,7 +296,6 @@ public sealed class ProblemsTests : IClassFixture<RestoredFolders>, IDisposable
             int drew = (int)(editor.Blinks - blinks);
             blinked += drew;
             least = Math.Min(least, allocated - (drew * blink));
-            // The open file's warning moved with the key, as the Solution tab lists it once the pause's pull landed.
             Problem moved = Assert.Single(problems.SolutionProblems!, p => p.Path == typed);
             Assert.True(moved.Position == new TextPosition(4, 27 + i), $"After {i} keys the open file's warning is listed at {moved.Where}, not Typed.cs:5:{28 + i}");
             Assert.Equal($"Typed.cs:5:{28 + i}", Assert.Single(problems.Rows, r => r.Problem?.Path == typed).Detail);
@@ -345,7 +334,6 @@ public sealed class ProblemsTests : IClassFixture<RestoredFolders>, IDisposable
         Assert.Equal(separated, window.EditorArea.Active?.Path);
         Assert.True(editor.CaretPosition == new TextPosition(3, 23), $"The Build window's link went to {editor.CaretPosition.Line + 1}:{editor.CaretPosition.Column + 1}, not 4:24");
 
-        // The row in Problems' Build tab goes there too.
         window.OpenFile("Program.cs");
         window.Perform(AppActions.ShowProblems);
         problems.Shown = ProblemsTab.Build;
@@ -354,7 +342,6 @@ public sealed class ProblemsTests : IClassFixture<RestoredFolders>, IDisposable
         Assert.Equal(separated, window.EditorArea.Active?.Path);
         Assert.Equal(new TextPosition(3, 23), editor.CaretPosition);
 
-        // Solution-wide analysis reads the file as the server does, and so does an agent.
         window.OpenFile("Program.cs");
         window.Perform(AppActions.ToggleSolutionAnalysis);
         Ui.WaitFor(() => problems.SolutionProblems?.Any(p => p.Path == separated) == true, "Separated.cs's error in the solution's problems");

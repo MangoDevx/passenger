@@ -5,9 +5,9 @@ using Passenger.Roslyn.Extension;
 
 namespace Passenger.App.CSharp;
 
-/// <summary>Rider's Pull Members Up and Push Members Down dialogs: the base type to pull up to, or the inheritors to push
-/// down to, and the class's members in a table of which go and which are made abstract where they stay (in the base type
-/// pulled up to, or the class pushed down from), none of them chosen at first.</summary>
+/// <summary>The Pull Members Up and Push Members Down dialogs: the base type to pull up to, or the inheritors to push
+/// down to, and the class's members in a table of which go and which are made abstract where they stay (in the base
+/// type pulled up to, or the class pushed down from), none of them chosen at first.</summary>
 public sealed class MembersMoveDialog : RefactoringDialog
 {
     private readonly bool up;

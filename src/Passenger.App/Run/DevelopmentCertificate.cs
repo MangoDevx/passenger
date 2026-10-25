@@ -4,8 +4,8 @@ using Passenger.Core;
 
 namespace Passenger.App.Run;
 
-/// <summary>The .NET command line <c>dotnet dev-certs</c> runs through: the machine's (<see cref="DevelopmentCertificate.Machine"/>),
-/// or a test's stand-in, which never trusts a certificate on the machine it runs on.</summary>
+/// <summary>The .NET command line <c>dotnet dev-certs</c> runs through: the machine's
+/// (<see cref="DevelopmentCertificate.Machine"/>), or a test's stand-in.</summary>
 public delegate ProcessStartInfo DotnetWords(IReadOnlyList<string> words, string folder);
 
 /// <summary>ASP.NET Core's development certificate for a run that serves HTTPS (a container run's services, an Aspire
@@ -121,8 +121,7 @@ public static partial class DevelopmentCertificate
         string file = Path.Combine(folder, CertificateFile);
         // dev-certs writes a PEM export's key beside it, named for it.
         string key = Path.ChangeExtension(file, ".key");
-        // The thumbprint of the certificate exported, as the check named it then: a copy of another the check no longer finds
-        // (made again since, or expired and replaced) would be refused by every browser that trusts the new one.
+        // The exported certificate's thumbprint: a copy of one since replaced would be refused by browsers trusting the new one.
         string exportedOf = Path.Combine(folder, "thumbprint");
         await Gate.WaitAsync(cancel);
         try
@@ -136,8 +135,7 @@ public static partial class DevelopmentCertificate
                 return (new Exported(folder, file, key), null);
             }
             Forget(state);
-            // PEM with its key unencrypted, in the folder only the person enters: a password would be on dev-certs' command
-            // line, which takes one nowhere else, for any process of the machine to read.
+            // PEM with its key unencrypted, in a folder only the person enters: dev-certs takes a password only on its command line.
             ChildResult exported = await ChildProcesses.RunAsync(dotnet(["dev-certs", "https", "-ep", file, "--format", "Pem", "--no-password"], folder),
                 limit: ExportLimit, cancel: cancel);
             if (!exported.Succeeded || !File.Exists(file) || !File.Exists(key))

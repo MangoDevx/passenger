@@ -31,8 +31,7 @@ public static class AppPlaces
         return place with { Line = at.Line + 1, Column = at.Column + 1 };
     }
 
-    /// <summary>An element's details with every place in them at the editor's line, as the window and an agent name them and
-    /// go to them, each file read once.</summary>
+    /// <summary>An element's details with every place in them at the editor's line, each file read once.</summary>
     public static ElementDetails InEditor(ElementDetails details, EditorArea editors)
     {
         Func<string, TextSnapshot?> texts = ServerPlaces.Texts(editors);
@@ -54,8 +53,8 @@ public static class AppPlaces
     public static string? OverriddenBy(SetterReport setter) =>
         setter.By is { } by && setter.ByPlace is { } at ? $"{by} ({Path.GetFileName(at.File)}:{at.Line})" : setter.By;
 
-    /// <summary>Where what set a watched property is written, as a property breakpoint's stop says it: " at
-    /// MainWindow.axaml:7", the editor's line; empty for none.</summary>
+    /// <summary>Where what set a watched property is written: " at MainWindow.axaml:7", the editor's line; empty for
+    /// none.</summary>
     public static string At(SourcePlace? place, Func<string, TextSnapshot?> texts) =>
         place is null ? string.Empty : $" at {Path.GetFileName(place.File)}:{InEditor(place, texts).Line}";
 

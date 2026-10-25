@@ -19,8 +19,8 @@ public sealed class InteractiveTestDialog : Window
     private readonly ToggleButton[] tabs;
     private readonly Control[] pages;
 
-    /// <summary>The request opened, sent through the Endpoints window as its Test is (one at a time, asking first what
-    /// it takes from the person's computer), in the variables of the environment chosen there.</summary>
+    /// <summary>The request opened, sent through the Endpoints window in the variables of the environment chosen
+    /// there.</summary>
     public InteractiveTestDialog(EndpointRequest request, EndpointsView endpoints)
     {
         this.request = request;
@@ -48,8 +48,7 @@ public sealed class InteractiveTestDialog : Window
         AcceptAnyCertificate = new CheckBox { Content = "Accept any certificate" };
         ToolTip.SetTip(AcceptAnyCertificate, "Take a certificate the system does not trust, as a development server's own");
 
-        // The URL's query and the Params table are one: typing in either rewrites the other, a row turned off left out of
-        // the URL but kept in the table.
+        // The URL's query and the Params table are one: typing in either rewrites the other.
         Url.TextChanged += (_, _) => FollowUrl();
         Params.Changed += (_, _) => FollowParams();
         Params.Changed += (_, _) => Count();
@@ -188,7 +187,7 @@ public sealed class InteractiveTestDialog : Window
     /// <summary>The page shown.</summary>
     public int PageShown => Array.FindIndex(pages, p => p.IsVisible);
 
-    /// <summary>The tabs' names as shown, each with how many rows or criteria it holds, as Postman's Params (2).</summary>
+    /// <summary>The tabs' names as shown, each with how many rows or criteria it holds: Params (2).</summary>
     public IReadOnlyList<string> TabTitles => [.. tabs.Select(t => (t.Content as TextBlock)?.Text ?? string.Empty)];
 
     private void Count()

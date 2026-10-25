@@ -6,11 +6,11 @@ namespace Passenger.Debugger;
 /// <summary>How well a breakpoint's source path names a document a PDB records. The same file is the best match, by the
 /// name the file system gives it (macOS's /var is /private/var, Windows' C:\Users\RUNNER~1 a long name). A document
 /// recorded under another root (a deterministic build's "/_/", a build on another machine) is not on this disk, and
-/// matches by the folders and file name it shares from the end, at least the file and its folder. A document that is
-/// on this disk as another file never matches while the breakpoint's file is on this disk too, so a same-named file in
-/// another folder or project does not take a breakpoint (upstream issue #57); a breakpoint's file that is not here (the
-/// IDE's, this adapter in a container) matches a document that is (one built in the image) by what they share from the
-/// end. A Windows path (C:\…, \\server\…) compares ignoring case wherever the adapter runs, as Windows names files.</summary>
+/// matches by the folders and file name it shares from the end, at least the file and its folder. A document that is on
+/// this disk as another file never matches while the breakpoint's file is on this disk too, so a same-named file in
+/// another folder or project does not take a breakpoint; a breakpoint's file that is not here (the IDE's, this adapter
+/// in a container) matches a document that is (one built in the image) by what they share from the end. A Windows path
+/// (C:\…, \\server\…) compares ignoring case wherever the adapter runs, as Windows names files.</summary>
 public static class SourcePaths
 {
     public const int Same = int.MaxValue;

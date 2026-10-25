@@ -4,9 +4,9 @@ using Passenger.Core;
 
 namespace Passenger.App.Web;
 
-/// <summary>The Node.js the web language servers run on, found as Rider finds its interpreter: the one Settings, Node.js
-/// names, else the first on the PATH as the login shell finds it (<see cref="Programs.Node"/>). Its version is asked of
-/// it, once. <see cref="Problem"/> says plainly why there is none to use.</summary>
+/// <summary>The Node.js the web language servers run on: the one Settings, Node.js names, else the first on the PATH as
+/// the login shell finds it (<see cref="Programs.Node"/>). Its version is asked of it, once. <see cref="Problem"/> says
+/// plainly why there is none to use.</summary>
 public sealed partial record NodeRuntime(string? Path, Version? Version, string? Problem)
 {
     /// <summary>Where Settings names the interpreter, for what the status bar and banner say.</summary>

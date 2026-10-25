@@ -7,10 +7,10 @@ using Passenger.Text;
 
 namespace Passenger.Tests;
 
-/// <summary>Rider's Window > Editor Tabs and the tab's own menu: a pinned tab stands left of the others with a pin, stays
-/// through Close Other Tabs and Close All Tabs and comes back pinned with the folder; Reopen Closed Tab brings tabs back
-/// in the reverse of the order they closed, each where it stood with its caret; Close Tabs to the Left and to the Right
-/// leave the pinned ones; Unsplit and Unsplit All join the splits, keeping every tab.</summary>
+/// <summary>Window > Editor Tabs and the tab's own menu: a pinned tab stands left of the others with a pin, stays
+/// through Close Other Tabs and Close All Tabs and comes back pinned with the folder; Reopen Closed Tab brings tabs
+/// back in the reverse of the order they closed, each where it stood with its caret; Close Tabs to the Left and to the
+/// Right leave the pinned ones; Unsplit and Unsplit All join the splits, keeping every tab.</summary>
 public sealed class EditorTabsTests : IDisposable
 {
     private static readonly string[] Five = ["One.cs", "Two.cs", "Three.cs", "Four.cs", "Five.cs"];
@@ -40,7 +40,6 @@ public sealed class EditorTabsTests : IDisposable
         EditorGroup group = first.EditorArea.ActiveGroup;
         Assert.Equal(["One.cs", "Two.cs", "Three.cs", "Four.cs"], Names(group));
 
-        // Pin Tab from Three.cs's own menu: it goes to the left, with its pin, and the menu offers to unpin it.
         Ui.ChooseFromMenu(Tab(group, "Three.cs"), "Pin Tab");
         Assert.Equal(["Three.cs", "One.cs", "Two.cs", "Four.cs"], Names(group));
         Assert.True(PinShown(group, "Three.cs"), "The pinned tab shows no pin");
@@ -50,13 +49,11 @@ public sealed class EditorTabsTests : IDisposable
         Assert.False(PinShown(group, "Three.cs"), "The tab unpinned still shows its pin");
         Ui.ChooseFromMenu(Tab(group, "Three.cs"), "Pin Tab");
 
-        // A file opened next opens after the pinned tabs, even with a pinned one shown.
         first.OpenFile("Three.cs");
         first.OpenFile("Five.cs");
         Ui.Settle();
         Assert.Equal(["Three.cs", "Five.cs", "One.cs", "Two.cs", "Four.cs"], Names(group));
 
-        // Window > Editor Tabs > Close Other Tabs on Two.cs, then Close All Tabs: the pinned tab stays through both.
         first.OpenFile("Two.cs");
         FromEditorTabs(first, "Close Other Tabs");
         Assert.Equal(["Three.cs", "Two.cs"], Names(group));
@@ -68,7 +65,6 @@ public sealed class EditorTabsTests : IDisposable
         Ui.Settle();
         first.Close();
 
-        // The folder opened again has it pinned, with its pin, left of the others.
         MainWindow second = Keeping();
         EditorGroup reopened = second.EditorArea.ActiveGroup;
         Assert.Equal(["Three.cs", "One.cs"], Names(reopened));
@@ -86,7 +82,6 @@ public sealed class EditorTabsTests : IDisposable
         EditorGroup group = area.ActiveGroup;
         Assert.False(MenuItem(window, "Reopen Closed Tab").IsEnabled, "Reopen Closed Tab can run with no tab closed");
 
-        // Two.cs, Four.cs and One.cs closed by their keys, each with its caret on a line of its own.
         CloseAt(window, "Two.cs", new TextPosition(2, 4));
         CloseAt(window, "Four.cs", new TextPosition(3, 8));
         CloseAt(window, "One.cs", new TextPosition(4, 2));
@@ -103,7 +98,6 @@ public sealed class EditorTabsTests : IDisposable
         Assert.Equal(("Two.cs", new TextPosition(2, 4)), (area.Active?.Name, area.CodeEditor.CaretPosition));
         Assert.False(MenuItem(window, "Reopen Closed Tab").IsEnabled, "Reopen Closed Tab can still run with every closed tab back");
 
-        // A tab closed in a split goes back into that split, though another is worked in.
         EditorGroup left = group;
         window.OpenFile("Four.cs");
         FromEditorTabs(window, "Split Right");
@@ -144,13 +138,11 @@ public sealed class EditorTabsTests : IDisposable
             Assert.True(area.CodeEditor.ScrollOffset.Y > 200 * area.CodeEditor.LineHeight, "Going to the last line left the view at the file's top");
         }
 
-        // Shown as it changes.
         AtTheEnd();
         File.WriteAllText(path, Short);
         Ui.WaitFor(() => Long() == Short, "the shorter text from disk");
         Ui.DrawsText(window, area.CodeEditor, "the file shown was made shorter on disk");
 
-        // Behind another tab as it changes, then shown again.
         AtTheEnd();
         window.OpenFile("One.cs");
         Ui.Settle();
@@ -159,7 +151,6 @@ public sealed class EditorTabsTests : IDisposable
         window.OpenFile("Long.cs");
         Ui.DrawsText(window, area.CodeEditor, "the file behind another tab was made shorter on disk and shown again");
 
-        // Closed, changed, and reopened.
         AtTheEnd();
         Ui.Run(window, AppActions.CloseTab);
         Assert.DoesNotContain(area.Documents, d => d.Name == "Long.cs");
@@ -206,12 +197,10 @@ public sealed class EditorTabsTests : IDisposable
         Assert.Equal([["One.cs", "Two.cs"], ["Two.cs", "Three.cs"], ["Three.cs", "Four.cs"]], area.Groups.Select(Names));
         EditorGroup bottom = area.ActiveGroup;
 
-        // Unsplit from the lower right split: the one above it joins it, and the left one stays.
         FromEditorTabs(window, "Unsplit");
         Assert.Equal([["One.cs", "Two.cs"], ["Three.cs", "Four.cs", "Two.cs"]], area.Groups.Select(Names));
         Assert.Same(bottom, area.ActiveGroup);
 
-        // Unsplit All: one group with every tab, the file worked in shown with its caret where it was.
         FromEditorTabs(window, "Unsplit All");
         EditorGroup joined = Assert.Single(area.Groups);
         Assert.Same(bottom, joined);

@@ -6,7 +6,7 @@ using Passenger.Core;
 
 namespace Passenger.App.History;
 
-/// <summary>Rider's Local History tool window: a tab for each history Show History opens (a file's, a folder's, the
+/// <summary>The Local History tool window: a tab for each history Show History opens (a file's, a folder's, the
 /// project's), its tabs in the window's header. Show History again for the same thing goes back to its tab; a tab's ×
 /// closes it. The tabs are the open folder's, and go with it.</summary>
 public sealed class LocalHistoryView : DockPanel

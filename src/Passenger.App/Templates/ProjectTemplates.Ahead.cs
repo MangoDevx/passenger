@@ -7,10 +7,9 @@ using Passenger.Editor;
 namespace Passenger.App.Templates;
 
 /// <summary>The templates read ahead of New Solution and New Project, so the dialog opens with them listed: once the IDE
-/// has started, in the background, and again when what they come from changes, which a watch on dotnet new's installed
-/// packages (its packages.json) and on the .NET install's SDKs and templates sees. What has been read is kept per SDK
-/// for the dialog to show at once; a dialog open then checks its folder's SDK in the background and fills in what that
-/// read brings. The process's, as dotnet new's home is.</summary>
+/// has started, in the background, and again when what they come from changes (dotnet new's installed packages, the
+/// .NET install's SDKs and templates). What has been read is kept per SDK for a dialog to show at once. The process's,
+/// as dotnet new's home is.</summary>
 public static partial class ProjectTemplates
 {
     /// <summary>How long the watch waits for the writes an install makes to end before reading again.</summary>
@@ -78,8 +77,7 @@ public static partial class ProjectTemplates
         long started = System.Diagnostics.Stopwatch.GetTimestamp();
         try
         {
-            // Not background work: nothing is drawn from it until a dialog opens, which waits for its own read, and holding
-            // a settle for dotnet new's second would outlast a chord's second key.
+            // Not background work: nothing is drawn from it, and holding a settle would outlast a chord's second key.
             TemplateCatalog catalog = await Task.Run(() => LoadAsync(folder));
             IdeErrors.Write($"New Solution's templates read ahead in {System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalSeconds:0.00} s: "
                 + $"{catalog.Templates.Count} templates in {catalog.Families.Count} families, SDK {catalog.Sdk}");
@@ -160,7 +158,7 @@ public static partial class ProjectTemplates
     }
 
     /// <summary>Something the templates come from changed: once its writes have settled, what was read is let go and the
-    /// folders asked for are read again, then the dialogs are told (an open one fills in on the UI thread).</summary>
+    /// folders asked for are read again, then the dialogs are told.</summary>
     private static void Seen(object? sender, FileSystemEventArgs e)
     {
         long change = Interlocked.Increment(ref changes);

@@ -7,7 +7,7 @@ using Avalonia.Media;
 
 namespace Passenger.App.Vcs;
 
-/// <summary>Rider's Show Diff with Working Tree: the files that differ between a branch or tag and the working tree, in a
+/// <summary>Show Diff with Working Tree: the files that differ between a branch or tag and the working tree, in a
 /// window over the IDE's; a double-click or Enter on one shows it as the branch has it beside the file. Escape closes
 /// it.</summary>
 public sealed class ChangesWindow : Window

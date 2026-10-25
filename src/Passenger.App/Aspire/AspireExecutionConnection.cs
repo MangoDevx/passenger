@@ -515,11 +515,9 @@ internal sealed class AspireExecutionConnection : IAsyncDisposable
 
     public void Abort() => client.Dispose();
 
-    /// <summary>Ends the connection once its answer has gone, as an HTTP/1.1 server closes one: the sending side shut, so the
-    /// peer reads the answer to its end, then what the peer still sends read and dropped until it closes, for
-    /// <see cref="Lingering"/> at most. Closed with its request unread (a request line or headers past the limits, a body
-    /// an error answers before reading), the connection would be reset, and Windows then drops the answer the peer has
-    /// not read yet: a 414 was lost so.</summary>
+    /// <summary>Ends the connection once its answer has gone: the sending side shut, so the peer reads the answer to its end,
+    /// then what the peer still sends read and dropped until it closes, for <see cref="Lingering"/> at most. Closed with its
+    /// request unread, the connection would be reset, and Windows then drops the answer the peer has not read yet.</summary>
     public async Task CloseAsync()
     {
         if (!HasResponded || upgraded || RequestAborted.IsCancellationRequested)

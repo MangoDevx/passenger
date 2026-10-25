@@ -14,13 +14,12 @@ public sealed record ComposeRenaming(string Kind, string Name, string Home, Text
     public string Key => Kind + "s";
 }
 
-/// <summary>Rename of a compose file's service, volume, network, secret or config where it is declared and everywhere the
-/// files Compose reads with it use it, from the reading completion and Go to Declaration share: the YAML server's outline
-/// says what the place names (<see cref="ComposeDeclarations.Named"/>, or a declaration's key), and each file's text as
-/// written (<see cref="ComposeText"/>) where it is written (<see cref="ComposeFixes.References"/>: depends_on as a list or a
-/// mapping, links, volumes_from, network_mode's <c>service:</c>, a service's volumes, networks, secrets and configs) and
-/// which extends name it. Its files are the one asked in, the one Compose reads with it (a base and its override), and for
-/// a service an extends names in another file, that file with the compose files beside it.</summary>
+/// <summary>Rename of a compose file's service, volume, network, secret or config where it is declared and everywhere
+/// the files Compose reads with it use it: what the place names read from the YAML server's outline
+/// (<see cref="ComposeDeclarations.Named"/>, or a declaration's key), and where each file writes it read from its text
+/// (<see cref="ComposeFixes.References"/>). Its files are the one asked in, the one Compose reads with it (a base and
+/// its override), and for a service an extends names in another file, that file with the compose files beside
+/// it.</summary>
 public static partial class ComposeRename
 {
     /// <summary>What Rename renames at an offset of a compose file whose outline the server gave for <paramref name="text"/>;
@@ -46,7 +45,6 @@ public static partial class ComposeRename
         }
         string home = named.File is { } other ? PathNames.Canonical(Path.Combine(Path.GetDirectoryName(path)!, other)) : path;
         ComposeRenaming renaming = new(named.Kind, named.Name, home, default);
-        // The name as written at the place: one of those the rename changes in this file.
         return Places(path, text.ToString(), renaming).FirstOrDefault(p => p.Start <= offset && offset <= p.End) is { Length: > 0 } here
             ? renaming with { At = here }
             : null;

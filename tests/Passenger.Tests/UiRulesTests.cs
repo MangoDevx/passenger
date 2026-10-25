@@ -18,13 +18,12 @@ using Passenger.App.Settings;
 
 namespace Passenger.Tests;
 
-/// <summary>Rules the whole window keeps, each decided once in a shared piece (#213) and held here across what the tests
-/// open, as <see cref="DialogButtonsTests.Check"/> holds every dialog's buttons: a menu's current value checked and still
-/// enabled (MenuChoice); every tool window's tabs one look (ToolTabs, Shell.axaml's panelTab); every popup's width from
-/// one scale, its title one size and its rows one height (PopupFrame); a menu opening against its widget; Rider's
-/// scrollbars, thin and arrowless; the open editor tab's ×; Rider's focus ring; and the window at half a 1366-wide screen
-/// with nothing cut that Rider would not cut, a stripe putting what has no room behind More. Each rule that a look could
-/// break is held under both looks in one window, the look switched in place as Settings switches it.</summary>
+/// <summary>Rules the whole window keeps, each decided once in a shared piece and held here across what the tests open: a
+/// menu's current value checked and still enabled (MenuChoice); every tool window's tabs one look (ToolTabs, Shell.axaml's
+/// panelTab); every popup's width from one scale, its title one size and its rows one height (PopupFrame); a menu opening
+/// against its widget; the scrollbars, thin and arrowless; the open editor tab's ×; the focus ring; and the window at half
+/// a 1366-wide screen with nothing cut, a stripe putting what has no room behind More. Each rule that a look could break
+/// is held under both looks in one window, the look switched in place as Settings switches it.</summary>
 public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
 {
     private readonly Project project;
@@ -131,7 +130,7 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
                     $"{action}'s window has its title '{title.Text}' in {title.FontSize} pt {title.FontWeight} under a header {header.Bounds.Height:0.#} tall, "
                     + "where every tool window's title is 14 pt semibold under a header 38 tall");
             }
-            // Every row a person picks from is one height, as Rider's lists and trees are.
+            // Every row a person picks from is one height.
             foreach (ListBoxItem row in ToolWindowParts(window).OfType<ListBoxItem>().Where(r => r.Bounds.Height > 0))
             {
                 Assert.True(Math.Abs(row.Bounds.Height - ListRow.Height) < 0.5,
@@ -158,10 +157,9 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
         Assert.True(seen >= 5, $"Only {seen} tool window tabs were found in Problems, Git, Debug, the Terminal and Aspire");
     }
 
-    /// <summary>The two windows that list a run's services, Containers and Aspire, have one layout (#409): their tabs are of one
+    /// <summary>The two windows that list a run's services, Containers and Aspire, have one layout: their tabs are of one
     /// vocabulary in one order, Log first and shown at first, and their toolbars' service actions are one group in one order
-    /// right after their Refresh, as their rows' menus begin with them, where the Aspire window's tabs said Console, Structured
-    /// logs and Traces, it opened on Details, and the Containers window's toolbar had no service actions.</summary>
+    /// right after their Refresh, as their rows' menus begin with them.</summary>
     [AvaloniaFact]
     public void The_Containers_and_Aspire_windows_share_their_tabs_order_and_their_toolbars_service_group()
     {
@@ -342,7 +340,6 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
         StripeButtonsFit(window);
         Assert.True(window.EditorArea.Bounds.Width > 200, $"The editor keeps {window.EditorArea.Bounds.Width:0.#} px beside the tool windows");
 
-        // NuGet's search, feeds, Prerelease and Refresh stand inside its window, the search and the count giving way.
         Assert.True(window.Perform(AppActions.ShowNuGet), "NuGet did not show");
         Ui.Settle();
         CheckBox prerelease = window.DockHost.GetVisualDescendants().OfType<CheckBox>().First(c => c.Content as string == "Prerelease" && c.IsEffectivelyVisible);
@@ -353,7 +350,6 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
             Assert.True(at.Right <= nuget.Right + 0.5 && at.Width > 0, $"NuGet's {part.GetType().Name} is cut off at its window's right edge ({at.Right:0.#} past {nuget.Right:0.#})");
         }
 
-        // What a tool window says while it has nothing to show wraps inside it, never running past its edges.
         foreach (string action in (string[])[AppActions.ShowTests, AppActions.ShowFind, AppActions.ShowDebug, AppActions.ShowProfiler, AppActions.ShowLocalHistory])
         {
             Assert.True(window.Perform(action), $"{action} did not run");
@@ -367,7 +363,6 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
             }
         }
 
-        // A window too short for every stripe button puts the rest behind More, which lists them.
         window.Height = 500;
         window.Width = MainWindow.SmallestWidth;
         Ui.Settle();
@@ -383,9 +378,8 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
         Ui.Settle();
     }
 
-    /// <summary>A window opens inside the working area of a screen smaller than its default size, as Rider's does: the
-    /// Windows VM's (1500 by 830 at 200%, under its taskbar) opened one partly off the screen, its close button and the
-    /// Debug window's foot under the taskbar. Centred when new; one placed past the area's edge is brought onto it.</summary>
+    /// <summary>A window opens inside the working area of a screen smaller than its default size: centred when new; one
+    /// placed past the area's edge is brought onto it.</summary>
     [AvaloniaFact]
     public void A_window_opens_inside_a_small_screens_working_area_centred_and_one_placed_past_its_edge_is_brought_onto_it()
     {
@@ -418,8 +412,7 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
     }
 
     /// <summary>Every corner Passenger rounds is one of the look's radii (Shell.axaml's kindBadge, tag and box on them), so
-    /// either look's reach it: a Git log's ref tags (the project's v1.0) and the Keymap page's keystroke boxes had 3 and 4
-    /// written in.</summary>
+    /// either look's reach it.</summary>
     [AvaloniaFact]
     public void Every_rounded_corner_is_one_of_the_looks_radii()
     {
@@ -474,8 +467,8 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
         }
     }
 
-    /// <summary>The Debug window's toolbar down its left keeps every button inside the window, as Rider's does: at 1400 by
-    /// 880 its last went under the status bar. A window too short for them all puts the rest behind More, which lists them.</summary>
+    /// <summary>The Debug window's toolbar down its left keeps every button inside the window; a window too short for them
+    /// all puts the rest behind More, which lists them.</summary>
     [AvaloniaFact]
     public void The_debug_windows_toolbar_fits_inside_it_and_puts_what_has_no_room_behind_More()
     {
@@ -519,9 +512,9 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
         }
     }
 
-    /// <summary>Every tool window's toolbar buttons are made one way (ToolButtons, #390): each icon of the one size every
-    /// icon has, and none taking the keys from the list or editor it acts on, as Rider's toolbar buttons never do; only
-    /// the frame's own Options and Hide in a header are smaller. Copies of the helper had drifted on both.</summary>
+    /// <summary>Every tool window's toolbar buttons are made one way (ToolButtons): each icon of the one size every icon has,
+    /// and none taking the keys from the list or editor it acts on; only the frame's own Options and Hide in a header are
+    /// smaller.</summary>
     [AvaloniaFact]
     public void Every_tool_windows_toolbar_buttons_have_the_one_icon_size_and_never_take_the_keys()
     {
@@ -560,10 +553,9 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
         }
     }
 
-    /// <summary>A label that asks more before it acts ends in one ellipsis everywhere, Rider's own "…" (#392), where 101
-    /// labels had three dots and 37 the one character: every action's title, as the menus, Find Action and the keymap list
-    /// it and as a menu opened where it runs words it, macOS's application menu, a row's menu in the Explorer, and every
-    /// button and menu item the tool windows show. A dialog's buttons are held to it by DialogButtonsTests.Check.</summary>
+    /// <summary>A label that asks more before it acts ends in one ellipsis everywhere, "…": every action's title, as the
+    /// menus, Find Action and the keymap list it and as a menu opened where it runs words it, macOS's application menu, a
+    /// row's menu in the Explorer, and every button and menu item the tool windows show.</summary>
     [AvaloniaFact]
     public void Every_label_that_asks_more_ends_in_the_one_ellipsis_never_three_dots()
     {
@@ -655,11 +647,10 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
         }
     }
 
-    /// <summary>Narrow panes cut no word mid-letter and draw nothing over anything (#449), each held where it comes from: a
-    /// tool window's header gives its tabs' room up before its title's and never lays them under its buttons (two programs
-    /// debugged in a narrow Debug window drew their second tab under the ⋮ and —), a tab's name ends in an ellipsis, the Git
-    /// log's files end theirs, a sideways scrollbar lies under the last row rather than over it and a text box's upright one
-    /// beside its lines; the Aspire window's are held where it runs (AspireStandInTests).</summary>
+    /// <summary>Narrow panes cut no word mid-letter and draw nothing over anything, each held where it comes from: a tool
+    /// window's header gives its tabs' room up before its title's and never lays them under its buttons, a tab's name ends in
+    /// an ellipsis, the Git log's files end theirs, a sideways scrollbar lies under the last row rather than over it and a
+    /// text box's upright one beside its lines.</summary>
     [AvaloniaFact]
     public void In_narrow_panes_words_with_no_room_end_in_an_ellipsis_and_nothing_draws_over_anything()
     {
@@ -678,7 +669,7 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
 
     private static void NarrowPanes(MainWindow window)
     {
-        // Two programs debugged, each a tab in the Debug window's header after its title, wider than the window has room for.
+        // Two programs debugged, each a tab in the Debug window's header, wider together than its room.
         System.Collections.ObjectModel.ObservableCollection<Passenger.App.ToolWindows.DebugTab> sessions = window.BottomPanel.Debug.Sessions;
         // The second comes once the first is shown, as a second program's start brings it.
         sessions.Add(new Passenger.App.ToolWindows.DebugTab("Greenhouse.AppHost: apiservice", new Passenger.App.ToolWindows.OutputView(toolbar: false)));
@@ -693,7 +684,6 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
             ToggleButton[] tabs = [.. debug.GetVisualDescendants().OfType<ToggleButton>().Where(t => t.Classes.Contains("panelTab") && Words(t).Contains("Greenhouse", StringComparison.Ordinal))];
             Assert.True(tabs.Length == 2 && tabs.All(t => Visible(window, t).Width >= 40),
                 $"The Debug window shows {tabs.Count(t => Visible(window, t).Width >= 40)} of its two programs' tabs in its header's room");
-            // Too wide together for the header, they take all its room before their names are cut.
             Rect room = Placed(window, (Visual)tabs[0].GetVisualAncestors().OfType<ContentControl>().First(c => c.ClipToBounds));
             Assert.True(Placed(window, tabs[1]).Right >= room.Right - 1,
                 $"The Debug window's tabs end at {Placed(window, tabs[1]).Right:0.#}, their names cut, though the header has room to {room.Right:0.#}");
@@ -724,9 +714,9 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
         view.GetVisualAncestors().OfType<DockPanel>().FirstOrDefault(p => p.Classes.Contains("toolPane"))
             ?? throw new Xunit.Sdk.XunitException($"The {view.GetType().Name} is in no tool window");
 
-    /// <summary>A part of a window kept as every part is however narrow (#449): words wider than their room end in an
-    /// ellipsis rather than being cut, and nothing a person reads or presses lies over another, each as far as what clips it
-    /// shows it.</summary>
+    /// <summary>A part of a window kept as every part is however narrow: words wider than their room end in an ellipsis
+    /// rather than being cut, and nothing a person reads or presses lies over another, each as far as what clips it shows
+    /// it.</summary>
     internal static void FitsItsRoom(Visual window, Visual part, string what)
     {
         Control[] drawn = [.. part.GetVisualDescendants().OfType<Control>().Where(c => (c is TextBlock { Text.Length: > 0 } or Button or ComboBox or TextBox)
@@ -909,8 +899,7 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
         Color editor = Brush(window, "Passenger.Editor.Background");
         Color line = Brush(window, "Passenger.Divider");
 
-        // The frame round the edges is one ground with no rule round it; the tool windows a step lighter; the editor
-        // a step from both, each step one a person sees.
+        // The frame one ground with no rule round it; the tool windows a step lighter; the editor a step from both.
         foreach (Border part in window.GetVisualDescendants().OfType<Border>().Where(b => b.IsEffectivelyVisible
             && b.Classes.Any(c => c is "titleBar" or "stripeBar" or "tabStrip" or "statusBar")))
         {
@@ -943,16 +932,14 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
         Rect code = Placed(window, window.EditorArea.CodeEditor);
         Rect status = Placed(window, window.GetVisualDescendants().OfType<Border>().First(b => b.Classes.Contains("statusBar")));
         using Picture picture = new(window);
-        // Where two grounds meet, nothing but the two: the stripe and a tool window, a tool window and the editor, the
-        // tabs' strip and the editor, the editor and the bottom tool window, a tool window and the status bar.
+        // Where two grounds meet, nothing but the two.
         picture.Meets("the left stripe and the Explorer", new Point(explorer.Left, explorer.Top + (explorer.Height * 0.8)), across: true, frame, panel);
         picture.Meets("the Explorer and the editor", new Point(explorer.Right, code.Top + (code.Height * 0.7)), across: true, panel, editor);
         // The caret's line, the file's first, lit across the editor.
         picture.Meets("the tabs' strip and the editor", new Point(code.Right - 60, code.Top), across: false, frame, Brush(window, "Passenger.Editor.CurrentLine"));
         picture.Meets("the editor and Problems", new Point(code.Left + 6, problems.Top), across: false, editor, panel);
         picture.Meets("Problems and the status bar", new Point(problems.Left + (problems.Width * 0.6), status.Top), across: false, panel, frame);
-        // Where two tool windows meet, one ground, a line shows the edge: the Explorer over Structure, Structure over
-        // Problems.
+        // Where two tool windows of one ground meet, a line shows the edge.
         picture.Seam("the Explorer and Structure", new Point(explorer.Left + (explorer.Width / 2), structure.Top), panel, line);
         picture.Seam("Structure and Problems", new Point(structure.Left + (structure.Width / 2), problems.Top), panel, line);
     }
@@ -1086,10 +1073,8 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
     }
 
     /// <summary>Every colour, brush and corner Fluent gives is the look's own token in either look, Dark and Light
-    /// (FluentKeys.axaml), so a control left to Fluent never shows another theme's colours or Fluent's greys: a tooltip, a
-    /// drop-down's list and an unfocused field had Fluent's grey under both themes, each theme mapping Fluent's keys by
-    /// itself. A key is left to Fluent only by the reasons below; an Avalonia update that adds one fails here until it is
-    /// mapped.</summary>
+    /// (FluentKeys.axaml), so a control left to Fluent never shows another theme's colours or Fluent's greys. A key is left
+    /// to Fluent only by the reasons below; an Avalonia update that adds one fails here until it is mapped.</summary>
     [AvaloniaFact]
     public void Every_colour_and_corner_Fluent_gives_is_the_looks_own_token_dark_and_light()
     {
@@ -1155,8 +1140,7 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
     /// does not hold starts with '!'.</summary>
     private static string? LeftToFluent(string key, object? value, string source)
     {
-        // Fluent's palette colours, read only into its own brushes as they load: a control asks for a brush (mapped), and
-        // nothing of Passenger's asks for a colour by name.
+        // Fluent's palette colours, read only into its own brushes: nothing of Passenger's asks for a colour by name.
         if (value is Color)
         {
             return Regex.IsMatch(source, $@"\b{key}\b") ? $"!Passenger's source reads {key}, a colour Fluent's palette gives" : "a palette colour";
@@ -1239,10 +1223,9 @@ public sealed class UiRulesTests : IClassFixture<UiRulesTests.Project>
         }
     }
 
-    /// <summary>No colour and no rounded corner is written outside the theme files (Theme/): each is a token of the look
-    /// in force, so a look draws the whole window. The editor's palette had 54 colours of its own for a token a theme
-    /// left out, the profiler's charts and the terminal named colours. Where a colour is the content's, not the
-    /// window's, it is allowed below, saying why.</summary>
+    /// <summary>No colour and no rounded corner is written outside the theme files (Theme/): each is a token of the look in
+    /// force, so a look draws the whole window. Where a colour is the content's, not the window's, it is allowed below,
+    /// saying why.</summary>
     [Fact]
     public void No_colour_or_rounded_corner_is_written_outside_the_theme_files()
     {

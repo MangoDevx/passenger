@@ -70,8 +70,6 @@ public sealed class HotReloadTests : IClassFixture<HotReloadTests.Greetings>, IC
             Assert.Contains("Howdy 1", Output(window), StringComparison.Ordinal);
             Assert.DoesNotContain("Hello", Output(window), StringComparison.Ordinal);
 
-            // Paused in Greet, Step Over applies the next edit, runs the paused statement in the new code and stops at the one
-            // added after it.
             window.OpenFile(GreeterPath);
             CodeEditor editor = window.EditorArea.CodeEditor;
             editor.GoTo(new TextPosition(4, 8));
@@ -123,7 +121,6 @@ public sealed class HotReloadTests : IClassFixture<HotReloadTests.Greetings>, IC
             Assert.Contains(new LineMark(5, LineMarkKind.BreakpointBound), editor.LineMarks);
             Ui.WaitFor(() => window.BottomPanel.Debug.Tree.Rows.Any(r => r.Name == "said" && r.Value.Contains("Howdy", StringComparison.Ordinal)),
                 "the edited method's new local in Variables");
-            // The expression evaluator compiles against the method as the update made it: its new local, its new code.
             Dap.EvaluateResponse length = Ui.Await(window.Debugger.Session!.EvaluateAsync("said.Substring(0, 5) + i.ToString()", window.BottomPanel.Debug.Frames[0].Id, "watch"),
                 "an expression in the edited method");
             Assert.StartsWith("\"Howdy", length.Result, StringComparison.Ordinal);
@@ -135,9 +132,9 @@ public sealed class HotReloadTests : IClassFixture<HotReloadTests.Greetings>, IC
         }
     }
 
-    /// <summary>The comment above the field holds breaks Roslyn counts and the editor does not: the edit is named at the editor's
-    /// line 4, not the compiler's 8, which only the console's message in a compiler's shape names, as a compiler would. Then,
-    /// with always restart off, the next rude edit asks as dotnet watch asks, and Never stops the asking.</summary>
+    /// <summary>The comment above the field holds breaks Roslyn counts and the editor does not: the edit is named at
+    /// the editor's line 4, not the compiler's 8, which only the console's message in a compiler's shape names, as a
+    /// compiler would. Then, with always restart off, the next rude edit asks, and Never stops the asking.</summary>
     [AvaloniaFact]
     public void A_rude_edit_is_named_at_its_line_and_restarts_the_program_with_it_and_with_always_restart_off_asks_until_never()
     {
@@ -168,7 +165,6 @@ public sealed class HotReloadTests : IClassFixture<HotReloadTests.Greetings>, IC
             Assert.Contains(rude, window.BottomPanel.Problems.HotReloadProblems!);
             Assert.Contains("Greeter.cs:4", outcome.Said, StringComparison.Ordinal);
 
-            // Restarted with its edits built and its breakpoint: a new session, stopped at the breakpoint again.
             Ui.WaitFor(() => window.Debugger.Session is { } next && next != first && next.State == DebugState.Paused, "the restarted program to stop at the breakpoint");
             string message = $"{GreeterPath}(8,{rude.Position.Column + 1}): error {rude.Code}";
             Ui.WaitFor(() => window.BottomPanel.Debug.Console.Document.Snapshot.ToString().Contains(message, StringComparison.Ordinal),
@@ -182,7 +178,6 @@ public sealed class HotReloadTests : IClassFixture<HotReloadTests.Greetings>, IC
             Assert.Contains("Howdy 1 (1)", Output(window), StringComparison.Ordinal);
             TestContext.Current.TestOutputHelper?.WriteLine($"Hot Reload restart for a rude edit took {window.LastHotReloadRestart!.Value.TotalSeconds:0.0} s");
 
-            // With always restart off, the next rude edit asks as dotnet watch asks, and No leaves the program running as it was.
             window.ApplySettings(window.Settings with { RestartOnRudeEdit = false });
             DebugSession restarted = window.Debugger.Session!;
             TimeSpan? restart = window.LastHotReloadRestart;
@@ -197,7 +192,6 @@ public sealed class HotReloadTests : IClassFixture<HotReloadTests.Greetings>, IC
             Assert.Equal(DebugState.Running, restarted.State);
             Assert.Equal(restart, window.LastHotReloadRestart);
 
-            // Asked again at the next Apply, until Never, which leaves the program as it is for the rest of its session.
             Ui.Run(window, AppActions.ApplyHotReloadChanges);
             Ui.ClickButton(Asked(window), "Never");
             HotReloadOutcome told = window.Debugger.LastApplied!;
@@ -242,7 +236,6 @@ public sealed class HotReloadTests : IClassFixture<HotReloadTests.Greetings>, IC
             Assert.Equal(GreeterPath, stale.Path);
             Assert.True(outcome.Said == $"No managed code changes to apply: {stale.Message.TrimEnd('.')}.", $"Hot Reload did not say Roslyn's reason for applying nothing: {outcome.Said}");
 
-            // The status bar says it, and its words go to Problems' Hot Reload tab, which lists it.
             Ui.WaitFor(() => window.Status == outcome.Said, $"the status bar to say why nothing was applied, not \"{window.Status}\"");
             window.DockHost.Hide(ToolWindowIds.Problems);
             Ui.Click(window.GetVisualDescendants().OfType<Avalonia.Controls.Button>().Single(b => b.Name == "StatusMessage"));

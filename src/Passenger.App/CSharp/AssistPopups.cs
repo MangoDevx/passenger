@@ -180,9 +180,9 @@ internal sealed partial class InfoCard : Border
     private static partial System.Text.RegularExpressions.Regex MarkdownLink();
 }
 
-/// <summary>One completion row: the badge for its kind (a coloured letter, as Rider's are, its colour the theme's resource
-/// of that key, found as it is shown), its label and the detail the server gives (a type, a namespace). Made where the list
-/// is filtered, off the UI thread.</summary>
+/// <summary>One completion row: the badge for its kind (a coloured letter, its colour the theme's resource of that key,
+/// found as it is shown), its label and the detail the server gives (a type, a namespace). Made where the list is
+/// filtered, off the UI thread.</summary>
 internal sealed record CompletionRow(Lsp.CompletionItem Item, string Letter, string BadgeKey, string Detail)
 {
     public string Label => Item.Label + (Item.LabelDetails?.Detail ?? string.Empty);
@@ -433,7 +433,6 @@ internal sealed class ChoicePopup : Border
                 Height = ListRow.Height,
                 Children =
                 {
-                    // Rider's digit before the choices that have one, a column of its own when any does.
                     new TextBlock
                     {
                         Text = choice?.Mnemonic?.ToString(),
@@ -524,9 +523,9 @@ internal sealed class ChoicePopup : Border
 /// chooses it, if it has one.</summary>
 internal sealed record Choice(string Text, string Detail, object Value, bool DetailIsCode = false, char? Mnemonic = null);
 
-/// <summary>Rider's inline rename: the name in a box over itself, all of it selected; Enter renames,
-/// Escape leaves it. For a type declared in files named after it, Rider's Also rename files to reflect this change is a
-/// check box under it, with the files it would rename, clicked while the keys stay with the name.</summary>
+/// <summary>Inline rename: the name in a box over itself, all of it selected; Enter renames, Escape leaves it. For a
+/// type declared in files named after it, Also rename files to reflect this change is a check box under it, with the
+/// files it would rename, clicked while the keys stay with the name.</summary>
 internal sealed class RenameBox : Border
 {
     // Styled as the Border it is, so the theme's Border.popup reaches it.
@@ -571,7 +570,7 @@ internal sealed class RenameBox : Border
     /// <summary>Whether the files offered are to be renamed with the type.</summary>
     public bool RenamesFiles => renameFiles?.IsChecked == true;
 
-    /// <summary>Rider's Also rename files to reflect this change, checked or cleared.</summary>
+    /// <summary>Also rename files to reflect this change, checked or cleared.</summary>
     public event EventHandler<bool>? RenamesFilesChanged;
 
     /// <summary>Offers to rename the files named after the type with it, checked as the option was left.</summary>
@@ -613,7 +612,7 @@ internal static class Fonts
 {
     public static readonly FontFamily Mono = new("avares://Passenger.Editor/Fonts#JetBrains Mono");
 
-    /// <summary>Code as the editor draws it by default, its characters each its own: JetBrains Mono would join "<>" into
+    /// <summary>Code as the editor draws it by default, its characters each its own: JetBrains Mono would join "&lt;&gt;" into
     /// a diamond and "=>" into an arrow.</summary>
     public static readonly FontFeatureCollection NoLigatures = [new FontFeature { Tag = "calt", Value = 0 }, new FontFeature { Tag = "liga", Value = 0 }];
 

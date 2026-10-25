@@ -33,7 +33,7 @@ public static class Program
         new Server(protocol, new HostReady(sdk.MSBuildPath, sdk.Version.ToString())).Run(Console.In);
 }
 
-/// <summary>Finding the SDK a folder's projects build with, as the dotnet command line run there would.</summary>
+/// <summary>Finding the SDK a folder's projects build with: the one its global.json picks, else the newest.</summary>
 public static class Sdks
 {
     public static VisualStudioInstance? For(string folder, out string? problem)

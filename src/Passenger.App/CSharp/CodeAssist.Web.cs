@@ -8,9 +8,9 @@ using Passenger.Core;
 
 namespace Passenger.App.CSharp;
 
-/// <summary>The same popups and commands over a JavaScript, TypeScript, HTML, CSS or JSON file, answered by its language
-/// server (<see cref="WebLanguages"/>): completion after the server's own trigger characters, names that run on through
-/// the language's own characters, and, where the JSON server has none, Rider's Go to Declaration from a package.json
+/// <summary>The same popups and commands over a JavaScript, TypeScript, HTML, CSS or JSON file, answered by its
+/// language server (<see cref="WebLanguages"/>): completion after the server's own trigger characters, names that run
+/// on through the language's own characters, and, where the JSON server has none, Go to Declaration from a package.json
 /// dependency to its installed package and Rename of a JSON property, a package.json script's runs with it.</summary>
 public sealed partial class CodeAssist
 {
@@ -74,8 +74,8 @@ public sealed partial class CodeAssist
         return TextRange.FromBounds(start, end);
     }
 
-    /// <summary>Go to Declaration where the server has none (JSON's): from a package.json dependency to the package's own
-    /// package.json in node_modules, as Rider goes, and from a script's <c>npm run</c> to the script it runs.</summary>
+    /// <summary>Go to Declaration where the server has none (JSON's): from a package.json dependency to the package's
+    /// own package.json in node_modules, and from a script's <c>npm run</c> to the script it runs.</summary>
     private async Task WebGoTo(WebDocument web, int offset)
     {
         if (web.Lsp is not { } lsp || editors.Active is not { } document)

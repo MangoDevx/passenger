@@ -80,8 +80,7 @@ public sealed class WebLanguagesTests : IClassFixture<BlazorShop>
         Assert.Contains("const sum: number = sumOf(items);", usages);
         Assert.Contains("import { Item, sumOf } from \"./items\";", usages);
 
-        // A script outside the tsconfig, read by the same TypeScript: completion, a syntax error, a function's declaration
-        // and its rename everywhere it is called.
+        // A script outside the tsconfig, read by the same TypeScript.
         window.OpenFile(app.PathOf("wwwroot/js/site.js"));
         Ui.Settle();
         editor = window.EditorArea.CodeEditor;
@@ -147,7 +146,6 @@ public sealed class WebLanguagesTests : IClassFixture<BlazorShop>
         window.KeyTextInput("4px");
         Assert.Equal("    border-radius: 4px;", editor.Document.Snapshot.GetLineText(line));
 
-        // A value chosen from the list its colon opened, with nothing typed, goes in with the caret after it.
         Ui.Press(window, "END");
         Ui.Press(window, "ENTER");
         window.KeyTextInput("display");

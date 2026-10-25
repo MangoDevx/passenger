@@ -14,8 +14,8 @@ namespace Passenger.App;
 
 public partial class App : Application
 {
-    /// <summary>Whether the class handlers are in, which are the process's (static events), not an App's: the headless tests
-    /// make an App for each test, and each added again would make every template applied anywhere ask each one.</summary>
+    /// <summary>Whether the class handlers are in, which are the process's (static events), not an App's: a process may
+    /// make several Apps, and each adding them again would make every template applied anywhere ask each one.</summary>
     private static bool classHandlersAdded;
 
     public override void Initialize()
@@ -28,8 +28,7 @@ public partial class App : Application
         }
         classHandlersAdded = true;
         MenuShadow.Install();
-        // Every in-window menu writes its keys as the keymap, Find Action and a chord's item do (Keystroke.Display: ⇧⌘R
-        // on macOS), where Fluent wrote a KeyGesture its own way ("Shift+Cmd+R") beside them.
+        // In-window menus write keys as the keymap does (⇧⌘R), not as Fluent writes a KeyGesture (Shift+Cmd+R).
         TemplatedControl.TemplateAppliedEvent.AddClassHandler<MenuItem>((item, e) =>
         {
             if (item.InputGesture is { } keys && e.NameScope.Find<TextBlock>("PART_InputGestureText") is { } shown)
@@ -48,8 +47,7 @@ public partial class App : Application
             // Only the person's window updates Passenger, and only a copy its installer or disk image put in place.
             Updates.Updater? updater = Updates.Updater.OfThisCopy(State.StateStore.DefaultRoot, out string notUpdating);
             MainWindow window = new() { AgentsAllowed = Program.Options.ListenForAgents, SelfUpdate = updater };
-            // The person's own windows open on the layout and settings they left (agents let in or not), and every window
-            // opened from this one is made as it is (PassengerApp); headless ones keep the defaults.
+            // The person's windows open on the layout and settings they left; headless ones keep the defaults.
             window.KeepLayout();
             window.KeepSettings();
             // A theme named on the command line is the run's, over the one kept.
@@ -58,7 +56,6 @@ public partial class App : Application
             window.FitToScreen(keepPlace: false);
             window.Opened += (_, _) =>
             {
-                // The first of a start's phases in the log, as Rider's idea.log begins with its build and runtime.
                 IdeErrors.Write($"Passenger {Product.Version} ({Product.Commit ?? "no commit"}) on {RuntimeInformation.OSDescription} "
                     + $"({Product.Runtime}): window shown {Stopwatch.GetElapsedTime(Program.StartedAt).TotalSeconds:0.00} s after launch");
                 window.Start(Program.Options);
@@ -75,7 +72,6 @@ public partial class App : Application
                 {
                     window.ShowWhatsNewOnce();
                 }
-                // The person's windows show their activity in Discord, the one in front, while Settings says so.
                 window.ShowActivityInDiscord();
             };
             desktop.MainWindow = window;
@@ -83,8 +79,7 @@ public partial class App : Application
             {
                 NativeMenu.SetMenu(this, window.ApplicationMenu());
             }
-            // macOS hands the running Passenger what the Finder or the Dock's icon opens with it, rather than starting
-            // another (Info.plist's document types): a solution, a project or a folder.
+            // macOS hands the running Passenger what the Finder or the Dock's icon opens, rather than starting another.
             if (TryGetFeature(typeof(IActivatableLifetime)) is IActivatableLifetime activatable)
             {
                 activatable.Activated += OnActivated;

@@ -11,8 +11,8 @@ using Passenger.Text;
 
 namespace Passenger.Tests;
 
-/// <summary>Rider's refactorings that ask their options in a dialog, each through its own keys and its dialog's controls on
-/// a real project, computed by Passenger's extension in the real language server: Change Signature, Extract Interface,
+/// <summary>The refactorings that ask their options in a dialog, each through its own keys and its dialog's controls on a
+/// real project, computed by Passenger's extension in the real language server: Change Signature, Extract Interface,
 /// Move to Another File, Move to Namespace, Pull Members Up and Push Members Down; Undo takes each back whole.</summary>
 public sealed class RefactoringDialogsTests
 {
@@ -42,8 +42,8 @@ public sealed class RefactoringDialogsTests
 
     /// <summary>Every dialog's refactoring made in one window on one project, each through its own keys or menu item and
     /// its dialog's controls, and each taken back whole by Undo before the next: the project and its language server are
-    /// made once, and no refactoring touches a closed file another wrote a moment before (which a refactoring refuses,
-    /// WorkspaceEdits.StaleAsync). Each file a refactoring changes is checked whole.</summary>
+    /// made once, and no refactoring touches a closed file another wrote a moment before, which a refactoring refuses. Each
+    /// file a refactoring changes is checked whole.</summary>
     [AvaloniaFact]
     public void Each_refactoring_dialog_changes_every_file_it_must_and_undo_takes_each_back_whole()
     {
@@ -80,7 +80,6 @@ public sealed class RefactoringDialogsTests
         Assert.Equal("public static int Scale(int value, int factor, int unused)", dialog.Preview);
         Assert.Equal(["value", "factor", "unused"], dialog.Parameters.Select(p => p.NameBox.Text));
 
-        // unused goes, factor moves before value, and a new offset is passed 0 by every call.
         Ui.Click(dialog.Parameters[2].NameBox);
         Ui.Click(dialog.RemoveButton);
         Ui.Click(dialog.Parameters[1].TypeBox);
@@ -106,7 +105,6 @@ public sealed class RefactoringDialogsTests
         Assert.Equal(till, File.ReadAllText(PathOf("Till.cs")));
         Assert.StartsWith("Changed the signature of Calc.Scale in 2 files", window.Status, StringComparison.Ordinal);
 
-        // Undo in the editor takes back the declaration and every call at once, asked first.
         window.EditorArea.CodeEditor.Focus();
         Ui.Run(window, EditorActions.Undo);
         Assert.Equal([("Undo", "Undo Change Signature? It changes Calc.cs and Till.cs.")], asked);
@@ -136,7 +134,6 @@ public sealed class RefactoringDialogsTests
         Assert.Equal(Order.Replace("public class Order", "public class Order : IOrder", StringComparison.Ordinal), window.EditorArea.Active?.Text.Snapshot.ToString());
         Assert.Equal("Extracted the interface IOrder from Order to IOrder.cs", window.Status);
         Assert.Contains(window.ExplorerView.Tree.Rows, r => r.Path == extracted);
-        // The language server finds the new file: the class's own shows no error for the interface it now implements.
         Ui.WaitFor(() => window.CSharpService!.For(window.EditorArea.Active!)!.Diagnostics.All(d => d.Severity != 1), "the language server to take IOrder.cs in");
 
         window.EditorArea.CodeEditor.Focus();

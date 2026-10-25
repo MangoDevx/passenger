@@ -9,8 +9,8 @@ using Passenger.Editor;
 
 namespace Passenger.App.Settings;
 
-/// <summary>Settings' Keymap page, as Rider's: the keymap chosen at its top (Visual Studio's or VS Code's), every action
-/// with its shortcuts in it, each in a box of its own (a chord as "⌘K, ⌘C"), an action the person changed in the modified
+/// <summary>Settings' Keymap page: the keymap chosen at its top (Visual Studio's or VS Code's), every action with its
+/// shortcuts in it, each in a box of its own (a chord as "⌘K, ⌘C"), an action the person changed in the modified
 /// colour. An action's Edit Shortcuts menu (a double-click, a right-click or its button) has Add Keyboard Shortcut, a
 /// Remove for each shortcut and Reset Shortcuts; Find Actions by Shortcut keeps only the actions a keystroke or chord
 /// pressed into it starts.</summary>
@@ -34,17 +34,17 @@ public sealed partial class SettingsDialog
     /// <summary>What a search finds the keymap's choice by, beside the keymaps' names.</summary>
     private const string KeymapWords = "keymap keymaps preset keyboard shortcuts keys bindings visual studio vs code vscode";
 
-    /// <summary>Rider's keymap drop-down at the Keymap page's top: the keymap the person's keys follow, their own shortcuts
+    /// <summary>The keymap drop-down at the Keymap page's top: the keymap the person's keys follow, their own shortcuts
     /// kept over each apart.</summary>
     public ComboBox KeymapChoice { get; } = new() { Name = "KeymapChoice", Classes = { "form" } };
 
-    /// <summary>Rider's Find Actions by Shortcut, the magnifier over a keyboard at the Keymap page's top.</summary>
+    /// <summary>Find Actions by Shortcut, the magnifier over a keyboard at the Keymap page's top.</summary>
     public Button FindByShortcut { get; } = new() { Classes = { "tool" } };
 
-    /// <summary>Find Actions by Shortcut's popup (Rider's Find Shortcut): the keystrokes the page is narrowed to.</summary>
+    /// <summary>Find Actions by Shortcut's popup: the keystrokes the page is narrowed to.</summary>
     public ShortcutPanel FindShortcut => filterKeys;
 
-    /// <summary>The x on the shortcut the page is narrowed to, Rider's Clear Filtering.</summary>
+    /// <summary>The x on the shortcut the page is narrowed to (Clear Filtering).</summary>
     public Button ClearFiltering { get; } = new() { Classes = { "tabPin" }, Margin = new Thickness(6, 0, 0, 0) };
 
     /// <summary>The shortcut the Keymap page is narrowed to, or null while it lists every action.</summary>
@@ -57,10 +57,10 @@ public sealed partial class SettingsDialog
     /// <summary>The chosen keymap with the person's shortcuts over it, as the options now stand.</summary>
     private Keymap Current => AppActions.Keymap(Working);
 
-    /// <summary>An action's row on the Keymap page, whose menu is Rider's Edit Shortcuts.</summary>
+    /// <summary>An action's row on the Keymap page, whose menu is Edit Shortcuts.</summary>
     public Control KeymapRow(string action) => keymapRows[action].Row;
 
-    /// <summary>The shortcuts an action's row shows, each as Rider writes it.</summary>
+    /// <summary>The shortcuts an action's row shows, as it writes them.</summary>
     public IReadOnlyList<string> ShortcutsShown(string action) =>
         [.. keymapRows[action].Keys.Children.OfType<Border>().Select(b => ((TextBlock)b.Child!).Text ?? string.Empty)];
 
@@ -68,8 +68,8 @@ public sealed partial class SettingsDialog
     public bool ShowsChanged(string action) => keymapRows[action].Title.Classes.Contains("changed");
 
     /// <summary>Gives an action exactly these shortcuts (keymap notation, "meta shift K"); none unbinds it. Each other
-    /// action's shortcut one clashes with (<see cref="Keymap.Conflicts"/>) is taken from it, as Rider's Remove does, and
-    /// the page says so.</summary>
+    /// action's shortcut one clashes with (<see cref="Keymap.Conflicts"/>) is taken from it, and the page says
+    /// so.</summary>
     public void Rebind(string action, params string[] shortcuts)
     {
         Dictionary<string, string[]> next = Taken(Current, action, shortcuts.Select(Shortcut.Parse), keepDefaults: false, out List<string> taken);
@@ -79,8 +79,8 @@ public sealed partial class SettingsDialog
         Say(taken);
     }
 
-    /// <summary>Rider's Reset Shortcuts: an action's shortcuts back as the keymap has them, each taken back from an action
-    /// the person gave it to.</summary>
+    /// <summary>Reset Shortcuts: an action's shortcuts back as the keymap has them, each taken back from an action the
+    /// person gave it to.</summary>
     public void ResetShortcuts(string action)
     {
         Dictionary<string, string[]> next = Taken(Current, action, Defaults.ShortcutsFor(action), keepDefaults: true, out List<string> taken);
@@ -90,9 +90,10 @@ public sealed partial class SettingsDialog
         Say(taken);
     }
 
-    /// <summary>Rider's Add Keyboard Shortcut: the Keyboard Shortcut dialog, then, when the shortcut is already assigned to
-    /// other actions, its warning, whose Remove takes it from them and whose Cancel keeps the keymap as it was. Rider's
-    /// Keep is left out: a shortcut here runs one action, and a chord's first key bound alone would run before it.</summary>
+    /// <summary>Add Keyboard Shortcut: the Keyboard Shortcut dialog, then, when the shortcut is already assigned to
+    /// other actions, its warning, whose Remove takes it from them and whose Cancel keeps the keymap as it was. It
+    /// offers no Keep: a shortcut here runs one action, and a chord's first key bound alone would run before
+    /// it.</summary>
     public async Task AddKeyboardShortcut(string action)
     {
         Keymap current = Current;
@@ -137,8 +138,9 @@ public sealed partial class SettingsDialog
         ShowShortcuts();
     }
 
-    /// <summary>Rider's keymap drop-down: another keymap shows its own shortcuts with the person's kept over it, and
-    /// Reset Shortcuts gives back its own; what the person set over the one left stays, for when it is chosen again.</summary>
+    /// <summary>The keymap drop-down: another keymap shows its own shortcuts with the person's kept over it, and Reset
+    /// Shortcuts gives back its own; what the person set over the one left stays, for when it is chosen
+    /// again.</summary>
     private void ChooseKeymap(KeymapPreset chosen)
     {
         if (chosen == Working.Keymap)
@@ -150,7 +152,7 @@ public sealed partial class SettingsDialog
         ShowShortcuts();
         if (shortcutFilter is null)
         {
-            // A search's rows are those whose words, the new keymap's shortcuts among them, have what was typed.
+            // The search runs again over the new keymap's shortcuts.
             Filter();
         }
     }
@@ -189,7 +191,6 @@ public sealed partial class SettingsDialog
         filterChip.Child = new StackPanel { Orientation = Orientation.Horizontal, Children = { filterText, ClearFiltering } };
         filterChip.Bind(Border.BackgroundProperty, filterChip.GetResourceObservable("Passenger.Selected"));
 
-        // Rider's Find Shortcut popup under the button: the page narrows as each keystroke is pressed into it.
         TextBlock title = new() { Text = "Find Shortcut", FontWeight = FontWeight.SemiBold };
         Border popup = new()
         {
@@ -202,7 +203,7 @@ public sealed partial class SettingsDialog
         KeyboardNavigation.SetTabNavigation(popup, KeyboardNavigationMode.Cycle);
         popup.AddHandler(KeyDownEvent, (_, e) =>
         {
-            // Escape, and Enter once a keystroke is in, close it as they close Rider's; the shortcut stays the filter.
+            // Escape, and Enter once a keystroke is in, close it; the shortcut stays the filter.
             if (e.KeyModifiers == KeyModifiers.None && e.Key is Key.Escape or Key.Enter)
             {
                 findPopup.IsOpen = false;
@@ -228,9 +229,9 @@ public sealed partial class SettingsDialog
         keymapHeader.Children.Add(named);
     }
 
-    /// <summary>Rider's Edit Shortcuts: Add Keyboard Shortcut, a Remove for each shortcut (and Remove All Shortcuts past
-    /// two), and Reset Shortcuts once they differ from the keymap's. Rider's Add Mouse Shortcut and Add Abbreviation are
-    /// left out: the keymap binds keys alone.</summary>
+    /// <summary>Edit Shortcuts: Add Keyboard Shortcut, a Remove for each shortcut (and Remove All Shortcuts past two),
+    /// and Reset Shortcuts once they differ from the keymap's. The keymap binds keys alone, so it offers no mouse
+    /// shortcut or abbreviation.</summary>
     private void FillEditShortcuts(string action, ContextMenu menu)
     {
         Keymap current = Current;
@@ -261,8 +262,8 @@ public sealed partial class SettingsDialog
         }
     }
 
-    /// <summary>The row's Edit Shortcuts menu, under what was clicked (the row, or its ⋮): Avalonia opens a menu only on
-    /// the control it belongs to, the row, so the ⋮ is where it is placed, until it closes.</summary>
+    /// <summary>The row's Edit Shortcuts menu, under what was clicked (the row, or its ⋮): a menu opens only on the
+    /// control it belongs to, the row, so it is placed at the ⋮ until it closes.</summary>
     private void OpenEditShortcuts(string action, ContextMenu menu, Control row, Control at)
     {
         FillEditShortcuts(action, menu);
@@ -348,8 +349,8 @@ public sealed partial class SettingsDialog
         }
     }
 
-    /// <summary>Narrows the Keymap page to the actions a shortcut starts (Rider's Find Actions by Shortcut), or lists them
-    /// all again for null.</summary>
+    /// <summary>Narrows the Keymap page to the actions a shortcut starts (Find Actions by Shortcut), or lists them all
+    /// again for null.</summary>
     private void FilterByShortcut(Shortcut? shortcut)
     {
         shortcutFilter = shortcut;
@@ -382,7 +383,7 @@ public sealed partial class SettingsDialog
         return option => option.Action is null || current.ShortcutsFor(option.Action).Any(s => s.StartsWith(filter));
     }
 
-    /// <summary>Where Rider's keymap lists an action: its main menu's path, Editor Actions for the editor's own, else
+    /// <summary>Where an action is listed: its main menu's path, Editor Actions for the editor's own, else
     /// Other.</summary>
     private static string Where(IdeAction? action) => action switch
     {

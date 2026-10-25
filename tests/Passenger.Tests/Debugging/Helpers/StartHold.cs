@@ -5,8 +5,7 @@ using System.Net.Sockets;
 namespace Passenger.Tests.Debugging.Helpers;
 
 /// <summary>A diagnostic port of the test's own that a launched program's runtime connects to and waits at as it starts,
-/// before its debugger starts, until the test lets it go (the protocol's ResumeRuntime): a runtime slow to start, for as
-/// long as the test likes.</summary>
+/// before its debugger starts, until the test lets it go: a runtime slow to start, for as long as the test likes.</summary>
 public sealed class StartHold : IDisposable
 {
     private readonly string address;
@@ -34,7 +33,7 @@ public sealed class StartHold : IDisposable
     /// <summary>What sends the program's runtime here, to wait.</summary>
     public IReadOnlyDictionary<string, string> Environment => new Dictionary<string, string> { ["DOTNET_DiagnosticPorts"] = $"{address},connect,suspend" };
 
-    /// <summary>The process whose runtime has come and waits, once it has, within a minute or the time given (a build first).</summary>
+    /// <summary>The process whose runtime has come and waits, once it has, within a minute or the time given.</summary>
     public async Task<int> Held(TimeSpan? within = null)
     {
         using CancellationTokenSource limit = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);

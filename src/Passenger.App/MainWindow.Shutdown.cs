@@ -34,10 +34,10 @@ public partial class MainWindow
             ("Discord", EndDiscord()));
     }
 
-    /// <summary>Rider's Close Solution: its changed files saved as closing the window saves them (one that cannot be keeps
-    /// it open, with why), its editors and layout kept with it and the solution at the top of the recent ones, everything
-    /// it runs ended (programs, builds, the debugger, tests, its terminals, the language server), and the Welcome screen
-    /// in the editors' place. Null once it is closed, else why not.</summary>
+    /// <summary>Close Solution: its changed files saved as closing the window saves them (one that cannot be keeps it
+    /// open, with why), its editors and layout kept with it and the solution at the top of the recent ones, everything
+    /// it runs ended (programs, builds, the debugger, tests, its terminals, the language server), and the Welcome
+    /// screen in the editors' place. Null once it is closed, else why not.</summary>
     public string? CloseSolution()
     {
         UiThread.Check();

@@ -43,8 +43,8 @@ public partial class MainWindow
     /// <summary>The Commit tool window, built as it is first shown or asked for.</summary>
     public ToolWindows.CommitView CommitView => commitView ?? (ToolWindows.CommitView)Dock[ToolWindowIds.Commit]!.Content;
 
-    /// <summary>Asks the person to agree to something that cannot be undone (a rollback): its title, what happens,
-    /// and the button that does it. Tests answer for them.</summary>
+    /// <summary>Asks the person to agree to something that cannot be undone (a rollback): its title, what happens, and
+    /// the button that does it.</summary>
     public Func<string, string, string, Task<bool>> Confirm
     {
         get => confirm ?? ((title, text, yes) => ConfirmAsync(title, text, yes, null));
@@ -85,8 +85,7 @@ public partial class MainWindow
         AddVcsActions();
         AddHistoryActions();
         AddMergeConflicts();
-        // Back from another program, the open files take what it changed on disk, and Git is read again (Rider's
-        // synchronize on frame activation).
+        // Back from another program, the open files take what it changed on disk, and Git is read again.
         Activated += (_, _) =>
         {
             session.Vcs.ReloadOpenFiles();
@@ -176,7 +175,7 @@ public partial class MainWindow
         Explorer.Tree.SetChanges(vcs.Changes.Where(c => c.Kind is not ChangeKind.Deleted).ToDictionary(c => c.Path, c => c.Kind));
     }
 
-    /// <summary>Rider's branch popup: new branch, commit, push, then the local branches, each with its own menu.</summary>
+    /// <summary>The branch popup: new branch, commit, push, then the local branches, each with its own menu.</summary>
     private void OnBranchClicked(object? sender, RoutedEventArgs e) => ShowBranches();
 
     private void ShowBranches()
@@ -193,7 +192,6 @@ public partial class MainWindow
             item.Click += (_, _) => run();
             return item;
         }
-        // One of the window's actions, by its title, with its shortcut in the window's keymap.
         ActionContext context = actions!.Context();
         MenuItem Action(string id)
         {
@@ -224,8 +222,7 @@ public partial class MainWindow
         menu.Items.Add(Action(AppActions.Unstash));
         menu.Items.Add(new Separator());
         menu.Items.Add(new MenuItem { Header = "Local", IsEnabled = false });
-        // Each branch opens the menu the branches panel gives it (Checkout, Merge into Current and the rest), as Rider's
-        // widget does, so a branch is checked out only by its Checkout.
+        // Each branch opens its own menu (Checkout, Merge into Current and the rest), so only Checkout checks one out.
         (IReadOnlyList<BranchInfo> refs, _) = await session.Vcs.BranchTreeAsync();
         foreach (BranchInfo branch in refs.Where(b => b.Kind == RefKind.Local).OrderByDescending(b => b.IsCurrent))
         {
@@ -270,7 +267,7 @@ public partial class MainWindow
         return popup;
     }
 
-    /// <summary>Create New Branch: from the head, checked out at once, as Rider's is.</summary>
+    /// <summary>Create New Branch: from the head, checked out at once.</summary>
     public void ShowNewBranch()
     {
         NamePopup popup = new("Create New Branch", string.Empty, async name => (await session.Vcs.NewBranchAsync(name)).Problem);
@@ -395,7 +392,7 @@ public partial class MainWindow
             ? line == m.Value.Line || line == m.Value.Line - 1
             : line >= m.Value.Line && line < m.Value.Line + m.Value.Count);
 
-    /// <summary>A click on a change bar: Rider's popup of what the lines were, with the change's actions.</summary>
+    /// <summary>A click on a change bar: a popup of what the lines were, with the change's actions.</summary>
     private async Task ShowChangePopupAsync(CodeEditor editor, OpenDocument document, ChangeMark change)
     {
         FileDiff? diff;
@@ -423,7 +420,7 @@ public partial class MainWindow
                 _ = ShowChangePopupAsync(Editors.CodeEditor, now, next);
             }
         }
-        // The file's changed words are marked in it while the popup shows them, as Rider marks them; an edit since moves them.
+        // The file's changed words are marked in it while the popup shows them; an edit since moves them.
         void MarkFile(bool on) => editor.SetInlineChanges(on && ReferenceEquals(editor.Document.Snapshot, diff.Text) ? words.Right : []);
         ChangePopup popup = new(
             before,
@@ -489,7 +486,7 @@ public partial class MainWindow
         status.Text = $"{lines[line].Short} {lines[line].Summary} ({lines[line].Author}, {lines[line].Time.ToLocalTime():f})";
     }
 
-    /// <summary>Rider's gutter menu where no breakpoint is: annotations on or off.</summary>
+    /// <summary>The gutter menu where no breakpoint is: annotations on or off.</summary>
     private void ShowGutterMenu(CodeEditor editor, OpenDocument document)
     {
         ContextMenu menu = new();
@@ -499,13 +496,13 @@ public partial class MainWindow
         menu.Open(editor);
     }
 
-    /// <summary>Rider's version control actions over the folder's working tree, each needing a repository, and those on a
+    /// <summary>The version control actions over the folder's working tree, each needing a repository, and those on a
     /// file the file shown.</summary>
     private void AddVcsActions()
     {
         Add(AppActions.Commit, "Commit…", context =>
         {
-            // Rider saves every file before a commit, so the window lists what the editors show.
+            // Every file is saved before a commit, so the window lists what the editors show.
             Editors.SaveAll();
             ShowToolWindow(ToolWindowIds.Commit);
             _ = session.Vcs.RefreshAsync();
@@ -540,7 +537,7 @@ public partial class MainWindow
             status.Text = "No files are chosen to roll back";
             return;
         }
-        // The files are listed, as Rider's Rollback Changes lists them, so what goes back is seen before it does.
+        // The files are listed, so what goes back is seen before it does.
         string what = changes.Count == 1 ? changes[0].Name : $"these {changes.Count} files";
         bool added = changes.Any(c => c.Kind is ChangeKind.Unversioned);
         string text = added
@@ -552,8 +549,8 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>Next Change and Previous Change: the caret to the start of the next or previous change bar, round
-    /// past the file's end as Rider goes.</summary>
+    /// <summary>Next Change and Previous Change: the caret to the start of the next or previous change bar, round past
+    /// the file's end.</summary>
     private void GoToChange(int step)
     {
         if (Editors.Active is not { } document || document.ChangeMarks.Count == 0)
@@ -600,8 +597,8 @@ public partial class MainWindow
         Editors.CodeEditor.ApplyEdits([diff.Restore(hunk)]);
     }
 
-    /// <summary>Rider's Add to .gitignore: the file's path from the repository's top, a line of its .gitignore, which keeps
-    /// its encoding, byte order mark and line breaks and is written as a save writes (through a temporary file, to Local
+    /// <summary>Add to .gitignore: the file's path from the repository's top, a line of its .gitignore, which keeps its
+    /// encoding, byte order mark and line breaks and is written as a save writes (through a temporary file, to Local
     /// History); open with unsaved edits, it is saved first, and shows the line after.</summary>
     private void Ignore(string path)
     {

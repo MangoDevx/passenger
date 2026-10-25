@@ -5,11 +5,10 @@ using ModelContextProtocol.Protocol;
 
 namespace Passenger.App.Mcp;
 
-/// <summary>An MCP connection whose other end may go at any moment, an agent or a window: an answer or a notification its
-/// stream can no longer carry is dropped as the connection's ordinary end. The SDK sends some without awaiting them (a
-/// call's error answer after its answer failed, a request given up by its token), whose failure was an unobserved error,
-/// an internal error of the IDE's. A request still fails to the sender awaiting it, and a message that cannot be written
-/// for another reason than a broken stream still throws.</summary>
+/// <summary>An MCP connection whose other end may go at any moment, an agent or a window: an answer or a notification
+/// its stream can no longer carry is dropped as the connection's ordinary end, since the SDK sends some without
+/// awaiting them. A request still fails to the sender awaiting it, and a message that cannot be written for another
+/// reason than a broken stream still throws.</summary>
 public sealed class PeerTransport(ITransport inner) : ITransport
 {
     public string? SessionId => inner.SessionId;

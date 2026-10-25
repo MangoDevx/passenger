@@ -34,15 +34,14 @@ public readonly record struct IndentOptions(int Size = 4, bool UseTabs = false, 
 /// pasted block) made the file's.</summary>
 public static class Indentation
 {
-    /// <summary>The widest step taken for a level, as IntelliJ's detection takes none wider.</summary>
+    /// <summary>The widest step taken for a level.</summary>
     private const int WidestStep = 8;
 
-    /// <summary>IntelliJ's Detect and use existing file indents: tabs when more lines start with a tab than with
-    /// spaces, else the step most changes of indentation between neighbouring lines take, when more than half take it.
-    /// Blank lines and a block comment's aligned <c>*</c> lines say nothing, nor in <paramref name="markup"/> (XML, XAML)
-    /// a line that begins inside a tag or a comment: attributes aligned under a tag's first, as Avalonia's and WPF's
-    /// templates write them, which IntelliJ's formatter-based detection reads as alignment. Null when fewer than
-    /// <paramref name="minimumLines"/> lines are indented, or no step stands out: the file is too small to tell.</summary>
+    /// <summary>The indentation a file's lines use: tabs when more lines start with a tab than with spaces, else the
+    /// step most changes of indentation between neighbouring lines take, when more than half take it. Blank lines and a
+    /// block comment's aligned <c>*</c> lines say nothing, nor in <paramref name="markup"/> a line that begins inside a
+    /// tag or a comment, where attributes are aligned. Null when fewer than <paramref name="minimumLines"/> lines are
+    /// indented, or no step stands out.</summary>
     public static IndentOptions? Detect(ReadOnlySpan<char> text, int tabWidth, int minimumLines = 2, bool markup = false)
     {
         int tabs = 0;

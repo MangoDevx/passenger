@@ -27,8 +27,8 @@ public enum HistoryKind
 /// by hash (null for none: not made yet, or deleted), and the set's name when it has one.</summary>
 public sealed record HistoryEvent(long Set, DateTimeOffset Time, HistoryKind Kind, string? Path, string? To, string? Before, string? After, string? Name, bool System = false);
 
-/// <summary>How long and how much Local History keeps, by Rider's rule: 5 days of activity (a pause of 12 hours or more
-/// counts for nothing, so a holiday keeps what came before it), and here no more content than a size; and its clock.</summary>
+/// <summary>How long and how much Local History keeps: 5 days of activity (a pause of 12 hours or more counts for
+/// nothing, so a holiday keeps what came before it), and no more content than a size; and its clock.</summary>
 public sealed record HistoryKeeping(int Days = 5, long Bytes = 256L * 1024 * 1024)
 {
     public Func<DateTimeOffset> Clock { get; init; } = () => DateTimeOffset.Now;
@@ -37,24 +37,24 @@ public sealed record HistoryKeeping(int Days = 5, long Bytes = 256L * 1024 * 102
 /// <summary>What a delete took, read before it went, so Local History can bring it back.</summary>
 public sealed record HistoryDeletion(string Path, IReadOnlyList<(string Path, byte[] Bytes)> Files);
 
-/// <summary>Rider's Local History of an open folder, under <c>workspaces/&lt;name&gt;-&lt;hash&gt;/localHistory/</c>: each
+/// <summary>The Local History of an open folder, under <c>workspaces/&lt;name&gt;-&lt;hash&gt;/localHistory/</c>: each
 /// version of its text files saved, changed elsewhere, deleted or moved, once per hash, compressed, in <c>blobs/</c>, and
 /// what happened a line each in <c>changes.log</c>, labels too. Recording is queued and done in order off the UI thread as
 /// background work, so a save only reads the file it writes over; it is pruned to <see cref="HistoryKeeping"/> as it opens
 /// and once a day. Thread-safe; <see cref="Changed"/> comes on the UI thread.</summary>
 public sealed class LocalHistory
 {
-    /// <summary>Rider's name for changes made by another program.</summary>
+    /// <summary>The name of changes made by another program.</summary>
     public const string ExternalChange = "External change";
 
     /// <summary>The most files a folder made or deleted elsewhere is read for at once.</summary>
     private const int WalkLimit = 5000;
 
-    /// <summary>Rider's pause between activities past which the time between counts for nothing.</summary>
+    /// <summary>The pause between activities past which the time between counts for nothing.</summary>
     private static readonly TimeSpan Pause = TimeSpan.FromHours(12);
 
-    /// <summary>How long after a named activity ends the changes seen elsewhere still take its name: the folder watcher
-    /// hears of what a Git checkout wrote a moment after it ended.</summary>
+    /// <summary>How long after a named activity ends the changes seen elsewhere still take its name: what a Git checkout
+    /// wrote is heard a moment after it ended.</summary>
     private static readonly TimeSpan Lingering = TimeSpan.FromSeconds(2);
 
     /// <summary>A blob none of the history names is deleted only once it is this old, since another Passenger on the
@@ -149,7 +149,7 @@ public sealed class LocalHistory
         }
     }
 
-    /// <summary>Names what is recorded until disposed, one change set (Rider's activity: a revert, a Git checkout, a
+    /// <summary>Names what is recorded until disposed, one change set (an activity: a revert, a Git checkout, a
     /// refactoring): the saves made meanwhile, and what the folder watcher sees changed meanwhile and a moment after.
     /// Nested, the outermost names them.</summary>
     public IDisposable During(string name)
@@ -257,7 +257,7 @@ public sealed class LocalHistory
         Enqueue(() => Append([new HistoryEvent(set, time, HistoryKind.Moved, from, to, null, null, name)]));
     }
 
-    /// <summary>Rider's Put Label: a label across the folder's history, now; a system label is the IDE's own (Tests
+    /// <summary>Put Label: a label across the folder's history, now; a system label is the IDE's own (Tests
     /// Passed).</summary>
     public void Label(string name, bool system = false)
     {
@@ -570,8 +570,7 @@ public sealed class LocalHistory
             }
             if (Directory.Exists(path))
             {
-                // A folder new to the history (made, or moved in) is read for its files; one it knows has their own changes,
-                // and a link to one holds nothing new: what it leads to is kept by its own names.
+                // A folder whose files it knows has their changes already; a link holds nothing new.
                 bool knownUnder;
                 lock (gate)
                 {
@@ -728,7 +727,7 @@ public sealed class LocalHistory
         }
     }
 
-    /// <summary>Rider's purge, as the store opens and once a day: the change sets older than <see cref="HistoryKeeping.Days"/>
+    /// <summary>The purge, as the store opens and once a day: the change sets older than <see cref="HistoryKeeping.Days"/>
     /// of activity go, counting back from the newest, a pause of 12 hours or more counted as nothing, then the oldest until the
     /// rest needs no more content than <see cref="HistoryKeeping.Bytes"/>; the log is written again without them and content
     /// nothing names is deleted. It weighs the log on disk, which another Passenger on the same state (an agent's, over --mcp)

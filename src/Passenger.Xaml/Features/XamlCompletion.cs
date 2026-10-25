@@ -154,7 +154,7 @@ public static class XamlCompletion
                 }
             }
         }
-        // The parent's properties written as elements, as Rider lists them (Grid.RowDefinitions).
+        // The parent's properties written as elements (Grid.RowDefinitions).
         if (scope is not null && file.ObjectOf(scope) is { } parentType && !scope.IsPropertyElement)
         {
             string owner = scope.Name;
@@ -949,7 +949,6 @@ public static class XamlCompletion
         {
             return null;
         }
-        // A class a .resx generates offers its keys with their neutral text, as C#'s localizer keys are offered.
         Func<ClrMember, string?> texts = XamlLocalization.TextsOf(file, type);
         return new XamlCompletionList(start + dot + 1, [.. type.Members.Where(m => m.IsStatic && m.IsPublic && m.Kind is MemberKind.Property or MemberKind.Field)
             .Select(m => new XamlItem(m.Name, type.Kind == ClrTypeKind.Enum ? XamlItemKind.EnumValue : XamlItemKind.Member, m.Name, texts(m) ?? m.Type.Display))]);

@@ -1,8 +1,8 @@
 namespace Passenger.Core;
 
 /// <summary>The environment variables of .NET's runtime, its host and WPF that Passenger sets or reads in the programs it
-/// starts, each named once. Framework-free, as what Passenger puts inside another program (the inspectors, the test frames'
-/// hook, the WPF previewer) compiles it in too: linked, since those never load Passenger's own assemblies.</summary>
+/// starts, each named once. Framework-free, since it is linked into what Passenger puts inside another program, which
+/// never loads Passenger's own assemblies.</summary>
 public static class RuntimeVariables
 {
     /// <summary>The runtime's list of startup hooks, each an assembly it calls before the program's Main; Passenger's own
@@ -14,8 +14,8 @@ public static class RuntimeVariables
     /// starts, so whoever lets it go clears it there.</summary>
     public const string DefaultDiagnosticPortSuspend = "DOTNET_DefaultDiagnosticPortSuspend";
 
-    /// <summary>A diagnostic port the runtime connects to as it starts (address, then connect or listen, suspend or
-    /// nosuspend), as dotnet-trace's --diagnostic-port gives one.</summary>
+    /// <summary>A diagnostic port the runtime connects to as it starts: its address, then connect or listen, then
+    /// suspend or nosuspend.</summary>
     public const string DiagnosticPorts = "DOTNET_DiagnosticPorts";
 
     /// <summary>"debug" lets a debugger change the program's unoptimized code as it runs (Hot Reload), read by the runtime
@@ -25,8 +25,7 @@ public static class RuntimeVariables
     /// <summary>"1" lets the host roll a program forward onto a prerelease runtime when no release one will do.</summary>
     public const string RollForwardToPrerelease = "DOTNET_ROLL_FORWARD_TO_PRERELEASE";
 
-    /// <summary>"1" has WPF record where in its XAML each object was made (VisualDiagnostics.GetXamlSourceInfo) and raise
-    /// BindingDiagnostics.BindingFailed, as Visual Studio has it for a run it starts. WPF reads it as it first loads XAML,
-    /// so it stays in the app's environment.</summary>
+    /// <summary>"1" has WPF record where in its XAML each object was made (VisualDiagnostics.GetXamlSourceInfo) and
+    /// raise BindingDiagnostics.BindingFailed; read as WPF first loads XAML, so it stays in the environment.</summary>
     public const string XamlDiagnosticsSourceInfo = "ENABLE_XAML_DIAGNOSTICS_SOURCE_INFO";
 }

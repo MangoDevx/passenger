@@ -1,7 +1,6 @@
 namespace Passenger.Core;
 
-/// <summary>A count and its noun: "1 file", "3 files", "0 files". Every message that gives a number of something goes
-/// through this one, so none says "1 files" or "2 file".</summary>
+/// <summary>A count and its noun: "1 file", "3 files", "0 files", never "1 files" or "2 file".</summary>
 public static class Plural
 {
     /// <summary>The count and its noun, the noun's plural <paramref name="many"/> or else the noun with an s.</summary>

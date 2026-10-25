@@ -13,16 +13,13 @@ using Passenger.Editor;
 namespace Passenger.App.Aspire;
 
 /// <summary>The session containers an AppHost's orchestrator (DCP) made for a run of this process's, as the AppHost's
-/// authenticated resource stream reports them, followed while the run is up whatever the window shows
-/// (<see cref="AspireController"/>), with the session network they are on. DCP's containers carry none of Passenger's
-/// labels, so they are recorded in the state folder with <see cref="ContainerLabels"/>' state, machine and process, and the
-/// same removal ends them: the run's Stop and the folder's end (<see cref="TakeDownAsync"/>), the watchdog's last command
-/// (<see cref="ContainerLabels.MadeUnlabelled"/>) and the next start's (<see cref="RemoveLeftoversAsync"/>), by
-/// <see cref="ContainerLabels.IsLeftover"/>. DCP runs them on its own runtime (<see cref="Runtimes"/>), which may not be
-/// the engine Passenger's docker reaches: they are followed there (<see cref="RuntimesBesides"/>). A Persistent container
-/// (the resource's container.lifetime, DCP's <see cref="PersistentLabel"/>) and the network an AppHost with one keeps are
-/// meant to outlive the AppHost: the person's to keep, never recorded nor removed. UI-thread owned but for the leftovers'
-/// removal.</summary>
+/// authenticated resource stream reports them, with the session network they are on. DCP labels none of them as
+/// Passenger's, so they are recorded in the state folder with <see cref="ContainerLabels"/>' state, machine and process,
+/// and ended as labelled ones are: the run's Stop and the folder's end (<see cref="TakeDownAsync"/>), the watchdog's last
+/// command (<see cref="ContainerLabels.MadeUnlabelled"/>) and the next start's (<see cref="RemoveLeftoversAsync"/>). They
+/// are followed on the runtime DCP chose when Passenger's docker lacks them (<see cref="RuntimesBesides"/>). A Persistent
+/// container (<see cref="PersistentLabel"/>) and the network an AppHost with one keeps are the person's, never recorded
+/// nor removed. UI-thread owned but for the leftovers' removal.</summary>
 internal sealed class AspireContainerOwnership
 {
     /// <summary>DCP's label on what it makes: true on a Persistent container (and its network), which outlives its AppHost.</summary>
@@ -31,9 +28,8 @@ internal sealed class AspireContainerOwnership
     /// <summary>DCP's label on what it made, naming the process of its own that made it.</summary>
     private const string CreatorLabel = "com.microsoft.developer.usvc-dev.creatorProcessId";
 
-    /// <summary>The container runtimes DCP runs on (its <c>--container-runtime</c>'s values): the AppHost tells it one
-    /// (ASPIRE_CONTAINER_RUNTIME, DOTNET_ASPIRE_CONTAINER_RUNTIME or DcpPublisher:ContainerRuntime), else it looks itself,
-    /// Docker first unless only Podman runs. Neither its resources nor its containers' labels say which it chose.</summary>
+    /// <summary>The container runtimes DCP may run on (its <c>--container-runtime</c>'s values); neither its resources nor
+    /// its containers' labels say which it chose.</summary>
     public static readonly IReadOnlyList<string> Runtimes = ["docker", "podman"];
 
     private const int MaximumRecords = 1024;
@@ -72,7 +68,7 @@ internal sealed class AspireContainerOwnership
     public event EventHandler<(string AppHost, int Containers)>? Elsewhere;
 
     /// <summary>The engines other than Passenger's that hold containers an AppHost of this process's runs: an orchestrator's
-    /// own runtime (Podman's beside Docker's), which the Containers window lists those containers from. On the UI thread.</summary>
+    /// own runtime (Podman's beside Docker's). On the UI thread.</summary>
     public IReadOnlyList<ContainerEngine> OtherEngines =>
         [.. made.Values.SelectMany(containers => containers).Select(container => container.Engine).Where(other => other != engine).Distinct()];
 
@@ -159,8 +155,7 @@ internal sealed class AspireContainerOwnership
             IdeErrors.Write("Aspire containers: ownership was not recorded because the engine identity could not be pinned");
             return;
         }
-        // The orchestrator picks its runtime itself: what Passenger's docker does not hold is looked for on the runtime it
-        // was told, then on the other it may have found, and recorded on whichever holds it; what none holds is said.
+        // What Passenger's docker lacks is looked for on the orchestrator's other runtimes; what none holds is said.
         observed.RemoveAll(item => elsewhere.Contains(item.Id));
         List<(string Id, string Name, string Uid, ContainerEngine Engine, Identity Identity, string? Runtime, string? Network)> placed = [];
         string[] asked = [.. observed.Select(item => item.Id)];
@@ -313,10 +308,10 @@ internal sealed class AspireContainerOwnership
     }
 
     /// <summary>Removes the session containers this process recorded of an AppHost's run once <paramref name="after"/> (its
-    /// AppHost's end) has come (the run's Stop, the folder's end), as a container run's Stop takes its own down, each on the
-    /// engine that holds it, then the session network they were on: done once the engines have answered, or given up after
-    /// their limit, what fails the IDE's error said with <paramref name="when"/>. Begun on the UI thread; the rest needs
-    /// none, so the folder's end can wait for it after the window's loop has stopped.</summary>
+    /// AppHost's end) has come, each on the engine that holds it, then the session network they were on: done once the
+    /// engines have answered, or given up after their limit, what fails the IDE's error said with <paramref name="when"/>.
+    /// Begun on the UI thread; the rest needs none, so the folder's end can wait for it after the window's loop has
+    /// stopped.</summary>
     public Task TakeDownAsync(string appHostPath, string when, Task? after = null)
     {
         UiThread.Check();

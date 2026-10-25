@@ -424,7 +424,7 @@ public static class TextEditing
     /// <summary>Comments every touched line with <paramref name="prefix"/> at their shallowest
     /// indentation, or uncomments them if every non-blank one is already commented. With a
     /// <paramref name="suffix"/> (a block comment's end, for a language with no line comment, as
-    /// IntelliJ's <c>&lt;!--</c> and <c>--&gt;</c> in XML) each line is wrapped in the two. Given
+    /// <c>&lt;!--</c> and <c>--&gt;</c> in XML) each line is wrapped in the two. Given
     /// <paramref name="add"/>, only ever comments (true) or only ever uncomments (false).</summary>
     public static EditPlan? ToggleLineComment(TextSnapshot text, SelectionSet selections, string prefix, string? suffix = null, bool? add = null)
     {
@@ -482,7 +482,7 @@ public static class TextEditing
         return Mapped(edits, selections, EditKind.Other);
     }
 
-    /// <summary>IntelliJ's Comment with Block Comment: each selection wrapped in <paramref name="start"/> and
+    /// <summary>Comment with Block Comment: each selection wrapped in <paramref name="start"/> and
     /// <paramref name="end"/>, or, where it is a block comment already or lies in one, that comment's ends taken off; a
     /// caret with nothing selected takes off the comment it is in, or elsewhere gets an empty one with the caret inside.</summary>
     public static EditPlan? ToggleBlockComment(TextSnapshot text, SelectionSet selections, string start, string end)
@@ -519,8 +519,7 @@ public static class TextEditing
             {
                 own = [new TextEdit(s.Start, 0, start), new TextEdit(s.End, 0, end)];
             }
-            // Carets in one comment that holds another start (a path's "/*.cs") find it from different starts but by the
-            // same end, which only the first takes off: a selection's edits that would meet another's go, whole.
+            // Carets in a comment holding another start ("/*.cs") find one end: edits meeting another's go whole.
             if (own.Any(e => edits.Any(made => Meet(made, e))))
             {
                 continue;
@@ -615,7 +614,7 @@ public static class TextEditing
     /// <paramref name="indent"/>, a block's lines are indented with it, a level of the block's own for each of its.</summary>
     public static EditPlan Paste(TextSnapshot text, SelectionSet selections, string clipboard, bool wholeLines, string eol, IndentOptions? indent = null)
     {
-        // A lone '\r' (classic Mac text) breaks a line on the clipboard as Rider pastes it, though in the editor's text only '\n' does.
+        // A lone '\r' (classic Mac text) breaks a line on the clipboard, though in the editor's text only '\n' does.
         string normalized = LineEndings.In(clipboard.Contains('\r', StringComparison.Ordinal) ? clipboard.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n') : clipboard, eol);
         string[] parts = normalized.Split(eol);
         if (selections.HasMultiple && parts.Length == selections.Count && !(wholeLines && selections.Items.All(s => s.IsEmpty)))
@@ -646,9 +645,9 @@ public static class TextEditing
         return Insert(text, selections, normalized, EditKind.Other);
     }
 
-    /// <summary>What a save does to the text first, as .editorconfig asks: the spaces and tabs ending each line go, but on
-    /// a line with a caret (Rider keeps that line's, so a space just typed stays); the text ends with a line break; every
-    /// break is <paramref name="convertTo"/>. Null when there is nothing to do.</summary>
+    /// <summary>What a save does to the text first, as .editorconfig asks: the spaces and tabs ending each line go, but
+    /// on a line with a caret (so a space just typed stays); the text ends with a line break; every break is
+    /// <paramref name="convertTo"/>. Null when there is nothing to do.</summary>
     public static EditPlan? Saving(string text, SelectionSet selections, bool trimTrailing, bool finalNewline, string? convertTo, string eol)
     {
         List<TextEdit> edits = [];
@@ -689,7 +688,7 @@ public static class TextEditing
         return edits.Count == 0 ? null : new EditPlan(edits, MapThrough(selections, edits), EditKind.Other);
     }
 
-    /// <summary>Join Lines, as Rider: a caret joins its line with the next, a selection the lines it covers.
+    /// <summary>Join Lines: a caret joins its line with the next, a selection the lines it covers.
     /// Each run of joined lines is worked out once: its blank lines go, and every other line meets the
     /// text before it with one space. A caret lands where the next line's text begins on the joined
     /// line (its end if none has text); a selection keeps covering what it did.</summary>
@@ -699,7 +698,7 @@ public static class TextEditing
         foreach (Selection s in selections.Items)
         {
             (int first, int last) = CoveredLines(text, s);
-            // A caret joins its line with the next; a selection within one line joins nothing, as in Rider.
+            // A caret joins its line with the next; a selection within one line joins nothing.
             last = s.IsEmpty ? first + 1 : last;
             for (int line = first; line < last && line < text.LineCount - 1; line++)
             {

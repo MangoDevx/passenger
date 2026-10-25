@@ -151,7 +151,6 @@ public sealed class DockerComposeDialog : Window
                 check.IsChecked = choice.IsChosen;
             }
         };
-        // As Add Reference's rows are.
         TextBlock detail = new() { Classes = { "muted" }, Text = choice.Detail, FontSize = 12, Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
         return new StackPanel
         {

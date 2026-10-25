@@ -153,8 +153,8 @@ internal sealed partial class Grammar
             return grammar;
         }
 
-        /// <summary>A YAML key that reads as a boolean, a number or null (<c>on:</c>, a GitHub workflow's first key) is a
-        /// key as Rider colours it: the grammar's rule for a block mapping's key stops trying a key as a typed scalar.</summary>
+        /// <summary>A YAML key that reads as a boolean, a number or null (<c>on:</c>, a GitHub workflow's first key) is
+        /// coloured as a key: the grammar's rule for a block mapping's key stops trying a key as a typed scalar.</summary>
         private static void KeysAreKeys(IDictionary<string, object> grammar)
         {
             if (grammar.TryGetValue("repository", out object? found) && found is IDictionary<string, object> repository
@@ -178,16 +178,15 @@ internal sealed partial class Grammar
         public ICollection<string> GetInjections(string scopeName) => null!;
 
         /// <summary>A class of every character past one, <c>[^\x{00}-\x{7F}]</c>: Onigwrap's Oniguruma reads it inside
-        /// another class (Less's identifiers, <c>[[-\w][^\x{00}-\x{7F}]]</c>) as every character, so a Less variable
-        /// took the rest of its line and never ended; the range past it reads the same everywhere. Oniguruma's own fault in
-        /// UTF-16 (not_code_range_buf underflows at U+0000), reported with its fix as aikawayataro/Onigwrap#16.</summary>
+        /// another class (Less's identifiers, <c>[[-\w][^\x{00}-\x{7F}]]</c>) as every character, where the range past
+        /// it reads the same everywhere.</summary>
         [GeneratedRegex(@"\[\^\\x\{0+\}-\\x\{([0-9A-Fa-f]{1,5})\}\]")]
         private static partial Regex PastCharacter();
 
-        /// <summary>Reads what VS Code's reader reads and TextMateSharp's fails on as VS Code does: a capture that is not a
-        /// rule is left out (XML's comments name their own end and scope among their captures, YAML's tag handles a
-        /// comment), a rule that begins with no end or while never ends, as with VS Code's end of U+FFFF, and a class
-        /// of every character past one is written as the range it is (<see cref="PastCharacter"/>).</summary>
+        /// <summary>Mends what TextMateSharp's reader fails on: a capture that is not a rule is left out (XML's
+        /// comments name their own end and scope among their captures, YAML's tag handles a comment), a rule that
+        /// begins with no end or while never ends (its end is U+FFFF), and a class of every character past one is
+        /// written as the range it is (<see cref="PastCharacter"/>).</summary>
         private static void Tidy(object node)
         {
             if (node is IDictionary<string, object> rule)

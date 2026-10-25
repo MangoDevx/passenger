@@ -3,18 +3,18 @@ using Avalonia.Threading;
 
 namespace Passenger.App;
 
-/// <summary>Rider's IDE Internal Errors: an exception that escapes on the UI thread or from a task nobody awaited is
-/// written to the log in the settings folder (<c>logs/passenger.log</c>, Rider's idea.log, through <see cref="IdeLog"/>)
-/// and shown in the status bar, and the IDE keeps running. Repeats of one error are one entry with its count, and the list
-/// holds Rider's hundred. Avalonia's warnings and errors, and the programs the IDE runs that fail, go to the log. The
-/// process's, as Rider's MessagePool is the application's: an error caught on the one UI thread or a task is no one
-/// window's, so every window counts the same list, and the window in front says it.</summary>
+/// <summary>The IDE's internal errors: an exception that escapes on the UI thread or from a task nobody awaited is
+/// written to the log in the settings folder (<c>logs/passenger.log</c>, through <see cref="IdeLog"/>) and shown in the
+/// status bar, and the IDE keeps running. Repeats of one error are one entry with its count, and the list holds a
+/// hundred. Avalonia's warnings and errors, and the programs the IDE runs that fail, go to the log. The process's: an
+/// error caught on the one UI thread or a task is no one window's, so every window counts the same list, and the window
+/// in front says it.</summary>
 public static class IdeErrors
 {
-    /// <summary>The different errors listed at most, as Rider's MessagePool: past it, they are only in the log.</summary>
+    /// <summary>The different errors listed at most: past it, they are only in the log.</summary>
     public const int Limit = 100;
 
-    /// <summary>The rotated logs kept beside the current one, <c>passenger.1.log</c> the newest (Rider's idea.log.count).</summary>
+    /// <summary>The rotated logs kept beside the current one, <c>passenger.1.log</c> the newest.</summary>
     public const int Rotations = IdeLog.Rotations;
 
     private static readonly object Gate = new();
@@ -38,7 +38,7 @@ public static class IdeErrors
 
     public static string LogPath => IdeLog.PathOf(IdeLog.Ide);
 
-    /// <summary>The size past which a log is rotated, Rider's idea.log.limit: no log file grows beyond it.</summary>
+    /// <summary>The size past which a log is rotated: no log file grows beyond it.</summary>
     public static long LogLimit
     {
         get => IdeLog.Limit;
@@ -101,7 +101,7 @@ public static class IdeErrors
         Logger.Sink = new Sink();
         // No program's secret reaches the log or a console's echo of its command line, whoever started it.
         Core.ChildProcesses.Shown = Containers.ContainerSecrets.CommandLine;
-        // Every program at debug level, as Rider's debug log of its processes; otherwise those worth a person's look.
+        // Every program at debug level; otherwise those worth a person's look.
         Core.ChildProcesses.Started += (_, start) =>
         {
             if (IdeLog.Programs)
@@ -154,7 +154,7 @@ public static class IdeErrors
         Dispatcher.UIThread.Post(() => Raised?.Invoke(null, reported));
     }
 
-    /// <summary>Forgets the errors shown (Rider's Clear All); the log keeps them.</summary>
+    /// <summary>Forgets the errors shown (Clear All); the log keeps them.</summary>
     public static void Clear()
     {
         lock (Gate)

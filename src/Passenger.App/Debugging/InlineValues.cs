@@ -8,12 +8,12 @@ using Passenger.Text;
 
 namespace Passenger.App.Debugging;
 
-/// <summary>Rider's inline values: after each line of the stopped method, from its first line to the one it
+/// <summary>Inline values: after each line of the stopped method, from its first line to the one it
 /// stopped on, the value of each local and parameter that line names, read from the frame's variables. A name
 /// that is a member of something else (the <c>count</c> of <c>list.count</c>) is not the local's.</summary>
 public static class InlineValues
 {
-    /// <summary>The longest value shown in full; a longer one is cut, as Rider cuts them.</summary>
+    /// <summary>The longest value shown in full; a longer one is cut.</summary>
     private const int Longest = 60;
 
     /// <summary>The values to show from the file's syntax, by the editor's lines (from zero).</summary>

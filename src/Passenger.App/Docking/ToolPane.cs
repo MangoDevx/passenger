@@ -26,7 +26,7 @@ internal sealed class ToolPane : DockPanel
         options.Click += (_, _) =>
         {
             MenuFlyout menu = OptionsMenu();
-            // Down from the ⋮, inside the pane, as Rider's options drop; Fluent's centres a flyout on its button.
+            // Down from the ⋮ and inside the pane, where Fluent's default centres it on the button.
             menu.Placement = PlacementMode.BottomEdgeAlignedRight;
             host.OpenOptions = menu;
             menu.Closed += (_, _) => host.OpenOptions = host.OpenOptions == menu ? null : host.OpenOptions;
@@ -186,7 +186,6 @@ internal sealed class ToolPane : DockPanel
     private static Button HeaderButton(string icon, string tip)
     {
         Button button = ToolButtons.Of(icon, tip);
-        // A header's own buttons are smaller than its toolbar's, as Rider's tool window title buttons are.
         ((PathIcon)button.Content!).Classes.Add("small");
         return button;
     }

@@ -1,8 +1,7 @@
 namespace Passenger.App.Templates;
 
-/// <summary>A template package New Project offers to install when dotnet new does not have it, as Rider's New Solution
-/// offers its own: by its NuGet id, what Rider's offer says it is for, the version its kinds were taken from, and the
-/// kinds it gives.</summary>
+/// <summary>A template package New Project offers to install when dotnet new does not have it: by its NuGet id, what
+/// the offer says it is for, the version its kinds were taken from, and the kinds it gives.</summary>
 public sealed record TemplatePack(string Id, string Offer, string Version, string Author, IReadOnlyList<PackKind> Kinds);
 
 /// <summary>A project (or a solution, which only New Solution makes) a template package gives, as its template.json
@@ -10,11 +9,10 @@ public sealed record TemplatePack(string Id, string Offer, string Version, strin
 public sealed record PackKind(string Name, string ShortName, bool IsSolution, IReadOnlyList<string> Languages, string Description,
     IReadOnlyList<string> Classifications, string DefaultName);
 
-/// <summary>The template packages Passenger knows before they are installed: Avalonia's, and those Rider's New Solution
-/// offers to install (its .NET Aspire, Azure Functions and AI Extensions; MAUI is a workload, not a package). Their kinds
-/// are kept here, from each package at the version named, rather than read from the package, which would mean
-/// downloading every one each time the dialog opens; once installed, dotnet new's own templates take their place, at the
-/// version installed.</summary>
+/// <summary>The template packages Passenger knows before they are installed: Avalonia's, .NET Aspire's, Azure
+/// Functions' and AI Extensions' (MAUI is a workload, not a package). Their kinds are kept here, from each package at
+/// the version named, rather than read from the package, which would mean downloading every one each time the dialog
+/// opens; once installed, dotnet new's own templates take their place, at the version installed.</summary>
 public static class TemplatePacks
 {
     private static readonly string[] Desktop = ["Desktop", "Xaml", "Avalonia", "Windows", "Linux", "macOS"];

@@ -11,10 +11,9 @@ namespace Passenger.App.Containers;
 /// <summary>What the person's container engine says of the folder's open Dockerfiles and compose files, through its own
 /// CLI: BuildKit's build checks on a Dockerfile (<see cref="DockerfileCheck"/>), and on a compose file Compose's own model
 /// of it (<see cref="ComposeCheck"/>): its errors, what each <c>${VAR}</c> comes to and the values an override file
-/// changes, as inlay hints. Each file's problems are markers beside its language server's and rows of Problems'
-/// Containers tab (<see cref="Problems"/>); with no engine running, or none that can check, nothing is shown or said for a
-/// file, the engine's state being said once by the status bar. Kept by <see cref="WebLanguages"/>, as ESLint is, with the
-/// files' servers. A UI-thread object.</summary>
+/// changes, as inlay hints. Each file's problems are markers and rows of Problems' Containers tab (<see cref="Problems"/>);
+/// with no engine running, or none that can check, nothing is shown or said for a file. Kept by
+/// <see cref="WebLanguages"/> with the files' servers. A UI-thread object.</summary>
 public sealed class EngineChecks : IDisposable
 {
     private readonly Func<ContainerEngine> engine;
@@ -636,9 +635,9 @@ internal sealed class DockerfileCheck(EngineChecks owner, OpenDocument document,
             "context deadline exceeded", "server misbehaving", "connection reset"]).Any(n => message.Contains(n, StringComparison.OrdinalIgnoreCase));
 }
 
-/// <summary>Whether Settings' Check Dockerfiles with BuildKit is on in a Passenger with no settings.json saying otherwise
-/// (a headless window's, a test's): on, unless the IDE's <c>PASSENGER_BUILDKIT_CHECKS</c> is <c>off</c>, as the tests' run
-/// sets it, so no test reaches a registry through a Dockerfile it opens but the one that turns the setting on.</summary>
+/// <summary>Whether Settings' Check Dockerfiles with BuildKit is on in a Passenger with no settings.json saying otherwise:
+/// on, unless the IDE's <c>PASSENGER_BUILDKIT_CHECKS</c> is <c>off</c>, which keeps a run from reaching any registry
+/// through the Dockerfiles it opens.</summary>
 public static class BuildKitChecks
 {
     public const string Variable = "PASSENGER_BUILDKIT_CHECKS";

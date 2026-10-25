@@ -110,9 +110,9 @@ internal sealed class CilExpressionCompiler(ManagedDebugger debugger)
     public CompiledEvaluationMethod? TryCompile(string expression, CompiledExpressionEvaluationContext context, out string? errorMessage) =>
         TryCompile(expression, context, out errorMessage, out _);
 
-    /// <summary>Compiles an expression in the frame or type context, or says why not and which assemblies it needs that the
-    /// program has not loaded (System.Linq, for a LINQ method on a list where the program has used none yet), as Visual
-    /// Studio's expression compiler names them for its debugger to load and compile again.</summary>
+    /// <summary>Compiles an expression in the frame or type context, or says why not and which assemblies it needs that
+    /// the program has not loaded (System.Linq, for a LINQ method on a list where the program has used none yet), to be
+    /// loaded and the expression compiled again.</summary>
     public CompiledEvaluationMethod? TryCompile(string expression, CompiledExpressionEvaluationContext context, out string? errorMessage, out ImmutableArray<string> missingAssemblies)
     {
         errorMessage = null;
@@ -124,8 +124,7 @@ internal sealed class CilExpressionCompiler(ManagedDebugger debugger)
         }
         ICorDebugILFrame frame = debugger.GetIlFrameForThreadIdAndStackDepth(context.ThreadId, context.StackDepth);
         ICorDebugModule preferredModule = context.RootValue is not null ? context.RootValue.ExactType.Class.Module : frame.Function.Module;
-        // The exception's own type, in the program's assemblies: the debugger's runtime is another version, and a type of
-        // it is one the expression compiler cannot find among the program's.
+        // The exception's type in the program's assemblies, where the compiler looks, not the debugger's runtime's.
         string? exception = debugger.GetCurrentException(context.ThreadId) is { } thrown ? debugger.AliasTypeName(thrown.ExactType) : null;
         IReadOnlyList<(string Name, string Type)> returnValues = context.RootValue is null ? debugger.ReturnValueAliases(context.ThreadId) : [];
         EnsureModuleVersion();
@@ -243,7 +242,7 @@ internal sealed class CilExpressionCompiler(ManagedDebugger debugger)
     }
 
     /// <summary>The debugger's own names an expression may use: $exception while the thread has one, and the values the
-    /// last step's calls returned, each typed as it is, as Visual Studio's expression evaluator gives them.</summary>
+    /// last step's calls returned, each typed as it is.</summary>
     private static ImmutableArray<Alias> GetAliases(string? exception, IReadOnlyList<(string Name, string Type)> returnValues) =>
     [
         .. exception is not null ? [new Alias(DkmClrAliasKind.Exception, "Error", "$exception", exception, Guid.Empty, null!)] : ImmutableArray<Alias>.Empty,
@@ -264,14 +263,9 @@ internal sealed class CilExpressionCompiler(ManagedDebugger debugger)
         return _delegateMaterializer = DelegateMaterializerCompiler.Compile(referenceCompilation.References);
     }
 
-    /// <summary>
-    /// Builds the metadata blocks passed to the Roslyn evaluator. When multiple loaded modules share an assembly
-    /// identity (e.g. the same assembly loaded into several AssemblyLoadContexts), only one module per identity is
-    /// kept so that Roslyn binds types against a single well-defined instance. The module the evaluation binds
-    /// against (the current frame's module for frame evaluations, or the root value's module for DebuggerDisplay
-    /// evaluations) is preferred, since expression semantics (and the tokens emitted into the evaluation assembly)
-    /// must match the instance the user is actually debugging.
-    /// </summary>
+    /// <summary>The metadata blocks Roslyn's evaluator binds against, one module per assembly identity (one assembly
+    /// may be loaded into several load contexts): the module the evaluation binds against (the frame's, or the root
+    /// value's for DebuggerDisplay) first, since the tokens emitted must match the instance being debugged.</summary>
     private ImmutableArray<MetadataBlock> GetMetadataBlocks(ICorDebugModule preferredModule)
     {
         MetadataBlocksKey key = new MetadataBlocksKey(debugger.ModuleSet_Version, preferredModule.BaseAddress);
@@ -466,7 +460,7 @@ internal sealed class CilExpressionCompiler(ManagedDebugger debugger)
         return ImmutableArray.Create(stream.ToArray());
     }
 
-    // To allow us to evaluate DebuggerDisplay attributes that contain nq
+    // Takes off an interpolation's alignment that is no number: a DebuggerDisplay fragment's format specifier (nq).
     private sealed class RemoveFormatSpecifierAlignmentRewriter : CSharpSyntaxRewriter
     {
         public override SyntaxNode? VisitInterpolation(InterpolationSyntax node)

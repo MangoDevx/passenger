@@ -6,8 +6,6 @@ namespace Passenger.Debugger;
 
 public static class DiagnosticClientHelper
 {
-    /// <summary>What holds a program at its start until a diagnostics client lets it go.</summary>
-
     /// <summary>Lets go a process held at its start by its diagnostic port, as an attach does once the debugger is registered
     /// for its runtime; one already running is let be, its runtime's answer (<paramref name="answered"/>) ending the wait
     /// for a port. The variable that held it is cleared in the program first, so a .NET program it starts in turn (a build,
@@ -118,10 +116,10 @@ public static class DiagnosticClientHelper
         }
     }
 
-    /// <summary>Asks the process's runtime to let go, once: false while it has no diagnostic port listening (none yet, one
-    /// closing, or one a process of the same id left when it was killed). On Windows the pipe is looked for first, as a
-    /// client there waits 30 s on one that does not exist; elsewhere the client finds the socket itself at once, so the list
-    /// of published processes, which reads the process of every socket ever left in the temporary folder, is not made.</summary>
+    /// <summary>Asks the process's runtime to let go, once: false while it has no diagnostic port listening (none yet,
+    /// one closing, or one a process of the same id left when it was killed). On Windows the pipe is looked for first,
+    /// since a client there waits 30 s on one that does not exist; elsewhere the client finds the socket at once, with
+    /// no list of published processes made.</summary>
     private static bool TryRelease(int processId)
     {
         if (OperatingSystem.IsWindows() && !DiagnosticsClient.GetPublishedProcesses().Contains(processId))

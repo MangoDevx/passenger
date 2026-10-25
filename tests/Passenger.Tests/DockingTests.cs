@@ -10,9 +10,9 @@ using Passenger.App.Docking;
 
 namespace Passenger.Tests;
 
-/// <summary>Tool windows as IntelliJ docks them: a stripe button shows its window and hides the one in its place,
-/// a button or a header dragged elsewhere moves the window there, and the person's window opens on the layout
-/// they left, fitted to the window it opens in.</summary>
+/// <summary>Tool windows docked: a stripe button shows its window and hides the one in its place, a button or a header
+/// dragged elsewhere moves the window there, and the person's window opens on the layout they left, fitted to the
+/// window it opens in.</summary>
 public sealed class DockingTests
 {
     [AvaloniaFact]
@@ -27,7 +27,6 @@ public sealed class DockingTests
         Assert.True(Button(window, "run").IsChecked);
         Assert.False(Button(window, "debug").IsChecked);
 
-        // Its button again closes it.
         Ui.Click(Button(window, "run"));
         Assert.False(window.DockHost.IsShown(ToolWindowIds.Run));
         window.Close();
@@ -45,7 +44,6 @@ public sealed class DockingTests
         Drag(window, from, to);
         ToolWindow moved = window.DockHost["debug"]!;
         Assert.Equal(ToolAnchor.RightTop, moved.Anchor);
-        // A shown window stays shown where it went, beside the editor and no longer under it.
         Assert.True(moved.IsShown);
         Assert.True(window.DockHost.ColumnDefinitions[5].ActualWidth > 100);
         Assert.Equal(0, window.DockHost.RowDefinitions[2].ActualHeight);
@@ -128,13 +126,11 @@ public sealed class DockingTests
         Assert.Equal(0, dock.RowDefinitions[2].ActualHeight);
         Assert.True(debug.IsShown);
 
-        // Its stripe button hides it, closing its window; again, and it floats again.
         dock.Toggle("debug");
         Assert.Empty(window.OwnedWindows);
         dock.Toggle("debug");
         Assert.Single(window.OwnedWindows);
 
-        // Closed by the system, it is hidden, not lost; docked again, it is in its place.
         window.OwnedWindows[0].Close();
         Ui.Settle();
         Assert.False(debug.IsShown);
@@ -159,7 +155,6 @@ public sealed class DockingTests
         Ui.Run(window, AppActions.MaximizeToolWindow);
         Assert.Equal(before, dock.RowDefinitions[2].ActualHeight, 1);
 
-        // Hide All closes every docked window; again, and they are all back.
         Ui.Run(window, AppActions.HideAllToolWindows);
         Assert.DoesNotContain(dock.Windows, w => w.IsShown);
         Ui.Run(window, AppActions.HideAllToolWindows);
@@ -184,7 +179,6 @@ public sealed class DockingTests
         double restored = dock.RowDefinitions[2].ActualHeight;
         Assert.True(restored > 320, $"The bottom area was not dragged taller: {restored}");
         Ui.Run(first, AppActions.MaximizeToolWindow);
-        // A window shown while it is maximised keeps the layout as well.
         dock.Show(ToolWindowIds.Structure);
         Ui.Settle();
         Assert.True(dock.RowDefinitions[2].ActualHeight > restored + 100);
@@ -208,7 +202,6 @@ public sealed class DockingTests
         dock.Show(ToolWindowIds.Debug);
         dock.SetMode(dock[ToolWindowIds.Debug]!, ToolMode.Floating);
         Ui.Settle();
-        // Hidden by its stripe button, and closed by the system.
         WeakReference<Window> hidden = Closed(window, () => dock.Toggle("debug"));
         dock.Toggle("debug");
         Ui.Settle();
@@ -252,7 +245,6 @@ public sealed class DockingTests
             $"The editor was left {dock.ColumnDefinitions[3].ActualWidth} of {inner} between the side areas");
         Assert.True(dock.RowDefinitions[0].ActualHeight >= dock.Bounds.Height / 4 - 1,
             $"The editor was left {dock.RowDefinitions[0].ActualHeight} of {dock.Bounds.Height} above the bottom area");
-        // The sides keep the proportion they were kept in, and the right stripe is still in the window.
         Assert.True(Math.Abs((dock.ColumnDefinitions[1].ActualWidth / dock.ColumnDefinitions[5].ActualWidth) - (1400.0 / 900)) < 0.01);
         Control rightStripe = dock.Children.First(c => Grid.GetColumn(c) == 6);
         Assert.True(rightStripe.Bounds.Right <= dock.Bounds.Width, $"The right stripe was pushed out of the window, to {rightStripe.Bounds}");
@@ -290,7 +282,6 @@ public sealed class DockingTests
         Assert.True(Math.Abs(dock.RowDefinitions[2].ActualHeight - (bottom + 60)) < 1,
             $"The bottom area was {bottom} tall, and {dock.RowDefinitions[2].ActualHeight} once its divider, grabbed below its line, was dragged 60 px up");
 
-        // Closed, the right area leaves the editor's edge to the editor: a drag there opens no empty area.
         dock.Hide(ToolWindowIds.Hierarchy);
         Ui.Settle();
         Control center = dock.Center!;
@@ -338,7 +329,6 @@ public sealed class DockingTests
         dock.Hide(ToolWindowIds.Build);
         dock.Show(ToolWindowIds.Explorer);
 
-        // Moved, floated, hidden, shown and resized.
         Drag(window, Ui.Centre(Button(window, "debug"), window), new Point(window.Bounds.Width - 20, 120));
         dock.Move(dock[ToolWindowIds.Tests]!, ToolAnchor.LeftBottom, 0);
         dock.Show(ToolWindowIds.Tests);
@@ -353,7 +343,6 @@ public sealed class DockingTests
         Assert.Single(window.OwnedWindows);
         Assert.True(dock.RowDefinitions[2].ActualHeight > bottom + 100, $"The bottom area dragged 150 px taller is {dock.RowDefinitions[2].ActualHeight} tall, from {bottom}");
 
-        // Window > Layout Settings > Restore Default Layout.
         NativeMenuItem restore = Ui.Submenu(Ui.Submenu(window.MenuBar, "Window"), "Layout Settings").Items.OfType<NativeMenuItem>().Single(i => i.Header == "Restore Default Layout");
         restore.Command!.Execute(null);
         Ui.Settle();
@@ -364,7 +353,6 @@ public sealed class DockingTests
         Assert.Contains(Button(window, "debug"), Stripe(window, right: false));
         window.Close();
 
-        // The layout restored is the one kept.
         MainWindow next = Open(settings);
         next.KeepLayout();
         Assert.Equal(first, next.DockHost.Windows.ToDictionary(w => w.Id, w => (w.Anchor, w.Order)));
@@ -375,9 +363,10 @@ public sealed class DockingTests
         next.Close();
     }
 
-    /// <summary>A window's start makes no view of a tool window it hides, and no console's editor (#233: building every
-    /// view up front was 616 ms of a 2 s launch, the consoles' 77 and the Debug window's 51): each is built as it is first
-    /// shown, by its layout kept too, a run's output written meanwhile there whole, the caret at its end.</summary>
+    /// <summary>A window's start makes no view of a tool window it hides, and no console's editor: each is built as it
+    /// is first shown, by its layout kept too, with what the IDE wrote meanwhile there whole (a run's output, the caret
+    /// at its end; a build's problems; a debugged program's console; an AppHost's resources; a request
+    /// heard).</summary>
     [AvaloniaFact]
     public void A_hidden_tool_windows_view_is_built_only_as_it_is_first_shown_and_a_console_shows_what_was_written_before()
     {
@@ -396,7 +385,6 @@ public sealed class DockingTests
             "A console's editor was made as the window started, though its window is hidden");
         Assert.False(bottom.Tests.HasDetails, "The Unit Tests window's details editor was made as the window started, though it is hidden");
 
-        // Output written while the Run window is hidden is all there once it is shown, the caret at its end to follow it.
         bottom.Run.Append("Building…\nRunning Hello\n");
         Ui.Settle();
         Assert.False(bottom.Run.HasEditor, "Output written to the hidden Run window made its editor");
@@ -408,8 +396,6 @@ public sealed class DockingTests
         bottom.Run.Append("Done\n");
         Assert.Equal(bottom.Run.Document.Snapshot.Length, bottom.Run.Editor.Selections.Primary.Caret);
 
-        // What the IDE writes to the hidden Problems and Debug windows is all there once each is shown: a build's problems,
-        // their tab chosen; a debugged program's tab, its console shown with what it wrote, and Mute Breakpoints pressed.
         Passenger.App.Run.Problem broken = new(Passenger.App.Run.ProblemSeverity.Error, "The name 'x' does not exist", Path.Combine(settings, "Program.cs"), "Hello",
             new Passenger.Text.TextPosition(2, 4), "Program.cs:3");
         bottom.Problems.Show([broken]);
@@ -436,8 +422,6 @@ public sealed class DockingTests
         dock.Hide(ToolWindowIds.Debug);
         Ui.Settle();
 
-        // What the IDE writes to the hidden Aspire and Requests windows is there once each is shown: an AppHost's resources,
-        // chosen, and a request heard; the Migrations window says what its controller found meanwhile.
         string appHost = Path.Combine(settings, "AppHost", "AppHost.csproj");
         window.Aspire.SetApps([new Passenger.App.Aspire.AspireApp(appHost, 42, "Running")]);
         window.Aspire.ApplyResourceSnapshot([new Passenger.App.Aspire.AspireResource(System.Text.Json.JsonDocument.Parse(
@@ -469,7 +453,6 @@ public sealed class DockingTests
         dock.Hide(ToolWindowIds.Migrations);
         Ui.Settle();
 
-        // The Live Visual Tree says what it would follow, as its controller said it while it was hidden.
         dock.Show(ToolWindowIds.LiveTree);
         Ui.Settle();
         Assert.Contains(window.LiveTree, dock.GetVisualDescendants());
@@ -477,8 +460,6 @@ public sealed class DockingTests
         dock.Hide(ToolWindowIds.LiveTree);
         Ui.Settle();
 
-        // A folder's start lists its kept snapshots for the profiler, whose view is built only as it is shown, listing them; no
-        // folder's start, the second's in a window either, builds a view it hides.
         MainWindow profiled = Ui.OpenFolder(TestFolders.Create("profiled-"), languageServer: false);
         string[] followers = [ToolWindowIds.Profiler, ToolWindowIds.LiveTree, ToolWindowIds.Aspire, ToolWindowIds.Requests, ToolWindowIds.Migrations];
         Assert.All(followers, id => Assert.False(profiled.DockHost[id]!.IsBuilt, $"A folder's start built the {profiled.DockHost[id]!.Title} window's view, though it is hidden"));
@@ -491,7 +472,6 @@ public sealed class DockingTests
         Assert.StartsWith("No snapshots yet.", profiled.ProfilerView.KeptSummary, StringComparison.Ordinal);
         profiled.Close();
 
-        // Shown, a window's view is built; the layout kept with it shown builds it as the next window opens, and no other.
         dock.Show(ToolWindowIds.Structure);
         Ui.Settle();
         Assert.Contains(window.StructureView, dock.GetVisualDescendants());

@@ -10,12 +10,12 @@ using Passenger.Editor;
 
 namespace Passenger.Tests;
 
-/// <summary>Settings' Keymap as Rider's: an action's Edit Shortcuts has Add Keyboard Shortcut, whose Keyboard Shortcut
-/// dialog takes a chord (the first keystroke, Second stroke, the second), lists the actions it is already assigned to as
-/// the keys are pressed (a chord clashing with the key that begins it too) and warns before it is kept, Remove taking it
+/// <summary>Settings' Keymap: an action's Edit Shortcuts has Add Keyboard Shortcut, whose Keyboard Shortcut dialog
+/// takes a chord (the first keystroke, Second stroke, the second), lists the actions it is already assigned to as the
+/// keys are pressed (a chord clashing with the key that begins it too) and warns before it is kept, Remove taking it
 /// from them; the chord then runs its action from the editor and is kept after a restart, Reset Shortcuts giving an
-/// action its own back; Find Actions by Shortcut narrows the page to the actions a chord runs; and the keypad's / is a key
-/// of its own beside the main keys' /, named as the keypad's, recorded, kept and run apart from it.</summary>
+/// action its own back; Find Actions by Shortcut narrows the page to the actions a chord runs; and the keypad's / is a
+/// key of its own beside the main keys' /, named as the keypad's, recorded, kept and run apart from it.</summary>
 public sealed class KeymapTests : IDisposable
 {
     private const string Source = "class One { }\n";
@@ -102,7 +102,6 @@ public sealed class KeymapTests : IDisposable
             Ui.Press(window, $"{Cmd} C");
             Assert.True(window.EditorArea.Groups.Count == 2, $"{chord}, taken from Comment for Split Right, split nothing");
             Assert.Equal(Source, Text(window));
-            // Comment keeps the shortcut it was not asked for.
             Ui.Press(window, $"{Cmd} K");
             Ui.Press(window, "C");
             Assert.StartsWith("//", Text(window), StringComparison.Ordinal);
@@ -124,7 +123,6 @@ public sealed class KeymapTests : IDisposable
             string completion = Keystroke.Parse("control J").Display();
             const string Listed = "Basic Completion in Main Menu | Code | Code Completion";
 
-            // Cancel in the warning keeps the keymap as it was.
             KeyboardShortcutDialog keys = AddKeyboardShortcut(dialog, AppActions.SplitRight);
             Ui.Press(keys, "control J");
             Assert.Equal([Listed], keys.Conflicts);
@@ -175,14 +173,12 @@ public sealed class KeymapTests : IDisposable
             Ui.Settle();
             int all = dialog.Shown.Count;
 
-            // Escape before any keystroke closes Find Shortcut, not Settings.
             OpenFindShortcut(dialog);
             Ui.Press(dialog, "ESCAPE");
             Assert.True(dialog.IsVisible, "Escape in Find Shortcut closed Settings");
             Assert.True(TopLevel.GetTopLevel(dialog.FindShortcut) is null, "Escape left Find Shortcut open");
             Assert.Equal(all, dialog.Shown.Count);
 
-            // Every action a chord begun by Cmd+K runs, and only those.
             OpenFindShortcut(dialog);
             Ui.Press(dialog, $"{Cmd} K");
             Keystroke first = Keystroke.Parse($"{Cmd} K");
@@ -193,7 +189,6 @@ public sealed class KeymapTests : IDisposable
             Assert.Contains("Toggle Bookmark", starting);
             Assert.Equal(starting, dialog.Shown.Order(StringComparer.Ordinal));
 
-            // Tab to Second stroke, Space to check it, and the chord's second key: only Comment runs Cmd+K, Cmd+C.
             Ui.Press(dialog, "TAB");
             Assert.True(dialog.FindShortcut.SecondStroke.IsFocused, "Tab in Find Shortcut's field did not go on to Second stroke");
             Ui.Press(dialog, "SPACE");
@@ -202,7 +197,6 @@ public sealed class KeymapTests : IDisposable
             Assert.Equal(["Comment"], dialog.Shown);
             Assert.Equal(Shortcut.Parse($"{Cmd} K , {Cmd} C"), dialog.ShortcutFilter);
 
-            // A click away closes the popup and keeps the filter; Clear Filtering lists every action again.
             Control comment = dialog.KeymapRow(EditorActions.Comment);
             Ui.Click(comment, Ui.Centre(((Panel)comment).Children[0], comment));
             Assert.True(TopLevel.GetTopLevel(dialog.FindShortcut) is null, "A click outside left Find Shortcut open");
@@ -353,7 +347,6 @@ public sealed class KeymapTests : IDisposable
                 Assert.True(Text(window) == Source, $"{Keystroke.Parse(slash).Display()} did not take the comment off again");
             }
 
-            // Block Comment's keypad key does what its main keys' does.
             Ui.Press(window, mac ? "control meta SLASH" : "control shift SLASH");
             string commented = Text(window);
             Assert.NotEqual(Source, commented);
@@ -388,7 +381,7 @@ public sealed class KeymapTests : IDisposable
         return dialog;
     }
 
-    /// <summary>Rider's Add Keyboard Shortcut, from an action's Edit Shortcuts (its row's right-click, or the ⋮ beside its
+    /// <summary>Add Keyboard Shortcut, from an action's Edit Shortcuts (its row's right-click, or the ⋮ beside its
     /// shortcuts): its dialog, held to the dialogs' look, once the first keystroke's field has the keys.</summary>
     private static KeyboardShortcutDialog AddKeyboardShortcut(SettingsDialog settings, string action, bool byItsButton = false)
     {
@@ -419,7 +412,7 @@ public sealed class KeymapTests : IDisposable
         Ui.WaitFor(() => settings.FindShortcut.First.IsFocused, "Find Shortcut's field to take the keys");
     }
 
-    /// <summary>The warning Rider gives before a shortcut is taken from other actions.</summary>
+    /// <summary>The warning given before a shortcut is taken from other actions.</summary>
     private static ConfirmDialog Asked(SettingsDialog settings)
     {
         Ui.WaitFor(() => settings.OwnedWindows.OfType<ConfirmDialog>().Any(w => w.IsVisible), "the warning that the shortcut is assigned to other actions");

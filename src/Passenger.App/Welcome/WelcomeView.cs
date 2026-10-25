@@ -30,7 +30,6 @@ public sealed class WelcomeView : UserControl
     public WelcomeView()
     {
         Classes.Add("welcome");
-        // The app's own mark beside its name heads the page, as the start page of the IDE it is.
         Image mark = new() { Classes = { "welcomeMark" }, Source = new Bitmap(AssetLoader.Open(new Uri("avares://Passenger/Assets/passenger.png"))) };
         RenderOptions.SetBitmapInterpolationMode(mark, BitmapInterpolationMode.HighQuality);
         TextBlock title = new() { Classes = { "welcomeTitle" }, Text = "Welcome to Passenger" };
@@ -44,7 +43,6 @@ public sealed class WelcomeView : UserControl
         hero.Children.Add(mark);
         hero.Children.Add(new StackPanel { [Grid.ColumnProperty] = 1, VerticalAlignment = VerticalAlignment.Center, Children = { title, subtitle } });
 
-        // New Solution goes first, as Rider's does.
         NewSolutionButton = Action("Icon.Add", "New Solution", "From a template");
         NewSolutionButton.Click += (_, _) => NewSolutionRequested?.Invoke(this, EventArgs.Empty);
         Button open = Action("Icon.Solution", "Open", "A solution or project");
@@ -54,7 +52,7 @@ public sealed class WelcomeView : UserControl
         Button clone = Action("Icon.Branch", "Clone Repository", "From a Git URL");
         clone.Click += (_, _) => CloneRequested?.Invoke(this, EventArgs.Empty);
         WrapPanel actions = new() { Classes = { "welcomeActions" }, Children = { NewSolutionButton, open, openFolder, clone } };
-        // Four across, two or one in a narrow page, each as wide as the others: never cut off at the page's edge.
+        // Two or one across in a narrow page, so no tile is cut off at its edge.
         actions.SizeChanged += (_, e) =>
         {
             double gap = actions.ItemSpacing;
@@ -73,7 +71,6 @@ public sealed class WelcomeView : UserControl
         list = new ListBox
         {
             Classes = { "tree", "welcomeList" },
-            // A container let go of is given no row.
             ItemTemplate = new FuncDataTemplate<RecentRow?>((row, _) => row is null ? new Panel() : Row(row), supportsRecycling: false),
         };
         list.DoubleTapped += (_, _) => OpenChosen();
@@ -118,10 +115,10 @@ public sealed class WelcomeView : UserControl
         };
     }
 
-    /// <summary>New Solution, as File, New Solution does.</summary>
+    /// <summary>A click on New Solution.</summary>
     public event EventHandler? NewSolutionRequested;
 
-    /// <summary>Open, as File, Open does: a solution or project.</summary>
+    /// <summary>A click on Open, for a solution or project.</summary>
     public event EventHandler? OpenRequested;
 
     public event EventHandler? OpenFolderRequested;
@@ -190,7 +187,7 @@ public sealed class WelcomeView : UserControl
         empty.IsVisible = shown.Count == 0;
         if (focused && list.SelectedIndex >= 0)
         {
-            // The rows are made again: the keys stay with the one chosen.
+            // The rows are made anew, so the focus goes back to the one chosen.
             Dispatcher.UIThread.Post(() => list.ContainerFromIndex(list.SelectedIndex)?.Focus(), DispatcherPriority.Loaded);
         }
     }

@@ -24,10 +24,10 @@ public sealed record FileText(string Text, Encoding Encoding, bool HasBom, bool 
 
     public string EncodingName => FileEncoding.Of(Encoding, HasBom).Name;
 
-    /// <summary>Reads a file as text, or returns null for one that looks binary. A BOM says its encoding; without one it is
-    /// read in <paramref name="chosen"/> (one the person chose for it) when that reads every byte, else as UTF-8 if it
-    /// decodes as UTF-8, and otherwise in the 8-bit encoding its .editorconfig's <c>charset</c> names (latin1), else the
-    /// system's (<see cref="FileEncoding.EightBit"/>): Rider reads bytes that are not UTF-8 in the encoding configured.</summary>
+    /// <summary>Reads a file as text, or returns null for one that looks binary. A BOM says its encoding; without one
+    /// it is read in <paramref name="chosen"/> (one the person chose for it) when that reads every byte, else as UTF-8
+    /// if it decodes as UTF-8, and otherwise in the 8-bit encoding its .editorconfig's <c>charset</c> names (latin1),
+    /// else the system's (<see cref="FileEncoding.EightBit"/>).</summary>
     public static FileText? Load(string path, Encoding? chosen = null) => FromBytes(Read(path), chosen, () => EditorConfig.For(path).Charset);
 
     /// <summary>A file's bytes as text, as <see cref="Load"/> reads them (Local History's versions of a file):
@@ -58,9 +58,9 @@ public sealed record FileText(string Text, Encoding Encoding, bool HasBom, bool 
         }
     }
 
-    /// <summary>A binary file's bytes as text to look at, as a text editor shows one: each byte its Latin-1 character, and a
-    /// C0 control but tab and line feed its Control Pictures sign (NUL as ␀, DEL as ␡) and a C1 control a middle dot, so
-    /// every byte shows and only a line feed breaks a line.</summary>
+    /// <summary>A binary file's bytes as text to look at: each byte its Latin-1 character, and a C0 control but tab and
+    /// line feed its Control Pictures sign (NUL as ␀, DEL as ␡) and a C1 control a middle dot, so every byte shows and
+    /// only a line feed breaks a line.</summary>
     public static FileText Bytes(string path)
     {
         byte[] bytes = Read(path);
@@ -82,9 +82,9 @@ public sealed record FileText(string Text, Encoding Encoding, bool HasBom, bool 
         return new FileText(text, Encoding.Latin1, false, IsBinary: true);
     }
 
-    /// <summary>Whether a file's bytes are binary, the one rule every reader of the folder's files keeps (the editor, Find
-    /// in Files, Find Usages, Local History): no BOM, and a NUL byte in the first few kilobytes, as Git decides. A UTF-16
-    /// file's BOM makes it text, NULs and all.</summary>
+    /// <summary>Whether a file's bytes are binary, the one rule every reader of the folder's files keeps (the editor,
+    /// Find in Files, Find Usages, Local History): no BOM, and a NUL byte in the first few kilobytes. A UTF-16 file's
+    /// BOM makes it text, NULs and all.</summary>
     public static bool LooksBinary(ReadOnlySpan<byte> bytes) =>
         Bom(bytes) is null && bytes[..Math.Min(bytes.Length, BinaryProbe)].Contains((byte)0);
 
@@ -136,9 +136,8 @@ public sealed record FileText(string Text, Encoding Encoding, bool HasBom, bool 
         }
     }
 
-    /// <summary>A file's bytes, read sharing writes and deletes, so the read is never in another program's way: on Windows
-    /// one that shared only reading (File.ReadAllBytes) made git's checkout or rollback of the file, which deletes it
-    /// first, fail for that moment, as the folder watcher reads a file again right after each change to it.</summary>
+    /// <summary>A file's bytes, read sharing writes and deletes, so the read is never in another program's way (a
+    /// checkout that deletes the file first).</summary>
     public static byte[] Read(string path)
     {
         using FileStream stream = new(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
@@ -167,12 +166,11 @@ public sealed record FileText(string Text, Encoding Encoding, bool HasBom, bool 
     /// rather than take it for a new file.</summary>
     public static bool IsSaving(string path) => path.EndsWith(SaveSuffix, StringComparison.Ordinal);
 
-    /// <summary>Writes through a temporary file beside the target, so a failed write never leaves a half-written file;
-    /// a symlink is written through to its target, the file keeps what it was (<see cref="Over"/>; off Windows its mode,
-    /// on macOS its extended attributes, ACL and creation date), one deleted since it was opened is written anew, and a
-    /// read-only one is refused. A text the encoding cannot hold is written as UTF-8, never with question marks, the result
-    /// saying so. A CR file (<paramref name="crBreaks"/>) has each of the text's breaks written as '\r'.</summary>
-    /// <param name="makeFolder">Whether a folder no longer there is made again for it (<see cref="FolderGoneException"/>).</param>
+    /// <summary>Writes through a temporary file beside the target, so a failed write never leaves a half-written one; a
+    /// symlink is written through to its target, the file keeps what it was (<see cref="Over"/>), one deleted since it
+    /// was opened is written anew, a read-only one refused. A text the encoding cannot hold is written as UTF-8, the
+    /// result saying so; a CR file (<paramref name="crBreaks"/>) has each break written as '\r'.</summary>
+    /// <param name="makeFolder">Whether a gone folder is made again for it (<see cref="FolderGoneException"/>).</param>
     public static (FileText Written, string? Converted) Save(string path, string text, Encoding encoding, bool bom, bool crBreaks = false, bool makeFolder = true)
     {
         string? unheld = Unheld(encoding, text);
@@ -207,8 +205,8 @@ public sealed record FileText(string Text, Encoding Encoding, bool HasBom, bool 
         }
     }
 
-    /// <summary>Rider's Clear Read-Only Status using the file system: the attribute cleared on Windows, and elsewhere the
-    /// owner given write permission, as IntelliJ's File.setWritable does.</summary>
+    /// <summary>Clear Read-Only Status using the file system: the attribute cleared on Windows, and elsewhere the owner
+    /// given write permission.</summary>
     public static void MakeWritable(string path)
     {
         string target = Target(path);

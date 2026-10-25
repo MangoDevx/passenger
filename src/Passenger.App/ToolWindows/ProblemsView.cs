@@ -9,9 +9,9 @@ using Passenger.App.Run;
 
 namespace Passenger.App.ToolWindows;
 
-/// <summary>Rider's Problems window over its <see cref="ProblemsModel"/>, built as the window is first shown (#441): a tab
-/// for each list with its count, the shown tab's rows, errors before warnings; a double-click or Enter goes to a problem,
-/// and the web address in its message is a link.</summary>
+/// <summary>The Problems window over its <see cref="ProblemsModel"/>, built as the window is first shown: a tab for each
+/// list with its count, the shown tab's rows, errors before warnings; a double-click or Enter goes to a problem, and the
+/// web address in its message is a link.</summary>
 public sealed class ProblemsView : DockPanel
 {
     private readonly ProblemsModel model;
@@ -148,8 +148,7 @@ public sealed class ProblemsView : DockPanel
         };
         panel.DetachedFromVisualTree += (_, _) => row.PropertyChanged -= OnMoved;
         panel.Children.Add(icon);
-        // A message shows its first line (of a compiler's stack trace) in the row, where a long one is cut, and all of it on
-        // hover, as the status bar's link here promises.
+        // A message's first line shows in the row, a long one cut, and all of it on hover.
         string label = row.Label;
         ToolTip.SetTip(panel, row.Label);
         if (label.IndexOf('\n') is int lineEnd and >= 0)

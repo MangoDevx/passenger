@@ -11,17 +11,17 @@ using Passenger.Text;
 
 namespace Passenger.App.CSharp;
 
-/// <summary>Rider's Optimize Imports and refactorings beyond Refactor This: Safe Delete, built from the server's
-/// definition and usages and the file's syntax, and Introduce Field, Introduce Parameter and Encapsulate Field, which are
-/// the server's own code actions under Rider's names.</summary>
+/// <summary>Optimize Imports and refactorings beyond Refactor This: Safe Delete, built from the server's definition and
+/// usages and the file's syntax, and Introduce Field, Introduce Parameter and Encapsulate Field, the server's own code
+/// actions under names of their own.</summary>
 public sealed partial class CodeAssist
 {
-    /// <summary>One of Rider's refactorings that Roslyn's server offers as code actions in words of its own: which of its
-    /// actions are it, which of their nested choices fit it, and what to say when the server offers none here.</summary>
+    /// <summary>A refactoring the server offers as code actions in words of its own: which of its actions are it, which
+    /// of their nested choices fit it, and what to say when the server offers none here.</summary>
     public sealed record ServerRefactoring(string Name, Func<CodeAction, bool> Pick, string Missing, Func<ActionChoice, bool>? Keep = null);
 
-    /// <summary>Roslyn makes a field of a constant (its Introduce constant, whose nested choices include a local constant)
-    /// or of a field initializer's value; of anything else it makes only a local.</summary>
+    /// <summary>The server makes a field only of a constant (its Introduce constant, whose nested choices include a
+    /// local constant) or of a field initializer's value; of anything else, a local.</summary>
     public static readonly ServerRefactoring IntroduceField = new("Introduce Field",
         a => a.Title.StartsWith("Introduce field", StringComparison.Ordinal) || a.Title.StartsWith("Introduce constant", StringComparison.Ordinal),
         "the C# language server makes a field only of a constant expression",
@@ -75,8 +75,8 @@ public sealed partial class CodeAssist
         }
     }
 
-    /// <summary>The server's actions that are a refactoring of Rider's over a range of a file, those it would not let run
-    /// left out.</summary>
+    /// <summary>The server's actions that are a refactoring over a range of a file, those it would not let run left
+    /// out.</summary>
     public static async Task<IReadOnlyList<CodeAction>> OfferedAsync(LspDocument lsp, TextRange range, ServerRefactoring refactoring) =>
         [.. (await lsp.CodeActionsAsync(range, [])).Where(a => a.Disabled is null && refactoring.Pick(a))];
 
@@ -116,7 +116,7 @@ public sealed partial class CodeAssist
         _ => "The usings are already optimized",
     };
 
-    /// <summary>Rider's Optimize Imports in C#, as Code Cleanup's first step too: the usings the server finds unnecessary
+    /// <summary>Optimize Imports in C#, as Code Cleanup's first step too: the usings the server finds unnecessary
     /// removed (IDE0005's fix), then the rest sorted (its Sort Usings); whether each changed the file.</summary>
     public async Task<(bool Removed, bool Sorted)> TidyUsings(LspDocument lsp, OpenDocument document)
     {
@@ -142,8 +142,8 @@ public sealed partial class CodeAssist
         return new TextRange(span.Start, span.Length);
     }
 
-    /// <summary>Rider's Safe Delete of the symbol at the caret (its declaration or a use of it): the server's definition
-    /// says where it is declared, the file's syntax what deleting it takes out, and the server's usages what would break.
+    /// <summary>Safe Delete of the symbol at the caret (its declaration or a use of it): the server's definition says
+    /// where it is declared, the file's syntax what deleting it takes out, and the server's usages what would break.
     /// With no usage outside the declaration it is deleted at once; with some, they are listed first and it is deleted
     /// only if the person says Delete Anyway.</summary>
     private async Task SafeDelete()
@@ -250,7 +250,6 @@ public sealed partial class CodeAssist
             return false;
         }
         string root = service()?.Session?.Folder ?? string.Empty;
-        // Each usage a row: where it is, then its line's code, the code lined up in a column of its own.
         Grid rows = new() { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
         Dictionary<string, string> paths = DocumentUris.ToPaths(doomed.Uses.Select(u => u.Uri));
         Func<string, LspPosition, (int Line, string Code)> preview = LinePreviews();

@@ -41,7 +41,7 @@ public sealed class ServerLines
     public int LineCount => Text.LineCount + extra.Length;
 
     /// <summary>How many characters this thread has read to find where the server's lines break: what a key costs here,
-    /// for a test to count rather than time.</summary>
+    /// counted rather than timed.</summary>
     public static long CharactersRead => read;
 
     /// <summary>The lines of a snapshot, found once and kept with it; safe from any thread.</summary>

@@ -27,12 +27,9 @@ internal readonly record struct ResolvedEvaluationMethod(MethodDefinitionHandle 
 internal sealed record ResolvedCilType(PrimitiveTypeCode? Primitive, ResolvedRuntimeType? RuntimeType, ResolvedCilType? ElementType = null, int ArrayRank = 0, bool IsSzArray = false);
 internal sealed class EvaluationMetadataResolver(ManagedDebugger debugger, MetadataReader evaluationReader, PEReader evaluationPeReader, ICorDebugAppDomain appDomain, ICorDebugType[] typeGenericArguments, ICorDebugType[] methodGenericArguments, ModuleInfo? currentFrameModule)
 {
-    /// <summary>
-    /// The concrete generic arguments the generated evaluation method's type parameters (<c>!i</c> type
-    /// parameters followed by <c>!!i</c> method type parameters) map to. For a frame evaluation these are the
-    /// current frame's instantiation; for a type-context evaluation (e.g. DebuggerDisplay) they are the root
-    /// value's own type arguments.
-    /// </summary>
+    /// <summary>The concrete generic arguments the evaluation method's type parameters (<c>!i</c>, then <c>!!i</c>) map
+    /// to: the frame's instantiation, or for a type-context evaluation (DebuggerDisplay) the root value's own type
+    /// arguments.</summary>
     private readonly (ICorDebugType[] TypeArguments, ICorDebugType[] MethodArguments) _genericArguments = (typeGenericArguments, methodGenericArguments);
     private readonly Dictionary<int, ResolvedRuntimeField> _fieldCache = new();
     private readonly Dictionary<int, ResolvedRuntimeMethod> _methodCache = new();
@@ -448,13 +445,10 @@ internal sealed class EvaluationMetadataResolver(ManagedDebugger debugger, Metad
         return false;
     }
 
-    /// <summary>
-    /// Resolves an assembly reference from the evaluation assembly to a loaded module, preferring the module the
-    /// evaluation was compiled against (the frame module for frame evaluations, or the root value's module for
-    /// DebuggerDisplay evaluations). When several modules share the same assembly identity (e.g. the same assembly
-    /// loaded into multiple AssemblyLoadContexts) the preferred module is the instance the user is actually
-    /// debugging, and the one Roslyn bound the expression against (see <c>CilExpressionCompiler.GetMetadataBlocks</c>).
-    /// </summary>
+    /// <summary>The loaded modules an assembly reference of the evaluation assembly names, the one the evaluation was
+    /// compiled against first (the frame's module, or the root value's for DebuggerDisplay): of several with one
+    /// identity (one assembly in several load contexts), the one being debugged, which Roslyn bound the expression
+    /// against.</summary>
     private IEnumerable<ModuleInfo> FindModules(AssemblyReferenceHandle assemblyReference)
     {
         AssemblyReference reference = evaluationReader.GetAssemblyReference(assemblyReference);
@@ -503,8 +497,7 @@ internal sealed class EvaluationMetadataResolver(ManagedDebugger debugger, Metad
             yield return module;
         }
 
-        // The referenced identity matches no loaded module (e.g. a binding redirect or a version mismatch), so fall
-        // back to simple-name matching, still preferring the frame's module.
+        // No loaded module has the identity (a redirect, another version): by simple name, the frame's module first.
         if (identityMatches.Count == 0 && preferredIdentityMatch is null)
         {
             foreach (ModuleInfo module in FindModules(name))
@@ -603,8 +596,7 @@ internal sealed class EvaluationMetadataResolver(ManagedDebugger debugger, Metad
         TypeDefinition definition = reader.GetTypeDefinition(type.Handle);
         return definition.BaseType.Kind switch
         {
-            // Core-library types (e.g. in System.Private.CoreLib) define System.ValueType / System.Enum in the same
-            // module, so the base type is a TypeDefinition rather than a TypeReference.
+            // CoreLib defines System.ValueType and System.Enum itself: its base type is a definition, not a reference.
             HandleKind.TypeDefinition => IsSystemValueType(reader, reader.GetTypeDefinition((TypeDefinitionHandle)definition.BaseType)),
             HandleKind.TypeReference => IsSystemValueType(reader, reader.GetTypeReference((TypeReferenceHandle)definition.BaseType)),
             _ => false

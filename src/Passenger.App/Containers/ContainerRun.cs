@@ -501,13 +501,11 @@ public static class ContainerPlans
         project.TargetFrameworks.Select(f => f.Split('-')[0]).Where(f => f.StartsWith("net", StringComparison.OrdinalIgnoreCase) && Version.TryParse(f[3..], out _))
             .Select(f => Version.Parse(f[3..])).OrderByDescending(v => v).Select(v => $"{v.Major}.{Math.Max(0, v.Minor)}").FirstOrDefault() ?? "10.0";
 
-    /// <summary>The override Passenger lays over the files: Passenger's labels on every service, image and network it makes
-    /// (so Stop, the folder's end and the IDE's end take them down; an image built as deployed tagged apart from the one its
-    /// files name), and for each .NET service it starts, in fast mode, its image's runtime stage, <c>dotnet
-    /// /passenger/app/X.dll</c> as PID 1 with Passenger's build mounted there read-only, and in images mode a Debug build
-    /// where its Dockerfile takes BUILD_CONFIGURATION; HTTPS's development certificate and the project's user secrets where
-    /// they serve; a service held for the debugger started held by its runtime until the debugger lets it go, its code open
-    /// to Hot Reload. JSON, which Compose reads as YAML.</summary>
+    /// <summary>The override Passenger lays over the files: its labels on every service, image and network it makes (an image
+    /// built as deployed tagged apart from the one its files name); for each .NET service it starts, in fast mode its image's
+    /// runtime stage running <c>dotnet /passenger/app/X.dll</c> as PID 1 over Passenger's build mounted read-only, in images
+    /// mode a Debug build where its Dockerfile takes BUILD_CONFIGURATION; the development certificate and user secrets where
+    /// they serve; a service held for the debugger started held, its code open to Hot Reload. JSON, which Compose reads as YAML.</summary>
     private static async Task<JsonObject> OverrideAsync(ComposeModel model, string project, IReadOnlyList<DotnetService> dotnet, ContainerMode mode, IReadOnlyList<string> labels,
         IReadOnlyList<ProjectModel> projects, string state, Dictionary<(string Service, int Port), int>? pinned, IReadOnlyCollection<string> held,
         IReadOnlyCollection<string> modifiable, DevelopmentCertificate.Exported? certificate, bool keepId, ContainerTelemetry? telemetry, CancellationToken cancel)
@@ -521,8 +519,7 @@ public static class ContainerPlans
             if (service.Context is not null)
             {
                 entry["build"] = new JsonObject { ["labels"] = Labels(labels) };
-                // Built again with Passenger's labels (a .NET service's as Debug): never under the image name its files give,
-                // which stays the person's own.
+                // Built again with Passenger's labels, never under the image name its files give, which stays the person's.
                 if (mode == ContainerMode.Images)
                 {
                     entry["image"] = $"{project}-{service.Name}:passenger";
@@ -537,8 +534,7 @@ public static class ContainerPlans
                 JsonArray volumes = [];
                 if (mode == ContainerMode.Fast)
                 {
-                    // An image of its own stops at the runtime stage, tagged apart from the image a build as deployed makes; an
-                    // image it only pulls (an SDK container's base) is run as it is.
+                    // Its own image stops at the runtime stage, tagged apart; one it only pulls (an SDK's base) runs as it is.
                     if (entry["build"] is JsonObject build)
                     {
                         if (built.Stage is { } stage)
@@ -551,8 +547,7 @@ public static class ContainerPlans
                     entry["entrypoint"] = new JsonArray("dotnet", $"{AppFolder}/{built.Assembly}.dll");
                     entry["working_dir"] = AppFolder;
                     entry["init"] = true;
-                    // Rerun restarts the container, and the engine gives a port of its own choosing a new one at each start:
-                    // chosen here once, so a browser open on it stays right.
+                    // The engine gives a port of its own choosing a new one at each restart: chosen once, so a browser stays right.
                     if (pinned is not null && service.Ports.Any(p => ComposeModel.HostPort(p.Published) is null))
                     {
                         entry["ports"] = new JsonArray([.. service.Ports.Select((p, i) =>
@@ -579,8 +574,7 @@ public static class ContainerPlans
                     build["args"] = new JsonObject { ["BUILD_CONFIGURATION"] = "Debug" };
                 }
                 (string Folder, string Id)? secrets = development ? UserSecrets(projects.FirstOrDefault(p => PathNames.Same(p.Path, built.Project))) : null;
-                // Linux's engine keeps the host's owners and permissions on a mount: the app runs as the person, who can read the
-                // build, the certificate and the user secrets, kept for them alone (the image's own user, as deployed, could not).
+                // Linux keeps the host's owners on a mount: the app runs as the person, who alone can read what is kept for them.
                 if (owner is not null && (mode == ContainerMode.Fast || Serves(service) || secrets is not null))
                 {
                     entry["user"] = owner;
@@ -608,8 +602,7 @@ public static class ContainerPlans
                 {
                     OverHttp(service, environment);
                 }
-                // .NET reads APPDATA before HOME for user secrets on every system, so whichever user the app runs as finds this
-                // project's own folder there, mounted alone.
+                // .NET reads user secrets from APPDATA first, so whichever user the app runs as finds this project's own there.
                 if (secrets is { } own)
                 {
                     volumes.Add(new JsonObject { ["type"] = "bind", ["source"] = own.Folder, ["target"] = $"{AppData}/Microsoft/UserSecrets/{own.Id}", ["read_only"] = true });
@@ -1499,7 +1492,7 @@ public sealed class ContainerRun(ContainerPlan plan, ContainerEngine engine, Con
         console.Write($"{ChildProcesses.Shown(start)}\n");
         Queue<string> said = new();
         using Process process = await ChildProcesses.StartAsync(start);
-        // What Compose says of a failure echoes what it interpolated: shown as every error of the engine is, its secrets masked.
+        // What Compose says of a failure echoes what it interpolated: its secrets masked.
         Func<string, string> shown = ContainerSecrets.Masking(Plan.Folder);
         Task output = console.PumpAsync(process.StandardOutput, ConsoleStream.Output, lines: Line, shown: shown);
         // Compose writes its progress to standard error: the console's ordinary text, not an error's.
@@ -1532,7 +1525,7 @@ public sealed class ContainerRun(ContainerPlan plan, ContainerEngine engine, Con
                     said.Dequeue();
                 }
             }
-            // An image's build that fails says where in the workspace's files, as a host build does.
+            // An image's build that fails says where in the workspace's files.
             if (Plan.Mode == ContainerMode.Images && BuildOutput.Parse(line, Plan.Paths) is { } problem)
             {
                 UiThread.Post(() => ProblemFound?.Invoke(this, problem));

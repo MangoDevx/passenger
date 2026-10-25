@@ -2,10 +2,9 @@ using Passenger.Editor;
 
 namespace Passenger.Languages.TextMate;
 
-/// <summary>Which kind of token each grammar's scopes are, as Rider tells the same constructs apart (XML_TAG,
-/// JSON.PROPERTY_KEY, YAML_SCALAR_KEY, MARKDOWN_HEADER_LEVEL_1 and so on); the colour scheme in force colours each kind. A
-/// selector names a scope and every scope under it ("string" is "string.quoted.double.json" too), the longest that names
-/// a token's innermost scope wins, and a scope no rule names takes its parent's kind. A selector never names a scope's
+/// <summary>Which kind of token each grammar's scopes are; the colour scheme in force colours each kind. A selector
+/// names a scope and every scope under it ("string" is "string.quoted.double.json" too), the longest that names a
+/// token's innermost scope wins, and a scope no rule names takes its parent's kind. A selector never names a scope's
 /// ancestors (TextMateSharp's theme never matches those), so a language's exceptions name its own scopes in full.</summary>
 internal static class ScopeColours
 {
@@ -59,7 +58,7 @@ internal static class ScopeColours
         // JSON: keys apart from values.
         ("support.type.property-name.json", TokenKind.JsonKey),
 
-        // YAML: keys in their colour, every unquoted scalar (numbers, booleans, a block's lines) plain, as Rider's lexer.
+        // YAML: keys in their colour, every unquoted scalar (numbers, booleans, a block's lines) plain.
         ("entity.name.tag.yaml", TokenKind.YamlKey),
         ("string.unquoted.plain", TokenKind.Text),
         ("string.unquoted.block.yaml", TokenKind.Text),
@@ -76,7 +75,7 @@ internal static class ScopeColours
         ("keyword.control.flow.block-scalar.literal.yaml", TokenKind.Text),
         ("entity.name.type.anchor.yaml", TokenKind.Text),
 
-        // Markdown: headings bold in the constant's colour, markers in the keyword's, code in Rider's green.
+        // Markdown: headings bold in the constant's colour, markers in the keyword's, code in its own.
         ("markup.heading", TokenKind.Heading),
         ("punctuation.definition.heading.markdown", TokenKind.Keyword),
         ("markup.bold", TokenKind.Bold),
@@ -126,8 +125,7 @@ internal static class ScopeColours
         ("variable.css", TokenKind.Text),
         ("variable.argument.css", TokenKind.Text),
 
-        // SCSS and Less as CSS is, their variables in a field's colour (Rider's Sass and Less variables are instance fields);
-        // Less's unquoted words and both's keyframe offsets plain, as CSS's are; an escaped Less string a string.
+        // SCSS and Less as CSS, variables as fields; Less's bare words and keyframe offsets plain, its escapes strings.
         ("variable.scss", TokenKind.Field),
         ("entity.other.attribute-name.placeholder.css", TokenKind.Tag),
         ("entity.other.attribute-name.parent-selector-suffix.css", TokenKind.Tag),
@@ -144,7 +142,7 @@ internal static class ScopeColours
         ("string.unquoted.less", TokenKind.Text),
         ("markup.raw.inline.less", TokenKind.String),
 
-        // Shell: commands, their arguments and variables plain, as Rider's are.
+        // Shell: commands, their arguments and variables plain.
         ("string.unquoted.argument", TokenKind.Text),
         ("string.unquoted.shell", TokenKind.Text),
         ("string.unquoted.pattern", TokenKind.Text),

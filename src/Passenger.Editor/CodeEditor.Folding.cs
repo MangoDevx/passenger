@@ -5,12 +5,12 @@ using Passenger.Text;
 
 namespace Passenger.Editor;
 
-/// <summary>Code folding, as Rider's: the host names the regions that fold (a member's body, a type's, the usings),
-/// a folded one hides the lines after its first and shows its placeholder at that line's end, and the gutter's last
-/// column has its chevrons. Everything that turns a line into a height goes through rows (<see cref="Rows"/>): the lines
-/// left showing, looked up in <see cref="FoldLines"/>, made once for each text and set of regions, each one row or as many
-/// as soft wrap makes it. A caret that lands in folded lines unfolds them, and the pointer resting on a placeholder shows
-/// the lines it hides on a card (<see cref="FoldPreviewText"/>).</summary>
+/// <summary>Code folding: the host names the regions that fold (a member's body, a type's, the usings), a folded one
+/// hides the lines after its first and shows its placeholder at that line's end, and the gutter's last column has its
+/// chevrons. Everything that turns a line into a height goes through rows (<see cref="Rows"/>): the lines left showing,
+/// looked up in <see cref="FoldLines"/>, made once for each text and set of regions, each one row or as many as soft
+/// wrap makes it. A caret that lands in folded lines unfolds them, and the pointer resting on a placeholder shows the
+/// lines it hides on a card (<see cref="FoldPreviewText"/>).</summary>
 public sealed partial class CodeEditor
 {
     /// <summary>The gutter's folding column, at its right edge against the code.</summary>
@@ -93,7 +93,7 @@ public sealed partial class CodeEditor
         return best;
     }
 
-    /// <summary>Rider's folding actions; false for one that is not this.</summary>
+    /// <summary>The folding actions; false for any other.</summary>
     private bool RunFolding(string action)
     {
         TextSnapshot text = document.Snapshot;
@@ -128,7 +128,6 @@ public sealed partial class CodeEditor
                 SetFolded(_ => false);
                 return true;
             case EditorActions.FoldToDefinitions:
-                // Rider's: the members' bodies and the doc comments folded, the rest left as it is.
                 SetFolded(i => folds[i].Folded || folds[i].Kind is FoldKind.Body or FoldKind.DocComment);
                 return true;
             case EditorActions.FoldDocComments:
@@ -215,7 +214,7 @@ public sealed partial class CodeEditor
         return null;
     }
 
-    /// <summary>Unfolds whatever hides a caret, as Rider does for a caret that goes into folded code.</summary>
+    /// <summary>Unfolds whatever hides a caret.</summary>
     private void UnfoldAroundCarets(SelectionSet carets)
     {
         FoldLines map = Folding;
@@ -274,7 +273,7 @@ public sealed partial class CodeEditor
     }
 
     /// <summary>The chevrons in the folding column: a folded region's always, an open one's while the pointer is
-    /// over the gutter, as Rider's new UI shows them.</summary>
+    /// over the gutter.</summary>
     private void DrawFoldMarkers(DrawingContext context, int first, int last, double gutter)
     {
         double x = gutter - FoldWidth + 2;
@@ -346,7 +345,7 @@ public sealed partial class CodeEditor
 
     private FoldPreview? preview;
 
-    /// <summary>Rider's preview of folded code: the lines a placeholder's fold hides, coloured as the editor colours them
+    /// <summary>The preview of folded code: the lines a placeholder's fold hides, coloured as the editor colours them
     /// and less the indent they share, on a card under the placeholder (over it when there is more room there), as many
     /// as the editor has room for.</summary>
     private void ShowFoldPreview(int line, Rect chip)

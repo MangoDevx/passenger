@@ -282,7 +282,7 @@ SYNTAX_KINDS = ["Keyword", "ControlKeyword", "Comment", "DocComment", "String", 
 
 def file_icons(hue, text, muted, panel, dark):
     """The file icons' colours (Passenger.FileIcon.*): file-icons' ten hues in a theme's own, each a mark that reads on
-    the Explorer's ground. Tokens.axaml and Harbour.axaml took theirs from their own hues through this too."""
+    the Explorer's ground."""
     icons = {name.capitalize(): hue(name) for name in ("red", "orange", "yellow", "green", "cyan", "blue", "purple", "pink")}
     icons["Maroon"] = shift(mix(hue("red"), hue("orange"), 0.45), -0.08)
     icons["Grey"] = mix(text, muted, 0.8)
@@ -294,8 +294,7 @@ def variant(theme, p, dark):
     hue = lambda name: p.get(name) or p[{"string": "green", "member": "blue"}.get(name, name)]
     text, muted = p["text"], p["muted"]
 
-    # Grounds: dark has the frame deepest, the editor, then the tool windows lightest; light the frame deepest, the
-    # tool windows, then the editor as the page. Each a lightness step a person sees (UiRulesTests' MinimumStep).
+    # Grounds, darkest first (dark: frame, editor, tool windows; light: frame, tool windows, editor), each a step apart.
     editor = p["ground"]
     if dark:
         frame, panel = shift(editor, -0.04), shift(editor, 0.035)
@@ -378,7 +377,7 @@ def variant(theme, p, dark):
     t["Passenger.Menu.SelectedText"] = accent_text
     t["Passenger.Menu.SelectedKeys"] = accent_text
 
-    # The title bar is the frame, its words the window's own, as Harbour's is.
+    # The title bar is the frame, its words the window's own.
     bar_hover, bar_pressed = (shift(frame, 0.05), shift(frame, 0.08)) if dark else (shift(frame, -0.05), shift(frame, -0.08))
     bars = [frame, bar_hover, bar_pressed]
     t["Passenger.TitleBar"] = frame

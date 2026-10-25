@@ -26,7 +26,7 @@ public partial class MainWindow
     private CSharpService? routesFrom;
     private readonly Dictionary<OpenDocument, (int Version, string Hash)> routeHashes = [];
 
-    /// <summary>The route icon's menu last opened, for a test to choose from.</summary>
+    /// <summary>The route icon's menu last opened.</summary>
     public MenuFlyout? RouteMarkMenu { get; private set; }
 
     private void AddRoutes()
@@ -48,8 +48,7 @@ public partial class MainWindow
                 if (session.ProjectOf(document.Path) is { } project && session.Routes.IsWeb(project.Path))
                 {
                     session.Routes.Stale(project.Path);
-                    // No longer the text its routes were read from: their icons go until the routes are read again, the text
-                    // hashed then (RoutesIn), never at each key.
+                    // No longer the text its routes were read from: its icons go until the routes are read again.
                     if (document.RouteMarks.Count > 0)
                     {
                         document.RouteMarks = [];
@@ -89,8 +88,8 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>Whether the language server can read routes now. Until it can, a pause before a read would be waited out
-    /// for nothing (and hold a screenshot or a test with it): what is due stays due, and the server's being ready reads it
+    /// <summary>Whether the language server can read routes now. Until it can, a pause before a read would be waited
+    /// out for nothing: what is due stays due, and the server's being ready reads it
     /// (<see cref="RoutesServerChanged"/>).</summary>
     private bool ReadsRoutes => session.CSharp is { IsReady: true, Session: not null };
 
@@ -201,8 +200,8 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>The routes as read now, read again first where a read is due, for an agent and the tests; the language
-    /// server is the caller's to wait for.</summary>
+    /// <summary>The routes as read now, read again first where a read is due, for an agent; the language server is the
+    /// caller's to wait for.</summary>
     public async Task<IReadOnlyList<WebRoute>> RoutesAsync(CancellationToken cancel = default)
     {
         for (int turn = 0; turn < 4 && (session.Routes.Wants || routesRead is { IsCompleted: false }); turn++)

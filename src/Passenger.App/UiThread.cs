@@ -13,8 +13,8 @@ public static class UiThread
     private static volatile Dispatcher? owner;
 
     /// <summary>Takes the calling thread's dispatcher as the one work from other threads goes to, as each window does.
-    /// A headless test brings a dispatcher of its own to every test: what comes once that test is over is dropped with
-    /// its dispatcher, rather than queued on one made for the late thread, which nothing runs.</summary>
+    /// Work that comes once that dispatcher has shut down is dropped with it, rather than queued on one made for the
+    /// late thread, which nothing runs.</summary>
     public static void Own() => owner = Dispatcher.UIThread;
 
     /// <summary>Runs work on the UI thread, later, from any thread; only a crossing is held, since work posted on the
@@ -27,9 +27,9 @@ public static class UiThread
     public static void Post(Action work, DispatcherPriority priority, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0) =>
         Cross(work, priority, null, file, line);
 
-    /// <summary><see cref="Post(Action, string, int)"/> for work that lets go of a hold its caller took (a program's end until
-    /// its console says so): <paramref name="dropped"/> lets go of it in the work's place when the dispatcher will never
-    /// run the work, as a headless test's once that test is over, so the hold never outlives what was to end it.</summary>
+    /// <summary><see cref="Post(Action, string, int)"/> for work that lets go of a hold its caller took (a program's
+    /// end until its console says so): <paramref name="dropped"/> lets go of it in the work's place when the dispatcher
+    /// will never run the work (one shut down), so the hold never outlives what was to end it.</summary>
     public static void Post(Action work, Action dropped, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0) =>
         Cross(work, DispatcherPriority.Default, dropped, file, line);
 
@@ -53,7 +53,7 @@ public static class UiThread
                 held.Dispose();
             }
         }, priority);
-        // A dispatcher that has shut down (a headless test's, once it is over) aborts what it will never run.
+        // A dispatcher that has shut down aborts what it will never run.
         int aborted = 0;
         operation.Aborted += (_, _) => Drop();
         if (operation.Status == DispatcherOperationStatus.Aborted)

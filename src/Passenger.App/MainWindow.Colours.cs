@@ -9,9 +9,9 @@ using Passenger.Xaml.Features;
 
 namespace Passenger.App;
 
-/// <summary>The gutter's colour swatches, as Rider's: a click on one opens the colour picker beside it, and the colour
-/// chosen is written back as the colour was written (a hex value, a name, a C# call's arguments), where it is written: the
-/// line's own value, or for a resource a brush names, its definition in another file. One undo step.</summary>
+/// <summary>The gutter's colour swatches: a click on one opens the colour picker beside it, and the colour chosen is
+/// written back as the colour was written (a hex value, a name, a C# call's arguments), where it is written: the line's
+/// own value, or for a resource a brush names, its definition in another file. One undo step.</summary>
 public partial class MainWindow
 {
     private ColourPicker? picker;

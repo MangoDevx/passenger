@@ -1,8 +1,7 @@
 namespace Passenger.Core;
 
-/// <summary>How far apart two spellings of a name are, the one measure behind every "did you mean" Passenger offers (a
-/// compose file's names, a service's connection string, a binding path's member). Framework-free, as the inspectors compile it in too (linked: they run
-/// inside the app, which never loads Passenger's own assemblies).</summary>
+/// <summary>How far apart two spellings of a name are, the one measure behind every "did you mean" Passenger offers.
+/// Framework-free, since it is linked into the inspectors, inside an app that never loads Passenger's assemblies.</summary>
 public static class Spelling
 {
     /// <summary>How many letters added, taken away, changed or swapped with the next make one word the other, letter case
@@ -34,8 +33,7 @@ public static class Spelling
     }
 
     /// <summary>The names among <paramref name="candidates"/> near a name, letter case aside: an edit or two away (one for a
-    /// name of three letters or fewer), nearest first, then by name, three at most, never the name itself. A misspelt name's
-    /// Change to: a compose file's undeclared name, a service's connection string no AppHost resource is named.</summary>
+    /// name of three letters or fewer), nearest first, then by name, three at most, never the name itself.</summary>
     public static IReadOnlyList<string> Near(string name, IEnumerable<string> candidates)
     {
         int most = name.Length <= 3 ? 1 : 2;

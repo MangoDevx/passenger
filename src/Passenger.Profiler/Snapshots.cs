@@ -3,9 +3,9 @@ namespace Passenger.Profiler;
 /// <summary>A snapshot kept on disk: its .nettrace file, named for its program and when it ran, and its size.</summary>
 public sealed record SnapshotFile(string Path, string Name, DateTime Written, long Bytes);
 
-/// <summary>A folder of snapshots, as Rider's Recent Snapshots keeps a solution's: the newest first, and only the newest
-/// <see cref="Kept"/> runs, nor more than <see cref="KeptBytes"/> of them together, kept. Past either, the oldest go
-/// first; the newest stays whatever its size.</summary>
+/// <summary>A folder of snapshots: the newest first, and only the newest <see cref="Kept"/> runs, nor more than
+/// <see cref="KeptBytes"/> of them together, kept. Past either, the oldest go first; the newest stays whatever its
+/// size.</summary>
 public static class Snapshots
 {
     public const int Kept = 10;

@@ -1,9 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- WPF's previewer, Passenger's own: a small WPF program that draws one XAML file of a WPF project as it is typed, from
-       the project's last build (Xaml/WpfPreviewHost.cs). The app carries it under wpfpreview/ on Windows alone and runs it
-       with the machine's dotnet on the project's own runtime configuration and dependencies, so it loads the project's
-       assemblies and WPF as the app itself would. Elsewhere it is built (EnableWindowsTargeting) but never carried, as WPF
-       draws only on Windows. -->
+  <!-- WPF's previewer, Passenger's own: a small WPF program that draws one XAML file of a WPF project as it is typed,
+       from the project's last build, run with the machine's dotnet on the project's own runtime configuration and
+       dependencies, so it loads the project's assemblies and WPF as the app itself would. Carried on Windows alone,
+       where WPF draws. -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <!-- The oldest .NET a WPF project is supported on, so it runs on any project's runtime from there on. -->

@@ -9,7 +9,7 @@ using Avalonia.Threading;
 
 namespace Passenger.App.Vcs;
 
-/// <summary>Rider's Unstash Changes: the stashes, the newest first, each with when it was made; Pop (Enter) puts the
+/// <summary>Unstash Changes: the stashes, the newest first, each with when it was made; Pop (Enter) puts the
 /// chosen one's changes back and drops it, Apply keeps it, Drop (Delete) throws it away once the person agrees. One runs
 /// at a time, the buttons off meanwhile. Escape closes.</summary>
 public sealed class UnstashPopup : UserControl
@@ -21,8 +21,7 @@ public sealed class UnstashPopup : UserControl
     private readonly Button[] actions;
     private bool running;
 
-    /// <param name="confirm">Asks before a drop (its title, the question, the button that drops), as the window's
-    /// Confirm does.</param>
+    /// <param name="confirm">Asks before a drop (its title, the question, the button that drops).</param>
     public UnstashPopup(IReadOnlyList<StashInfo> stashes, Func<StashInfo, bool, Task<bool>> unstash, Func<StashInfo, Task<bool>> drop,
         Func<string, string, string, Task<bool>> confirm)
     {
@@ -86,7 +85,7 @@ public sealed class UnstashPopup : UserControl
 
     public Task ApplyAsync() => Use(stash => unstash(stash, false));
 
-    /// <summary>Drop, asked first as Rider asks; a no leaves the popup open on the stash.</summary>
+    /// <summary>Drop, asked first; a no leaves the popup open on the stash.</summary>
     public Task DropAsync() => Use(drop, stash => confirm(
         $"Remove Stash stash@{{{stash.Index}}}?", $"Do you want to remove stash@{{{stash.Index}}}?\n\"{stash.Message}\"", "Remove"));
 

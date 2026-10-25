@@ -7,10 +7,10 @@ using Passenger.App.Welcome;
 
 namespace Passenger.App.Packages;
 
-/// <summary>Rider's feed dialog in the NuGet window's Sources tab: Editing: a feed, or a New feed, its Name, URL, User,
-/// Password, whether it is Enabled and Allows insecure connections, and where its credentials will be saved (the file it
-/// is in). The password is never shown: left empty, the file keeps the one it has. OK closes it with <see cref="Result"/>
-/// once the name is new to the file and a URL or folder is given.</summary>
+/// <summary>The Sources tab's dialog for a feed, new or edited: its name, URL, user and password, whether it is enabled
+/// and allows insecure connections, and the file its credentials are saved in. The password is never shown: left empty,
+/// the file keeps the one it has. OK closes it with <see cref="Result"/> once the name is new to the file and a URL or
+/// folder is given.</summary>
 public sealed class FeedDialog : Window
 {
     private readonly ConfigFile file;
@@ -50,7 +50,6 @@ public sealed class FeedDialog : Window
         Row(fields, 4, "Enabled:", enabled);
         Row(fields, 5, "Allow insecure connections:", insecure);
 
-        // Rider's words, and where NuGet keeps a password off Windows.
         TextBlock saved = new()
         {
             Classes = { "muted" },

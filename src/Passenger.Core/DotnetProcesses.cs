@@ -15,8 +15,8 @@ public sealed partial record DotnetProcess(int Id, string Name, string CommandLi
     /// container's own, and 0 until Passenger's tools in the container have said which it is.</summary>
     public string? Container { get; init; }
 
-    /// <summary>Started held with DOTNET_MODIFIABLE_ASSEMBLIES=debug, so a debugger attached to it may change its code (Hot
-    /// Reload), as a launch's may.</summary>
+    /// <summary>Started held with DOTNET_MODIFIABLE_ASSEMBLIES=debug, so a debugger attached to it may change its code
+    /// (Hot Reload).</summary>
     public bool HotReload { get; init; }
 
     /// <summary>What a person should know before attaching (a Release build's code, a container's processor emulated), or null.</summary>
@@ -47,11 +47,11 @@ public sealed partial record DotnetProcess(int Id, string Name, string CommandLi
     private static partial Regex Hosted();
 }
 
-/// <summary>The .NET programs on this machine a debugger can attach to, as Rider's Attach to Process lists them: CoreCLR's
-/// alone, found by what their runtime opens for a debugger (.NET Framework and Mono open neither). On macOS and Linux that
-/// is its debugger transport's pipes in the user's temporary folder, named for the process and the time it started, so a
-/// crashed program's are told from a process given its number since; on Windows its diagnostic port's named pipe.
-/// Passenger's own process is left out, since no process debugs itself.</summary>
+/// <summary>The .NET programs on this machine a debugger can attach to: CoreCLR's alone, found by what their runtime
+/// opens for a debugger (.NET Framework and Mono open neither). On macOS and Linux that is its debugger transport's pipes
+/// in the user's temporary folder, named for the process and the time it started, so a crashed program's are told from a
+/// process given its number since; on Windows its diagnostic port's named pipe. Passenger's own process is left out,
+/// since no process debugs itself.</summary>
 public static partial class DotnetProcesses
 {
     /// <summary>The runtime's debugger transport (dbgshim's handshake and ICorDebug's channel) on macOS and Linux.</summary>
@@ -81,7 +81,7 @@ public static partial class DotnetProcesses
     public static DotnetProcess? Find(int id) => List().FirstOrDefault(p => p.Id == id);
 
     /// <summary>A process as the system describes it (name, command line, user), whether or not a debugger can attach to it;
-    /// null when it has gone or cannot be read. The container tools describe a program whose runtime opened no pipe by it.</summary>
+    /// null when it has gone or cannot be read.</summary>
     public static DotnetProcess? Describe(int id) => Read(id, null);
 
     /// <summary>The .NET programs a debugger can attach to that a process started, or that those started in turn (the app
@@ -291,7 +291,7 @@ public static partial class DotnetProcesses
         return uid.ToString(CultureInfo.InvariantCulture);
     }
 
-    // Linux: /proc, as ps reads it.
+    // Linux: /proc.
 
     private static DotnetProcess? ReadLinux(int id, long? started)
     {
@@ -442,7 +442,7 @@ public static partial class DotnetProcesses
     private static partial uint GetEffectiveGroupId();
 
     /// <summary>This process's user and group ids as "uid:gid" on macOS and Linux (a container given them reads what this
-    /// user's files allow, on an engine that keeps the host's permissions); null on Windows.</summary>
+    /// user's files allow); null on Windows.</summary>
     public static string? UserAndGroup => OperatingSystem.IsWindows() ? null : $"{GetEffectiveUserId()}:{GetEffectiveGroupId()}";
 
     [LibraryImport("kernel32.dll", EntryPoint = "OpenProcess")]

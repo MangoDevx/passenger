@@ -7,9 +7,9 @@ using Passenger.Editor;
 
 namespace Passenger.App.Settings;
 
-/// <summary>Rider's Settings: the pages down the left under a search box, the chosen page's options on the right,
-/// OK, Cancel and Apply below. A search keeps the pages with an option whose words match and shows only those options,
-/// as Rider's search narrows the tree. The options edit a copy, which Apply and OK hand back.</summary>
+/// <summary>Settings: the pages down the left under a search box, the chosen page's options on the right, OK, Cancel
+/// and Apply below. A search keeps the pages with an option whose words match and shows only those options. The options
+/// edit a copy, which Apply and OK hand back.</summary>
 public sealed partial class SettingsDialog : Window
 {
     public const string Appearance = "Appearance";
@@ -34,10 +34,10 @@ public sealed partial class SettingsDialog : Window
     public const string DiscordPage = "Discord";
     public const string DiagnosticsPage = "Diagnostics";
 
-    /// <summary>Rider's names for <see cref="BuildResultsMode"/>'s choices, in its order.</summary>
+    /// <summary>The names of <see cref="BuildResultsMode"/>'s choices, in its order.</summary>
     public static readonly string[] BuildResultsChoices = ["Always", "Only if errors or warnings received", "Only if errors received", "Never"];
 
-    /// <summary>Rider's names for <see cref="OpenProjectIn"/>'s choices, in its order.</summary>
+    /// <summary>The names of <see cref="OpenProjectIn"/>'s choices, in its order.</summary>
     public static readonly (OpenProjectIn Choice, string Name)[] OpenProjectChoices =
         [(OpenProjectIn.NewWindow, "New window"), (OpenProjectIn.CurrentWindow, "Current window"), (OpenProjectIn.Ask, "Ask")];
 
@@ -53,13 +53,16 @@ public sealed partial class SettingsDialog : Window
     private static readonly string[] Order = [Appearance, SystemPage, UpdatesPage, EditorPage, CodeFoldingPage, PostfixPage, XamlCodeStylePage, LiveTemplatesPage,
         BuildPage, RunPage, HotReloadPage, NodePage, EslintPage, PrettierPage, SchemasPage, DockerPage, TerminalPage, McpPage, DiscordPage, DiagnosticsPage, KeymapPage];
 
-    /// <summary>Rider's names for Attributes format's choices, in <see cref="Passenger.Xaml.Features.XamlAttributeStyle"/>'s order.</summary>
+    /// <summary>The names of Attributes format's choices, in <see cref="Passenger.Xaml.Features.XamlAttributeStyle"/>'s
+    /// order.</summary>
     public static readonly string[] AttributeStyles = ["On single line", "First attribute on single line", "Each attribute on separate lines", "Do not touch"];
 
-    /// <summary>Rider's names for Attributes indenting's choices, in <see cref="Passenger.Xaml.Features.XamlAttributeIndent"/>'s order.</summary>
+    /// <summary>The names of Attributes indenting's choices, in <see
+    /// cref="Passenger.Xaml.Features.XamlAttributeIndent"/>'s order.</summary>
     public static readonly string[] AttributeIndents = ["Single indent", "Double indent", "Align by first attribute"];
 
-    /// <summary>Rider's names for an element's inside indenting, in <see cref="Passenger.Xaml.Features.XamlContentIndent"/>'s order.</summary>
+    /// <summary>The names of an element's inside indenting, in <see
+    /// cref="Passenger.Xaml.Features.XamlContentIndent"/>'s order.</summary>
     public static readonly string[] ContentIndents = ["Do not change indenting", "One indent from parent element", "No indent from parent element", "No indent at all"];
 
     /// <summary>Puts what the options changed in force: from the settings as they were applied last, to the options'.</summary>
@@ -215,7 +218,6 @@ public sealed partial class SettingsDialog : Window
 
     private void AddOptions(Mcp.AgentSetup agents)
     {
-        // Each theme has a Dark and a Light, which the next row chooses between, or the system does, as Rider's Sync with OS.
         ComboBox look = new() { ItemsSource = LookChoices.Select(c => c.Name).ToArray(), SelectedIndex = Array.FindIndex(LookChoices, c => c.Look == Working.Look), Classes = { "form" } };
         look.SelectionChanged += (_, _) => Change(s => s with { Look = LookChoices[Math.Max(0, look.SelectedIndex)].Look });
         Add(Appearance, "Theme", look, "colour color theme look palette " + string.Join(" ", LookChoices.Select(c => c.Name.ToLowerInvariant())));
@@ -224,7 +226,6 @@ public sealed partial class SettingsDialog : Window
         Add(Appearance, "Dark or light", theme, "colour color theme dark light system sync os appearance mode");
         if (TitleBars.Offered)
         {
-            // Rider's UI Options checkbox; where this desktop keeps the system's title bar it says why, greyed, as Rider's.
             CheckBox merge = Check(Working.MergeMainMenuWithWindowTitle, v => Change(s => s with { MergeMainMenuWithWindowTitle = v }));
             merge.IsEnabled = TitleBars.NotOnThisDesktop is null;
             Add(Appearance, "Merge main menu with window title", merge,
@@ -240,7 +241,6 @@ public sealed partial class SettingsDialog : Window
 
         Add(SystemPage, "Reopen projects on startup", Check(Working.ReopenProjectsOnStartup, v => Change(s => s with { ReopenProjectsOnStartup = v })),
             "reopen last solution project folder startup start launch welcome screen recent");
-        // Rider's Project section's radio buttons, in its order and words.
         StackPanel openIn = new() { Orientation = Orientation.Horizontal, Spacing = 16 };
         foreach ((OpenProjectIn choice, string name) in OpenProjectChoices)
         {
@@ -269,7 +269,6 @@ public sealed partial class SettingsDialog : Window
         Add(SystemPage, "Save when idle for", new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { idle, seconds, unit } },
             "autosave files idle inactive seconds");
 
-        // Rider's System Settings, Updates; what is sent is said under it.
         Add(UpdatesPage, "Check for updates", Check(Working.CheckForUpdates, v => Change(s => s with { CheckForUpdates = v })),
             "updates check new version release newer download github automatic install restart",
             "Passenger asks GitHub for its latest release when it starts and once a day. When a newer one is out, an installed "
@@ -290,7 +289,6 @@ public sealed partial class SettingsDialog : Window
             "errors problems whole solution analysis inspections without build");
         Add(EditorPage, "Show parameter name hints", Check(Working.ParameterHints, v => Change(s => s with { ParameterHints = v })), "inlay hints parameter names arguments");
         Add(EditorPage, "Show type name hints", Check(Working.TypeHints, v => Change(s => s with { TypeHints = v })), "inlay hints type names var lambda parameters new inferred");
-        // Rider's Editor, General: its Soft Wraps, Appearance and Font Size options, by its names.
         TextBox masks = new() { Classes = { "search" }, Text = Working.SoftWrapFiles, PlaceholderText = "No files", Width = 260, IsEnabled = Working.SoftWrap };
         ToolTip.SetTip(masks, "Use * and ? as wildcards and ; to separate patterns");
         masks.TextChanged += (_, _) => Change(s => s with { SoftWrapFiles = masks.Text ?? string.Empty });
@@ -308,8 +306,6 @@ public sealed partial class SettingsDialog : Window
         Add(EditorPage, OperatingSystem.IsMacOS() ? "Change font size with Command+Mouse Wheel" : "Change font size with Ctrl+Mouse Wheel",
             Check(Working.WheelZoom, v => Change(s => s with { WheelZoom = v })), "zoom font size mouse wheel scroll ctrl control command cmd");
 
-        // Rider's Editor, General, Code Folding: its Fold by default switches for what Passenger folds, by its names (its
-        // General's, .NET's and XML's).
         const string Folding = "fold by default folding collapse collapsed open opening region";
         Add(CodeFoldingPage, "File header", Check(Working.FoldFileHeader, v => Change(s => s with { FoldFileHeader = v })),
             $"{Folding} comments licence license copyright top",
@@ -328,8 +324,6 @@ public sealed partial class SettingsDialog : Window
 
         AddXamlCodeStyle();
 
-        // Rider's Editor, General, Postfix Completion and Editor, Live Templates, C#: each a page of its own, found by its
-        // templates' words too.
         Postfix = new PostfixTemplatesPane(Working, Change);
         AddPage(PostfixPage, Postfix, "postfix templates completion expression dot autopopup "
             + string.Join(' ', Languages.CSharp.PostfixTemplates.All.Select(t => $"{t.Name} {t.Description} {t.Example}")));
@@ -337,7 +331,6 @@ public sealed partial class SettingsDialog : Window
         AddPage(LiveTemplatesPage, Templates, "live templates c# shortcut abbreviation snippet expand tab surround with generation availability mnemonic variables macros "
             + string.Join(' ', CSharp.LiveTemplates.BuiltIn.Select(t => $"{t.Abbreviation} {t.Description}")));
 
-        // Rider's Toolset and Build, Presentation, by its names: the implicit build's option only while the explicit's is on.
         CheckBox implicitly = Check(Working.OpenBuildWindowOnImplicitBuild, v => Change(s => s with { OpenBuildWindowOnImplicitBuild = v }));
         implicitly.IsEnabled = Working.OpenBuildWindowOnBuild;
         CheckBox explicitly = Check(Working.OpenBuildWindowOnBuild, v =>
@@ -354,7 +347,6 @@ public sealed partial class SettingsDialog : Window
         Add(BuildPage, "Showing build results after build completed", results,
             "build tool window results after completed finished failed errors warnings always never toolset presentation");
 
-        // Rider's Build, Execution, Deployment | Hot Reload, with Visual Studio's apply on save and dotnet watch's restart.
         Add(HotReloadPage, "Hot Reload when debugging (Edit and Continue)", Check(Working.HotReloadWhileDebugging, v => Change(s => s with { HotReloadWhileDebugging = v })),
             "hot reload edit and continue enc debug apply changes paused running alt f10");
         Add(HotReloadPage, "Hot Reload when running (dotnet watch)", Check(Working.HotReload, v => Change(s => s with { HotReload = v })),
@@ -367,7 +359,6 @@ public sealed partial class SettingsDialog : Window
         Add(RunPage, "Console buffer size", new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { buffer, new TextBlock { Text = "KB", VerticalAlignment = VerticalAlignment.Center } } },
             "console cycle buffer size output limit lines run debug build kb");
 
-        // Rider's Languages & Frameworks, Node.js: the interpreter, the PATH's when none is named.
         string? onPath = Passenger.Core.Programs.Node();
         TextBox node = new() { Classes = { "search" }, Text = Working.NodeInterpreter ?? string.Empty, PlaceholderText = onPath ?? "Not found on the PATH", Width = 320 };
         node.TextChanged += (_, _) => Change(s => s with { NodeInterpreter = string.IsNullOrWhiteSpace(node.Text) ? null : node.Text.Trim() });
@@ -375,13 +366,11 @@ public sealed partial class SettingsDialog : Window
             "The Node.js the JavaScript, TypeScript, HTML, CSS and JSON language servers run on. Empty, it is the first on the PATH, "
             + "as the login shell finds it. Without one, those files keep their colours only.");
         AddCodeQualityTools();
-        // Rider's Languages & Frameworks, Schemas and DTDs, Remote JSON Schemas.
         Add(SchemasPage, "Allow downloading JSON Schemas from remote sources", Check(Working.DownloadJsonSchemas, v => Change(s => s with { DownloadJsonSchemas = v })),
             "json schema schemas remote download web http https schemastore $schema validation completion",
             "A JSON file that names a schema on the web ($schema) has it downloaded to check and complete it. package.json, "
             + "tsconfig.json, jsconfig.json, appsettings.json, launchSettings.json and global.json use the schemas Passenger "
             + "carries from SchemaStore, which are never downloaded.");
-        // Beside Remote JSON Schemas: the other thing typing asks the web for.
         Add(DockerPage, "Complete image tags from Docker Hub", Check(Working.DockerHubTags, v => Change(s => s with { DockerHubTags = v })),
             "docker hub dockerfile containerfile image images tag tags from completion registry remote download web network",
             "In a Dockerfile, completion after FROM image: lists the image's tags, which the Dockerfile language server asks "
@@ -401,7 +390,6 @@ public sealed partial class SettingsDialog : Window
 
         AddAgents(agents);
 
-        // The JetBrains Discord plugins' options at their defaults (AppSettings says whose), changed only while it is on.
         ComboBox shows = new() { ItemsSource = DiscordChoices, SelectedIndex = (int)Working.DiscordShows, Classes = { "form" }, IsEnabled = Working.ShowInDiscord };
         shows.SelectionChanged += (_, _) => Change(s => s with { DiscordShows = (DiscordShown)Math.Max(0, shows.SelectedIndex) });
         NumericUpDown idleMinutes = Number(Working.DiscordIdleMinutes, AppSettings.MinDiscordIdleMinutes, AppSettings.MaxDiscordIdleMinutes, 1,
@@ -434,7 +422,6 @@ public sealed partial class SettingsDialog : Window
             Children = { whenIdle, idleMinutes, new TextBlock { Text = "minutes", VerticalAlignment = VerticalAlignment.Center } },
         }, $"{Discord} idle inactive away timeout minutes");
 
-        // Rider's Help, Diagnostic Tools: what is written where is said under each, the folder being Help, Show Log's.
         Add(DiagnosticsPage, "Trace protocol messages", Check(Working.TraceProtocols, v => Change(s => s with { TraceProtocols = v })),
             "trace log lsp dap json-rpc language server debugger adapter vstest tests messages verbose mcp agent calls",
             "Every message to and from the C# language server, the debugger and the test runner is written to lsp.log, dap.log "
@@ -456,8 +443,7 @@ public sealed partial class SettingsDialog : Window
     /// does; a keymap row names its action.</summary>
     private Control Add(string page, string label, Control editor, string keywords, string? note = null, string? action = null)
     {
-        // A gutter keeps a wrapped label off its editor; beside an editor of several lines (a list of choices, a text of
-        // several lines) the label stands level with its first line, as Rider's do.
+        // Beside an editor of several lines the label stands level with its first line.
         double firstLine = editor switch
         {
             TextBox { AcceptsReturn: true } => 5,

@@ -6,10 +6,10 @@ using Avalonia.Media;
 
 namespace Passenger.App.ToolWindows;
 
-/// <summary>A Details tab's page, the Containers window's and the Aspire window's alike: headings over framed tables of names
-/// and what each is, every table's names in one column as wide as the widest of any so the values line up down the page, and
-/// in their place a word of why there is nothing to show (being read, a failure). Shown again with nothing it shows changed,
-/// its tables stay as they are, so a click on a link in them lands however often what they show is read again.</summary>
+/// <summary>A Details tab's page: headings over framed tables of names and what each is, every table's names in one
+/// column as wide as the widest of any so the values line up down the page, and in their place a word of why there is
+/// nothing to show (being read, a failure). Shown again with nothing it shows changed, its tables stay as they are, so a
+/// click on a link in them lands however often what they show is read again.</summary>
 public class DetailsTables : DockPanel
 {
     private readonly StackPanel sections = new() { Margin = new Thickness(8, 0, 8, 8) };
@@ -155,8 +155,7 @@ public class DetailsTables : DockPanel
         return words;
     }
 
-    /// <summary>A value that opens something (an address in the browser, a file in the editor) as a link, named as a test
-    /// finds it.</summary>
+    /// <summary>A value that opens something (an address in the browser, a file in the editor), as a named link.</summary>
     public static Button Link(string words, string tip, Action open, string name)
     {
         Button link = new()

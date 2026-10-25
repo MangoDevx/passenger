@@ -106,8 +106,7 @@ public sealed partial class BuildRunController
             // Its run ended without starting it: what it said is in its console, and the run's failure says why.
             return null;
         }
-        // Stopped, or its folder left, while its program was reached: a session begun now would outlive the Stop that ended
-        // the others, or open in the next folder's Debug window.
+        // Stopped or its folder left meanwhile: a session begun now would outlive the Stop, or open in the next folder's window.
         stop.ThrowIfCancellationRequested();
         if (run.IsStopped || session.IsEnded)
         {
@@ -150,12 +149,11 @@ public sealed partial class BuildRunController
         return refused is null ? null : program.Caveat is { } caveat ? $"{refused} ({caveat})" : refused;
     }
 
-    /// <summary>Restarts services of a run (their sessions ended first, so no debugger loses its program under it, and their
-    /// recording, so the profiler's trace keeps its rundown), their projects built again between their stop and start where
-    /// <paramref name="build"/> asks it of a kind that builds then, and attaches again to those held for the debugger, which
-    /// the restart holds again (a kind that attaches its starts itself having done so as they started), and to those
+    /// <summary>Restarts services of a run (their sessions and recording ended first, so no debugger loses its program under
+    /// it and the profiler's trace keeps its rundown), their projects built again between their stop and start where
+    /// <paramref name="build"/> asks it of a kind that builds then, and attaches again to those held for the debugger and those
     /// attached to as they ran. Null once done, else why not: a failure its kind says (a command refused, a time limit) is
-    /// said as the restart's refusal, whoever asked (Hot Reload's restart and Rerun no less than a window's action).</summary>
+    /// said as the restart's refusal, whoever asked.</summary>
     private async Task<string?> RestartServicesAsync(ServiceRun run, IReadOnlyList<IRunService> services, Working work, string? why = null, bool build = false)
     {
         List<IRunService> held = run.AttachesItsStarts ? [] : [.. run.Held.Where(h => services.Any(s => s.Name == h.Name))];
@@ -174,8 +172,7 @@ public sealed partial class BuildRunController
             {
                 unattached ??= await AttachAsync(run, again, Task.CompletedTask, notes, work.Stopping, RunStart.Debug);
             }
-            // Restarted held, a service no debugger reached would wait at its runtime's start for good: it is made again
-            // unheld, running without the debugger, its hold for the run let go.
+            // Restarted held, a service no debugger reached would wait for good: it is made again unheld, its hold let go.
             if (attached.Where(a => a.Refused is not null).Select(a => a.Service).ToList() is { Count: > 0 } stuck)
             {
                 foreach (IRunService service in stuck)
@@ -235,8 +232,8 @@ public sealed partial class BuildRunController
     /// <summary>A .NET service the run left unstarted (Don't start) started later by its action, the rest left as they run:
     /// its project built here first where its program runs that build (fast mode; as deployed its image is built as it
     /// starts), containers of it Passenger did not make asked about first, then started held as chosen (once for the profiler
-    /// when <paramref name="profiled"/>) and attached to where held, as a restart attaches; the run's from then on (Stop takes
-    /// it down, Rerun keeps it started). Null once started, else why not.</summary>
+    /// when <paramref name="profiled"/>) and attached to where held; the run's from then on (Stop takes it down, Rerun keeps
+    /// it started). Null once started, else why not.</summary>
     private async Task<string?> StartLaterAsync(ServiceRun run, IRunService service, Working work, string why, bool profiled = false)
     {
         if (run.WhyNotStartedLater(service) is { } unfit)
@@ -282,8 +279,7 @@ public sealed partial class BuildRunController
         {
             return failed;
         }
-        // Held for the profiler alone, it waits at its start until the recording lets it go: one that cannot be recorded is
-        // made again unheld, rather than waiting there for good.
+        // Held for the profiler alone, one that cannot be recorded is made again unheld rather than waiting for good.
         if (await AttachAsync(run, service, Task.CompletedTask, [], work.Stopping, RunStart.Profile) is not { } unrecorded)
         {
             return null;
@@ -306,7 +302,7 @@ public sealed partial class BuildRunController
         await run.HoldAsync(name, RunStart.Debug, work.Stopping);
         parts.Dock.Show(ToolWindowIds.Debug);
         parts.Views.Debug.ShowTab(console: true);
-        // One the run left unstarted is started now, held, as a restart would hold it.
+        // One the run left unstarted is started now, held.
         return run.LeftUnstarted(service)
             ? Done(await StartLaterAsync(run, service, work, "to debug it from its start"), $"Debugging {name} of {run.Name} from its start, started now; the rest run on as they were")
             : Done(await RestartServicesAsync(run, [service], work, "to debug it from its start"), $"Debugging {name} of {run.Name} from its start; the rest run on as they were");
@@ -374,8 +370,8 @@ public sealed partial class BuildRunController
     public Task<string?> RestartServiceAsync(string name) => RestartServiceAsync(Containers, name);
 
     /// <summary>Restart of one .NET service from its window or an agent, through its run: its session ended first,
-    /// restarted (held again where it is debugged), and attached to again; one the run left unstarted started, as its Start
-    /// in the Containers window asks. Null once done, else why not.</summary>
+    /// restarted (held again where it is debugged), and attached to again; one the run left unstarted started. Null once
+    /// done, else why not.</summary>
     public Task<string?> RestartServiceAsync(ServiceRun? run, string name) => OnServiceAsync(run, name, AppActions.ContainerRestart, $"Restarting {name}…", async (run, service, work) =>
         run.LeftUnstarted(service)
             ? Done(await StartLaterAsync(run, service, work, "started from its window"), $"{run.Name}: started {name}")
@@ -449,12 +445,10 @@ public sealed partial class BuildRunController
         }
     }
 
-    /// <summary>Hot Reload's restart for edits it could not apply to services of a run under way, the one whose sessions
-    /// <paramref name="names"/> are: built again here first when their programs run the build here and a build can write
-    /// over them (a container's in fast mode; as deployed, their restart builds them; an Aspire service between its stop and
-    /// start), restarted held, and attached to again, as dotnet watch restarts a program: those whose project holds an edit
-    /// that needs it, when any does (Roslyn names an edit to another project rude to each service's session). True once
-    /// they are.</summary>
+    /// <summary>Hot Reload's restart for edits it could not apply to services of the run whose sessions <paramref name="names"/>
+    /// are: those whose project holds an edit that needs it (Roslyn calls an edit to another project rude in each service's
+    /// session), built again here first where their programs run this build and a build can write over them, restarted held,
+    /// and attached to again. True once they are.</summary>
     public async Task<bool> RestartServicesForEditAsync(Debugging.HotReloadOutcome outcome, IReadOnlyList<string> names)
     {
         if (ServiceRuns.Select(run => (Run: run, Named: run.Held.Where(h => names.Contains(run.SessionName(h))).ToList())).FirstOrDefault(r => r.Named.Count > 0)

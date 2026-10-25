@@ -237,15 +237,13 @@ public partial class MainWindow
             : null;
         if (action == "run" && previous is null && AspireJson.String(fresh.Resource.Data, "resourceType") != "Project")
         {
-            // A resource its AppHost runs itself (a container), as a compose file's backing service is its run's: run answers
-            // how it stands, and container_action runs its commands.
+            // A resource its AppHost runs itself (a container): run says how it stands.
             return null;
         }
         if (action is "run" or "debug" && previous is null && StartOf(fresh.Resource) is null
             && fresh.Resource.State is not ("Finished" or "Exited" or "FailedToStart"))
         {
-            // Stopped a moment ago (an agent's stop, then run): its AppHost advertises its start only once its stream has the
-            // stop, which on a loaded machine comes a while after the program has gone.
+            // Stopped a moment ago: its AppHost offers Start only once its stream has the stop, which can come late.
             try
             {
                 AspireResource startable = await FollowAspireAsync(current, app, resources => Task.FromResult(

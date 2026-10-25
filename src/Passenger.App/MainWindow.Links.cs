@@ -5,10 +5,10 @@ using Passenger.Core;
 
 namespace Passenger.App;
 
-/// <summary>Links, as Rider has them: the Run, Debug, Build and Unit Tests consoles' stack frames, compiler messages and web
-/// addresses (a click opens the file at its line, or the address in the browser) and the terminal's (its file paths on
-/// Cmd+click, Ctrl+click elsewhere); and Rider's Open browser after launch, which opens a web project's launch URL once its
-/// program listens.</summary>
+/// <summary>Links: the Run, Debug, Build and Unit Tests consoles' stack frames, compiler messages and web addresses (a
+/// click opens the file at its line, or the address in the browser) and the terminal's (its file paths on Cmd+click,
+/// Ctrl+click elsewhere); and Open browser after launch, which opens a web project's launch URL once its program
+/// listens.</summary>
 public partial class MainWindow
 {
     private readonly List<Uri> browsed = [];
@@ -16,8 +16,8 @@ public partial class MainWindow
     /// <summary>Ends the wait for the last launch's program to listen, once it ended or another launched.</summary>
     private CancellationTokenSource? browserWait;
 
-    /// <summary>Every address the window opened in the person's browser, in order: what a test reads, as the headless
-    /// platform's launcher opens nothing.</summary>
+    /// <summary>Every address the window opened in the person's browser, in order, kept since the headless platform's
+    /// launcher opens nothing.</summary>
     public IReadOnlyList<Uri> Browsed => browsed;
 
     private void AddLinks()
@@ -38,8 +38,8 @@ public partial class MainWindow
         Bottom.Tests.Links.Folders = () => LinkFolders(null);
     }
 
-    /// <summary>The terminal's links, Rider's terminal's: web addresses and stack frames as the consoles find them, and any
-    /// path to a file, a relative one under the folder the shell said it is in, then the open folder's.</summary>
+    /// <summary>The terminal's links: web addresses and stack frames as the consoles find them, and any path to a file,
+    /// a relative one under the folder the shell said it is in, then the open folder's.</summary>
     private void AddTerminalLinks(ToolWindows.TerminalPanel terminal)
     {
         ConsoleLinks links = new() { FilePaths = true };
@@ -114,7 +114,7 @@ public partial class MainWindow
     private readonly List<string> shownInFileManager = [];
 
     /// <summary>Every file and folder the window showed in the file manager, in order (where a publish landed, the
-    /// Explorer's Reveal, the log): what a test reads, as the headless platform opens nothing.</summary>
+    /// Explorer's Reveal, the log), kept since the headless platform opens nothing.</summary>
     public IReadOnlyList<string> ShownInFileManager => shownInFileManager;
 
     /// <summary>Shows a file chosen in its folder, or a folder's contents, in the person's file manager: the only way the
@@ -126,9 +126,8 @@ public partial class MainWindow
         FileManager.Show(this, path);
     }
 
-    /// <summary>Rider's Open browser after launch: the plan's browser URL opens once its program listens there, as
-    /// IntelliJ's browser starter waits for the address's port to take a connection; never once the program ended, nor
-    /// for a launch that came after it.</summary>
+    /// <summary>Open browser after launch: the plan's browser URL opens once its program listens there (its port takes
+    /// a connection); never once the program ended, nor for a launch that came after it.</summary>
     private void OpenBrowserOnceListening(LaunchPlan plan, Task ended)
     {
         browserWait?.Cancel();

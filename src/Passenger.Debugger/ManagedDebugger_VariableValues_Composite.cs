@@ -32,8 +32,7 @@ public partial class ManagedDebugger
                 rest = value.GetFieldValue(value.Class, token);
             }
 
-            // Formatting may evaluate DebuggerDisplay or ToString and neuter the parent value,
-            // so retrieve every field before awaiting any member formatting.
+            // Every field read before any is formatted, which may evaluate and neuter the parent value.
             foreach (ICorDebugValue memberValue in tupleMemberValues)
             {
                 (string Value, bool ResultIsError) result = await FormatMember(memberValue);

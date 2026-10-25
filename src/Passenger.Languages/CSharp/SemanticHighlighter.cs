@@ -4,13 +4,12 @@ using Passenger.Text;
 
 namespace Passenger.Languages.CSharp;
 
-/// <summary>The language server's colours over the parser's: what only the compiler knows (that a
-/// name is a struct, a field, a local, an extension method) replaces the syntax's guess wherever the
-/// server says something. Tokens are asked for once edits settle and whenever the server says the
-/// code moved: the lines on screen first, as Rider and VS Code ask (Roslyn colours a screen in milliseconds and a long
-/// file in about a second), then the whole file once typing has stopped (<see cref="Idle"/>). Each answer is decoded off
-/// the UI thread against the snapshot it was asked for and carried through the edits made since, so colours never lag a
-/// keystroke behind the text nor jump when an answer lands.</summary>
+/// <summary>The language server's colours over the parser's: what only the compiler knows (that a name is a struct, a
+/// field, a local, an extension method) replaces the syntax's guess wherever the server says something. Tokens are
+/// asked for once edits settle and whenever the server says the code moved: the lines on screen first (a screen takes
+/// the server milliseconds, a long file about a second), then the whole file once typing has stopped
+/// (<see cref="Idle"/>). Each answer is decoded off the UI thread against the snapshot it was asked for and carried
+/// through the edits made since, so colours never lag a keystroke behind the text nor jump when an answer lands.</summary>
 public sealed class SemanticHighlighter : IHighlighter, IBraceMatcher, IDisposable
 {
     /// <summary>How long typing must pause before new tokens are asked for.</summary>
@@ -68,9 +67,7 @@ public sealed class SemanticHighlighter : IHighlighter, IBraceMatcher, IDisposab
     public void Refresh() => Request(TimeSpan.Zero);
 
     /// <summary>The server's word that its colours moved, handled: tokens are asked for again, unless the latest request
-    /// reached the server only after the word was read and so answers with what it told of (Roslyn's word comes 2 s after
-    /// the tokens it last made, as the whole file's are asked for once typing has paused as long, so the two meet within a
-    /// millisecond or two, and asking again then throws that away).</summary>
+    /// reached the server only after the word was read and so answers with what it told of.</summary>
     public void Refreshed()
     {
         if (outAfter is { AfterEveryWord: true })
@@ -495,8 +492,8 @@ public sealed class SemanticHighlighter : IHighlighter, IBraceMatcher, IDisposab
     }
 
     /// <summary>Roslyn's token types, standard and its own, and Razor's for a Razor file's markup, as the editor's kinds:
-    /// a component's tag in a type's colour and its parameters in a property's, as Rider has them, HTML's as the HTML
-    /// grammar colours it, Razor's directives and transitions as keywords. Operators, punctuation and text are left to
+    /// a component's tag in a type's colour and its parameters in a property's, HTML's in the HTML grammar's kinds,
+    /// Razor's directives and transitions as keywords. Operators, punctuation and text are left to
     /// the syntax.</summary>
     private static TokenKind? Kind(string type) => type switch
     {

@@ -9,10 +9,9 @@ public class StepTests(ITestOutputHelper testOutputHelper)
 {
     private const string Looping = "LoopingConsoleApp";
 
-    /// <summary>In one program, Just My Code on, stopped in MyClass.MyMethod: a step of a thread the program does not have is
-    /// refused rather than answered as taken, and the thread that stopped steps on from where it was; a frame or value from
-    /// before a step is refused rather than naming one of the new stop's; and Step Into, Out and Over land where they
-    /// should, on the one thread that stopped, a breakpoint inside a call stepped over stopping there, and a Step Into
+    /// <summary>Just My Code on, stopped in MyClass.MyMethod: a step of a thread the program does not have is refused and
+    /// the thread that stopped steps on; a frame or value from before a step is refused; Step Into, Out and Over land where
+    /// they should on the thread that stopped, a breakpoint inside a call stepped over stopping there, and a Step Into
     /// landing in code without source going on to the next user code.</summary>
     [Fact]
     public async Task SharpDbgCli_StepRequests_Returns_StoppedEventsAtCorrectLocation()
@@ -35,11 +34,9 @@ public class StepTests(ITestOutputHelper testOutputHelper)
         Assert.Contains("no thread 999999", refused.Reason, StringComparison.Ordinal);
         DapException refusedOut = Assert.Throws<DapException>(() => debugProtocolHost.WithStepOutRequest(999_999));
         Assert.Contains("no thread 999999", refusedOut.Reason, StringComparison.Ordinal);
-        // Nothing went: the thread that stopped steps on from where it was.
         StoppedEvent steppedOn = await debugProtocolHost.WithStepOverRequest(first.ThreadId!.Value).WaitForStoppedEvent();
         Assert.Equal(("step", 21), (steppedOn.Reason, steppedOn.Line));
 
-        // Round the loop to the breakpoint again, where the frame, scope and values are asked for as the IDE asks at a stop.
         StoppedEvent stoppedEvent = await debugProtocolHost.WithContinueRequest().WaitForStoppedEvent();
         (string filePath, int line, int column) stopInfo = stoppedEvent.ReadStopInfo();
         Assert.EndsWith("MyClass.cs", stopInfo.filePath);
@@ -59,7 +56,7 @@ public class StepTests(ITestOutputHelper testOutputHelper)
         Assert.EndsWith("AnotherClass.cs", stopInfo2.filePath);
         Assert.Equal(7, stopInfo2.line);
 
-        // Into AnotherClass.MyStaticMethod, whose frame, scope and values are asked for; those from before the step are refused.
+        // The frame, scope and values from before the step are refused.
         DapStackFrame after = debugProtocolHost.GetTopStackFrame(thread);
         debugProtocolHost.WithScopesRequest(after.Id, out ScopesResponse afterScopes);
         debugProtocolHost.WithVariablesRequest(afterScopes.Scopes.Single().VariablesReference, out List<DapVariable> now);
@@ -81,17 +78,14 @@ public class StepTests(ITestOutputHelper testOutputHelper)
             .WithStepOutRequest(stoppedEvent.ThreadId!.Value)
             .WaitForStoppedEvent();
         (string filePath, int line, int column) stopInfo3 = stoppedEvent3.ReadStopInfo();
-        // Stepping out should land us back on the same line as the method we just stepped out of
         Assert.EndsWith("MyClass.cs", stopInfo3.filePath);
         Assert.Equal(20, stopInfo3.line);
 
-        // Continue so we loop and are back at the breakpoint
         StoppedEvent stoppedEvent4 = await debugProtocolHost.WithContinueRequest().WaitForStoppedEvent();
         (string filePath, int line, int column) stopInfo4 = stoppedEvent4.ReadStopInfo();
         Assert.EndsWith("MyClass.cs", stopInfo4.filePath);
         Assert.Equal(20, stopInfo4.line);
 
-        // Now, put a breakpoint inside AnotherMethod, and step over. We should still be in AnotherClass.cs
         debugProtocolHost.WithBreakpointsRequest(8, Debuggees.Source("DebuggableConsoleApp", "Namespace1", "AnotherClass.cs"));
 
         StoppedEvent stoppedEvent5 = await debugProtocolHost.WithStepOverRequest(stoppedEvent.ThreadId!.Value).WaitForStoppedEvent();
@@ -109,14 +103,13 @@ public class StepTests(ITestOutputHelper testOutputHelper)
         Assert.EndsWith("MyClass.cs", stopInfo7.filePath);
         Assert.Equal(20, stopInfo7.line);
 
-        // breakpoint on a line that would F11 into unmapped code
+        // A line whose Step Into goes into code without source.
         debugProtocolHost.WithBreakpointsRequest(13, Debuggees.Source("DebuggableConsoleApp", "Namespace1", "AnotherClass.cs"));
         StoppedEvent stoppedEvent8 = await debugProtocolHost.WithContinueRequest().WaitForStoppedEvent();
         (string filePath, int line, int column) stopInfo8 = stoppedEvent8.ReadStopInfo();
         Assert.EndsWith("AnotherClass.cs", stopInfo8.filePath);
         Assert.Equal(13, stopInfo8.line);
 
-        // ensure that we do not receive stop info with no source. StepIn with JMC false, landing in non-user code, continues and stops at the next user code
         StoppedEvent stoppedEvent9 = await debugProtocolHost.WithStepInRequest(stoppedEvent.ThreadId!.Value).WaitForStoppedEvent();
         (string filePath, int line, int column) stopInfo9 = stoppedEvent9.ReadStopInfo();
         Assert.EndsWith("AnotherClass.cs", stopInfo9.filePath);
@@ -126,9 +119,9 @@ public class StepTests(ITestOutputHelper testOutputHelper)
         Assert.Single(threadIds.Distinct());
     }
 
-    /// <summary>In one program, Just My Code off: a step over onto a line with a breakpoint stops there once, and the next goes
-    /// on to the line after (the breakpoint suppressed where the step lands); a breakpoint on a multi-line switch expression
-    /// is stopped at; and Step Into a module without symbols stops in its decompiled source.</summary>
+    /// <summary>Just My Code off: a step over onto a line with a breakpoint stops there once, and the next goes on to the
+    /// line after; a breakpoint on a multi-line switch expression is stopped at; and Step Into a module without symbols
+    /// stops in its decompiled source.</summary>
     [Fact]
     public async Task SharpDbgCli_StepOverToBreakpointedLine_SwitchExpressionBreakpoint_and_StepIntoModuleWithoutSymbols()
     {
@@ -161,7 +154,6 @@ public class StepTests(ITestOutputHelper testOutputHelper)
         Assert.EndsWith("Program.cs", stopInfo3.filePath);
         Assert.Equal(27, stopInfo3.line);
 
-        // Later in the same turn of the loop, the multi-line switch expression's breakpoints.
         debugProtocolHost
             .WithClearBreakpointsRequest(program)
             .WithBreakpointsRequest([7, 9], Debuggees.Source("DebuggableConsoleApp", "MultilineSwitchInMethodCall.cs"));
@@ -172,7 +164,7 @@ public class StepTests(ITestOutputHelper testOutputHelper)
         Assert.EndsWith("MultilineSwitchInMethodCall.cs", switched.ReadStopInfo().filePath);
         Assert.Equal(9, switched.ReadStopInfo().line);
 
-        // The next turn's MyMethod, stepped into Console.WriteLine, which ships no symbols: its decompiled source.
+        // Console.WriteLine ships no symbols.
         debugProtocolHost
             .WithClearBreakpointsRequest(Debuggees.Source("DebuggableConsoleApp", "MultilineSwitchInMethodCall.cs"))
             .WithBreakpointsRequest(15);
@@ -181,7 +173,7 @@ public class StepTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(15, logged.ReadStopInfo().line);
         StoppedEvent decompiled = await debugProtocolHost.WithStepInRequest(logged.ThreadId!.Value).WaitForStoppedEvent();
         Assert.EndsWith("Console.cs", decompiled.ReadStopInfo().filePath);
-        // The decompiled code's line: a newer ICSharpCode.Decompiler may move it (the cache keeps each version's apart).
+        // A newer ICSharpCode.Decompiler may move the decompiled code's line.
         Assert.Equal(1219, decompiled.ReadStopInfo().line);
     }
 
@@ -225,9 +217,7 @@ public class StepTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task A_step_over_an_await_stops_at_its_next_line_though_asking_the_builder_which_run_resumed_would_wait_on_a_paused_thread()
     {
-        // The method's builder answers which run of it resumed only once the passing thread has passed again, which never
-        // happens while an evaluation runs alone, as one waiting on what a paused thread holds never ends: the step tells
-        // its run apart without running the program.
+        // The debuggee's builder answers which run resumed only once the passing thread has passed again.
         using DebugSession host = DebugSession.ForLaunch(testOutputHelper);
         await StepOverWhileAnotherThreadPasses(host, "waiting", "step over the await whose builder waits", "a step over the waiting builder's await lost runs on to here",
             new DapSourceBreakpoint(Debuggees.Line(Looping, "passed by another thread"), Condition: "pass < 0"));
@@ -237,8 +227,6 @@ public class StepTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task A_step_over_an_await_stops_at_its_next_line_though_asking_the_builder_which_run_leaves_would_wait_on_a_paused_thread()
     {
-        // As above, asked as the stepping thread leaves the method at the await, where asking Task's own builder was seen to
-        // wait until the other threads ran: the step lost there kept its stepper, which took the next breakpoint for its own.
         using DebugSession host = DebugSession.ForLaunch(testOutputHelper);
         await StepOverWhileAnotherThreadPasses(host, "waiting first", "step over the await whose builder waits", "a step over the waiting builder's await lost runs on to here",
             new DapSourceBreakpoint(Debuggees.Line(Looping, "passed by another thread"), Condition: "pass < 0"));
@@ -248,7 +236,6 @@ public class StepTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task A_step_over_an_await_whose_method_goes_on_on_another_thread_shows_what_the_statement_called_there_returned()
     {
-        // The statement's call after the await is made on the thread the step goes on on, not the one that stepped.
         using DebugSession host = DebugSession.ForLaunch(testOutputHelper);
         await StepOverWhileAnotherThreadPasses(host, "elsewhere", "step over the await that goes on elsewhere",
             "a step over the await that goes on elsewhere lost runs on to here",
@@ -262,9 +249,7 @@ public class StepTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task A_step_on_one_thread_and_another_threads_breakpoint_hit_as_it_ends_both_stop()
     {
-        // Each turn the stepping thread lets the racing one go in the call it steps over, and the racing one passes its
-        // breakpoint at once: the step's end and the hit come together, either first. The hit is never passed over, and the
-        // step that had ended stops first; a hit that comes before the step has ended ends it, as any stop does.
+        // Each turn the step's end and the racing thread's hit come together, either first.
         using DebugSession host = DebugSession.ForLaunch(testOutputHelper);
         (int letGo, int stepped, int passed) = RaceLines;
         StoppedEvent stop = await LaunchRace(host, [new DapSourceBreakpoint(letGo), new DapSourceBreakpoint(passed)]);
@@ -294,9 +279,7 @@ public class StepTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task A_step_that_ends_while_another_threads_exception_breakpoint_tries_its_condition_stops_once_the_condition_is_tried()
     {
-        // The racing thread throws as it is let go, and its exception finds its handler as the step over the call that
-        // let it go ends, sooner or later each turn: the exception breakpoint's condition, which runs a getter and never
-        // holds, is tried without the step's end stopping the program part way through it.
+        // Each turn the racing thread's exception finds its handler before, as or after the step ends.
         using DebugSession host = DebugSession.ForLaunch(testOutputHelper);
         (int letGo, int stepped, _) = RaceLines;
         DapExceptionOptions raced = new([new DapExceptionPathSegment(["CLR"]), new DapExceptionPathSegment(["RaceException"])], "always")

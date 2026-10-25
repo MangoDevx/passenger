@@ -14,17 +14,17 @@ using Passenger.App.Workspace;
 namespace Passenger.App.State;
 
 /// <summary>The IDE's own state, in one folder: the app's documents at its top (the settings, the layout a folder
-/// without its own opens on, the recent solutions, the release last announced, Find in Files' mask, Rename's options), and each
-/// folder's under <c>workspaces/&lt;name&gt;-&lt;hash&gt;/</c>, as Rider keeps a project's workspace.xml. Only the windows
-/// a person uses keep one, all of a process's windows over the same folder sharing it (<see cref="Open"/>), so each
-/// document is held once and what one window keeps another reads at once; a headless IDE starts on the defaults.</summary>
+/// without its own opens on, the recent solutions, the release last announced, Find in Files' mask, Rename's options),
+/// and each folder's under <c>workspaces/&lt;name&gt;-&lt;hash&gt;/</c>. Only the windows a person uses keep one, all of a
+/// process's windows over the same folder sharing it (<see cref="Open"/>), so each document is held once and what one
+/// window keeps another reads at once; a headless IDE starts on the defaults.</summary>
 public sealed class StateStore
 {
-    /// <summary>The settings' file at the store's top, which the --mcp-attach proxy reads too.</summary>
+    /// <summary>The settings' file at the store's top.</summary>
     public const string SettingsFile = "settings.json";
 
-    /// <summary>The stores open in this process by their folder: the person's windows share theirs, and a test's windows
-    /// the one it names. UI thread only.</summary>
+    /// <summary>The stores open in this process by their folder, each shared by the windows keeping their state there. UI
+    /// thread only.</summary>
     private static readonly Dictionary<string, StateStore> Shared = new(StringComparer.Ordinal);
 
     private readonly Dictionary<string, ProjectState> projects = new(StringComparer.Ordinal);
@@ -98,18 +98,17 @@ public sealed class StateStore
     /// <summary>The tool windows' layout as it was changed last, which a folder with none of its own opens on.</summary>
     public StateDocument<DockLayout> Layout { get; }
 
-    /// <summary>The folders and solutions opened lately, which the Welcome screen lists and a start reopens.</summary>
+    /// <summary>The folders and solutions opened lately, which a start reopens.</summary>
     public StateDocument<RecentSolutionsState> Recent { get; }
 
     /// <summary>The newest release the window has said is out, which it says once.</summary>
     public StateDocument<UpdatesState> Updates { get; }
 
     /// <summary>Find in Files' file mask, the masks used lately and whether directories are searched recursively, which
-    /// every folder shares as Rider's find settings are the application's.</summary>
+    /// every folder shares.</summary>
     public StateDocument<FindSettingsState> Find { get; }
 
-    /// <summary>Rename's options as they were left, which every folder shares as ReSharper's rename settings are the
-    /// application's.</summary>
+    /// <summary>Rename's options as they were left, which every folder shares.</summary>
     public StateDocument<RenameSettings> Refactorings { get; }
 
     /// <summary>Which kinds of file show their preview beside their editor, as the person left them.</summary>
@@ -151,14 +150,12 @@ public sealed class StateStore
 /// <summary>A folder's documents: what its window had open, its layout, breakpoints, bookmarks, run configurations,
 /// Find in Files' scope, the Unit Tests window's grouping and outcomes, the Git log's favourite branches, what its
 /// .http requests may take from the person's computer, the publish profile each project last published with, and its
-/// projects as MSBuild last evaluated and built them at design time. The folders agents are let in on unasked are the
-/// settings' (<see cref="AppSettings.AgentFolders"/>), which every window shares.</summary>
+/// projects as MSBuild last evaluated and built them at design time.</summary>
 public sealed class ProjectState
 {
     internal ProjectState(string root, string folder)
     {
         Folder = FolderOf(root, folder);
-        // Before the store, the workspace was one file named as this folder is.
         Workspace = new(Path.Combine(Folder, "workspace.json"), formerly: Folder + ".json");
         Layout = new(Path.Combine(Folder, "layout.json"));
         Breakpoints = new(Path.Combine(Folder, "breakpoints.json"));
@@ -199,10 +196,10 @@ public sealed class ProjectState
     /// <summary>Find in Files' scope: the one chosen last, and the project, directory and named scope it showed.</summary>
     public StateDocument<FindScopeState> Find { get; }
 
-    /// <summary>How the Unit Tests window groups the folder's tests and which outcomes it shows, as Rider keeps a session's.</summary>
+    /// <summary>How the Unit Tests window groups the folder's tests and which outcomes it shows.</summary>
     public StateDocument<Testing.UnitTestsState> UnitTests { get; }
 
-    /// <summary>The branches marked and unmarked as favourites in the Git log, as Rider keeps them for a project.</summary>
+    /// <summary>The branches marked and unmarked as favourites in the Git log.</summary>
     public StateDocument<ToolWindows.GitBranchesState> GitBranches { get; }
 
     /// <summary>The environment variables and files outside the folder its .http requests may send, each to one host.</summary>
@@ -217,10 +214,8 @@ public sealed class ProjectState
     /// <summary>The folder's projects' design-time builds, which Roslyn's server loads them from.</summary>
     public StateDocument<ProjectBuildCache> ProjectBuilds { get; }
 
-    /// <summary>Reads, off the UI thread and at once, the documents a folder's open restores (its layout, editors,
-    /// breakpoints, bookmarks, configurations, the Unit Tests window's view, branches, scopes, grants and publish
-    /// profiles), so the restore takes them in with no read of its own (#233: unitTests.json alone held an open 75 ms).
-    /// Done at once for those read already.</summary>
+    /// <summary>Reads, off the UI thread and at once, the documents a folder's open restores, so the restore takes them in
+    /// with no read of its own. Done at once for those read already.</summary>
     public Task ReadAsync() => Task.WhenAll(Workspace.ValueAsync(), Layout.ValueAsync(), Breakpoints.ValueAsync(), Bookmarks.ValueAsync(),
         RunConfigurations.ValueAsync(), Find.ValueAsync(), UnitTests.ValueAsync(), GitBranches.ValueAsync(), Endpoints.ValueAsync(),
         Publish.ValueAsync());

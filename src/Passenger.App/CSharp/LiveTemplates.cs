@@ -3,14 +3,14 @@ using Passenger.Languages.CSharp;
 
 namespace Passenger.App.CSharp;
 
-/// <summary>A template's variable as Rider's Edit variables shows it: its name in the text, the macro its value comes
-/// from where the template goes (none leaves it empty), the macro's argument (a constant's value, a date's format), and
+/// <summary>A template's variable as Edit variables shows it: its name in the text, the macro its value comes from
+/// where the template goes (none leaves it empty), the macro's argument (a constant's value, a date's format), and
 /// whether Tab stops at it to be typed over.</summary>
 public sealed record TemplateVariable(string Name, string Macro = "", string Parameter = "", bool Editable = true);
 
-/// <summary>A live template: its shortcut, what it says it is, where it may be typed, its text in Rider's syntax and its
-/// variables. As Rider's, one template may be typed by its shortcut (Generation), offered by Surround With, or both; a
-/// built-in one is known by its <see cref="Key"/>, the shortcut it ships with, however the person changes it.</summary>
+/// <summary>A live template: its shortcut, what it says it is, where it may be typed, its text and its variables. One
+/// template may be typed by its shortcut (Generation), offered by Surround With, or both; a built-in one is known by
+/// its <see cref="Key"/>, the shortcut it ships with, however the person changes it.</summary>
 public sealed record LiveTemplate(string Abbreviation, string Description, TemplateScope Scope, string Text, IReadOnlyList<TemplateVariable> Variables)
 {
     /// <summary>What the settings know it by: a built-in one's shortcut as shipped, the person's own a name of its own.</summary>
@@ -28,11 +28,11 @@ public sealed record LiveTemplate(string Abbreviation, string Description, Templ
     /// <summary>Where Surround With offers it around the code chosen, none when it does not.</summary>
     public SurroundScope Surround { get; init; }
 
-    /// <summary>The digit that chooses it in Surround With's list, as Rider marks its everyday ones.</summary>
+    /// <summary>The digit that chooses it in Surround With's list.</summary>
     public char? Mnemonic { get; init; }
 
-    /// <summary>Rider's Reformat: its lines indented as the code around it, a tab its indentation's unit; otherwise it goes
-    /// in as written.</summary>
+    /// <summary>Reformat: its lines indented as the code around it, a tab its indentation's unit; otherwise it goes in
+    /// as written.</summary>
     public bool Reformat { get; init; } = true;
 
     /// <summary>The variables in its text, in the order Tab visits them: those it lists, then any others as they appear.</summary>
@@ -49,9 +49,9 @@ public sealed record LiveTemplate(string Abbreviation, string Description, Templ
         && Mnemonic == other.Mnemonic && Reformat == other.Reformat;
 }
 
-/// <summary>Rider's Availability: the places a template is offered, each as its Availability configuration lists it.
-/// Generation uses the places a shortcut is typed (statements, type members, types and namespaces), Surround With those
-/// code is chosen in (statements, an expression, whole lines, types, anywhere).</summary>
+/// <summary>Availability: the places a template is offered. Generation uses the places a shortcut is typed (statements,
+/// type members, types and namespaces), Surround With those code is chosen in (statements, an expression, whole lines,
+/// types, anywhere).</summary>
 [Flags]
 public enum TemplateAvailability
 {
@@ -64,7 +64,7 @@ public enum TemplateAvailability
     Everywhere = 32,
 }
 
-/// <summary>Rider's Use in: typed by its shortcut, offered by Surround With, or both.</summary>
+/// <summary>Use in: typed by its shortcut, offered by Surround With, or both.</summary>
 public enum TemplateUse
 {
     Generation,
@@ -75,20 +75,21 @@ public enum TemplateUse
 /// <summary>Where a template goes, for its macros: the type and namespace it goes in, the file and the line (from 1).</summary>
 public readonly record struct TemplateSite(string? TypeName, string? Namespace, string? FilePath, int Line);
 
-/// <summary>One of Rider's macros a variable's value may come from: its name, as the template keeps it, what Choose macro
-/// shows for it, the name of its one argument when it takes one, and its value where the template goes.</summary>
+/// <summary>A macro a variable's value may come from: its name, as the template keeps it, what Choose macro shows for
+/// it, the name of its one argument when it takes one, and its value where the template goes.</summary>
 public sealed record TemplateMacro(string Name, string Description, string? Parameter, Func<TemplateSite, string, string?> Value);
 
-/// <summary>Rider's C# live templates, the ones used every day: the shortcut then Tab, or picked from completion; and its
-/// surround templates, offered by Surround With with their text from Rider's own. The built-in ones are here; what a person
-/// changed or added is kept in the settings as differences from them (<see cref="Settings.TemplateChange"/>), so a
-/// built-in one a later Passenger adds or improves arrives with it.</summary>
+/// <summary>The C# live templates used every day: the shortcut then Tab, or picked from completion; and the surround
+/// templates, offered by Surround With. The built-in ones are here; what a person changed or added is kept in the
+/// settings as differences from them (<see cref="Settings.TemplateChange"/>), so a built-in one a later Passenger adds
+/// or improves arrives with it.</summary>
 public static class LiveTemplates
 {
-    /// <summary>The names Rider gives the template syntax's own variables, which are no variable to fill.</summary>
+    /// <summary>The template syntax's own variables, which are no variable to fill.</summary>
     private static readonly string[] Reserved = ["END", "SELECTION", "SELSTART", "SELEND"];
 
-    /// <summary>Rider's macros that need nothing but the file and where the template goes, by Rider's names.</summary>
+    /// <summary>The macros that need nothing but the file and where the template goes, by the names templates
+    /// keep.</summary>
     public static IReadOnlyList<TemplateMacro> Macros { get; } =
     [
         new("constant", "Constant value", "Constant value", (_, value) => value),
@@ -132,7 +133,7 @@ public static class LiveTemplates
         new("thr", "throw new", TemplateScope.Statement, "throw new $EXCEPTION$($END$);", V(C("EXCEPTION", "InvalidOperationException"))),
         new("prop", "Property", TemplateScope.Member, "public $TYPE$ $NAME$ { get; set; }$END$", V(C("TYPE", "int"), C("NAME", "Name"))),
         new("propg", "Property with a 'get' accessor", TemplateScope.Member, "public $TYPE$ $NAME$ { get; }$END$", V(C("TYPE", "int"), C("NAME", "Name"))),
-        // Rider's: the type's own name, not to be typed over.
+        // The type's own name, not to be typed over.
         new("ctor", "Constructor", TemplateScope.Member, "public $TYPE$($END$)\n{\n}", V(new TemplateVariable("TYPE", "typeName", Editable: false))),
         new("svm", "'void Main' method", TemplateScope.Member, "static void Main(string[] args)\n{\n\t$END$\n}", V()),
         new("sim", "'int Main' method", TemplateScope.Member, "static int Main(string[] args)\n{\n\t$END$\n\treturn 0;\n}", V()),
@@ -142,7 +143,7 @@ public static class LiveTemplates
         new("struct", "Struct", TemplateScope.Type, "public struct $NAME$\n{\n\t$END$\n}", V(C("NAME", "Name"))),
         new("enum", "Enum", TemplateScope.Type, "public enum $NAME$\n{\n\t$END$\n}", V(C("NAME", "Name"))),
 
-        // Rider's surround templates that are not typed here by a shortcut.
+        // The surround templates not typed here by a shortcut.
         new("cast", "cast", TemplateScope.None, "(($TYPE$)$SELECTION$)", V()) { Live = false, Surround = SurroundScope.Expression, Mnemonic = '0' },
         new("()", "parentheses", TemplateScope.None, "($SELECTION$$END$)", V()) { Live = false, Surround = SurroundScope.Everywhere, Mnemonic = '6' },
         new("{}", "braces", TemplateScope.None, "{\n\t$SELECTION$$END$\n}", V()) { Live = false, Surround = SurroundScope.Everywhere, Mnemonic = '7' },
@@ -154,9 +155,9 @@ public static class LiveTemplates
             { Live = false, Surround = SurroundScope.Types },
     }.Select(t => t with { BuiltIn = true })];
 
-    /// <summary>XAML's Surround With: Rider's XML <c>tag</c> (the name to type, the caret then in its start tag) and the
-    /// layout elements a XAML view is wrapped in, each in its start tag once made; those that hold one child only offered
-    /// around one element, Avalonia's Panel only in Avalonia's XAML.</summary>
+    /// <summary>XAML's Surround With: the XML <c>tag</c> (the name to type, the caret then in its start tag) and the
+    /// layout elements a XAML view is wrapped in, each in its start tag once made; those that hold one child only
+    /// offered around one element, Avalonia's Panel only in Avalonia's XAML.</summary>
     public static IReadOnlyList<XamlSurround> Xaml { get; } =
     [
         new(new LiveTemplate("tag", "tag", TemplateScope.None, "<$TAG$$END$>\n\t$SELECTION$\n</$TAG$>", V(C("TAG", "Grid"))) { Live = false, Mnemonic = '1', BuiltIn = true }),
@@ -284,15 +285,15 @@ public sealed class TemplateSet
     /// <summary>The postfix templates turned on.</summary>
     public IReadOnlyList<PostfixTemplate> Postfix { get; }
 
-    /// <summary>Rider's Show postfix templates in completion autopopup: whether the list after a dot offers them, which
-    /// Tab expands either way.</summary>
+    /// <summary>Show postfix templates in completion autopopup: whether the list after a dot offers them, which Tab
+    /// expands either way.</summary>
     public bool PostfixInCompletion { get; }
 
     /// <summary>The templates that may go where a scope allows.</summary>
     public IEnumerable<LiveTemplate> In(TemplateScope scope) => All.Where(t => t.Enabled && t.Live && (t.Scope & scope) != 0);
 
-    /// <summary>What Surround With offers around code standing in these scopes, in Rider's order: those with a digit by
-    /// it (1 to 9, then 0), then the rest by name.</summary>
+    /// <summary>What Surround With offers around code standing in these scopes: those with a digit by it (1 to 9, then
+    /// 0), then the rest by name.</summary>
     public IReadOnlyList<LiveTemplate> Around(SurroundScope scope) =>
         [.. All.Where(t => t.Enabled && (t.Surround & scope) != 0)
             .OrderBy(t => t.Mnemonic is { } digit ? (digit == '0' ? 10 : digit - '0') : 11)

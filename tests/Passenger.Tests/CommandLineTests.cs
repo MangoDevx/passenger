@@ -72,9 +72,8 @@ public sealed class CommandLineTests : IDisposable
 
     private const string Milliseconds = "a whole number of milliseconds above 0";
 
-    /// <summary>A variable the IDE or its debug adapter reads is checked as Passenger starts, before any window or server: a
-    /// malformed evaluation limit had the IDE quietly take 5 s while each adapter it started refused it and exited, so every
-    /// Debug failed with "connection closed".</summary>
+    /// <summary>A variable the IDE or its debug adapter reads is checked as Passenger starts, before any window or
+    /// server, so a malformed one ends it at once rather than failing every Debug later.</summary>
     [Theory]
     [InlineData(global::Passenger.Dap.AdapterEnvironment.EvaluationTimeoutVariable, "3s", Milliseconds)]
     [InlineData(global::Passenger.Dap.AdapterEnvironment.EvaluationTimeoutVariable, "0", Milliseconds)]
@@ -244,7 +243,6 @@ public sealed class CommandLineTests : IDisposable
         File.WriteAllText(zebra, "<Solution />\n");
         string project = Path.Combine(folder, "sub", "Tool.csproj");
         File.WriteAllText(project, "<Project Sdk=\"Microsoft.NET.Sdk\" />\n");
-        // The workspace is the window's to say; no C# language server is started on either.
         MainWindow window = new() { Width = 1200, Height = 800, Autosaves = false, StartsLanguageServer = false };
         window.Show();
 

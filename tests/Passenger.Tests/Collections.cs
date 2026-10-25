@@ -15,11 +15,10 @@ public sealed class Alone
     public const string Name = "Alone";
 }
 
-/// <summary>What runs beside the window tests, one class after another, as the debug adapter's protocol tests do: a class
-/// that opens no window and waits on nothing of the headless session's, changes nothing the process shares (its PATH, its
-/// environment, a setting), and holds nothing to a time, so a machine busy with the window tests only lengthens it; its
-/// time then hides beside theirs. Not a class that changes the process's PATH, nor one that holds
-/// a call to a time (McpTests' second status within ten seconds).</summary>
+/// <summary>What runs beside the window tests, one class after another: a class that opens no window and waits on
+/// nothing of the headless session's, changes nothing the process shares (its PATH, its environment, a setting), and
+/// holds nothing to a time, a call's included, so a machine busy with the window tests only lengthens it; its time then
+/// hides beside theirs.</summary>
 [CollectionDefinition(Name)]
 public sealed class Beside
 {

@@ -1,10 +1,7 @@
 <Project>
-  <!-- Every project reference by its full path, made from the project's own folder as MSBuild names it. MSBuild's tasks
-       (NuGet's restore, the solution's configurations, the MSBuild task) complete a relative path from the process's
-       folder, which the system gives with symbolic links resolved, while a solution opened through a link keeps the
-       link's path, as the .NET 11 SDK does for one in macOS's /tmp (/private/tmp): each referenced project then had two
-       paths, so a parallel build restored and built it twice at once into the same artifacts, and the tests' deps.json
-       named none of the projects they reference. -->
+  <!-- Every project reference by its full path, made from the project's own folder as MSBuild names it: MSBuild's tasks
+       complete a relative one from the process's folder, symbolic links resolved, so a solution opened through a link
+       would give each referenced project two paths, built twice at once into the same artifacts. -->
   <ItemGroup>
     <_ProjectReferenceInFull Include="@(ProjectReference->'%(FullPath)')" />
     <ProjectReference Remove="@(ProjectReference)" />

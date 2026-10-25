@@ -3,10 +3,9 @@ using Passenger.Editor;
 namespace Passenger.App.Testing;
 
 /// <summary>A folder's test runners as one: each built test assembly is found and run by the runner its build asks for,
-/// as Visual Studio's Test Explorer takes a project with the TestingPlatformServer capability through the platform's own
-/// protocol: a Testing Platform application (xUnit v3, MSTest's runner, TUnit) through <see cref="TestingPlatformRunner"/>,
-/// every other through VSTest (<see cref="VsTestRunner"/>, started the first time one needs it). So a solution of both
-/// shows them in one tree, and Run All runs both.</summary>
+/// a Testing Platform application (xUnit v3, MSTest's runner, TUnit) through <see cref="TestingPlatformRunner"/>, every
+/// other through VSTest (<see cref="VsTestRunner"/>, started the first time one needs it). So a solution of both shows
+/// them in one tree, and Run All runs both.</summary>
 public sealed class TestRunners(string folder, Func<string, CancellationToken, Task<ITestRunner>>? startVsTest = null) : ITestRunner
 {
     private readonly TestingPlatformRunner platform = new();

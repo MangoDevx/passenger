@@ -2,8 +2,7 @@ using System.Runtime.InteropServices;
 
 namespace Passenger.Core;
 
-/// <summary>Where the .NET command line is, for the language server, builds, runs and packages: found as a terminal finds
-/// it, with the login shell's PATH (<see cref="ShellEnvironment"/>).</summary>
+/// <summary>Where the .NET command line is, found with the login shell's PATH (<see cref="ShellEnvironment"/>).</summary>
 public static class Dotnet
 {
     /// <summary>The <c>dotnet</c> that runs this app (framework-dependent, its runtime three folders under the host), else

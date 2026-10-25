@@ -5,9 +5,9 @@ using Avalonia.Media;
 namespace Passenger.App.Mcp;
 
 /// <summary>The question a person's window asks when an agent's call reaches it while Enable MCP Server is off: "NAME
-/// wants to work in this window", Allow (the default) or Don't allow, as a question's answers stand, and Always for this
-/// folder at the footer's left, which puts the folder among Settings' folders agents join unasked (never a no). Escape and
-/// closing answer no.</summary>
+/// wants to work in this window", Allow (the default) or Don't allow, and Always for this folder at the footer's left,
+/// which puts the folder among Settings' folders agents join unasked (never a no). Escape and closing answer
+/// no.</summary>
 public sealed class AgentAdmissionDialog : Window
 {
     public const string Allow = "Allow";

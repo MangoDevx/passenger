@@ -58,13 +58,11 @@ public sealed class LongFileAssistTests : IClassFixture<LongFileAssistTests.Proj
         window.Close();
     }
 
-    /// <summary>Squiggles in a file of 20,000 lines stay on their words as lines go in above them, and so do the diagnostics
-    /// a fix asked for at the caret is given, which are on the server's lines. A key finds those lines from what it changed,
-    /// reading a few characters rather than the whole file (twice, once with diagnostics to move and once for the change
-    /// sent to the server). The server's colours, hundreds of thousands of tokens, are decoded off the UI thread: no frame
-    /// while they land allocates a quarter of what one decoded copy of them takes, nor a key half of it (a key's drawing
-    /// costs the same in a short file); through the keys typed before they land, and after, a local keeps its colour on
-    /// its word, on screen and off it. One window, the lines put in first: the keys after them leave a statement unended.</summary>
+    /// <summary>Squiggles in a file of 20,000 lines stay on their words as lines go in above them, and so do the
+    /// diagnostics a fix asked for at the caret is given, a key reading a few characters rather than the whole file.
+    /// The server's colours, hundreds of thousands of tokens, are decoded off the UI thread: no frame while they land
+    /// allocates a quarter of what one decoded copy takes, nor a key half of it; through the keys typed before they
+    /// land, and after, a local keeps its colour on its word, on screen and off it.</summary>
     [AvaloniaFact]
     public void Squiggles_and_colours_in_a_file_of_twenty_thousand_lines_stay_on_their_words_and_a_key_reads_and_decodes_only_what_it_changed()
     {
@@ -117,8 +115,7 @@ public sealed class LongFileAssistTests : IClassFixture<LongFileAssistTests.Proj
         Ui.Settle();
         OnTheirWords("Once the server's diagnostics came again");
 
-        // The server's colours, on the text with those lines in it. A use of a local on screen, below where the keys go,
-        // and one at the end of the file.
+        // The server's colours: a local's use on screen below the keys, and one at the file's end.
         TokenKind? KindAt(int offset) => document.Highlighter?.GetSpans(document.Text.Snapshot, offset, 1)
             .Where(s => s.Start == offset).Select(s => (TokenKind?)s.Kind).FirstOrDefault();
         int near = document.Text.Snapshot.ToString().IndexOf("value0 * 3", StringComparison.Ordinal);
@@ -166,7 +163,6 @@ public sealed class LongFileAssistTests : IClassFixture<LongFileAssistTests.Proj
             $"A frame while the server's colours landed allocated {landing / 1024} KB on the UI thread, a quarter or more of the {decoded / 1024} KB the file's tokens decode to: they were decoded there");
         Assert.True(keys < decoded / 2, $"A key allocated {keys / 1024} KB on the UI thread, half or more of the {decoded / 1024} KB the file's tokens decode to");
 
-        // Off screen, the whole file's colours are carried through keys until they come again.
         for (int i = 0; i < Digits.Length; i++)
         {
             window.KeyTextInput(Digits[i].ToString());
@@ -179,11 +175,10 @@ public sealed class LongFileAssistTests : IClassFixture<LongFileAssistTests.Proj
         window.Close();
     }
 
-    /// <summary>Keys typed in one place while the server answers no colours (as while its projects load) keep the colours it
-    /// gave last on their words, below the keys and at the file's end, carried through one change for the run of them: a
-    /// change kept for each key, every line drawn carried through all of them, made each key cost more than the one before
-    /// (7 ms a key in #233's measure while a solution loaded). Each key waits for its colours' refusal, not for the file's
-    /// diagnostics (seconds a key in 20,000 lines), which a key's colours never wait on.</summary>
+    /// <summary>Keys typed in one place while the server answers no colours (as while its projects load) keep the
+    /// colours it gave last on their words, below the keys and at the file's end, each key costing no more than the one
+    /// before. Each key waits for its colours' refusal, not for the file's diagnostics (seconds a key in 20,000 lines),
+    /// which a key's colours never wait on.</summary>
     [AvaloniaFact]
     public void Keys_typed_while_the_server_gives_no_colours_carry_its_last_through_one_change_for_the_run()
     {
@@ -224,11 +219,10 @@ public sealed class LongFileAssistTests : IClassFixture<LongFileAssistTests.Proj
         window.Close();
     }
 
-    /// <summary>Until the parse catches up with a key (it falls behind while a solution loads), the lines on screen keep the
-    /// colours read for them from the tree before the key, carried through it: a key classifies again the line it changed
-    /// and no other, where every line drawn was classified again at every key; and they are the colours the tree gives once
-    /// the parse has landed. Counted in the characters classified on the UI thread, not a time; the key is an edit made as
-    /// typing makes it, since the window's input runs its loop as a key ends, where a quick parse lands.</summary>
+    /// <summary>Until the parse catches up with a key (it falls behind while a solution loads), the lines on screen
+    /// keep the colours read for them from the tree before the key, carried through it: a key classifies again the line
+    /// it changed and no other, and they are the colours the tree gives once the parse has landed. Counted in the
+    /// characters classified on the UI thread, not a time.</summary>
     [AvaloniaFact]
     public void Until_the_parse_catches_up_a_key_classifies_again_only_the_line_it_changed()
     {
@@ -245,8 +239,7 @@ public sealed class LongFileAssistTests : IClassFixture<LongFileAssistTests.Proj
         int end = text.GetLine(80).EndIncludingBreak;
         _ = syntax.GetSpans(text, start, end - start);
 
-        // The key made as typing makes it, through the editor but not its input, which runs the window's loop as it ends,
-        // where a quick parse lands: the parse lands only once the loop runs again.
+        // Through the editor but not its input, whose end runs the window's loop, where a quick parse lands.
         long before = syntax.CharactersClassified;
         int caret = editor.Selections.Primary.Caret;
         editor.ApplyEdits([new TextEdit(caret, 0, "1")], SelectionSet.Single(caret + 1));
@@ -265,10 +258,10 @@ public sealed class LongFileAssistTests : IClassFixture<LongFileAssistTests.Proj
         window.Close();
     }
 
-    /// <summary>A file of 20,000 lines is a million numbers of tokens, which the server takes a second to make and the IDE
-    /// megabytes to read: while typing goes on with pauses, only the lines on screen are asked for again (Rider's and VS
-    /// Code's way), and what only the server colours on screen is coloured from them; once typing stops, the whole file is
-    /// asked for once. Counted in the protocol's own trace.</summary>
+    /// <summary>A file of 20,000 lines is a million numbers of tokens, which the server takes a second to make and the
+    /// IDE megabytes to read: while typing goes on with pauses, only the lines on screen are asked for again, and what
+    /// only the server colours on screen is coloured from them; once typing stops, the whole file is asked for once.
+    /// Counted in the protocol's own trace.</summary>
     [AvaloniaFact]
     public void Typing_with_pauses_in_a_file_of_twenty_thousand_lines_asks_for_the_screens_colours_and_the_whole_files_once_it_stops()
     {
@@ -287,7 +280,7 @@ public sealed class LongFileAssistTests : IClassFixture<LongFileAssistTests.Proj
             int far = source.LastIndexOf("value98 * 3", StringComparison.Ordinal);
             Ui.WaitFor(() => KindAt(far) == TokenKind.Local, "the server's colours on the file's last local");
             Ui.Settle();
-            // Every colour request and refresh, as the wire had them: what a failure says, since CI keeps no protocol trace.
+            // Every colour request and refresh as the wire had them, for a failure to say.
             System.Diagnostics.Stopwatch clock = System.Diagnostics.Stopwatch.StartNew();
             System.Collections.Concurrent.ConcurrentQueue<string> wire = new();
             Passenger.Lsp.LanguageServer.Trace = (server, message) =>
@@ -327,7 +320,6 @@ public sealed class LongFileAssistTests : IClassFixture<LongFileAssistTests.Proj
             Assert.True(screens > 0, "The screen's colours were never asked for as the statements were typed");
             Assert.True(whole == 0, $"The whole file's colours were asked for {whole} times while typing went on with pauses:\n{string.Join('\n', wire)}");
 
-            // Once typing stops, the whole file's, once.
             Ui.PumpUntil(() => Volatile.Read(ref whole) > 0, "the whole file's colours once typing stopped");
             Ui.Settle();
             Ui.Hold(TimeSpan.FromSeconds(3), "past the idle a needless second ask would wait out after the screen's colours, which no settle waits for");
@@ -403,10 +395,9 @@ public sealed class LongFileAssistTests : IClassFixture<LongFileAssistTests.Proj
         return largest;
     }
 
-    /// <summary>A key typed above four thousand calls, a parameter's name hint before each argument, costs the UI thread
-    /// about what it does above sixty (a screen of them, the rest naming their parameters), soft-wrapped or not: the hints
-    /// past it are carried in runs, those it reaches moved and the rest shifted whole, never copied, sorted again or, with
-    /// soft wrap on, their lines wrapped again (the key's line is). Each hint still stands before its argument.</summary>
+    /// <summary>A key typed above four thousand calls, a parameter's name hint before each argument, costs the UI
+    /// thread about what it does above sixty (a screen of them, the rest naming their parameters), soft-wrapped or not,
+    /// and each hint still stands before its argument.</summary>
     [AvaloniaFact]
     public void A_key_above_thousands_of_hinted_calls_costs_what_it_does_above_a_few_and_wraps_only_its_line()
     {

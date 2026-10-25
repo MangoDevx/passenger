@@ -10,15 +10,15 @@ public sealed record MenuEntry(string? Action, string? Title = null, IReadOnlyLi
     /// <summary>A submenu of what the window has as it opens, named by its title.</summary>
     public bool IsListed => Action is null && Items is null && Title is not null;
 
-    /// <summary>A list whose items stand in its menu itself rather than in a submenu, as Rider's Open Solution Windows
-    /// group at the Window menu's end.</summary>
+    /// <summary>A list whose items stand in its menu itself rather than in a submenu (the open solution windows at the
+    /// Window menu's end).</summary>
     public bool Inline { get; init; }
 }
 
-/// <summary>Rider's main menu: File, Edit, View, Navigate, Code, Refactor, Build, Run, Tests, Tools, Git, Window and Help,
-/// each made of the actions that name a place in it (<see cref="IdeAction.Menus"/>), in their order, a separator between
-/// each run of them. On macOS it is the menu bar (with Settings and Quit in the application menu, as there); elsewhere a
-/// menu behind the toolbar's button.</summary>
+/// <summary>The main menu: File, Edit, View, Navigate, Code, Refactor, Build, Run, Tests, Tools, Git, Window and Help,
+/// each made of the actions that name a place in it (<see cref="IdeAction.Menus"/>), in their order, a separator
+/// between each run of them. On macOS it is the menu bar (with Settings and Quit in the application menu, as there);
+/// elsewhere a menu behind the toolbar's button.</summary>
 public static class MainMenu
 {
     public const string ToolWindows = "Tool Windows";
@@ -27,10 +27,10 @@ public static class MainMenu
     /// <summary>The Run menu's Avalonia renderer debug overlays, each a toggle.</summary>
     public const string AvaloniaOverlays = "Avalonia Debug Overlays";
 
-    /// <summary>Rider's name for the Window menu's list of the project windows open (its OpenProjectWindows group).</summary>
+    /// <summary>The Window menu's list of the solution windows open.</summary>
     public const string OpenSolutionWindows = "Open Solution Windows";
 
-    /// <summary>The menus, in Rider's order.</summary>
+    /// <summary>The menus, in their order.</summary>
     public static IReadOnlyList<string> Titles { get; } = ["File", "Edit", "View", "Navigate", "Code", "Refactor", "Build", "Run", "Tests", "Tools", "Git", "Window", "Help"];
 
     /// <summary>The submenus the window lists as each opens.</summary>

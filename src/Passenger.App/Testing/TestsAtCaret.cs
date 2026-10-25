@@ -55,7 +55,7 @@ public sealed record FileTests(IReadOnlyList<(string Type, int Line)> Types, IRe
     }
 }
 
-/// <summary>What Rider's Run Tests runs from the editor: the test method the caret is in, else every test of the
+/// <summary>What Run Tests runs from the editor: the test method the caret is in, else every test of the
 /// class it is in, found from the file's own syntax so it needs no build to know where it is; and the tests a file
 /// declares, for the gutter's marks and the Unit Tests window's tree. The syntax is an open file's shared parse, or a
 /// closed file's own; lines are the editor's.</summary>

@@ -14,11 +14,11 @@ using Passenger.Text;
 
 namespace Passenger.Tests;
 
-/// <summary>Rider's Local History over real files: every save and every change made elsewhere is a version, listed newest
-/// first in the Local History window with its time and name ("External change"), the person's labels among them; a
-/// version shows beside the file as it is now, Revert puts it back as one undoable step and a diff's arrow one change of
-/// it; a folder's history lists its files' versions and brings back one deleted; a file's history follows it through a
-/// rename in the Solution view; and the store keeps Rider's 5 days of activity and no more content than its limit.</summary>
+/// <summary>Local History over real files: every save and every change made elsewhere is a version, listed newest first
+/// in the Local History window with its time and name ("External change"), the person's labels among them; a version
+/// shows beside the file as it is now, Revert puts it back as one undoable step and a diff's arrow one change of it; a
+/// folder's history lists its files' versions and brings back one deleted; a file's history follows it through a rename
+/// in the Solution view; and the store keeps 5 days of activity and no more content than its limit.</summary>
 public sealed class LocalHistoryTests : IDisposable
 {
     private const string Original = "class Shop\n{\n    int count;\n\n    void Add()\n    {\n        count++;\n    }\n\n    int Total => count;\n}\n";
@@ -48,7 +48,6 @@ public sealed class LocalHistoryTests : IDisposable
         MainWindow window = Open("Shop.cs");
         SaveThree(window);
 
-        // Another program writes the file; the open file takes it, and the history keeps it as Rider names it.
         string elsewhere = Saved3.Replace("class Shop", "sealed class Shop", StringComparison.Ordinal);
         File.WriteAllText(shop, elsewhere);
         Ui.WaitFor(() => Text(window) == elsewhere, "the open file to take the change made elsewhere");
@@ -60,7 +59,6 @@ public sealed class LocalHistoryTests : IDisposable
         Assert.Equal(["External change", "Change", "Change", "Change"], history.Rows.Select(r => r.Title));
         Assert.True(history.Rows.Zip(history.Rows.Skip(1)).All(p => p.First.Time >= p.Second.Time), "The versions are not listed newest first");
 
-        // Opened, the history shows its newest row: the file before the change made elsewhere, beside the file now.
         Assert.Same(history.Rows[0], history.Selected);
         Ui.Landed(() => history.Diff?.Left.Document.Snapshot.ToString() == Saved3, "the file as saved last, before the external change");
         Assert.Equal([new DiffHunk(0, 1, 0, 1)], history.Diff!.Hunks);
@@ -74,7 +72,6 @@ public sealed class LocalHistoryTests : IDisposable
         MainWindow window = Open("Shop.cs");
         SaveThree(window);
 
-        // From the editor's menu, Local History, as Rider's has it.
         Ui.ChooseFromEditorMenu(window, "Local History", "Show History…");
         HistoryTab history = window.LocalHistoryWindow.Shown!;
         Ui.Landed(() => history.Rows.Count == 3, "the three saves");
@@ -83,7 +80,6 @@ public sealed class LocalHistoryTests : IDisposable
         Assert.Same(window.EditorArea.Active!.Text, history.Diff!.Right.Document);
         Assert.Equal([new DiffHunk(2, 1, 2, 1), new DiffHunk(6, 1, 6, 1), new DiffHunk(9, 1, 9, 1)], history.Diff.Hunks);
 
-        // The version between shows only the changes made after it.
         history.Select(history.Rows[1]);
         Ui.Landed(() => history.Diff?.Left.Document.Snapshot.ToString() == Saved1, "the version after the first save");
         Assert.Equal([new DiffHunk(6, 1, 6, 1), new DiffHunk(9, 1, 9, 1)], history.Diff!.Hunks);
@@ -107,7 +103,7 @@ public sealed class LocalHistoryTests : IDisposable
         history.Select(history.Rows[1]);
         Ui.Landed(() => history.Diff?.Left.Document.Snapshot.ToString() == lines, "the file before its first save");
 
-        // The whole file fits the pane, so it opens at its top, its first line whole under the header, as Rider's does.
+        // The whole file fits the pane, so it opens at its top, its first line whole under the header.
         Passenger.Editor.CodeEditor right = history.Diff!.Right;
         Assert.True(right.Document.Snapshot.LineCount * right.LineHeight <= right.Bounds.Height, "The test's file is taller than the diff's pane");
         Assert.True(right.ScrollOffset.Y == 0 && history.Diff.Left.ScrollOffset.Y == 0,
@@ -124,7 +120,6 @@ public sealed class LocalHistoryTests : IDisposable
         HistoryTab history = ShowFromFileMenu(window, "Show History…");
         Ui.Landed(() => history.Rows.Count == 3, "the three saves");
 
-        // The version after the first save comes back, written to the file, under Rider's name for a revert.
         history.Select(history.Rows[1]);
         Ui.Settle();
         Task reverting = history.RevertAsync();
@@ -134,12 +129,10 @@ public sealed class LocalHistoryTests : IDisposable
         Assert.False(window.EditorArea.Active!.IsModified, "The revert was not written to the file");
         Ui.Landed(() => history.Rows.Count == 4 && history.Rows[0].Title.StartsWith("Revert to ", StringComparison.Ordinal), "the revert kept as a version of its own");
 
-        // One undo takes the whole revert back.
         window.EditorArea.CodeEditor.Focus();
         Ui.Run(window, EditorActions.Undo);
         Assert.Equal(Saved3, Text(window));
 
-        // Against the first version, the arrow on one change puts back that change alone.
         history.Select(history.Rows[^1]);
         Ui.Landed(() => history.Diff?.Left.Document.Snapshot.ToString() == Original && history.Diff.Hunks.Count == 3, "the first version's three changes");
         history.Diff!.Revert(history.Diff.Hunks[1]);
@@ -162,7 +155,6 @@ public sealed class LocalHistoryTests : IDisposable
         FilePropertiesTests.Answer(window, "Cafe.cs: Reload or Convert to ISO-8859-1", "Convert");
         Assert.Equal(System.Text.Encoding.Latin1.GetBytes(Cafe), File.ReadAllBytes(path));
 
-        // The version before the conversion was UTF-8: it comes back as the text it held, written in UTF-8 again.
         HistoryTab history = ShowFromFileMenu(window, "Show History…");
         Ui.Landed(() => history.Rows.Count == 2, "the save and the conversion");
         history.Select(history.Rows[0]);
@@ -174,7 +166,6 @@ public sealed class LocalHistoryTests : IDisposable
         Assert.Equal("UTF-8", FilePropertiesTests.Shown(window, "EncodingText"));
         Assert.False(window.EditorArea.Active!.IsModified, $"The revert was not written: {window.Status}");
 
-        // One undo puts the converted file back, encoding and all.
         window.EditorArea.CodeEditor.Focus();
         Ui.Run(window, EditorActions.Undo);
         Assert.Equal(Cafe, Text(window));
@@ -183,8 +174,8 @@ public sealed class LocalHistoryTests : IDisposable
         window.Close();
     }
 
-    /// <summary>A binary file's tab holds its bytes drawn as signs, none of the file's text: a revert to a version from when
-    /// the file was text writes that version's bytes, and the tab shows them, where one taken as the tab's text did nothing.</summary>
+    /// <summary>A binary file's tab holds its bytes drawn as signs, none of the file's text: a revert to a version from
+    /// when the file was text writes that version's bytes, and the tab shows them.</summary>
     [AvaloniaFact]
     public void Revert_of_a_file_open_as_its_bytes_to_a_version_from_when_it_was_text_writes_that_version()
     {
@@ -273,19 +264,16 @@ public sealed class LocalHistoryTests : IDisposable
         const string savedB = "sealed class B\n{\n}\n";
         Assert.Equal(savedB, File.ReadAllText(b));
 
-        // Deleted from the Explorer, as a person deletes it.
         window.Confirm = (_, _, _) => Task.FromResult(true);
         Ui.ChooseFromRowMenu(window, Show(window, b), "Edit", "Delete…");
         Ui.WaitFor(() => !File.Exists(b), "B.cs deleted");
 
-        // The folder's history from its row: its files' changes only, the newest first.
         Ui.ChooseFromRowMenu(window, Show(window, Path.Combine(folder, "src")), "Local History", "Show History…");
         HistoryTab history = window.LocalHistoryWindow.Shown!;
         Assert.Equal("src", window.LocalHistoryWindow.Titles.Single());
         Ui.Landed(() => history.Rows.Count == 3, "A.cs's save, B.cs's save and B.cs's deletion");
         Assert.Equal(["Delete B.cs", "Modify B.cs", "Modify A.cs"], history.Rows.Select(r => r.Title));
 
-        // Before the deletion, B.cs was there as saved: its row shows it, and Revert brings it back.
         Ui.Landed(() => history.Files.Count == 1, "the file the deletion took");
         Assert.Equal((PathNames.Canonical(b), ChangeKind.Deleted), (history.Files[0].Path, history.Files[0].Kind));
         Ui.Landed(() => history.Diff?.Left.Document.Snapshot.ToString() == savedB, "B.cs as it was deleted");
@@ -293,7 +281,6 @@ public sealed class LocalHistoryTests : IDisposable
         Ui.WaitFor(() => reverting.IsCompleted, "the revert");
         Assert.Equal(savedB, File.ReadAllText(b));
 
-        // Before A.cs's save, both files were as they were first seen.
         history.Select(history.Rows.First(r => r.Title == "Modify A.cs"));
         Ui.Landed(() => history.Files.Count == 2, "A.cs and B.cs changed since");
         Assert.Equal([(PathNames.Canonical(a), ChangeKind.Modified), (PathNames.Canonical(b), ChangeKind.Modified)], history.Files.Select(f => (f.Path, f.Kind)));
@@ -350,20 +337,17 @@ public sealed class LocalHistoryTests : IDisposable
         Passenger.App.CSharp.WorkspaceEdits.ApplyAsCommand(window.EditorArea, edit, "Move to File");
         Assert.Equal(Made, File.ReadAllText(notes));
 
-        // Undo from the Solution view, where the edit is the last change: the file holds what it held.
         window.Confirm = (_, _, _) => Task.FromResult(true);
         Ui.ClickRow(window, Show(window, notes));
         Ui.Run(window, EditorActions.Undo);
         Assert.True(File.ReadAllText(notes) == Original, $"Undo left the file made anew as '{File.ReadAllText(notes)}', not as it was: {window.Status}");
 
-        // Its first version is what it held before the edit made it anew.
         Ui.ChooseFromRowMenu(window, Show(window, notes), "Local History", "Show History…");
         HistoryTab history = window.LocalHistoryWindow.Shown!;
         Ui.Landed(() => history.Rows.Count > 1, "the file's versions");
         history.Select(history.Rows[^1]);
         Ui.Landed(() => history.Diff?.Left.Document.Snapshot.ToString() == Original, "the file as it was before the edit made it anew");
 
-        // Over a read-only file the edit is refused before anything is written, as a save is.
         new FileInfo(notes).IsReadOnly = true;
         try
         {
@@ -382,8 +366,7 @@ public sealed class LocalHistoryTests : IDisposable
     [AvaloniaFact]
     public void The_store_keeps_days_of_activity_as_Riders_does_and_no_more_content_than_its_limit()
     {
-        // Twelve saves six hours apart are three days of work: a store keeping one day keeps the last four of them, past
-        // the pruning it does as each day turns and as it opens again.
+        // Twelve saves six hours apart are three days: a store keeping one day keeps the last four.
         string kept = TestFolders.Create("history-state-");
         Write("Shop.cs", Original);
         Set(new DateTimeOffset(2026, 3, 2, 9, 0, 0, TimeSpan.Zero));
@@ -407,7 +390,6 @@ public sealed class LocalHistoryTests : IDisposable
         Assert.Equal(4, File.ReadAllLines(Path.Combine(again.LocalHistory!.Root, "changes.log")).Length);
         again.Close();
 
-        // Versions of too much content: the oldest go until what is left fits, the newest always kept.
         string small = TestFolders.Create("history-state-");
         HistoryKeeping bytes = new(Days: 5, Bytes: 16_000) { Clock = Now };
         MainWindow third = Open("Shop.cs", small, bytes);

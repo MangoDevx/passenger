@@ -15,7 +15,7 @@ public sealed class MergedLog : DockPanel
     private readonly ShrinkingRow sources = new() { VerticalAlignment = VerticalAlignment.Center, ClipToBounds = true };
     private readonly HashSet<string> hidden = new(StringComparer.Ordinal);
 
-    /// <param name="findName">The Find button's name, as a test finds it.</param>
+    /// <param name="findName">The Find button's name.</param>
     /// <param name="own">What stands after Find at the bar's right.</param>
     public MergedLog(string findName, params Control[] own)
     {
@@ -43,7 +43,7 @@ public sealed class MergedLog : DockPanel
     private readonly Editors.FindBar find;
     private bool findAttached;
 
-    /// <summary>Find over the log, as the editor's, over the console's editor once the log is shown or Find asked for.</summary>
+    /// <summary>Find over the log, over the console's editor once the log is shown or Find asked for.</summary>
     public Editors.FindBar Find
     {
         get

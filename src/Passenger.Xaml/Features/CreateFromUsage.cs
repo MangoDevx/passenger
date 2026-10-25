@@ -9,7 +9,7 @@ using Passenger.Xaml.Syntax;
 
 namespace Passenger.Xaml.Features;
 
-/// <summary>Rider's create from usage in XAML: a binding path its data context's type lacks creates the property there (a
+/// <summary>Create from usage in XAML: a binding path its data context's type lacks creates the property there (a
 /// command for a <c>Command</c>), in the view model's file as its C# is written; and a converter's
 /// <c>{StaticResource}</c> nothing defines creates the converter's class, in a file of its own, and its resource. With
 /// the MVVM Toolkit in the project (its <c>[ObservableProperty]</c> attribute known), a property is a field it generates

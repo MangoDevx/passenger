@@ -51,7 +51,6 @@ public sealed class StateTests : IDisposable
         Assert.True(window.StatusPlace?.Name == $"show settings.json.bad in {Passenger.App.FileManager.Name}",
             $"The status bar's word on the settings set aside goes to '{window.StatusPlace?.Name}', not to the file they are kept in");
 
-        // A change after it goes to a new file, whole, and the one set aside stays as it was.
         window.ApplySettings(window.Settings with { EditorFontSize = 15 });
         window.Close();
         JsonObject written = Read(file);
@@ -77,7 +76,6 @@ public sealed class StateTests : IDisposable
         Ui.Settle();
         Assert.Equal(15, window.Settings.EditorFontSize);
 
-        // The next change made here cannot merge over it: it is set aside, and the status bar says where.
         window.ApplySettings(window.Settings with { EditorFontSize = 16 });
         Ui.WaitFor(() => File.Exists(file + ".bad"), "the file that did not read to be set aside");
         Assert.Equal(broken, File.ReadAllText(file + ".bad"));
@@ -106,7 +104,6 @@ public sealed class StateTests : IDisposable
         Assert.Equal(ThemeChoice.System, window.Settings.Theme);
         Assert.Equal(AppSettings.MaxFontSize, window.EditorArea.CodeEditor.FontSize);
         Assert.Equal(AppSettings.MinFontSize, window.TerminalPanel.View.FontSize);
-        // Settings opens on them, where a size past what its box holds threw.
         SettingsDialog dialog = window.ShowSettings();
         Ui.Settle();
         dialog.Change(s => s with { EditorLineSpacing = 1.5 });
@@ -114,7 +111,6 @@ public sealed class StateTests : IDisposable
         Ui.Settle();
         window.Close();
 
-        // Only the change is written: the later build's version, theme and option, and the hand edit, are as they were.
         JsonObject written = Read(file);
         Assert.Equal(7, (int)written["version"]!);
         Assert.Equal("Sepia", (string)written["theme"]!);
@@ -177,7 +173,6 @@ public sealed class StateTests : IDisposable
         window.OpenFile(Path.Combine(folder, "Two.cs"));
         window.Close();
 
-        // Read alone, the settings are not written again; the workspace changed goes to the folder's own place.
         Assert.Equal(kept, File.ReadAllText(Path.Combine(settings, "settings.json")));
         JsonObject workspace = Read(Path.Combine(settings, "workspaces", $"{Path.GetFileName(canonical)}-{hash}", "workspace.json"));
         Assert.Equal(1, (int)workspace["version"]!);
@@ -210,13 +205,11 @@ public sealed class StateTests : IDisposable
         Assert.Equal(("One.cs", 4, false, false, "x > 0", "x is {x}"),
             (Path.GetFileName(kept.Path), kept.Line, kept.Enabled, kept.Suspend, kept.Condition, kept.LogMessage));
         Assert.Equal([("One.cs", 2), ("Two.cs", 1)], second.Bookmarks.All.Select(b => (b.Name, b.Line)));
-        // The file shows them in its gutter.
         second.OpenFile(Path.Combine(folder, "One.cs"));
         Ui.Settle();
         Assert.Equal([2], second.EditorArea.Active!.Bookmarks);
         Assert.Contains(new LineMark(4, LineMarkKind.BreakpointDisabled, Conditional: true, Tracepoint: true), second.EditorArea.CodeEditor.LineMarks);
 
-        // Another folder has its own: none of these, and they come back with this one.
         string other = TestFolders.Create("other-");
         // A folder's documents are read off the window's thread as it opens, its restore once they land.
         second.OpenFolder(other);
@@ -231,8 +224,8 @@ public sealed class StateTests : IDisposable
     }
 
     /// <summary>A folder's kept documents are read off the window's thread as it opens, so their size never holds the
-    /// window (#233: an open stalled it up to 681 ms, unitTests.json's first read 75 ms of it): the open's own work on the
-    /// window's thread allocates no more with 4,000 breakpoints kept than with 40, and every one comes back once read.</summary>
+    /// window: the open's own work on the window's thread allocates no more with 4,000 breakpoints kept than with 40, and
+    /// every one comes back once read.</summary>
     [AvaloniaFact]
     public void A_folders_kept_documents_are_read_off_the_windows_thread_as_it_opens_and_all_come_back()
     {
@@ -267,8 +260,8 @@ public sealed class StateTests : IDisposable
             $"Opening a folder with 4,000 breakpoints kept allocated {many / 1024} KB on the window's thread, {few / 1024} KB with 40: its documents are read there");
     }
 
-    /// <summary>#444: a file open with no folder kept the next folder's tabs from coming back, and leaving that folder then
-    /// wrote the file over the tabs it had kept.</summary>
+    /// <summary>A file open with no folder never keeps the next folder's tabs from coming back, and leaving that folder keeps
+    /// its own tabs, not the file open before it.</summary>
     [AvaloniaFact]
     public void A_folder_opens_with_its_own_tabs_whatever_was_open_before_it_which_stays_beside_them()
     {
@@ -281,14 +274,12 @@ public sealed class StateTests : IDisposable
         window.Close();
         Ui.Settle();
 
-        // The next start opens no folder, and About's link opens the licence the app carries.
         window = Keeping();
         AboutDialog about = DialogButtonsTests.Check(window.ShowAbout());
         Ui.ClickButton(about, AboutDialog.LicenseLink);
         string licence = PathNames.Canonical(Path.Combine(AppContext.BaseDirectory, "LICENSE.txt"));
         Assert.Equal(licence, window.EditorArea.Active?.Path);
 
-        // The folder opens with its own tabs back, the licence after them, still in front as it was.
         window.OpenFolder(folder);
         Ui.Settle();
         string[] tabs = Tabs(window);
@@ -296,7 +287,6 @@ public sealed class StateTests : IDisposable
             $"The folder opened on [{string.Join(", ", tabs)}], not its own Shop.cs and Bank.cs with the licence open before it after them");
         Assert.Equal(licence, window.EditorArea.Active?.Path);
 
-        // Left and opened again, it has the same tabs: none of its own went to the file open before it.
         Assert.Null(window.CloseSolution());
         Ui.Settle();
         Assert.Empty(window.EditorArea.Documents);
@@ -323,7 +313,6 @@ public sealed class StateTests : IDisposable
         Assert.Equal(ToolAnchor.RightBottom, first.DockHost["tests"]!.Anchor);
         first.Close();
 
-        // The next start opens on the layout it closed on, and the other folder on its own.
         MainWindow second = Keeping();
         Assert.Equal(ToolAnchor.RightBottom, second.DockHost["tests"]!.Anchor);
         second.OpenFolder(other);

@@ -42,7 +42,6 @@ public sealed class DebuggerHoverTests : IClassFixture<DebuggerHoverTests.People
             Assert.True(person.Children is null, "The hovered object's members were asked for before its row was opened");
             UiRulesTests.HoldsToPopupRules("The debugger's hover card", window.Assist.HoverCard!);
 
-            // Its chevron clicked, the pointer gone from the word to the card, its members are asked for and listed under it.
             Toggle(window, values, person);
             Ui.WaitFor(() => Member(values, person, "Name")?.Value == "\"Ada\"", "person's members in the card");
             VariableNode home = Member(values, person, "Home")!;
@@ -53,20 +52,17 @@ public sealed class DebuggerHoverTests : IClassFixture<DebuggerHoverTests.People
             Assert.Contains("\n    City = ", window.Assist.HoverText, StringComparison.Ordinal);
             UiRulesTests.HoldsToPopupRules("The debugger's hover card, opened", window.Assist.HoverCard!);
 
-            // A row's menu is the Variables view's: Add to Watches watches the member's expression in the Debug window.
             Click(window, values.ContainerFromItem(Member(values, home, "City")!)!);
             Ui.ChooseFromMenu(values, "Add to Watches");
             Ui.WaitFor(() => view.Tree.Rows.Any(r => r.Role == VariableRole.Watch && r.Name == "person.Home.City" && r.Value == "\"London\""),
                 "the member's watch in the Debug window");
             Assert.Same(values, window.Assist.HoverValues);
 
-            // A click away, in the editor, takes the keys and the pointer from the card, and it goes.
             CodeEditor editor = window.EditorArea.CodeEditor;
             Click(window, editor, editor.PointOf(0) + new Point(4, editor.LineHeight / 2));
             Ui.WaitFor(() => window.Assist.HoverValues is null, "the card to go once the pointer and the keys left it");
             Assert.True(editor.IsFocused, "The editor clicked did not take the keys");
 
-            // Rested on again, its row is closed, as its value is read again; the pointer on it, the program going on takes it.
             values = Hover(window, "person.Name");
             Assert.False(Assert.Single(values.Tree.Rows).IsExpanded);
             window.MouseMove(Ui.Centre(values.ContainerFromIndex(0)!, window), RawInputModifiers.None);
@@ -90,7 +86,6 @@ public sealed class DebuggerHoverTests : IClassFixture<DebuggerHoverTests.People
         try
         {
             CodeEditor editor = window.EditorArea.CodeEditor;
-            // Quick Documentation at the caret shows the card; pressed again, the card takes the keys.
             editor.Selections = SelectionSet.Single(editor.Document.Snapshot.ToString().IndexOf("numbers.Count", StringComparison.Ordinal) + 2);
             Ui.Run(window, AppActions.QuickDocumentation);
             Ui.WaitFor(() => window.Assist.HoverValues is not null, "the card for the value at the caret");
@@ -99,7 +94,6 @@ public sealed class DebuggerHoverTests : IClassFixture<DebuggerHoverTests.People
             Ui.Run(window, AppActions.QuickDocumentation);
             Assert.True(values.IsKeyboardFocusWithin, "Quick Documentation pressed again did not give the card the keys");
 
-            // Right opens the list's row into its items, Down goes to the first.
             Ui.Press(window, "Right");
             VariableNode numbers = values.Tree.Rows[0];
             Ui.WaitFor(() => Member(values, numbers, "[2]")?.Value == "30", $"the list's items in the card, where it showed {Shown(values)}");
@@ -107,7 +101,6 @@ public sealed class DebuggerHoverTests : IClassFixture<DebuggerHoverTests.People
             Ui.Press(window, "Down");
             Assert.Equal("[0]", Chosen(values).Name);
 
-            // F2, a value typed and Enter: the item takes it, and the card shows it with the list still open.
             Ui.Press(window, "F2");
             Assert.True(Chosen(values).IsEditing, "F2 in the card did not open the item's value for editing");
             window.KeyTextInput("42");
@@ -117,7 +110,6 @@ public sealed class DebuggerHoverTests : IClassFixture<DebuggerHoverTests.People
             Assert.Equal("[0]", Chosen(values).Name);
             Assert.True(values.IsKeyboardFocusWithin, "The card lost the keys as a value was set in it");
 
-            // Left goes up to the list's row, and Left again closes it; Escape takes the card away and gives the editor the keys.
             Ui.Press(window, "Left");
             Assert.Equal("numbers", Chosen(values).Name);
             Ui.Press(window, "Left");
@@ -127,7 +119,6 @@ public sealed class DebuggerHoverTests : IClassFixture<DebuggerHoverTests.People
             Assert.Null(window.Assist.HoverValues);
             Assert.True(editor.IsFocused, "Escape left the keys with the card it took away");
 
-            // The program goes on with the value set.
             Ui.Run(window, AppActions.Resume);
             Ui.WaitFor(() => !window.Debugger.IsDebugging, "the program to end");
             Assert.Contains("Ada London 3 42", window.BottomPanel.Debug.Console.Document.Snapshot.ToString(), StringComparison.Ordinal);

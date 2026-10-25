@@ -49,8 +49,8 @@ public class ProtocolTests(ITestOutputHelper testOutputHelper)
     }
 
     /// <summary>A client that sends what no message of the protocol is (a header that never ends, or a Content-Length past
-    /// the 256 MB a message may be, or past any number) ends the conversation, the adapter saying why in its log, as at a
-    /// message that does not read: it never waits to take its memory for it.</summary>
+    /// the 256 MB a message may be, or past any number) ends the conversation, the adapter saying why in its log; it never
+    /// waits to take its memory for it.</summary>
     [Theory]
     [InlineData("header")]
     [InlineData("268435457")]
@@ -61,7 +61,7 @@ public class ProtocolTests(ITestOutputHelper testOutputHelper)
         bool whole = host.SendRaw(Encoding.ASCII.GetBytes(sent == "header"
             ? string.Concat(Enumerable.Repeat($"X-Filler: {new string('x', 1000)}\r\n", 80))
             : $"Content-Length: {sent}\r\n\r\n"));
-        // The 80 KB header runs past what the adapter reads, which may end the conversation before the rest is written.
+        // The 80 KB header may end the conversation before the rest is written.
         Assert.True(whole || sent == "header", $"The adapter stopped reading before the {sent} header was written whole: {host.EngineLog()}");
         Assert.True(host.Ended(TimeSpan.FromSeconds(20)), $"The adapter was still reading what it was sent ({sent}) 20 s later: {host.EngineLog()}");
         string logged = host.EngineLog();

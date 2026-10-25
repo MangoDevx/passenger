@@ -7,11 +7,11 @@ using Passenger.Text;
 
 namespace Passenger.App;
 
-/// <summary>Rider's Local History: each version of the open folder's files saved, changed elsewhere ("External change"),
-/// deleted or moved, with labels (Put Label's, a test run's, a Git operation's, a refactoring's), in its tool window. File
-/// and the editor's menu have Local History's Show History (the file shown, or the Explorer's chosen row), Show Project
-/// History, Recent Changes and Put Label; the Explorer has Show Local History. A version shows beside the file now, an
-/// arrow putting one change back; Revert puts the whole version back as one undoable step.</summary>
+/// <summary>Local History: each version of the open folder's files saved, changed elsewhere ("External change"),
+/// deleted or moved, with labels (Put Label's, a test run's, a Git operation's, a refactoring's), in its tool window.
+/// File and the editor's menu have Local History's Show History (the file shown, or the Explorer's chosen row), Show
+/// Project History, Recent Changes and Put Label; the Explorer has Show Local History. A version shows beside the file
+/// now, an arrow putting one change back; Revert puts the whole version back as one undoable step.</summary>
 public partial class MainWindow
 {
     private const string LocalHistoryMenu = "File/Local History";
@@ -21,7 +21,7 @@ public partial class MainWindow
     /// <summary>The refactoring last asked for, which names what it writes in Local History.</summary>
     private string? refactoring;
 
-    /// <summary>How long and how much Local History keeps, and its clock: Rider's 5 days of activity unless a test says.</summary>
+    /// <summary>How long and how much Local History keeps, and its clock: 5 days of activity unless given.</summary>
     public HistoryKeeping HistoryKeeping { get; init; } = new();
 
     /// <summary>The open folder's Local History, or null with none open.</summary>
@@ -37,7 +37,7 @@ public partial class MainWindow
         {
             Tools = () => localHistoryView?.Tabs,
         });
-        // Rider's names: the menus' own, and Find Action's (Show Local History...) beside the Git window's Show History.
+        // The menus' names, and Find Action's (Show Local History...) beside the Git window's Show History.
         actions!.Add(new IdeAction(AppActions.ShowLocalHistory, "Show Local History…", "Local History", context => ShowLocalHistory(Target(context, fileOnly: false)!))
         {
             TitleIn = _ => "Show History…",
@@ -61,8 +61,7 @@ public partial class MainWindow
             Menus = [new MenuPlace(LocalHistoryMenu, 1, 2)],
         });
         Editors.Opened += (_, document) => LookAt(document);
-        // Rider's system activities: a refactoring's (a Git operation's, and a test run's label, are the session's own).
-        // Another action since (a quick fix) is not the refactoring, though it may edit files the same way.
+        // A refactoring's activity; another action since (a quick fix) is not the refactoring.
         actions.Running += (_, action) => refactoring = action.Menus.Any(m => m.Path == "Refactor") ? action.Title.TrimEnd('.') : null;
         // What a refactoring writes to files not open is one change set under its name; a quick fix's is not named.
         Editors.Recording = () =>
@@ -115,7 +114,8 @@ public partial class MainWindow
             () => new HistoryTab(history, new HistoryHost(Editors, RevertAsync), full, isFolder));
     }
 
-    /// <summary>Rider's Recent Changes: the folder's change sets, newest first; the one chosen opens in the project's history.</summary>
+    /// <summary>Recent Changes: the folder's change sets, newest first; the one chosen opens in the project's
+    /// history.</summary>
     public async Task<ChoicePopup?> ShowRecentChangesAsync()
     {
         if (session.LocalHistory is not { } history || Folder is not { } open)
@@ -139,7 +139,7 @@ public partial class MainWindow
         return popup;
     }
 
-    /// <summary>Rider's Put Label: a name, put across the folder's history now.</summary>
+    /// <summary>Put Label: a name, put across the folder's history now.</summary>
     public NamePopup? ShowPutLabel()
     {
         if (session.LocalHistory is not { } history)
@@ -186,9 +186,9 @@ public partial class MainWindow
     }
 
     /// <summary>Puts files back to versions, as one activity of the history: an open file's text and encoding as one
-    /// undoable step over the lines that differ, written as Rider's revert writes the file (<see cref="OpenDocument.Revert"/>);
-    /// a closed one's bytes written as they were; one that did not exist then deleted (to the Trash, and kept in the
-    /// history). Null once all are written, else why not.</summary>
+    /// undoable step over the lines that differ (<see cref="OpenDocument.Revert"/>); a closed one's bytes written as
+    /// they were; one that did not exist then deleted (to the Trash, and kept in the history). Null once all are
+    /// written, else why not.</summary>
     private async Task<string?> RevertAsync(IReadOnlyList<(string Path, string? Version)> files, string activity)
     {
         if (session.LocalHistory is not { } history)

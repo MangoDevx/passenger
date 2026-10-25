@@ -43,8 +43,8 @@ public sealed class XamlService : IDisposable
     /// <summary>Something to say in the status bar (a project's XAML still loading).</summary>
     public event EventHandler<string>? Message;
 
-    /// <summary>Where a library's own files come from (a theme's XAML for go to declaration): its Source Link, or a
-    /// stand-in of a test's.</summary>
+    /// <summary>Where a library's own files come from (a theme's XAML for go to declaration): its Source Link unless
+    /// set.</summary>
     public ILibraryFiles LibraryFiles { get; set; } = new SourceLink();
 
     /// <summary>The open files' texts as the editor has them now, each a snapshot any thread reads, for the .resx and XLIFF
@@ -102,8 +102,7 @@ public sealed class XamlService : IDisposable
         }
         if (document.Language.Name == "C#")
         {
-            // Only a file a XAML project loaded or loading may read waits for typing to pause (background work every key
-            // would hold half a second): a project that loads later reads the open files as they then are.
+            // Only a file a XAML project may read waits for a pause: each wait holds background work half a second.
             Debounce wait = new(SourceSettle, () => SourceTypedAsync(document));
             EventHandler<DocumentChangedEventArgs> handler = (_, _) =>
             {
@@ -285,8 +284,8 @@ public sealed class XamlService : IDisposable
             || (l.Loaded.IsCompletedSuccessfully && l.Loaded.Result is { } project && project.Referenced.Any(r => PathNames.Within(path, r.Folder))));
 
     /// <summary>The project a restore's assets under an artifacts folder are of (UseArtifactsOutput's
-    /// artifacts/obj/Project/project.assets.json, which ProjectInputs reads), under no project's folder: the project of that
-    /// name below the folder holding artifacts.</summary>
+    /// artifacts/obj/Project/project.assets.json), under no project's folder: the project of that name below the folder
+    /// holding artifacts.</summary>
     private XamlLoading? RestoredFor(string path)
     {
         if (Path.GetFileName(path) != "project.assets.json" || Path.GetDirectoryName(path) is not { } named || Path.GetDirectoryName(named) is not { } obj

@@ -1,10 +1,8 @@
-// Passenger's preload for the Dockerfile language server (Web/DockerHubTags.cs), which WebLanguages starts with
-// node --require this file. The server completes an image's tags after FROM image: by asking Docker Hub for them
-// (auth.docker.io for a token, then registry-1.docker.io), through dockerfile-language-service's DockerRegistryClient;
-// this changes that class, the copy the server itself loads, as PASSENGER_DOCKER_HUB says:
+// Passenger's preload for the Dockerfile language server (node --require, Web/DockerHubTags.cs): it changes the copy
+// of dockerfile-language-service's DockerRegistryClient the server loads, which asks Docker Hub for an image's tags, as
+// PASSENGER_DOCKER_HUB says:
 //   off             getTags answers no tags and asks nothing (Settings' Complete image tags from Docker Hub is off);
-//   an http(s) URL  each request goes there instead, its host and path under it (<URL>/auth.docker.io/token?...), so
-//                   the tests' run asks a dead address and a test its own stand-in;
+//   an http(s) URL  each request goes there instead, its host and path under it (<URL>/auth.docker.io/token?...);
 //   unset           nothing changes: Docker Hub is asked.
 // A client it cannot find or change ends the server as it starts, so a server whose client has moved never asks Docker
 // Hub while Passenger has said off.
@@ -36,7 +34,7 @@ if (said) {
             throw new Error(`PASSENGER_DOCKER_HUB takes off or an http or https URL, not ${said}`);
         }
         const under = place.pathname.endsWith("/") ? place.pathname : place.pathname + "/";
-        // As the client's own: a JSON answer of 200, else an error carrying its status, which the client logs.
+        // The client expects a 200's JSON, else an error carrying its status, which it logs.
         DockerRegistryClient.prototype.performHttpsGet = function (options) {
             return new Promise((resolve, reject) => {
                 const target = new URL(under + options.hostname + options.path, place);

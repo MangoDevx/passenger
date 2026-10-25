@@ -6,8 +6,8 @@ using Passenger.Core;
 
 namespace Passenger.App.Workspace;
 
-/// <summary>Where Find in Files looks, as Rider's popup offers it for a solution: the whole solution, one project, a
-/// directory, or a named scope (open files, the files chosen in the Solution view).</summary>
+/// <summary>Where Find in Files looks: the whole solution, one project, a directory, or a named scope (open files, the
+/// files chosen in the Solution view).</summary>
 public enum SearchScopeKind
 {
     Solution,
@@ -20,7 +20,7 @@ public enum SearchScopeKind
 /// whether its subdirectories are searched, the named scope), and the file mask, null while it is off.</summary>
 public sealed record SearchScope(SearchScopeKind Kind, string? Project, string? Directory, bool Recursive, string? Named, string? Mask)
 {
-    /// <summary>Why the scope cannot be searched as it stands, in Rider's words, or null.</summary>
+    /// <summary>Why the scope cannot be searched as it stands, or null.</summary>
     public string? Problem() => Kind switch
     {
         SearchScopeKind.Project when string.IsNullOrEmpty(Project) => "No project to search",
@@ -30,8 +30,8 @@ public sealed record SearchScope(SearchScopeKind Kind, string? Project, string? 
     };
 }
 
-/// <summary>Rider's file mask: wildcards (<c>*</c>, <c>?</c>) separated by commas that a file's name must match, letter
-/// case aside; one after a <c>!</c> leaves the files it matches out, and exclusions alone leave the rest in.</summary>
+/// <summary>A file mask: wildcards (<c>*</c>, <c>?</c>) separated by commas that a file's name must match, letter case
+/// aside; one after a <c>!</c> leaves the files it matches out, and exclusions alone leave the rest in.</summary>
 public sealed class FileMask
 {
     private readonly Regex? included;
@@ -43,7 +43,7 @@ public sealed class FileMask
         this.excluded = excluded;
     }
 
-    /// <summary>A mask that does not read, as Rider says it, or null.</summary>
+    /// <summary>Why a mask does not read, or null.</summary>
     public static string? Problem(string mask) =>
         mask.Trim().Length == 0 ? "Empty file mask"
         : mask.Contains(';', StringComparison.Ordinal) ? "File masks should be comma-separated"
@@ -78,7 +78,7 @@ public sealed class FileMask
     private static Regex? Compiled(List<string> patterns) =>
         patterns.Count == 0 ? null : new Regex($"^(?:{string.Join('|', patterns)})$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-    /// <summary>A wildcard as a pattern, as IntelliJ's PatternUtil converts it: every character itself but * and ?.</summary>
+    /// <summary>A wildcard as a pattern: every character itself but * and ?.</summary>
     private static string Pattern(string wildcard)
     {
         StringBuilder pattern = new();
@@ -130,12 +130,11 @@ public sealed record SearchPlace(bool All, IReadOnlyList<string> Folders, bool R
     private bool Passes(string path) => Mask?.Matches(Path.GetFileName(path)) ?? true;
 }
 
-/// <summary>What Find in Files keeps for every folder, in the store's find.json as Rider keeps its find settings: the
-/// file mask (null while it is off), the masks used lately, the latest first, and whether a directory is searched with
-/// its subdirectories.</summary>
+/// <summary>What Find in Files keeps for every folder, in the store's find.json: the file mask (null while it is off),
+/// the masks used lately, the latest first, and whether a directory is searched with its subdirectories.</summary>
 public sealed record FindSettingsState : IStateDocument<FindSettingsState>
 {
-    /// <summary>The most masks kept, as Rider keeps its recent ones.</summary>
+    /// <summary>The most masks kept.</summary>
     public const int RecentLimit = 15;
 
     public string? FileMask { get; init; }
@@ -154,8 +153,8 @@ public sealed record FindSettingsState : IStateDocument<FindSettingsState>
     };
 }
 
-/// <summary>What Find in Files keeps for a folder, as Rider keeps the scope with the project: the scope chosen, the
-/// project, directory and named scope the popup showed, and the directories searched lately, the latest first.</summary>
+/// <summary>What Find in Files keeps for a folder: the scope chosen, the project, directory and named scope the popup
+/// showed, and the directories searched lately, the latest first.</summary>
 public sealed record FindScopeState : IStateDocument<FindScopeState>
 {
     public const int RecentLimit = 15;

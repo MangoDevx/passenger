@@ -9,9 +9,9 @@ using Passenger.Text;
 
 namespace Passenger.Tests;
 
-/// <summary>Rider's edits beyond completion and Refactor This, each through its own keys in the window on a real project
-/// with its language server: Surround With's templates, Complete Current Statement, Optimize Imports, Safe Delete,
-/// Introduce Field and Parameter, and Encapsulate Field.</summary>
+/// <summary>Edits beyond completion and Refactor This, each through its own keys in the window on a real project with
+/// its language server: Surround With's templates, Complete Current Statement, Optimize Imports, Safe Delete, Introduce
+/// Field and Parameter, and Encapsulate Field.</summary>
 public sealed class CodeEditsTests : IClassFixture<CodeEditsTests.Project>
 {
     private readonly Project project;
@@ -24,8 +24,9 @@ public sealed class CodeEditsTests : IClassFixture<CodeEditsTests.Project>
 
     private const string TwoLines = "total += 1;\n        total += 2;";
 
-    /// <summary>Rider's statement templates around two statements, in the order Surround With offers them: what each
-    /// writes, what it leaves chosen to type over first, and where its caret ends once its variables are filled in.</summary>
+    /// <summary>The statement templates around two statements, in the order Surround With offers them: what each
+    /// writes, what it leaves chosen to type over first, and where its caret ends once its variables are filled
+    /// in.</summary>
     private static readonly (string Template, string Written, string First)[] StatementTemplates =
     [
         ("if", "        if (true)\n        {\n            total += 1;\n            total += 2;\n        }\n", "true"),
@@ -42,9 +43,10 @@ public sealed class CodeEditsTests : IClassFixture<CodeEditsTests.Project>
         ("using", "        using (resource)\n        {\n            total += 1;\n            total += 2;\n        }\n", "resource"),
     ];
 
-    /// <summary>Surround With wraps the statements chosen in each of Rider's templates and leaves the caret where Rider
-    /// does, each taken back by one Undo; Complete Current Statement closes what is typed and puts the caret where the next
-    /// code goes; and around an expression Surround With offers a cast and parentheses, around types a namespace.</summary>
+    /// <summary>Surround With wraps the statements chosen in each of its templates and leaves the caret at the
+    /// template's end, each taken back by one Undo; Complete Current Statement closes what is typed (an if, a call, a
+    /// declaration, a method) and puts the caret where the next code goes; and around an expression Surround With
+    /// offers a cast and parentheses, around types a namespace.</summary>
     [AvaloniaFact]
     public void Surround_with_and_complete_current_statement_write_rider_s_code_around_and_after_what_is_chosen_or_typed()
     {
@@ -63,7 +65,6 @@ public sealed class CodeEditsTests : IClassFixture<CodeEditsTests.Project>
                 $"Surround With {template} did not wrap the two statements as Rider writes it:\n{text}");
             Assert.True(first == Selected(editor), $"Surround With {template} chose '{Selected(editor)}' to type over first, not '{first}'");
 
-            // Its variables in turn, then its end: after the code wrapped, in finally's body, or catch's body chosen.
             for (int field = 0; field < 3 && editor.IsInSnippet; field++)
             {
                 Ui.Press(window, "TAB");
@@ -79,13 +80,10 @@ public sealed class CodeEditsTests : IClassFixture<CodeEditsTests.Project>
             Assert.True(expected == editor.Selections.Primary.Caret,
                 $"After {template} the caret is at {editor.CaretPosition}, not where Rider leaves it:\n{text.Insert(editor.Selections.Primary.Caret, "|")}");
 
-            // One undo takes the whole template back.
             Ui.Run(window, EditorActions.Undo);
             Assert.True(before == editor.Document.Snapshot.ToString(), $"Undo after {template} left:\n{editor.Document.Snapshot}");
         }
 
-        // Complete Current Statement closes an if, a call, a declaration and a method and puts the caret where the next code
-        // goes. An if's condition: its parenthesis closed, braces, and the caret in its body.
         string Text() => editor.Document.Snapshot.ToString();
         int After(string code) => Text().IndexOf(code, StringComparison.Ordinal) + code.Length;
         Ui.PlaceAfter(editor, "int total = 0;");
@@ -96,19 +94,16 @@ public sealed class CodeEditsTests : IClassFixture<CodeEditsTests.Project>
         Assert.Contains("        int total = 0;\n        if (total > 0)\n        {\n            \n        }\n        total += 1;\n", Text(), StringComparison.Ordinal);
         Assert.Equal(After("if (total > 0)\n        {\n            "), editor.Selections.Primary.Caret);
 
-        // A call: its parenthesis, its semicolon, and the caret on a line of its own after it.
         window.KeyTextInput("Report(total");
         Ui.Run(window, AppActions.CompleteStatement);
         Assert.Contains("        {\n            Report(total);\n            \n        }\n", Text(), StringComparison.Ordinal);
         Assert.Equal(After("Report(total);\n            "), editor.Selections.Primary.Caret);
 
-        // A declaration: its semicolon, and the next line.
         window.KeyTextInput("int doubled = total * 2");
         Ui.Run(window, AppActions.CompleteStatement);
         Assert.Contains("            Report(total);\n            int doubled = total * 2;\n            \n        }\n", Text(), StringComparison.Ordinal);
         Assert.Equal(After("int doubled = total * 2;\n            "), editor.Selections.Primary.Caret);
 
-        // A method's signature: its parameters closed and a body to write in.
         Ui.PlaceAfter(editor, "        return total;\n    }");
         Ui.Press(window, "ENTER");
         Ui.Press(window, "ENTER");
@@ -118,12 +113,11 @@ public sealed class CodeEditsTests : IClassFixture<CodeEditsTests.Project>
             $"The method's signature was not completed as Rider completes it:\n{Text().Insert(editor.Selections.Primary.Caret, "|")}");
         Assert.Equal(After("static void Report(int value)\n    {\n        "), editor.Selections.Primary.Caret);
 
-        // Around an expression Surround With offers a cast and parentheses, around types a namespace.
         Choose(editor, "return total", skip: "return ".Length);
         editor.Focus();
         Ui.Run(window, AppActions.SurroundWith);
         Assert.Equal(["()", "{}", "cast"], window.Assist.Offered);
-        // Its digit chooses it, as in Rider: 0 is the cast, its type to be typed first.
+        // Its digit chooses it: 0 is the cast, its type to be typed first.
         Ui.Press(window, "0");
         Assert.Contains("        return (()total);\n", editor.Document.Snapshot.ToString(), StringComparison.Ordinal);
         window.KeyTextInput("long");
@@ -152,10 +146,10 @@ public sealed class CodeEditsTests : IClassFixture<CodeEditsTests.Project>
         window.Close();
     }
 
-    /// <summary>The language server's edits under Rider's names, in one window: Optimize Imports removes the usings nothing
-    /// needs and sorts the rest; Introduce Field makes a constant a field of the type and says why not for anything else,
-    /// one Undo taking it back; Introduce Parameter makes an expression a parameter and passes it at every call; and
-    /// Encapsulate Field offers Rider's choice of using the property and makes it.</summary>
+    /// <summary>The language server's edits, in one window: Optimize Imports removes the usings nothing needs and sorts
+    /// the rest; Introduce Field makes a constant a field of the type and says why not for anything else, one Undo
+    /// taking it back; Introduce Parameter makes an expression a parameter and passes it at every call; and Encapsulate
+    /// Field offers the choice of using the property and makes it.</summary>
     [AvaloniaFact]
     public void Optimize_imports_introduce_field_and_parameter_and_encapsulate_field_make_their_edits_as_rider_names_them()
     {
@@ -169,7 +163,6 @@ public sealed class CodeEditsTests : IClassFixture<CodeEditsTests.Project>
         Assert.Equal("Optimize Imports removed unused usings and sorted the rest", window.Status);
         Assert.StartsWith("using System;\nusing System.Collections.Generic;\n\nstatic class Usings\n", Text(), StringComparison.Ordinal);
 
-        // Roslyn makes no field of what is not a constant, and the status bar says so.
         window.OpenFile(project.PathOf("Scale.cs"));
         Ui.Settle();
         string scale = Text();
@@ -179,7 +172,6 @@ public sealed class CodeEditsTests : IClassFixture<CodeEditsTests.Project>
         Ui.WaitFor(() => window.Status?.StartsWith("Introduce Field", StringComparison.Ordinal) == true, "Introduce Field to answer");
         Assert.Equal("Introduce Field is not available here: the C# language server makes a field only of a constant expression", window.Status);
 
-        // Of the constant, a const field: this occurrence or every one, never a local.
         Choose(editor, "1024", skip: 0);
         Ui.Run(window, AppActions.IntroduceField);
         Ui.WaitFor(() => window.Assist.Offered.Count > 0, "Introduce Field's choices");
@@ -192,7 +184,6 @@ public sealed class CodeEditsTests : IClassFixture<CodeEditsTests.Project>
         Ui.Run(window, EditorActions.Undo);
         Assert.True(Text() == scale, $"One Undo did not take the field back:\n{Text()}");
 
-        // Introduce Parameter: the expression a parameter, passed at every call.
         Choose(editor, "1024", skip: 0);
         Ui.Run(window, AppActions.IntroduceParameter);
         Ui.WaitFor(() => window.Assist.Offered.Count > 0, "Introduce Parameter's choices");
@@ -218,6 +209,9 @@ public sealed class CodeEditsTests : IClassFixture<CodeEditsTests.Project>
         window.Close();
     }
 
+    /// <summary>A method nothing uses goes at once, its doc comment and the blank line before it with it; one that is
+    /// called has its calls listed and is deleted only when told to, from a usage too, the call left to fix; and Undo
+    /// in the Solution view puts the declaration back.</summary>
     [AvaloniaFact]
     public void Safe_delete_deletes_an_unused_method_at_once_and_lists_a_used_ones_usages_before_deleting_it_when_told_to()
     {
@@ -225,7 +219,6 @@ public sealed class CodeEditsTests : IClassFixture<CodeEditsTests.Project>
         CodeEditor editor = window.EditorArea.CodeEditor;
         string Text() => editor.Document.Snapshot.ToString();
 
-        // Nothing uses it: it goes, its doc comment and the blank line before it with it.
         Ui.PlaceAfter(editor, "int Unu");
         editor.Focus();
         Ui.Run(window, AppActions.SafeDelete);
@@ -234,7 +227,6 @@ public sealed class CodeEditsTests : IClassFixture<CodeEditsTests.Project>
         Assert.Equal("Deleted the method 'Unused'", window.Status);
         Assert.Empty(window.OwnedWindows.OfType<ConfirmDialog>());
 
-        // Four and Main call Twice: Safe Delete lists both calls and deletes nothing until told to.
         Ui.PlaceAfter(editor, "int Twi");
         Ui.Run(window, AppActions.SafeDelete);
         ConfirmDialog asked = Asked(window);
@@ -247,7 +239,6 @@ public sealed class CodeEditsTests : IClassFixture<CodeEditsTests.Project>
         Assert.Contains("Twice(int value)", Text(), StringComparison.Ordinal);
         Assert.Equal("Safe Delete left the method 'Twice' where it is", window.Status);
 
-        // From a usage, the method it calls; Delete Anyway deletes it, the call left to fix.
         Ui.PlaceAfter(editor, "=> Twi");
         Ui.Run(window, AppActions.SafeDelete);
         Ui.ClickButton(Asked(window), "Delete Anyway");
@@ -272,7 +263,6 @@ public sealed class CodeEditsTests : IClassFixture<CodeEditsTests.Project>
         Ui.WaitFor(() => !File.ReadAllText(calc).Contains("Twice(int", StringComparison.Ordinal), "Twice deleted from Calc.cs, which is not open");
         Assert.DoesNotContain(window.EditorArea.Documents, d => d.Name == "Calc.cs");
 
-        // Undo in the Solution view puts the declaration back, once asked.
         window.Confirm = (title, _, _) =>
         {
             asked.Add(title);
@@ -373,7 +363,7 @@ public sealed class CodeEditsTests : IClassFixture<CodeEditsTests.Project>
     private static string Selected(CodeEditor editor) =>
         editor.Document.Snapshot.GetText(editor.Selections.Primary.Start, editor.Selections.Primary.Length);
 
-    /// <summary>Chooses a surround template by its digit when it has one, as Rider's list does, else by the arrow keys.</summary>
+    /// <summary>Chooses a surround template by its digit when it has one, else by the arrow keys.</summary>
     private static void Pick(MainWindow window, string template)
     {
         string digit = template switch

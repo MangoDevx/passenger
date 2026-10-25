@@ -5,9 +5,9 @@ using Avalonia.Media;
 
 namespace Passenger.App.Explorer;
 
-/// <summary>Rider's File Nesting, from the Solution view's options: its check box, "Show files with the same names as
-/// nested", over the nesting rules, each parent file suffix with the child file suffixes its files take under them
-/// (Rider's own, shown greyed while the box is clear). OK hands the box back.</summary>
+/// <summary>File Nesting, from the Solution view's options: its check box, "Show files with the same names as nested",
+/// over the nesting rules, each parent file suffix with the child file suffixes its files take under them (greyed while
+/// the box is clear). OK hands the box back.</summary>
 public sealed class FileNestingDialog : Window
 {
     public FileNestingDialog(bool nest)
@@ -76,7 +76,7 @@ public sealed class FileNestingDialog : Window
         Content = page;
     }
 
-    /// <summary>Rider's "Show files with the same names as nested".</summary>
+    /// <summary>"Show files with the same names as nested".</summary>
     public CheckBox NestBox { get; }
 
     /// <summary>The rules, shown greyed while the box is clear.</summary>

@@ -11,11 +11,11 @@ namespace Passenger.App.Web;
 /// names it, that Prettier has no parser for it, or why it could not (a syntax error, no package).</summary>
 public sealed record PrettierAnswer(string? Formatted = null, int Cursor = 0, bool Ignored = false, bool Unsupported = false, string? Error = null, string? Version = null);
 
-/// <summary>Prettier for the folder open, as Rider's has it: the project's own prettier package (found from each file's
-/// folder up, or the one Settings names) with its .prettierrc, .editorconfig and nearest .prettierignore. With no language
-/// server, Passenger's runner (<c>web/passenger/prettier.cjs</c>) runs its API on the web servers' Node.js through
-/// ChildProcesses, one process kept warm for the folder: the first format, Node.js starting and Prettier loading, took
-/// about 190 ms, each after it 2 or 3. Formats are asked one at a time, from any thread.</summary>
+/// <summary>Prettier for the folder open: the project's own prettier package (found from each file's folder up, or the
+/// one Settings names) with its .prettierrc, .editorconfig and nearest .prettierignore. With no language server,
+/// Passenger's runner (<c>web/passenger/prettier.cjs</c>) runs its API on the web servers' Node.js through
+/// ChildProcesses, one process kept warm for the folder, since the first format waits for Node.js to start and Prettier
+/// to load. Formats are asked one at a time, from any thread.</summary>
 public sealed class PrettierService : IAsyncDisposable
 {
     /// <summary>Where Settings configures Prettier, for what is said when it cannot run.</summary>
@@ -73,7 +73,7 @@ public sealed class PrettierService : IAsyncDisposable
     /// <summary>Whether a save formats the file with Prettier first ("Run on save").</summary>
     public bool OnSave(string path) => settings().PrettierOnSave && Covers(path) && PackageFor(path) is not null;
 
-    /// <summary>The nearest .prettierignore from the file's folder up, as Rider finds it when none is named.</summary>
+    /// <summary>The nearest .prettierignore from the file's folder up, for when Settings names none.</summary>
     public static string? IgnoreFile(string path)
     {
         for (string? at = Path.GetDirectoryName(path); at is not null; at = Path.GetDirectoryName(at))
@@ -275,7 +275,8 @@ public sealed class PrettierService : IAsyncDisposable
             }
         }
 
-        /// <summary>A runner started, its fork off the window's thread (#441), where a format pressed there would wait it out.</summary>
+        /// <summary>A runner started, its fork off the window's thread, where a format pressed there would wait it
+        /// out.</summary>
         public static async Task<Runner> StartAsync(string node, string folder)
         {
             ProcessStartInfo start = ChildProcesses.Command(node, [Script], folder);

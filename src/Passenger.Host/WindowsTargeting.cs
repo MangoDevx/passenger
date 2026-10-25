@@ -6,7 +6,7 @@ namespace Passenger.Host;
 /// Windows Forms; the Windows SDK's projection) builds only with EnableWindowsTargeting, as NETSDK1100 says: the host
 /// evaluates and builds it with that as a global property when the project leaves it unset, so its design-time builds see
 /// the framework's reference assemblies. Never written into the project; on Windows, or for a project that references no
-/// Windows-only framework, nothing changes. The app's own builds follow what the evaluations say (<see cref="Given"/>).</summary>
+/// Windows-only framework, nothing changes.</summary>
 internal static class WindowsTargeting
 {
     public const string Property = "EnableWindowsTargeting";

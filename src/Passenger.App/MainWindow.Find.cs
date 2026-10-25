@@ -9,8 +9,8 @@ using Passenger.Text;
 
 namespace Passenger.App;
 
-/// <summary>Find Usages in Rider's Find window: the language server's usages told apart by what each does there (read
-/// from the file's syntax), put under their projects and files, each search kept as a tab.</summary>
+/// <summary>Find Usages in the Find window: the language server's usages told apart by what each does there (read from
+/// the file's syntax), put under their projects and files, each search kept as a tab.</summary>
 public partial class MainWindow
 {
     private FindView? find;
@@ -39,7 +39,7 @@ public partial class MainWindow
     private async Task ShowUsagesAsync(string title, IReadOnlyList<LspLocation> locations)
     {
         int search = ++usageSearches;
-        // Each file's path made canonical once, not once a usage: that asks the disk, and ten thousand usages held the window.
+        // Each file's path made canonical once, not once a usage: that asks the disk.
         Dictionary<string, string> paths = locations.Select(l => l.Uri).Distinct(StringComparer.Ordinal).ToDictionary(u => u, DocumentUris.ToPath, StringComparer.Ordinal);
         List<(string Path, TextSnapshot? Open, ParsedText? Syntax, string Project, List<LspLocation> Here)> files =
             [.. locations.GroupBy(l => paths[l.Uri], StringComparer.Ordinal).Select(file =>

@@ -6,10 +6,10 @@ using Passenger.Text;
 
 namespace Passenger.Languages.CSharp;
 
-/// <summary>Rider's Extend Selection: the ranges around a selection, smallest first, each holding the one before. In
-/// C# they come from the syntax tree: the word, a string's text inside its quotes, then every enclosing node, with a
-/// block's statements, a list's items and a type's members before the braces or brackets around them, and a member
-/// with its doc comment after the member alone. In any other text: the word, the line's text, the line, the whole.</summary>
+/// <summary>Extend Selection: the ranges around a selection, smallest first, each holding the one before. In C# they
+/// come from the syntax tree: the word, a string's text inside its quotes, then every enclosing node, with a block's
+/// statements, a list's items and a type's members before the braces or brackets around them, and a member with its doc
+/// comment after the member alone. In any other text: the word, the line's text, the line, the whole.</summary>
 public static class SelectionRanges
 {
     /// <summary>The next range out from a selection, or null when it already holds everything; from the file's syntax

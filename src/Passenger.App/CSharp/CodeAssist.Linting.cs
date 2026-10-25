@@ -9,11 +9,11 @@ using Passenger.Core;
 
 namespace Passenger.App.CSharp;
 
-/// <summary>ESLint's fixes and Prettier's formatting, as Rider's JavaScript code quality tools give them: Show Context
-/// Actions lists ESLint's fixes for the caret's line first ("ESLint: Fix 'prefer-const'"), Fix ESLint Problems fixes the
-/// whole file as <c>eslint --fix</c> would, Reformat Code formats with Prettier the files its glob covers (Reformat with
-/// Prettier any file it reads), and an explicit save runs both first as Settings ask. Each is one undoable edit, the caret
-/// kept where the code it was in went.</summary>
+/// <summary>ESLint's fixes and Prettier's formatting: Show Context Actions lists ESLint's fixes for the caret's line
+/// first ("ESLint: Fix 'prefer-const'"), Fix ESLint Problems fixes the whole file as <c>eslint --fix</c> would,
+/// Reformat Code formats with Prettier the files its glob covers (Reformat with Prettier any file it reads), and an
+/// explicit save runs both first as Settings ask. Each is one undoable edit, the caret kept where the code it was in
+/// went.</summary>
 public sealed partial class CodeAssist
 {
     /// <summary>A page to open in the browser: an ESLint rule's.</summary>
@@ -21,7 +21,7 @@ public sealed partial class CodeAssist
 
     private EslintDocument? LintOf(OpenDocument document) => Web?.Invoke()?.Eslint.For(document);
 
-    /// <summary>Reformat with Prettier and Fix ESLint Problems, which Rider puts in the editor's menu.</summary>
+    /// <summary>Reformat with Prettier and Fix ESLint Problems, in the editor's menu.</summary>
     private void AddLintingActions(ActionRegistry actions)
     {
         actions.Add(new IdeAction(AppActions.ReformatWithPrettier, "Reformat with Prettier", "Code", context => _ = ReformatWithPrettier())
@@ -162,8 +162,8 @@ public sealed partial class CodeAssist
         }
     }
 
-    /// <summary>What a save does first to a changed file, as Settings ask, in Rider's order: <c>eslint --fix</c>, then
-    /// Prettier. Each its own undoable edit.</summary>
+    /// <summary>What a save does first to a changed file, as Settings ask: <c>eslint --fix</c>, then Prettier. Each its
+    /// own undoable edit.</summary>
     public async Task BeforeSave(OpenDocument document)
     {
         if (Web?.Invoke() is not { } web || document.IsReadOnly)
@@ -198,9 +198,8 @@ public sealed partial class CodeAssist
         return outcome;
     }
 
-    /// <summary>A file formatted by its project's Prettier as one undoable edit, only the lines that changed replaced, the
-    /// caret where Prettier carried it, the file's own line breaks kept; what came of it, in the words Rider's Prettier says
-    /// it in.</summary>
+    /// <summary>A file formatted by its project's Prettier as one undoable edit, only the lines that changed replaced,
+    /// the caret where Prettier carried it, the file's own line breaks kept; what came of it.</summary>
     internal async Task<(Prettified Outcome, string Said)> PrettifyAsync(WebLanguages web, OpenDocument document, string what)
     {
         if (document.IsReadOnly)

@@ -19,9 +19,9 @@ using Passenger.Text;
 namespace Passenger.App.Run;
 
 /// <summary>What a window lends the builds and runs of its sessions: the Build, Run, Problems and Debug windows, its
-/// editors (saved before a build), its tool windows' frame, its settings, the status bar, a tab of the
-/// Terminal window for a program that uses one, Rider's Open browser after launch, and its state folder, under which a
-/// Passenger it launches keeps its own (<see cref="LaunchPlan.SandboxedState"/>).</summary>
+/// editors (saved before a build), its tool windows' frame, its settings, the status bar, a tab of the Terminal window
+/// for a program that uses one, the browser opened after launch, and its state folder, under which a Passenger it
+/// launches keeps its own (<see cref="LaunchPlan.SandboxedState"/>).</summary>
 public sealed record BuildRunParts(
     ToolViews Views,
     EditorArea Editors,
@@ -282,11 +282,10 @@ public sealed partial class BuildRunController
     }
 
     /// <summary>Builds, rebuilds or cleans the solution, or the projects given one after another (stopping at the first
-    /// that fails), as Rider's Build menu and the Solution view's do: the output in the Build window, which opens as it
-    /// starts as Settings says for its <paramref name="cause"/>, the problems of all of them in Problems.
-    /// <paramref name="then"/> always hears how it ended, a build refused or never started included. A framework given
-    /// builds the projects for it alone, as a run configuration's build before launch does, and an output folder given
-    /// builds them there (a single-file AppHost's).</summary>
+    /// that fails): the output in the Build window, which opens as it starts as Settings says for its <paramref name="cause"/>,
+    /// the problems of all of them in Problems. <paramref name="then"/> always hears how it ended, a build refused or never
+    /// started included. A framework given builds the projects for it alone, and an output folder given builds them there
+    /// (a single-file AppHost's).</summary>
     public void Build(BuildKind kind, IReadOnlyList<string>? projects = null, Action<BuildOutcome>? then = null, string? framework = null,
         BuildCause cause = BuildCause.Explicit, string? output = null) => Start(kind, projects, then, framework, cause, null, null, output);
 
@@ -346,8 +345,8 @@ public sealed partial class BuildRunController
         BuildNext(first: true);
     }
 
-    /// <summary>Whether a build opens the Build window as it starts, as Rider's Presentation settings have it: a test run's
-    /// never, its unit testing asking for no window; the status bar says what builds either way.</summary>
+    /// <summary>Whether a build opens the Build window as it starts, as Settings says: a test run's never; the status bar
+    /// says what builds either way.</summary>
     private bool OpensBuildWindow(BuildCause cause)
     {
         AppSettings settings = parts.Settings();
@@ -359,8 +358,8 @@ public sealed partial class BuildRunController
         };
     }
 
-    /// <summary>Whether a build's end brings the Build window forward, as Rider's "Showing build results after build
-    /// completed" says: one that could not start counts as failed, and one stopped as neither failed nor warned.</summary>
+    /// <summary>Whether a build's end brings the Build window forward, as Settings says: one that could not start counts as
+    /// failed, and one stopped as neither failed nor warned.</summary>
     private bool ShowsBuildResults(BuildOutcome ended) => parts.Settings().ShowBuildResults switch
     {
         BuildResultsMode.Always => true,
@@ -414,10 +413,9 @@ public sealed partial class BuildRunController
     /// its files' texts read once a build.</summary>
     private Problem Placed(Problem problem) => Placed(problem, builtTexts ??= ServerPlaces.Texts(parts.Editors));
 
-    /// <summary>A problem's place as the editor counts its file's lines: Roslyn's compilers end a line at a lone '\r',
-    /// U+0085, U+2028 and U+2029, as its language server does, and the XAML compilers (Avalonia's AVLN, WPF's MC) at a lone
-    /// '\r', as an XML reader does (<see cref="ServerPlaces.Compiled"/>); the place a XAML compiler's message repeats at its
-    /// end is said at the editor's line too.</summary>
+    /// <summary>A problem's place as the editor counts its file's lines, from the lines its compiler counted
+    /// (<see cref="ServerPlaces.Compiled"/>); the place a XAML compiler's message repeats at its end is said at the editor's
+    /// line too.</summary>
     private static Problem Placed(Problem problem, Func<string, TextSnapshot?> texts)
     {
         if (problem.Path is not { } path || !ServerPlaces.CountedApart(path))
@@ -555,8 +553,8 @@ public sealed partial class BuildRunController
 
     private const string Left = "The solution was closed";
 
-    /// <summary>A plan's build before launch, in the Build window as Build Selected Projects writes it, which comes forward
-    /// only as Settings says for a build Run, Debug or Profile starts.</summary>
+    /// <summary>A plan's build before launch, in the Build window, which comes forward only as Settings says for a build Run,
+    /// Debug or Profile starts.</summary>
     public Task<BuildOutcome> BuildBeforeLaunchAsync(BuildStep step)
     {
         TaskCompletionSource<BuildOutcome> built = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -700,8 +698,7 @@ public sealed partial class BuildRunController
     public bool RunsOwnProgram(string name) => RunsInConsole && ran == name && session.ContainerRun is not { IsStopped: false };
 
     /// <summary>Ends the program Run started for a configuration that Debug or Profile (<paramref name="doing"/>) is to start
-    /// in its place, as a start of a configuration that runs ends it and starts again: done once its end has landed. Null to
-    /// go on, else why not (the folder left meanwhile).</summary>
+    /// in its place: done once its end has landed. Null to go on, else why not (the folder left meanwhile).</summary>
     public async Task<string?> EndOwnRunAsync(RunConfiguration chosen, Working work, string doing)
     {
         if (!RunsOwnProgram(chosen.Name))
@@ -749,9 +746,8 @@ public sealed partial class BuildRunController
         }
     }
 
-    /// <summary>Runs a plan's program in a tab of the Terminal window named for its configuration, the keys going to it, as
-    /// Rider's Use external console runs one in a console of its own; Stop ends it, and its end shows in the status bar as
-    /// a run's in the Run window does. Null once it runs, else why it could not.</summary>
+    /// <summary>Runs a plan's program in a tab of the Terminal window named for its configuration, the keys going to it; Stop
+    /// ends it, and its end shows in the status bar. Null once it runs, else why it could not.</summary>
     private async Task<string?> RunInTerminalAsync(string name, ProcessStartInfo? start, IReadOnlyDictionary<string, string> variables, string running)
     {
         if (start is null)
@@ -792,9 +788,9 @@ public sealed partial class BuildRunController
         }
     }
 
-    /// <summary>dotnet watch's command line for a plan, as Rider's Hot Reload runs it: the project for its framework, no
-    /// launch profile (the plan has its values already), the program's own arguments after <c>--</c>. It runs the program in
-    /// its own working folder, which is the plan's.</summary>
+    /// <summary>dotnet watch's command line for a plan: the project for its framework, no launch profile (the plan has its
+    /// values already), the program's own arguments after <c>--</c>. It runs the program in its own working folder, which is
+    /// the plan's.</summary>
     private static List<string> Watch(LaunchPlan plan)
     {
         List<string> watch = ["watch", "--non-interactive", "run", "--project", plan.Project!, "--no-launch-profile"];
@@ -846,7 +842,7 @@ public sealed partial class BuildRunController
             {
                 parts.Editors.SaveAll();
                 RunConfiguration configuration = arguments is null ? chosen : chosen with { Arguments = arguments };
-                // A start of the same AppHosts under way (Run's, as Debug begins) ends first, as a container start's does.
+                // A start of the same AppHosts under way (Run's, as Debug begins) ends first.
                 using StartTaken? taken = await TakeStartAsync([configuration.Project, .. configuration.LinkedAppHosts], work);
                 if (taken is null || session.IsEnded)
                 {
@@ -860,8 +856,7 @@ public sealed partial class BuildRunController
                 {
                     return Said(StoppedStarting(chosen.Name));
                 }
-                // The same configuration's AppHosts running end first, as a start of a configuration that runs ends it and starts
-                // it again (a container run's does); an AppHost a test run holds is the test run's.
+                // The same configuration's AppHosts running end first; an AppHost a test run holds is the test run's.
                 string[] hosts = [configuration.Project, .. configuration.LinkedAppHosts];
                 List<string> running = [.. session.Aspire.Apps.Where(app => !app.IsTest && !app.Stopping && hosts.Any(host => PathNames.Same(host, app.Configuration.Project)))
                     .Select(app => app.Group).Distinct(StringComparer.Ordinal)];
@@ -877,7 +872,7 @@ public sealed partial class BuildRunController
                         return Said(StoppedStarting(chosen.Name));
                     }
                 }
-                // Once, before any AppHost starts, as a container run's certificate is checked before its services come up.
+                // Once, before any AppHost starts.
                 HttpsChoice https = await CertificateAsync(chosen.Name, await session.Aspire.ServingHttpsAsync(configuration), Path.GetDirectoryName(configuration.Project)!,
                     ContainerPlans.StateOf(parts.StateFolder(), session.Folder ?? Path.GetDirectoryName(configuration.Project)!), export: false, work);
                 if (session.IsEnded || work.IsStopped)
@@ -914,9 +909,9 @@ public sealed partial class BuildRunController
         }
     }
 
-    /// <summary>What an AppHost's start says once up, in the words a container run's start says: debugged, the services it
-    /// debugs (those marked Debug, else each it starts) under the debugger; run with Hot Reload; profiled, the service recorded;
-    /// or run.</summary>
+    /// <summary>What an AppHost's start says once up, in the words every run of services says it: debugged, the services it
+    /// debugs (those marked Debug, else each it starts) under the debugger; run with Hot Reload; profiled, the service
+    /// recorded; or run.</summary>
     private static string AspireStarted(RunConfiguration configuration, RunStart mode, IReadOnlyList<AspireAppRun> started)
     {
         string[] marked = [.. configuration.ServiceActions.Where(pair => pair.Value == ServiceStart.Debug).Select(pair => pair.Key).Order(StringComparer.Ordinal)];
@@ -997,8 +992,7 @@ public sealed partial class BuildRunController
                     app.Services.Where(s => !s.Stopping.IsCancellationRequested).Select(s => (s, app.Rebuilt.GetValueOrDefault(s.Project, app.BuildBegan))).ToArray()))];
                 (string Project, DateTime Since)[] hosts = [.. apps.Select(app => (app.Configuration.Project, app.BuildBegan))];
                 IReadOnlyList<ProjectModel> projects = session.Projects;
-                // Read before anything is built, off the UI thread: an AppHost's own code (its folder's, not its services'), and
-                // each service's, so only what changed stops and builds, never over a program's running files.
+                // Read before anything is built, so only what changed stops and builds, never over a program's running files.
                 (bool hostChanged, (AspireAppRun App, List<AspireResourceRun> Changed)[] services) = await BackgroundWork.Run(() =>
                     (hosts.Any(host => BuiltInputs.ChangedSince(host.Project, host.Since, projects, references: false)),
                     runs.Select(run => (run.App, run.Running.Where(s => s.Service.ChangedSinceStart(projects, s.Since)).Select(s => s.Service).ToList())).ToArray()));
@@ -1011,9 +1005,7 @@ public sealed partial class BuildRunController
                     List<string> restarted = [];
                     foreach ((AspireAppRun app, List<AspireResourceRun> changes) in services.Where(s => s.Changed.Count > 0))
                     {
-                        // Through the run of services, as a container run's Rerun restarts what changed: sessions first, held again,
-                        // each stopped before its build.
-                        // What failed names the service and why, whichever of its stop, build or start it was.
+                        // Sessions first, held again, each stopped before its build.
                         if (await RestartServicesAsync(app, changes, work, "its code changed", build: true) is { } failed)
                         {
                             return Said(failed);
@@ -1037,10 +1029,9 @@ public sealed partial class BuildRunController
         return session.IsEnded ? Left : await RunAspireAsync(again, null, mode, cancellation);
     }
 
-    /// <summary>Resolves and builds the chosen configuration, then launches its plan under the debugger, as Rider's Debug
-    /// does, with these arguments in place of its own if given; the Debug window opens on its Console until the program
-    /// stops somewhere. Null once its session is open, or what stopped it (a failed build, no configuration, the adapter's
-    /// refusal).</summary>
+    /// <summary>Resolves and builds the chosen configuration, then launches its plan under the debugger, with these arguments
+    /// in place of its own if given; the Debug window opens on its Console until the program stops somewhere. Null once its
+    /// session is open, or what stopped it (a failed build, no configuration, the adapter's refusal).</summary>
     public Task<string?> DebugAsync(string? arguments = null, CancellationToken cancellation = default) =>
         session.Configurations.Chosen is { } chosen ? DebugAsync(chosen, arguments, cancellation) : Task.FromResult<string?>("Nothing to debug: no executable project");
 
@@ -1108,8 +1099,7 @@ public sealed partial class BuildRunController
         DebugProject = Path.GetDirectoryName(plan.Project);
         DebugPlan = plan;
         DebugController debug = session.Debug;
-        // An Avalonia or WPF app is launched with the Live Visual Tree's inspector in it, which its tab holds and which ends
-        // with this debugging.
+        // An Avalonia or WPF app is launched with the Live Visual Tree's inspector, held by its tab, ending with this debugging.
         (LaunchPlan launched, LiveApp? inspected) = session.Inspected(plan);
         Task<string?> starting = debug.StartAsync(launched, app: inspected);
         // Its tab, chosen as the start began, has the console its failed bindings are written to.

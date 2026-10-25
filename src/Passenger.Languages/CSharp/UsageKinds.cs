@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Passenger.Languages.CSharp;
 
-/// <summary>What a usage of a symbol does there, as Rider's Find window groups usages.</summary>
+/// <summary>What a usage of a symbol does there, by which usages are grouped.</summary>
 public enum UsageKind
 {
     Declaration,
@@ -17,7 +17,7 @@ public enum UsageKind
 
 /// <summary>Tells from a file's syntax what each usage of a symbol is: its declaration, a write (assigned, incremented,
 /// passed out or by reference), an invocation, a using directive's, a read of a value, or a type's use. The language
-/// server says only where usages are; Rider's grouping needs this.</summary>
+/// server says only where usages are.</summary>
 public static class UsageKinds
 {
     /// <summary>Each usage's kind, by where it starts in the file's syntax.</summary>
@@ -69,8 +69,8 @@ public static class UsageKinds
     }
 
     /// <summary>Whether the name at an offset is declared with its value there: a variable or field with an initializer, a
-    /// foreach variable, a pattern's or an out argument's designation. Rider highlights such a declaration as a write of
-    /// the symbol, where the language server calls every declaration a plain use.</summary>
+    /// foreach variable, a pattern's or an out argument's designation: highlighted as a write of the symbol, where the
+    /// language server calls every declaration a plain use.</summary>
     public static bool DeclaresWithValue(SyntaxNode root, int offset)
     {
         SyntaxToken token = root.FindToken(Math.Clamp(offset, 0, Math.Max(0, root.FullSpan.End - 1)));

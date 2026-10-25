@@ -10,14 +10,12 @@ using Passenger.Text;
 
 namespace Passenger.App.Containers;
 
-/// <summary>A compose file as Compose itself reads it, for the files it reads unasked in a folder: the first of
-/// compose.yaml, compose.yml, docker-compose.yml and docker-compose.yaml, with the first override beside it
-/// (compose.override.yml and the rest), the file's text as typed in its place and the other's from disk, the folder's .env
-/// as Compose reads it. <c>docker compose config</c>'s error is the file's problem, where its message names a place (else
-/// on the first line), or its override's; each <c>${VAR}</c> gets a hint of what it comes to (asked of Compose, never
-/// worked out here), and in the base file a scalar the override changes gets the value Compose ends with. Another compose
-/// file (compose.prod.yaml) is Compose's only with -f, so the engine says nothing of it; nor of a value it is not sure maps
-/// to the text (a value Compose normalizes, a flow collection's insides).</summary>
+/// <summary>A compose file as Compose itself reads it, for the files it reads unasked in a folder (the first base, and the
+/// first override beside it): the file's text as typed, the other's from disk, the folder's .env as Compose reads it.
+/// <c>docker compose config</c>'s error is the file's problem where its message names a place (else on the first line), or
+/// its override's; each <c>${VAR}</c> gets a hint of what Compose makes of it, and in the base file a scalar the override
+/// changes gets the value Compose ends with. A file Compose reads only with -f, and a value not surely mapped to the text
+/// (one Compose normalizes, a flow collection's insides), are given nothing.</summary>
 internal sealed partial class ComposeCheck(EngineChecks owner, OpenDocument document, WebDocument web) : EngineCheck(owner, document, web)
 {
     private static readonly string[] Bases = ["compose.yaml", "compose.yml", "docker-compose.yml", "docker-compose.yaml"];
@@ -328,7 +326,7 @@ internal sealed partial class ComposeCheck(EngineChecks owner, OpenDocument docu
     private static partial Regex NameJustBefore();
 
     /// <summary>What Compose said of the failure: its last line that is not one of its log's warnings, its secrets masked
-    /// (what it interpolated from the folder's .env among them), as every error of the engine is.</summary>
+    /// (what it interpolated from the folder's .env among them).</summary>
     private static string Error(ChildResult result, string folder) =>
         result.Error.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .LastOrDefault(l => !l.StartsWith("time=", StringComparison.Ordinal) && !ContainerEngine.ProviderFailed(l)) is { } last

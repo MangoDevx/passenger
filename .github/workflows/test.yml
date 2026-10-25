@@ -1,8 +1,6 @@
-# The solution built (warnings are errors) and every test run, on macOS (arm64), Windows and Linux (Ubuntu LTS, x64), as
-# `just build` and `just test` run them, each system's tests split across shards that run at once (#206): CI's (ci.yml)
-# when it is run by hand, and a release's (release.yml) before it packages anything. The results go where `just test`
-# puts them, artifacts/test-results. Every restore is locked to the packages.lock.json files (GitHub sets CI, which
-# Directory.Build.props makes RestoreLockedMode). Actions are pinned to a release's commit.
+# The solution built (warnings are errors) and every test run on macOS (arm64), Windows and Linux (Ubuntu LTS, x64),
+# each system's tests split across shards that run at once, the results in artifacts/test-results. Every restore is
+# locked to the packages.lock.json files. Actions are pinned to a release's commit.
 name: Test
 
 on:
@@ -18,12 +16,10 @@ env:
   AVALONIA_TELEMETRY_OPTOUT: 1
 
 jobs:
-  # One shard of a system's tests, on a runner of its own. Each shard builds the solution itself, two minutes beside the
-  # others, rather than all of them waiting on one build and its 2 GB of output uploaded once and downloaded by each.
-  # Each lists the whole suite and deals its classes to the system's shards by their seconds there
-  # (tools/test-shards.py, tests/Passenger.Tests/TestTimes.json): the same deal in every shard of a commit, of which it
-  # runs its own hand. Inside a shard xunit keeps the suite's order: the protocol tests beside the window tests, and
-  # Alone's classes after both with nothing beside them.
+  # One shard of a system's tests, on a runner of its own. Each builds the solution itself, two minutes beside the
+  # others, rather than all waiting on one build's 2 GB uploaded once and downloaded by each. Each lists the whole suite
+  # and deals its classes to the system's shards by their seconds there (TestTimes.json), the same deal in every shard
+  # of a commit, and runs its own hand.
   shard:
     name: ${{ matrix.name }}, shard ${{ matrix.shard }} of ${{ matrix.shards }}
     strategy:
@@ -35,10 +31,9 @@ jobs:
         # its others). With four, about 13 to 15 minutes of tests each; GitHub runs five macOS jobs at once, the fifth
         # CI's disk image.
         shard: [1, 2, 3, 4]
-        # time_scale multiplies every test's wall-clock limit, each written as the time on the Mac
-        # (PASSENGER_TEST_TIME_SCALE): the 90th percentile of how much longer each test of a second or more on the Mac took
-        # on the system's runner (run 39301973028's .trx files against the Mac's, 19 October: macOS 2.23, Windows 2.64,
-        # Linux 1.96), to the nearest half.
+        # time_scale multiplies every test's wall-clock limit (PASSENGER_TEST_TIME_SCALE), each written as the Mac's
+        # time: to the nearest half, the 90th percentile of how much longer a test of a second or more took on the
+        # system's runner (in October, macOS 2.23, Windows 2.64, Linux 1.96).
         include:
           - system: macOS
             name: macOS (arm64)
@@ -61,7 +56,6 @@ jobs:
       run:
         shell: bash
     steps:
-      # The whole history: tools/package-mac.sh names a build by its tags and commits.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
@@ -72,17 +66,15 @@ jobs:
           global-json-file: global.json
           dotnet-version: 10.0.x
 
-      # The runner's .NET is in ~/.dotnet, not where the macOS installer puts it: registered as an installer registers
-      # another place, so the IDE started with launchd's bare environment (McpTests) finds its runtime, as on a Mac.
+      # The runner's .NET is in ~/.dotnet, not where the macOS installer puts it: registered, so the IDE started with
+      # launchd's bare environment finds its runtime.
       - name: Register .NET's install location
         if: runner.os == 'macOS'
         run: sudo mkdir -p /etc/dotnet && echo "$DOTNET_ROOT" | sudo tee /etc/dotnet/install_location
 
-      # The runtime's createdump (a memory snapshot) reads its program as a debugger does, which macOS lets a third party's
-      # tool do once a member of _developer answers the system.privilege.taskport password prompt, remembered for ten
-      # hours. A developer's Mac asks once a session; the runner has no one to answer, so the prompt waits for ever. The
-      # runner joins _developer and the right asks its members nothing, as developer mode does for Apple's own tools; the
-      # state before is printed for a hang that remains.
+      # createdump (a memory snapshot) reads its program as a debugger does, for which macOS asks a member of _developer
+      # for a password that no one on a runner answers: the runner joins _developer, and the right asks its members
+      # nothing. The state before is printed, for a hang that remains.
       - name: Let debugging tools read the runner's processes
         if: runner.os == 'macOS'
         run: |
@@ -93,8 +85,8 @@ jobs:
           sudo dscacheutil -flushcache
           sudo security authorizationdb write system.privilege.taskport is-developer
 
-      # What site/linux.html asks a person to install: Git, the window's X11 libraries, and fontconfig, which Skia draws
-      # the headless tests' text with too.
+      # The libraries a person installs (site/linux.html): Git, the window's X11 libraries, and fontconfig, which Skia
+      # draws the headless tests' text with too.
       - name: The libraries Passenger needs on Linux
         if: runner.os == 'Linux'
         run: |
@@ -125,10 +117,8 @@ jobs:
       - name: Build
         run: dotnet build --no-restore
 
-      # Only Linux's runner runs Linux containers. The images the container tests run on (busybox from Docker Hub, which
-      # limits pulls, and .NET's from mcr.microsoft.com: tests/Passenger.Tests/ContainerImages.txt) come from a cache of
-      # them, pulled only when the cache lacks them, so no test pulls one: PASSENGER_TEST_PULL=never makes a test whose
-      # image is missing skip, saying which, where it would have pulled it on a developer's machine.
+      # Only Linux's runner runs Linux containers. The images the container tests run on (ContainerImages.txt; Docker
+      # Hub limits pulls) come from a cache, pulled only when it lacks them, so no test pulls one.
       - name: Restore cached container images
         id: images
         if: runner.os == 'Linux'
@@ -167,8 +157,8 @@ jobs:
           path: ${{ runner.temp }}/container-images.tar
           key: ${{ steps.images.outputs.cache-primary-key }}
 
-      # A file the .gitignore matches never reaches a clone (#58). After the build, so one that wrote beside the
-      # sources shows too; and no tracked file may match a rule, since its folder's other files would not be seen.
+      # A file the .gitignore matches never reaches a clone. After the build, so one that wrote beside the sources
+      # shows too; and no tracked file may match a rule, since its folder's other files would not be seen.
       - name: No source is ignored by Git
         if: matrix.shard == 1
         run: |
@@ -180,14 +170,11 @@ jobs:
             exit 1
           fi
 
-      # The deal goes in the log. Before any test runs, what each shard's settings select is listed and every test of
-      # the suite must be in exactly one: by the first shard alone, since every shard deals the same from the same suite
-      # and the filters select alike everywhere, while each listing costs a VSTest start and a discovery (the summary's
-      # cover finds a shard that listed a different suite). The suite's listing and the shards' settings go with the
-      # results: the summary checks the results against the listing, and a person sees what each shard ran. A listing
-      # that names no test, or says discovery failed (xunit 3.2's runner can spoil its answer to the adapter's
-      # -assemblyInfo, xunit #3576), is listed again, and the step fails with what dotnet printed only when the last of
-      # three tries is no better.
+      # The deal goes in the log. Before any test runs, the first shard alone lists what each shard's settings select
+      # and fails unless every test is in exactly one (every shard deals the same, and each listing costs a VSTest
+      # start). The suite's listing and the shards' settings go with the results, for the summary to check them against
+      # and a person to read. A listing that names no test or says discovery failed (xunit #3576) is asked again, up to
+      # three tries.
       - name: Deal the tests to the shards
         env:
           SYSTEM: ${{ matrix.system }}
@@ -207,11 +194,10 @@ jobs:
           done
           "$python" -I tools/test-shards.py check "$results/suite.txt" "$results"/shards/listed-*.txt
 
-      # A test hung for 10 minutes is stopped and named, rather than holding the job to its timeout. Each test class's
-      # time goes in the job's summary (tools/test-times.py), a class over its budget is a warning, and the shard over
-      # tests/Passenger.Tests/TestBudget.json's minutes fails, with the table that says where the time went; the step's
-      # timeout is above that budget, so a slow shard is failed by it rather than ended with no table. On a failure the
-      # failed tests are listed last, as annotations and in the job's summary.
+      # A test hung for 10 minutes is stopped and named, rather than holding the job to its timeout. Each class's time
+      # goes in the job's summary, a class over its budget a warning and a shard over TestBudget.json's minutes a
+      # failure; the step's timeout is above that budget, so a slow shard still leaves its table. The failed tests are
+      # listed last, as annotations and in the job's summary.
       - name: Test
         shell: pwsh
         timeout-minutes: 38
@@ -274,11 +260,10 @@ jobs:
           name: test-results-${{ matrix.system }}-${{ matrix.shard }}
           path: artifacts/test-results/
 
-  # Each system's result as one check, under the name its one job had before the shards: every shard's job succeeded
-  # and every test of the suite has exactly one result among them (tools/test-shards.py cover), with each class's time
-  # across them in the summary (tools/test-times.py), and a warning when dealing from this run's times would end the
-  # slowest shard two minutes sooner or more (`just test-times RUN` writes them to TestTimes.json, for a person to
-  # commit, since CI commits nothing). It waits for every system's shards, as one matrix job's needs must.
+  # Each system's result as one check: every shard's job succeeded and every test has exactly one result among them,
+  # each class's time in the summary, and a warning when dealing by this run's times would end the slowest shard two
+  # minutes sooner (`just test-times RUN` writes them, for a person to commit). It waits for every system's shards, as
+  # one matrix job's needs must.
   summary:
     name: ${{ matrix.name }}
     needs: shard

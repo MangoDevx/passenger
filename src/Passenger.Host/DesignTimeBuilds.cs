@@ -10,14 +10,13 @@ using Passenger.Core;
 
 namespace Passenger.Host;
 
-/// <summary>Design-time builds, as Roslyn's own build host runs them for its language server: each project (each target
-/// framework of a multi-targeted one) built to its compiler's command line without compiling, with its documents,
-/// additional files, .editorconfig files and outputs, written as Roslyn's ProjectFileInfo so the server's own project
-/// loader takes them as it takes its build host's. The builds of one request share one build session, on MSBuild's nodes
-/// (half the processors, as Roslyn's), one session at a time.</summary>
+/// <summary>Design-time builds for Roslyn's server: each project (each target framework of a multi-targeted one) built to
+/// its compiler's command line without compiling, with its documents, additional files, .editorconfig files and outputs,
+/// written as the ProjectFileInfo the server's project loader reads. The builds of one request share one build session
+/// on MSBuild's nodes (half the processors), one session at a time.</summary>
 internal static class DesignTimeBuilds
 {
-    /// <summary>Roslyn's build host's: a design-time build that runs the compiler's task for its command line, alone.</summary>
+    /// <summary>The global properties of a design-time build that runs the compiler's task for its command line, alone.</summary>
     private static readonly Dictionary<string, string> Defaults = new(StringComparer.OrdinalIgnoreCase)
     {
         ["DesignTimeBuild"] = "true",
@@ -28,12 +27,11 @@ internal static class DesignTimeBuilds
         ["SkipCompilerExecution"] = "true",
         ["ContinueOnError"] = "ErrorAndContinue",
         ["ShouldUnsetParentConfigurationAndPlatform"] = "false",
-        // Not Roslyn's: Compile's dependencies make obj/…/apphost (signed, on macOS) once the assembly is there, which the
-        // server never reads and a build running beside the design-time build makes and signs too.
+        // Else Compile's dependencies make (and on macOS sign) obj/…/apphost, which a build beside this one makes too.
         ["UseAppHost"] = "false",
     };
 
-    /// <summary>As Roslyn's build host writes ProjectFileInfo: camelCase, nulls left out.</summary>
+    /// <summary>ProjectFileInfo as the server's loader reads it: camelCase, nulls left out.</summary>
     private static readonly JsonSerializerOptions Written = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -44,10 +42,9 @@ internal static class DesignTimeBuilds
     private static readonly SemaphoreSlim Session = new(1, 1);
 
     /// <summary>The design-time builds that generate XAML's output in obj/ and the IDE's own builds holding them off
-    /// (<see cref="HoldAsync"/>), which take turns, as Visual Studio's builds and design-time builds take its build manager:
-    /// both write WPF's obj/…/App.g.cs and Avalonia's obj/…/Avalonia/resources, which Windows lets one writer open at a
-    /// time, and rewrite them under the other's compiler. Other design-time builds write nothing a build reads, and never
-    /// wait.</summary>
+    /// (<see cref="HoldAsync"/>) take turns: both write WPF's obj/…/App.g.cs and Avalonia's obj/…/Avalonia/resources,
+    /// which Windows lets one writer open at a time, and would rewrite them under the other's compiler. Other design-time
+    /// builds write nothing a build reads, and never wait.</summary>
     private static readonly object Turns = new();
 
     /// <summary>The targets a design-time build runs that write what the project's build then reads: WPF's markup
@@ -245,9 +242,9 @@ internal static class DesignTimeBuilds
         }
     }
 
-    /// <summary>Compile and CoreCompile, and XAML's markup compilation where a project has it, as Roslyn's build host runs,
-    /// with the errors and warnings the build logged, which the server reports as its build host's. One that generates
-    /// XAML's output (<see cref="Generating"/>) takes its turn with the IDE's own builds (<see cref="HoldAsync"/>).</summary>
+    /// <summary>Compile and CoreCompile, and XAML's markup compilation where a project has it, with the errors and
+    /// warnings the build logged. One that generates XAML's output (<see cref="Generating"/>) takes its turn with the
+    /// IDE's own builds (<see cref="HoldAsync"/>).</summary>
     private static async Task<(ProjectInstance Built, IReadOnlyList<BuildDiagnostic> Logged)> BuildAsync(Project project, DiagnosticLogger diagnostics, CancellationToken cancel)
     {
         ProjectInstance instance = project.CreateProjectInstance();
@@ -281,7 +278,7 @@ internal static class DesignTimeBuilds
         return (result.ProjectStateAfterBuild ?? instance, diagnostics.Take(submission.SubmissionId));
     }
 
-    /// <summary>A built project as Roslyn's build host reads one (its ProjectInstanceReader).</summary>
+    /// <summary>A built project read into the ProjectFileInfo the server takes.</summary>
     private static RoslynProjectFileInfo Read(string language, string path, ProjectInstance instance, FileGlobs[] globs)
     {
         string directory = Path.GetDirectoryName(path)! + Path.DirectorySeparatorChar;
@@ -318,8 +315,8 @@ internal static class DesignTimeBuilds
     private static string[] Aliases(ProjectItemInstance item) =>
         item.GetMetadataValue("Aliases") is { Length: > 0 } aliases ? [.. aliases.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)] : [];
 
-    /// <summary>A document as Roslyn's build host places it: where it is, where it shows (its Link, else its path in the
-    /// project, else its name), and the project's folders it is under.</summary>
+    /// <summary>A document's place: where it is, where it shows (its Link, else its path in the project, else its name),
+    /// and the project's folders it is under.</summary>
     private static DocumentFileInfo Document(ProjectItemInstance item, string directory)
     {
         string spec = item.EvaluatedInclude;
@@ -336,7 +333,7 @@ internal static class DesignTimeBuilds
 
     private static string Full(string glob) => Path.GetFullPath(glob);
 
-    /// <summary>The errors and warnings each build logged, by its submission, as Roslyn's build host's logger keeps them.</summary>
+    /// <summary>The errors and warnings each build logged, by its submission.</summary>
     private sealed class DiagnosticLogger : ILogger
     {
         private readonly ConcurrentDictionary<int, List<BuildDiagnostic>> bySubmission = new();
@@ -382,8 +379,8 @@ internal static class DesignTimeBuilds
     }
 }
 
-// Roslyn's ProjectFileInfo and what it holds, as its build host writes them (Microsoft.CodeAnalysis.Workspaces.MSBuild's
-// contracts): the server's own loader reads these.
+// Roslyn's ProjectFileInfo and what it holds (Microsoft.CodeAnalysis.Workspaces.MSBuild's contracts), which the server's
+// loader reads.
 
 internal sealed record RoslynProjectFileInfo
 {

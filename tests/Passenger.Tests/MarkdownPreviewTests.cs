@@ -14,10 +14,10 @@ using SkiaSharp;
 
 namespace Passenger.Tests;
 
-/// <summary>A Markdown file's live preview beside its editor (#451), Passenger's own renderer as What's New draws with: each
-/// kind of block a README has, GitHub's tables and task lists, fenced code coloured as the editor colours it, the images
-/// of files inside the open folder and none from outside it; following the typing and the editor's scroll; its links
-/// opening the browser, another file or a heading; and the choice to show it kept for the next window.</summary>
+/// <summary>A Markdown file's live preview beside its editor: each kind of block a README has, GitHub's tables and task
+/// lists, fenced code coloured as the editor colours it, the images of files inside the open folder and none from outside
+/// it; following the typing and the editor's scroll; its links opening the browser, another file or a heading; and the
+/// choice to show it kept for the next window.</summary>
 public sealed class MarkdownPreviewTests
 {
     /// <summary>A shop folder with a README of every kind of block, an image inside it and one beside it, outside.</summary>
@@ -110,7 +110,6 @@ public sealed class MarkdownPreviewTests
         MarkdownPreview preview = Shown(group);
         Assert.True(group.Editor.IsEffectivelyVisible, "The README's editor went for its preview, which stands beside it");
 
-        // A heading of each level, its marks drawn rather than shown.
         MarkdownText[] words = [.. preview.GetLogicalDescendants().OfType<MarkdownText>()];
         string[] headings = ["Shop", "Getting started", "Tasks", "Prices", "A quote", "Code"];
         for (int level = 1; level <= 6; level++)
@@ -120,14 +119,12 @@ public sealed class MarkdownPreviewTests
         }
         Assert.DoesNotContain("##", preview.Text, StringComparison.Ordinal);
 
-        // Strong words bold, emphasis in italics, a code span in the editor's font.
         MarkdownText said = words.First(w => w.Shown.StartsWith("A shop with", StringComparison.Ordinal));
         Run[] runs = [.. said.Inlines!.OfType<Run>()];
         Assert.True(runs.Any(r => r.Text == "strong words" && r.FontWeight == FontWeight.Bold), "The strong words are not drawn bold");
         Assert.True(runs.Any(r => r.Text == "emphasis" && r.FontStyle == FontStyle.Italic), "The emphasis is not drawn in italics");
         Assert.True(runs.Any(r => r.Text == "code spans" && r.FontFamily == CodeBlock.Font), "The code span is not drawn in the editor's font");
 
-        // A list inside a list, bulleted as the next depth; a task list's items drawn as their checks.
         Assert.True(preview.GetLogicalDescendants().OfType<StackPanel>().Any(l => l.Classes.Contains("mdList")
             && l.GetLogicalDescendants().OfType<StackPanel>().Any(inner => inner.Classes.Contains("mdList"))), "The list inside a list is not drawn as one");
         Border[] tasks = [.. preview.GetLogicalDescendants().OfType<Border>().Where(b => b.Classes.Contains("mdTask"))];
@@ -135,19 +132,16 @@ public sealed class MarkdownPreviewTests
             $"The task list draws {tasks.Length} checks, done [{string.Join(", ", tasks.Select(t => t.Classes.Contains("done")))}], not one done and one to do");
         Assert.True(words.Any(w => w.Shown == "Ship the shop"), "A task's words still show its [ ] mark");
 
-        // The table: its cells framed, its header apart, each column aligned as its delimiter says.
         Border[] cells = [.. preview.GetLogicalDescendants().OfType<Border>().Where(b => b.Classes.Contains("mdCell"))];
         Assert.True(cells.Length == 9 && cells.Take(3).All(c => c.Classes.Contains("head")), $"The table draws {cells.Length} cells, not its header's 3 and two rows' 6");
         Assert.Equal(TextAlignment.Center, Cell(cells, "fruit").TextAlignment);
         Assert.Equal(TextAlignment.Right, Cell(cells, "3.50").TextAlignment);
         Assert.Equal(TextAlignment.Left, Cell(cells, "Apple").TextAlignment);
 
-        // The quote and the rule.
         Assert.True(preview.GetLogicalDescendants().OfType<Border>().Any(b => b.Classes.Contains("mdQuote")
             && b.GetLogicalDescendants().OfType<MarkdownText>().Any(t => t.Shown == "Shops sell things.")), "The block quote is not drawn as one");
         Assert.Contains(preview.GetLogicalDescendants().OfType<Border>(), b => b.Classes.Contains("mdRule"));
 
-        // Fenced code coloured as the editor colours its language.
         MarkdownCode[] code = [.. preview.GetLogicalDescendants().OfType<MarkdownCode>()];
         Assert.True(code.Select(c => c.Language).SequenceEqual(["C#", "JSON"]), $"The fences are coloured as [{string.Join(", ", code.Select(c => c.Language))}], not C# and JSON");
         IBrush keyword = Brush(window, "Passenger.Syntax.Keyword");
@@ -155,7 +149,6 @@ public sealed class MarkdownPreviewTests
         Ui.WaitFor(() => code[0].Runs.Any(r => r.Text == "class" && r.Foreground == keyword), "the C# fence's 'class' in the editor's keyword colour");
         Ui.WaitFor(() => code[1].Runs.Any(r => r.Text?.Contains("shop", StringComparison.Ordinal) == true && r.Foreground == text), "the JSON fence's string in the editor's string colour");
 
-        // The picture inside the folder is drawn; the one outside it and the web's are their words.
         MarkdownPicture picture = Assert.Single(preview.GetLogicalDescendants().OfType<MarkdownPicture>());
         Assert.True(PathNames.Same(picture.File, PathNames.Canonical(Path.Combine(folder, "images", "inside.png"))), $"The picture drawn is {picture.File}, not the folder's own");
         Ui.WaitFor(() => picture.Shown is { PixelSize: { Width: 64, Height: 32 } }, "the folder's own picture read and drawn");
@@ -163,18 +156,15 @@ public sealed class MarkdownPreviewTests
         Assert.True(elsewhere.Shown.Contains("a secret", StringComparison.Ordinal) && elsewhere.Shown.Contains("a badge", StringComparison.Ordinal),
             $"The pictures from outside the folder are not their words: '{elsewhere.Shown}'");
 
-        // A web link opens in the browser, the one way the IDE opens one.
         Uri website = new("https://example.com/shop");
         Ui.Click(said, said.PointOf(website));
         Assert.True(window.Browsed.LastOrDefault() == website, $"A click on the website's link opened [{string.Join(", ", window.Browsed)}]");
 
-        // A heading's link scrolls the preview to it.
         Ui.Click(said, said.PointOf(new Uri("#prices", UriKind.Relative)));
         Control prices = preview.Heading("prices") ?? throw new Xunit.Sdk.XunitException("The Prices heading has no anchor 'prices'");
         Assert.True(Math.Abs(preview.Offset.Y - preview.TopOf(prices)) < 1,
             $"The link to #prices left the preview at {preview.Offset.Y:0}, not its heading's {preview.TopOf(prices):0}");
 
-        // The editor scrolled: the block at its top line comes to the preview's top.
         CodeEditor editor = group.Editor;
         int line = editor.Document.Snapshot.ToString().Split('\n').ToList().IndexOf("## Section 12");
         Scroll(editor, line);
@@ -185,7 +175,6 @@ public sealed class MarkdownPreviewTests
         Scroll(editor, 0);
         Assert.Equal(0, preview.Offset.Y);
 
-        // A new heading typed shows once typing pauses, every block it did not change keeping its control.
         Control[] before = [.. preview.Blocks];
         editor.Focus();
         Ui.PlaceAfter(editor, "inside.png)\n\n");
@@ -199,7 +188,6 @@ public sealed class MarkdownPreviewTests
         Assert.True(made.Length == 1 && before.All(preview.Blocks.Contains),
             $"A heading typed made {made.Length} blocks' controls and kept {before.Count(preview.Blocks.Contains)} of {before.Length}, not one and all");
 
-        // A link to a file beside it opens that file in the editor.
         Ui.Click(said, said.PointOf(new Uri("docs/guide.md", UriKind.Relative)));
         Assert.True(PathNames.Same(window.EditorArea.Active?.Path ?? "", PathNames.Canonical(Path.Combine(folder, "docs", "guide.md"))),
             $"The guide's link opened {window.EditorArea.Active?.Path ?? "nothing"}");
@@ -218,9 +206,8 @@ public sealed class MarkdownPreviewTests
         Shown(group);
         Assert.True(group.MarkdownToggle.IsVisible && group.MarkdownToggle.IsChecked == true, "The README's tab strip has no pressed preview toggle");
 
-        // Split Right: each group its own preview of the one file, the closed split's let go with it.
         WeakReference<MarkdownPreview> closed = SplitAndClose(window);
-        // Avalonia's hold gesture keeps the pressed close button (so the group) 300 ms, until a frame fires its timer.
+        // Avalonia's hold gesture keeps the pressed close button, and so the group, until a frame fires its timer.
         Ui.WaitFor(() =>
         {
             GC.Collect();
@@ -230,7 +217,6 @@ public sealed class MarkdownPreviewTests
         }, "the closed split's preview to be let go (still alive, it is held by the file it showed or the window)", TimeSpan.FromSeconds(10));
         group = Assert.Single(window.EditorArea.Groups);
 
-        // The toggle hides it, the editor taking the group whole; another file shows no toggle.
         Ui.Click(group.MarkdownToggle);
         Assert.True(group.Markdown is null && group.MarkdownToggle.IsChecked == false, "The toggle left the preview shown");
         Assert.Null(window.OpenFile(Path.Combine(folder, "Program.cs")));
@@ -239,7 +225,6 @@ public sealed class MarkdownPreviewTests
         window.Close();
         Ui.Settle();
 
-        // The next window opens a Markdown file as the last was left: without its preview, until View shows it again.
         window = Started(state, folder);
         Assert.Null(window.OpenFile(readme));
         Ui.Settle();
@@ -261,7 +246,7 @@ public sealed class MarkdownPreviewTests
         window.Close();
     }
 
-    /// <summary>A person's window keeping its state in the test's folder, as the person's keeps theirs, on the folder.</summary>
+    /// <summary>A window keeping its state in the test's folder, on the folder.</summary>
     private static MainWindow Started(string state, string folder)
     {
         MainWindow window = new() { Width = 1400, Height = 900, StateFolder = state, StartsLanguageServer = false };

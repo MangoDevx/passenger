@@ -26,8 +26,8 @@ public static partial class McpHost
     /// the platform is: <c>--mcp</c> runs on the headless one alone.</summary>
     public static bool IsHeadless { get; private set; }
 
-    /// <summary>The variable a test sets for an <c>--mcp</c> Passenger whose agent asks nothing of C#: <c>off</c> starts no C#
-    /// language server (<see cref="MainWindow.StartsLanguageServer"/>), so the test pays no server's start, load or restore.</summary>
+    /// <summary>The variable that, set to <c>off</c>, has an <c>--mcp</c> Passenger start no C# language server
+    /// (<see cref="MainWindow.StartsLanguageServer"/>), for an agent that asks nothing of C#.</summary>
     public const string LanguageServerVariable = "PASSENGER_MCP_LANGUAGE_SERVER";
 
     /// <summary>Whether <c>--mcp</c>'s IDE starts the C# language server: always, unless <see cref="LanguageServerVariable"/>
@@ -108,9 +108,9 @@ public static partial class McpHost
     /// writes it, its schema the same in both.</summary>
     internal static McpServerToolCreateOptions ToolCreateOptions() => new() { SerializerOptions = AnswerJson };
 
-    /// <summary>A tool as every connection and <c>--mcp-attach</c> list it: its schema without what says nothing, an
-    /// optional parameter's null default and null type (left out says as much), which every list paid for some 110 times,
-    /// and its title once, the tool's, where the SDK writes it again in its annotations.</summary>
+    /// <summary>A tool as every connection and <c>--mcp-attach</c> list it: its schema without what says nothing (an
+    /// optional parameter's null default and null type), and its title once, where the SDK writes it again in its
+    /// annotations.</summary>
     internal static McpServerTool Lean(McpServerTool tool)
     {
         Tool shown = tool.ProtocolTool;
@@ -195,10 +195,10 @@ public static partial class McpHost
     /// however far it got.</summary>
     internal static readonly TimeSpan EndLimit = TimeSpan.FromSeconds(3);
 
-    /// <summary>Has the system's request to end the process (SIGTERM, which an agent's client may send a moment after it
-    /// closes the input, as OpenCode 1's does 20 ms after) end it as the end of its input does, <paramref name="end"/>, so
-    /// its state is written and what it started ends, the process going after <see cref="EndLimit"/> at the latest.
-    /// Null where the system has no such signal to take.</summary>
+    /// <summary>Has the system's request to end the process (SIGTERM, which a client may send just after closing the
+    /// input) end it as the end of its input does, <paramref name="end"/>, so its state is written and what it started
+    /// ends, the process going after <see cref="EndLimit"/> at the latest. Null where the system has no such
+    /// signal.</summary>
     internal static System.Runtime.InteropServices.PosixSignalRegistration? EndOnSignal(Action end)
     {
         try
@@ -263,7 +263,6 @@ public static partial class McpHost
         ready.SetResult(new PassengerTools(window, connection));
         // Posted once the dispatcher is this thread's: the agent may have gone before it was.
         _ = ended.Task.ContinueWith(_ => UiThread.Post(done.Cancel), TaskScheduler.Default);
-        // The UI thread runs the dispatcher's loop, timers and all, until the agent goes.
         Dispatcher.UIThread.MainLoop(done.Token);
         // What the agent left running (a program, a debugger) ends with the windows, as it does with the person's.
         PassengerApp.Quit();
@@ -271,14 +270,14 @@ public static partial class McpHost
         return 0;
     }
 
-    /// <summary><c>--headless [PATH]</c>: a person's window on the headless platform, which a test run's
-    /// <c>--mcp-attach</c> starts in place of the installed app (<see cref="McpProxy.StartVariable"/>): it listens for
-    /// agents and asks before letting them in, as any window does, until its input ends.</summary>
+    /// <summary><c>--headless [PATH]</c>: a person's window on the headless platform, which <c>--mcp-attach</c> starts
+    /// in place of the installed app under <see cref="McpProxy.StartVariable"/>: it listens for agents and asks before
+    /// letting them in, as any window does, until its input ends.</summary>
     public static int RunHeadless(LaunchOptions launch)
     {
         IsHeadless = true;
         Stream input = Console.OpenStandardInput();
-        // Its starter (a test run's --mcp-attach) reads nothing of its output or error: the console goes to the log.
+        // Its starter reads nothing of its output or error: the console goes to the log.
         IdeLog.TakeConsole();
         AppBuilder.Configure<App>()
             .UseSkia()
@@ -355,8 +354,8 @@ public static partial class McpHost
         }
     }
 
-    /// <summary>The process a socket is named for: <c>PID-WINDOW.sock</c>, or <c>PID.sock</c> from before windows had
-    /// their own.</summary>
+    /// <summary>The process a socket is named for: <c>PID-WINDOW.sock</c>, or an older build's
+    /// <c>PID.sock</c>.</summary>
     internal static int? ProcessOf(string path) =>
         int.TryParse(Path.GetFileNameWithoutExtension(path).Split('-')[0], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int pid)
             ? pid

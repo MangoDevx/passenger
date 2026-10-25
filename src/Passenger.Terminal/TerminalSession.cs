@@ -6,11 +6,10 @@ using Porta.Pty;
 
 namespace Passenger.Terminal;
 
-/// <summary>A shell in a pseudo-terminal, as Rider's terminal runs one: the user's login shell in the folder, its
-/// output read off the window's thread and fed to the <see cref="TerminalScreen"/> on it a slice at a time, keys and
-/// pastes written to it off the window's thread, its size kept to the view's. Porta.Pty makes the pseudo-terminal
-/// (forkpty in a native shim on macOS and Linux, ConPTY on Windows). Its reads and writes block, so each has a thread
-/// of its own: on the thread pool, a pool every thread of which a build or a debugger holds would hold the shell too.</summary>
+/// <summary>A shell in a pseudo-terminal (Porta.Pty's): the user's login shell in the folder, its output read off the
+/// window's thread and fed to the <see cref="TerminalScreen"/> on it a slice at a time, keys and pastes written to it
+/// off the window's thread, its size kept to the view's. Its reads and writes block, so each has a thread of its own:
+/// on the thread pool, a pool every thread of which a build or a debugger holds would hold the shell too.</summary>
 public sealed class TerminalSession : IAsyncDisposable
 {
     /// <summary>Output read but not yet on the screen past which reading waits, so a program writing faster than the
@@ -87,7 +86,7 @@ public sealed class TerminalSession : IAsyncDisposable
         string cwd = Directory.Exists(folder) ? folder : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         if (!OperatingSystem.IsWindows())
         {
-            // A shell keeps an inherited PWD naming its folder through a link, and a build there by it undoes the IDE's (#413).
+            // A shell keeps an inherited PWD naming its folder through a link, and a build there by it undoes the IDE's.
             environment.TryAdd("PWD", cwd);
         }
         PtyOptions options = new()
@@ -104,8 +103,7 @@ public sealed class TerminalSession : IAsyncDisposable
         IsRunning = true;
         IPtyConnection started = pty;
         started.ProcessExited += (_, e) => Ended(e.ExitCode);
-        // Porta.Pty watches for the end from the spawn on, so a program that ends at once (sh -c "exit 3") may have ended,
-        // told no one, before the line above.
+        // Porta.Pty watches from the spawn on, so a program that ends at once may have ended unheard before the line above.
         if (started.WaitForExit(0))
         {
             Ended(started.ExitCode);
@@ -145,9 +143,9 @@ public sealed class TerminalSession : IAsyncDisposable
         }
     }
 
-    /// <summary>A paste: line breaks as Enter sends them, every other control character left out, as xterm and Windows
-    /// Terminal filter one (so no ESC in it can end its own bracket, nor a Ctrl+C or an escape sequence act as keys),
-    /// and bracketed when the program asked (so a shell takes it as text and runs none of its lines).</summary>
+    /// <summary>A paste: line breaks as Enter sends them, every other control character left out (so no ESC in it can
+    /// end its own bracket, nor a Ctrl+C or an escape sequence act as keys), and bracketed when the program asked (so a
+    /// shell takes it as text and runs none of its lines).</summary>
     public void Paste(string text)
     {
         StringBuilder kept = new(text.Length);
@@ -217,9 +215,8 @@ public sealed class TerminalSession : IAsyncDisposable
         return ValueTask.CompletedTask;
     }
 
-    /// <summary>The user's shell as a login shell, as Rider starts it: $SHELL (zsh where unset on macOS, bash on
-    /// Linux); PowerShell on Windows, the newer one when it is installed, keeping its history in HISTFILE when that is
-    /// set, as sh does.</summary>
+    /// <summary>The user's shell as a login shell: $SHELL (zsh where unset on macOS, bash on Linux); PowerShell on
+    /// Windows, the newer one when it is installed, keeping its history in HISTFILE when that is set.</summary>
     public static (string App, string[] Arguments) DefaultShell()
     {
         if (OperatingSystem.IsWindows())
@@ -229,8 +226,7 @@ public sealed class TerminalSession : IAsyncDisposable
                 .Select(folder => Path.Combine(folder, "pwsh.exe"))
                 .FirstOrDefault(File.Exists);
             string powershell = pwsh ?? Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe");
-            // PSReadLine reads no variable for its history, which a screenshot and a test run move (HISTFILE): it is told
-            // before the first prompt, and so before it reads or writes the person's own.
+            // PSReadLine reads no variable for its history, so it is told before the first prompt reads the person's own.
             return string.IsNullOrEmpty(Environment.GetEnvironmentVariable("HISTFILE"))
                 ? (powershell, ["-NoLogo"])
                 : (powershell, ["-NoLogo", "-NoExit", "-Command", "try { Set-PSReadLineOption -HistorySavePath $env:HISTFILE } catch { }"]);
@@ -368,7 +364,7 @@ public sealed class TerminalSession : IAsyncDisposable
     }
 
     /// <summary>Puts output on the screen for at most a <see cref="Slice"/>, then, while more comes, lets the window take
-    /// its keys and draw before the next, as xterm.js parses: a flood of output never holds the window nor keeps Ctrl+C
+    /// its keys and draw before the next: a flood of output never holds the window nor keeps Ctrl+C
     /// from the program. The next waits on a timer, since one posted would run ahead of the keys.</summary>
     private void TakeOutput()
     {

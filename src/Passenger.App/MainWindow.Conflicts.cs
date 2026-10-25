@@ -4,9 +4,9 @@ using Passenger.Editor;
 
 namespace Passenger.App;
 
-/// <summary>The window's merge conflicts, as Rider resolves them: the Conflicts dialog (from Git | Resolve Conflicts...,
-/// the Commit window's Merge Conflicts, and by itself when an update, an unstash or a cherry-pick stops for them), the
-/// three-way merge window over it, and Continue Rebase, Abort Rebase and Abort Merge.</summary>
+/// <summary>The window's merge conflicts: the Conflicts dialog (from Git | Resolve Conflicts..., the Commit window's
+/// Merge Conflicts, and by itself when an update, an unstash or a cherry-pick stops for them), the three-way merge
+/// window over it, and Continue Rebase, Abort Rebase and Abort Merge.</summary>
 public partial class MainWindow
 {
     private ConflictsDialog? conflictsDialog;
@@ -33,7 +33,7 @@ public partial class MainWindow
             });
     }
 
-    /// <summary>Rider's Conflicts dialog over the window, or the one open already; null when nothing is in conflict. Once
+    /// <summary>The Conflicts dialog over the window, or the one open already; null when nothing is in conflict. Once
     /// it closes with every conflict of a rebase resolved, the rebase is offered to go on.</summary>
     public ConflictsDialog? ShowConflicts()
     {

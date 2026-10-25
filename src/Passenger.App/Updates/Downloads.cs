@@ -4,9 +4,8 @@ using System.Text;
 
 namespace Passenger.App.Updates;
 
-/// <summary>A release's files as an update downloads them: over HTTPS (http only to a loopback address, a test's
-/// stand-in for GitHub), with nothing in the request but a User-Agent naming Passenger and its version, each file's
-/// SHA-256 taken as it comes.</summary>
+/// <summary>A release's files as an update downloads them: over HTTPS (http only to a loopback address), with nothing in
+/// the request but a User-Agent naming Passenger and its version, each file's SHA-256 taken as it comes.</summary>
 public static partial class Releases
 {
     /// <summary>How long a download may go without a byte before it is given up: a connection that stalled, not one that

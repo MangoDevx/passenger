@@ -2,17 +2,15 @@ using Passenger.Dap;
 
 namespace Passenger.DebugAdapter;
 
-/// <summary>The adapter's process: the Debug Adapter Protocol on standard input and output, until the client disconnects
-/// or goes away. Takes netcoredbg's flags, so a client written for it runs this. The IDE's own adapter (debugger/) and
-/// the container tools' <c>dap</c> mode (src/Passenger.ContainerTools) both run it, the one engine.</summary>
+/// <summary>The adapter's process: the Debug Adapter Protocol on standard input and output, until the client
+/// disconnects or goes away. Takes netcoredbg's flags, so a client written for it runs this.</summary>
 public static class AdapterProgram
 {
     /// <summary>Runs the adapter on the flags given; a flag it does not know is fatal (exit code 2), so a typo never runs
     /// something other than what was asked. <paramref name="usage"/> is how the help names the command.</summary>
     public static async Task<int> RunAsync(string[] args, string usage)
     {
-        // Every value the engine writes (a double's 3.14, a decimal's, a date's) reads as C# reads it, so a value shown is
-        // one Set Value takes back, whatever the machine's culture: the runtime's threads calling into the engine included.
+        // Every value shown reads as C# reads it, whatever the machine's culture, so Set Value takes it back.
         System.Globalization.CultureInfo.DefaultThreadCurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
         System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
         string? logPath = null;
@@ -62,8 +60,7 @@ public static class AdapterProgram
             }
         }
 
-        // How long an evaluation may run before it is stopped, shortened for the tests' run; a malformed value is fatal, as a
-        // flag's is (the IDE refuses to start with one, so its own adapters never meet it).
+        // How long an evaluation may run before it is stopped; a malformed value is fatal, as a flag's is.
         try
         {
             Passenger.Debugger.Extensions.EvaluationTimeout = AdapterEnvironment.EvaluationTimeout;
@@ -100,15 +97,13 @@ public static class AdapterProgram
         TaskCompletionSource disconnected = new(TaskCreationOptions.RunContinuationsAsynchronously);
         adapter.ShutdownRequested += () => disconnected.TrySetResult();
         connection.Start();
-        // The client's end of standard input closing ends the connection (its read sees the end), which a client that went
-        // without disconnecting (a killed IDE, docker exec's CLI ended) leaves: the debuggee is let go below.
+        // Ends at a disconnect, or as standard input ends, which a client gone without disconnecting leaves.
         await Task.WhenAny(disconnected.Task, connection.Completion);
         // A client that closed its end without disconnecting leaves the debuggee to be let go here.
         await adapter.AbortAsync();
         Log("Exiting");
         logWriter?.Dispose();
-        // A read of standard input cannot be cancelled, and the client may hold its end open: exit rather
-        // than wait on either.
+        // A read of standard input cannot be cancelled, and the client may hold its end open: exit rather than wait.
         Environment.Exit(0);
         return 0;
     }

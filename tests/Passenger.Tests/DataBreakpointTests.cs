@@ -13,10 +13,10 @@ using Passenger.Text;
 
 namespace Passenger.Tests;
 
-/// <summary>Rider's data breakpoints, from the window: Set Data Breakpoint on a field in Variables stops the program at the
-/// line that changes it, the breakpoint listed in the Breakpoints window with a line breakpoint's options. The .NET runtime
-/// watches memory for a debugger on Windows x64 alone, so there the program is debugged, and elsewhere the action is
-/// greyed saying so. Debugged through the window, so run alone.</summary>
+/// <summary>Data breakpoints, from the window: Set Data Breakpoint on a field in Variables stops the program at the
+/// line that changes it, the breakpoint listed in the Breakpoints window with a line breakpoint's options. The .NET
+/// runtime watches memory for a debugger on Windows x64 alone, so there the program is debugged, and elsewhere the
+/// action is greyed saying so. Debugged through the window, so run alone.</summary>
 [Collection(Alone.Name)]
 public sealed class DataBreakpointTests : IClassFixture<RestoredFolders>, IDisposable
 {
@@ -106,7 +106,6 @@ public sealed class DataBreakpointTests : IClassFixture<RestoredFolders>, IDispo
         DataBreakpoint watched = Assert.Single(window.Debugger.Breakpoints.Data);
         Assert.StartsWith("count on counter", watched.Location, StringComparison.Ordinal);
         Ui.WaitFor(() => watched.Status == BreakpointStatus.Bound, $"the debugger to take the data breakpoint, not to say {watched.Message}");
-        // Watched, the row's menu offers Rider's Remove Data Breakpoint instead.
         Assert.Equal(DataWatchOffer.Remove, Offered(window, view, Member(view, "counter", "count")).Item.Header as string);
 
         // Set(0) writes the value the field has, which does not stop it; Set(2) changes it, after the collection.
@@ -121,7 +120,6 @@ public sealed class DataBreakpointTests : IClassFixture<RestoredFolders>, IDispo
         Assert.Contains("Data Breakpoint Hit: count on counter", window.Status, StringComparison.Ordinal);
         Assert.Contains("Previous Value: 0, New Value: 2", window.Status, StringComparison.Ordinal);
 
-        // The write was the statement's last instruction: Step Over goes on to the next line, not past it.
         Ui.Run(window, AppActions.StepOver);
         Ui.WaitFor(() => editor.LineMarks.Contains(new LineMark(Writes + 1, LineMarkKind.ExecutionPoint)), "the step to the line after the write");
 
@@ -130,7 +128,7 @@ public sealed class DataBreakpointTests : IClassFixture<RestoredFolders>, IDispo
         Assert.Contains("Previous Value: 2, New Value: 3", window.Status, StringComparison.Ordinal);
         Ui.Run(window, AppActions.Stop);
         Ui.WaitFor(() => !window.Debugger.IsDebugging, "the session to end");
-        // The object was that session's: the breakpoint goes with it, as Rider's do.
+        // The object was that session's: the breakpoint goes with it.
         Assert.Empty(window.Debugger.Breakpoints.Data);
         window.Close();
     }
@@ -208,7 +206,6 @@ public sealed class DataBreakpointTests : IClassFixture<RestoredFolders>, IDispo
         Assert.Equal(DataWatchOffer.Set, field.Header as string);
         if (unavailable is not null)
         {
-            // Rider's word for it: only on Windows, and greyed elsewhere, the reason on the item.
             Assert.False(field.IsEnabled, "Set Data Breakpoint was offered where the runtime cannot watch memory");
             Assert.Equal(unavailable, fieldWhy);
             Assert.Contains("only available on Windows x64", fieldWhy, StringComparison.Ordinal);

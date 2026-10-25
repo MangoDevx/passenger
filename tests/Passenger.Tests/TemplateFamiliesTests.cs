@@ -9,11 +9,11 @@ using Passenger.Core;
 
 namespace Passenger.Tests;
 
-/// <summary>New Solution's templates in families, as Rider's New Solution lists its project types, read ahead: the dialog
-/// opens with every family listed, the templates read once the window started; related templates are one family (Unit
-/// Test's xUnit, NUnit and MSTest, Web's ASP.NET Core and Blazor apps), each a Type with its own options, a value set on
-/// one kept by another that has it; the search finds a family by any of its Types; and a template installed or
-/// uninstalled while the dialog is open fills in its family, the family and Type chosen kept.</summary>
+/// <summary>New Solution's templates in families, read ahead: the dialog opens with every family listed, the templates
+/// read once the window started; related templates are one family (Unit Test's xUnit, NUnit and MSTest, Web's ASP.NET
+/// Core and Blazor apps), each a Type with its own options, a value set on one kept by another that has it; the search
+/// finds a family by any of its Types; and a template installed or uninstalled while the dialog is open fills in its
+/// family, the family and Type chosen kept.</summary>
 public sealed class TemplateFamiliesTests : IDisposable
 {
     private const string TestRunner = "Test runner";
@@ -34,13 +34,11 @@ public sealed class TemplateFamiliesTests : IDisposable
         using IDisposable theme = TestsTheme();
         MainWindow window = Started();
 
-        // The templates are read as the window starts, below its input and drawing, so no settle waits for that read (a dialog
-        // opened before it lands fills in as its own read does); once it has, the dialog lists them as it opens.
+        // The templates are read as the window starts, below its input and drawing, so no settle waits for that read.
         Ui.WaitFor(() => ProjectTemplates.Ready(place) is not null, "the templates to be read ahead of New Solution", TimeSpan.FromMinutes(2));
         Assert.True(window.Perform(AppActions.NewSolution));
         NewProjectDialog dialog = Assert.Single(window.OwnedWindows.OfType<NewProjectDialog>());
-        // Rider's types first, in Rider's order: Desktop where WPF builds, MAUI where dotnet new has its workload's templates
-        // (GitHub's Windows runner has them, from Visual Studio); then every other family by name, Avalonia's among them.
+        // Rider's types first, in its order (Desktop where WPF builds, MAUI with its workload's templates), then the rest by name.
         string[] atOnce = [.. dialog.Families.Select(f => f.Name)];
         bool maui = Lists("MAUI");
         string[] riders = ["Console", "Class Library", .. OperatingSystem.IsWindows() ? ["Desktop"] : Array.Empty<string>(), "Web", "AI Extensions",
@@ -52,13 +50,11 @@ public sealed class TemplateFamiliesTests : IDisposable
         Assert.True(dialog.Chosen is { Name: "Console App" } && dialog.Family?.Name == "Console", $"The dialog opened on {dialog.Family?.Name}, {dialog.Chosen?.Name}");
         Assert.Empty(dialog.TypeNames);
 
-        // Its own read, landed, changes nothing it showed.
         Ui.WaitFor(() => dialog.TemplatesRead.IsCompleted, "the dialog's folder's templates to be read");
         Assert.True(dialog.Problem is null, $"The templates could not be read: {dialog.Problem}");
         Assert.Equal(atOnce, dialog.Families.Select(f => f.Name));
         Assert.Equal("Console App", dialog.Chosen?.Name);
 
-        // Families by the templates' classifications (a test template is a Unit Test), each Type named for what it adds.
         Assert.All(dialog.Templates.Where(t => t.Classifications.Contains("Test") && !t.Classifications.Contains("Aspire")),
             t => Assert.True(t.Family == "Unit Test", $"{t.Name}, a test template, is in {t.Family}"));
         Assert.All(dialog.Templates.Where(t => t.Classifications.Contains("MAUI") && !t.Classifications.Contains("Aspire")),
@@ -75,7 +71,6 @@ public sealed class TemplateFamiliesTests : IDisposable
             : "Aspire's family is not marked not installed though dotnet new has none of it");
         Assert.Equal(["App", "MVVM App", "Cross Platform Application"], Family(dialog, "Avalonia").Types.Select(t => t.TypeName));
 
-        // The search finds a family by a Type's name, opened on that Type; each family found opens on the one it names.
         Ui.Click(dialog.SearchBox);
         Type(dialog, "nunit");
         Assert.Equal(["Unit Test", "Aspire"], dialog.Listed.Select(f => f.Name));
@@ -84,7 +79,6 @@ public sealed class TemplateFamiliesTests : IDisposable
         Ui.Click(dialog.FamilyRow("Aspire")!);
         Assert.Equal("aspire-nunit", dialog.Chosen?.ShortName);
 
-        // A Type's words find its family on it, a family's name on its last Type; Down chooses the next family found.
         Search(dialog, "razor pages");
         Assert.True(dialog.Family?.Name == "Web" && dialog.Chosen?.ShortName == "webapp", $"The search for razor pages opened {dialog.Family?.Name} on {dialog.Chosen?.Name}");
         Search(dialog, "mvvm");
@@ -96,12 +90,10 @@ public sealed class TemplateFamiliesTests : IDisposable
         Press(dialog, Key.Down);
         Assert.True(dialog.Family?.Name == "Aspire" && dialog.Chosen?.ShortName == "aspire-nunit", $"Down from the search chose {dialog.Family?.Name}, {dialog.Chosen?.Name}");
 
-        // A search that finds nothing lists nothing and offers nothing to create.
         Search(dialog, "nothing like it");
         Assert.True(dialog.Listed.Count == 0 && dialog.Chosen is null, $"A search for nothing listed [{string.Join(", ", dialog.Listed.Select(f => f.Name))}], {dialog.Chosen?.Name} chosen");
         Assert.False(dialog.CreateButton.IsEnabled, "Create was offered with nothing found");
 
-        // Escape clears the search, the family and Type chosen before it back; then Escape cancels.
         Press(dialog, Key.Escape);
         Assert.Equal(string.Empty, dialog.Query);
         Assert.Equal(atOnce, dialog.Listed.Select(f => f.Name));
@@ -135,7 +127,6 @@ public sealed class TemplateFamiliesTests : IDisposable
         Pick(dialog, TestRunner, Platform);
         Assert.Contains($"--test-runner {Platform}", dialog.Command, StringComparison.Ordinal);
 
-        // MSTest has its own options, and the test runner set on NUnit, which it has too.
         Choose(dialog, "MSTest");
         Assert.Equal(["Use MSTest.Sdk", TestRunner, "Testing extensions profile", "Use explicit Program.cs file", "Coverage tool", "Fixture"], dialog.OptionLabels);
         Assert.Equal(Platform, Value(dialog, TestRunner));
@@ -143,7 +134,6 @@ public sealed class TemplateFamiliesTests : IDisposable
         Assert.Contains($"--test-runner {Platform}", dialog.Command, StringComparison.Ordinal);
         Pick(dialog, "Fixture", "TestInitialize");
 
-        // xUnit has no fixture to keep it; MSTest, chosen again, has it still.
         Choose(dialog, "xUnit");
         Assert.Equal(["xUnit.net version", TestRunner], dialog.OptionLabels);
         Assert.Equal(Platform, Value(dialog, TestRunner));
@@ -160,7 +150,6 @@ public sealed class TemplateFamiliesTests : IDisposable
         Assert.Matches("Include=\"MSTest\"|Sdk=\"MSTest\\.Sdk", Text(solution, "Checks", "Checks.csproj"));
         Assert.Contains("TestInitialize", string.Concat(Directory.EnumerateFiles(Path.Combine(solution, "Checks"), "*.cs").Select(File.ReadAllText)), StringComparison.Ordinal);
 
-        // Add, New Project makes the other frameworks' projects into it, each chosen as a Type of Unit Test.
         foreach ((string type, string name, string package) in ((string, string, string)[])[("NUnit", "Checks.NUnit", "Include=\"NUnit\""), ("xUnit", "Checks.XUnit", "Include=\"xunit")])
         {
             Ui.Run(window, AppActions.NewProject);

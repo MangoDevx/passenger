@@ -58,8 +58,7 @@ public static partial class PathNames
     public static string Moved(string path, string from, string to) => Within(path, from) ? to + path[from.Length..] : path;
 
     /// <summary>A path as the IDE shows it to a person: from the open folder when it is inside it ("src/App/App.cs"), the
-    /// folder itself by its name, and anywhere else (or with no folder open) whole, which says where it is. Every list,
-    /// banner and status line that names a file goes through this one.</summary>
+    /// folder itself by its name, and anywhere else (or with no folder open) whole, which says where it is.</summary>
     public static string Shown(string path, string? folder)
     {
         if (folder is not { Length: > 0 })
@@ -74,18 +73,17 @@ public static partial class PathNames
         return path.AsSpan().TrimEnd(Separators).Equals(top, Comparison) ? Path.GetFileName(top).ToString() : path;
     }
 
-    /// <summary>A folder and the folders under it that <paramref name="enters"/> lets the walk into, nearest first, each once
-    /// by its canonical path whatever links reach it (named as first reached), and none a link goes up to (the first folder
-    /// or one above it), as MSBuild's globs walk them: a link back up would otherwise have the walk go round the tree for
-    /// good. A folder that cannot be read is passed over. Every walk of a project's folders goes through this one.</summary>
+    /// <summary>A folder and the folders under it that <paramref name="enters"/> lets the walk into, nearest first,
+    /// each once by its canonical path whatever links reach it (named as first reached), and none a link goes up to
+    /// (the first folder or one above it), which would have the walk go round the tree for good. A folder that cannot
+    /// be read is passed over.</summary>
     public static IEnumerable<string> FoldersUnder(string start, Func<string, bool> enters) =>
         Walk(start, (sub, _) => enters(sub), inside: false, files: false).Select(f => f.At);
 
     /// <summary>The files in a folder and in the folders under it that <paramref name="enters"/> lets the walk into (asked of
-    /// each by its canonical path), folder by folder, nearest first, all by their canonical paths, as the editor, the folder
-    /// watcher and Local History name them: each folder once whatever links reach it and none a link leads to outside the
-    /// first, so no walk loops or leaves it; the system's own files (<see cref="IsSystemFile"/>) passed over. Every walk of
-    /// the open folder's files goes through this one.</summary>
+    /// each by its canonical path), folder by folder, nearest first, all by their canonical paths: each folder once
+    /// whatever links reach it and none a link leads to outside the first, so no walk loops or leaves it; the system's own
+    /// files (<see cref="IsSystemFile"/>) passed over.</summary>
     public static IEnumerable<(string Folder, IReadOnlyList<string> Files)> FilesUnder(string start, Func<string, bool> enters) =>
         Walk(start, (_, canonical) => enters(canonical), inside: true, files: true).Select(f => (f.Canonical, f.Files));
 

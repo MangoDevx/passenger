@@ -10,12 +10,12 @@ using Passenger.App.Settings;
 
 namespace Passenger.Tests;
 
-/// <summary>The toolbar is the main window's title bar, as Rider's main toolbar is: the window's title (solution and
-/// file) still named for the taskbar, Alt+Tab and Mission Control, the bar's empty space moving the window and a double
-/// click on it maximizing it, what is on the bar keeping its own clicks; the window's buttons at its right on Windows and
-/// Linux, macOS's traffic lights' room at its left; and on Linux alone Rider's choice of the merged bar, on at first, a
-/// right press on it showing the window manager's menu. Where Windows decides what a press in the bar is (its caption, a
-/// button, the bar's own), the roles it asks are checked, as no test sees the system's own window.</summary>
+/// <summary>The toolbar is the main window's title bar: the window's title (solution and file) still named for the
+/// taskbar, Alt+Tab and Mission Control, the bar's empty space moving the window and a double click on it maximizing it,
+/// what is on the bar keeping its own clicks; the window's buttons at its right on Windows and Linux, macOS's traffic
+/// lights' room at its left; and on Linux alone the choice of the merged bar, on at first, a right press on it showing
+/// the window manager's menu. Where Windows decides what a press in the bar is (its caption, a button, the bar's own),
+/// the roles it asks are checked, as no test sees the system's own window.</summary>
 public sealed class TitleBarTests : IDisposable
 {
     private readonly string folder = TestFolders.Create("title-bar-");
@@ -38,7 +38,7 @@ public sealed class TitleBarTests : IDisposable
         Click(window, empty);
         Assert.True(window.MovesStarted == 1, "A press on the bar's empty space did not move the window");
 
-        // What is on the bar keeps its clicks: Windows hands them to it, and a click on Settings opens Settings.
+        // What is on the bar keeps its clicks: Windows hands them to it.
         foreach (Button button in Bar(window).GetVisualDescendants().OfType<Button>().Where(b => b.IsEffectivelyVisible && !b.Classes.Contains("windowButton")))
         {
             Assert.True(ChromeAt(window, Ui.Centre(button, window)) == WindowDecorationsElementRole.User,
@@ -67,11 +67,11 @@ public sealed class TitleBarTests : IDisposable
     [AvaloniaFact]
     public void The_main_menus_titles_on_the_bar_keep_their_clicks_and_the_space_beside_them_still_moves_the_window()
     {
-        // macOS shows the main menu in its own menu bar; here the window keeps it on the toolbar as Windows and Linux do.
+        // The menu on the toolbar, as on Windows and Linux, rather than in macOS's own menu bar.
         MainWindow.SystemMenuBar = false;
         try
         {
-            // Wide enough for several titles beside Windows' own window buttons: at 1200 wide Windows fits three, the rest behind the button.
+            // Wide enough for several titles beside Windows' own window buttons.
             MainWindow window = Open(width: 1600);
             Assert.SkipUnless(window.TitleBarMerged, $"This desktop keeps the system's title bar: {TitleBars.NotOnThisDesktop}");
             window.ApplySettings(window.Settings with { MainMenuBar = true });
@@ -161,7 +161,6 @@ public sealed class TitleBarTests : IDisposable
         Assert.True(merge.IsChecked == true, "Merge main menu with window title is off before anyone turned it off");
         if (TitleBars.NotOnThisDesktop is { } why)
         {
-            // As IntelliJ, a desktop it does not merge them on keeps the system's, saying why.
             Assert.False(merge.IsEnabled, "The option can be changed on a desktop that keeps the system's title bar");
             Assert.Contains(dialog.GetVisualDescendants().OfType<TextBlock>(), text => text.Text == why);
             Assert.False(window.TitleBarMerged || window.ExtendClientAreaToDecorationsHint || Find<Control>(window, "WindowButtons").IsVisible,
@@ -177,7 +176,6 @@ public sealed class TitleBarTests : IDisposable
             "On at first, the toolbar is not the title bar with the window's buttons");
         Click(window, EmptySpace(window));
         Assert.True(window.MovesStarted == 1, "The merged title bar's empty space did not move the window");
-        // A right press there asks the window manager for its window menu, as on its own title bar; one on a button not.
         RightClick(window, EmptySpace(window));
         Button settings = Bar(window).GetVisualDescendants().OfType<Button>().Single(b => ToolTip.GetTip(b) as string == "Settings");
         RightClick(window, Ui.Centre(settings, window));

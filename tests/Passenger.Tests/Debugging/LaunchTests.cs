@@ -218,8 +218,8 @@ public class LaunchTests(ITestOutputHelper testOutputHelper)
         Assert.Empty(host.Request<ThreadsResponse>("threads", limit: TimeSpan.FromSeconds(10)).Threads);
     }
 
-    /// <summary>A program whose runtime is slow to start (its first start on a machine reads it from a cold disk) is still the
-    /// debugger's, however late its runtime answers: held here 6 s at its start, past the 5 s the debugger once gave it.</summary>
+    /// <summary>A program whose runtime is slow to start (its first start on a machine reads it from a cold disk) is
+    /// still the debugger's, however late its runtime answers: held here 6 s at its start.</summary>
     [Fact]
     public async Task A_program_whose_runtime_starts_late_is_still_debugged()
     {

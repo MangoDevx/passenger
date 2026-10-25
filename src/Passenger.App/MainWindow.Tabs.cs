@@ -6,16 +6,16 @@ using A = Passenger.App.AppActions;
 
 namespace Passenger.App;
 
-/// <summary>Rider's editor tab actions, in Window > Editor Tabs and each tab's own menu: the next and previous tab, Pin Tab,
-/// the closes (the tab, the others, all, all but pinned, those to one side), Reopen Closed Tab, the splits and Unsplit, and
-/// a tab moved to the opposite group or a window of its own. From a tab's menu they act on that tab, else on the one the
-/// active group shows; Restore Default Layout is beside them, in Window > Layout Settings.</summary>
+/// <summary>The editor tab actions, in Window > Editor Tabs and each tab's own menu: the next and previous tab, Pin
+/// Tab, the closes (the tab, the others, all, all but pinned, those to one side), Reopen Closed Tab, the splits and
+/// Unsplit, and a tab moved to the opposite group or a window of its own. From a tab's menu they act on that tab, else
+/// on the one the active group shows; Restore Default Layout is beside them, in Window > Layout Settings.</summary>
 public partial class MainWindow
 {
     private const string Tabs = "Editor Tabs";
     private const string TabsMenu = "Window/Editor Tabs";
 
-    /// <summary>The tab menu's items, in Rider's order.</summary>
+    /// <summary>The tab menu's items, in their order.</summary>
     private static readonly string?[] TabMenuItems =
     [
         A.CloseTab, A.CloseOtherTabs, A.CloseAllTabs, A.CloseUnpinned, A.CloseTabsLeft, A.CloseTabsRight, null,
@@ -36,7 +36,7 @@ public partial class MainWindow
             TitleIn = c => Pinned(c) ? "Unpin Tab" : "Pin Tab",
         });
 
-        // The split worked in loses its tab, as Rider's Close does; the file stays open in any other.
+        // The split worked in loses its tab; the file stays open in any other.
         actions.Add(new IdeAction(A.CloseTab, "Close Tab", "IDE", c => Editors.CloseTab(TabOf(c)!.Value.Group, TabOf(c)!.Value.File))
         {
             WhyNot = Refusals.NeedsFile,
@@ -60,13 +60,13 @@ public partial class MainWindow
                 status.Text = why;
             }
         }, _ => Editors.CanReopen ? null : "No tab has been closed", (2, 0));
-        // Found by Rider's older names too, which its users still type.
+        // Found by older names too.
         Tab(A.SplitRight, "Split Right", c => Editors.Split(TabOf(c)!.Value.Group, TabOf(c)!.Value.File, Orientation.Horizontal, move: false), Refusals.NeedsFile, (2, 1), ["Split Vertically"]);
         Tab(A.SplitDown, "Split Down", c => Editors.Split(TabOf(c)!.Value.Group, TabOf(c)!.Value.File, Orientation.Vertical, move: false), Refusals.NeedsFile, (2, 2), ["Split Horizontally"]);
         Tab(A.Unsplit, "Unsplit", c => Editors.Unsplit(GroupOf(c), all: false), NotSplit, (2, 3));
         Tab(A.UnsplitAll, "Unsplit All", c => Editors.Unsplit(GroupOf(c), all: true), NotSplit, (2, 4));
 
-        // Rider has these two on the tab's menu alone: the Window menu keeps them after its Editor Tabs.
+        // The Window menu keeps these two after its Editor Tabs.
         Add(A.MoveToOppositeGroup, "Move to Opposite Group", Tabs, c => Editors.MoveToOpposite(TabOf(c)!.Value.Group, TabOf(c)!.Value.File), c => Refusals.NeedsFile(c) ?? NotSplit(c), ("Window", 2, 0));
         Add(A.OpenInNewWindow, "Open Tab in New Window", Tabs, c => Editors.OpenInNewWindow(TabOf(c)!.Value.Group, TabOf(c)!.Value.File), Refusals.NeedsFile, ("Window", 2, 1));
 
@@ -96,7 +96,7 @@ public partial class MainWindow
     private void Tab(string id, string title, Action<ActionContext> run, Func<ActionContext, string?> whyNot, (int Group, int Order) at, IReadOnlyList<string>? words = null) =>
         Add(id, title, Tabs, run, whyNot, (TabsMenu, at.Group, at.Order), words);
 
-    /// <summary>Rider's tab menu, its items run on the tab it opened on.</summary>
+    /// <summary>The tab menu, its items run on the tab it opened on.</summary>
     private void FillTabMenu(TabMenu opening)
     {
         ActionContext context = new(opening.Document, opening.Group.Editor, null, null, session.Debug.IsDebugging ? session.Debug.Session?.State : null)

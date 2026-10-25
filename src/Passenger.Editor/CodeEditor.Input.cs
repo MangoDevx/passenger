@@ -9,10 +9,10 @@ namespace Passenger.Editor;
 
 public sealed partial class CodeEditor
 {
-    /// <summary>Wheel and trackpad travel per unit of delta, the same as Avalonia's scroll viewers.</summary>
+    /// <summary>Wheel and trackpad travel per unit of delta.</summary>
     private const double WheelStep = 50;
 
-    /// <summary>How long the pointer rests before a hover card is asked for, as in Rider.</summary>
+    /// <summary>How long the pointer rests before a hover card is asked for.</summary>
     private static readonly TimeSpan HoverDelay = TimeSpan.FromMilliseconds(500);
 
     private KeymapDispatcher? ownKeys;
@@ -82,7 +82,7 @@ public sealed partial class CodeEditor
         }
         if (point.Properties.IsRightButtonPressed && point.Position.X >= GutterWidth)
         {
-            // Rider's right-click: the caret goes to the click, unless the click is in the selection it would act on.
+            // The caret goes to a right-click, unless the click is in the selection it would act on.
             Focus();
             int at = OffsetAt(point.Position);
             if (!selections.Items.Any(s => !s.IsEmpty && s.Start <= at && at <= s.End))
@@ -283,8 +283,7 @@ public sealed partial class CodeEditor
         HoveredLink = null;
     }
 
-    /// <summary>Whether Ctrl+wheel (Cmd+wheel on macOS) asks for a bigger or smaller font (Rider's "Change font size with
-    /// Ctrl+Mouse Wheel") rather than scrolling.</summary>
+    /// <summary>Whether Ctrl+wheel (Cmd+wheel on macOS) asks for a bigger or smaller font rather than scrolling.</summary>
     public bool ZoomsWithWheel { get; set; }
 
     /// <summary>The wheel turned with Ctrl (Cmd on macOS) while <see cref="ZoomsWithWheel"/>: by how many points the host
@@ -462,9 +461,9 @@ public sealed partial class CodeEditor
         return (row, x);
     }
 
-    /// <summary>Tells a focused editor's input method what moved, as a text box does: the caret's line, the selection in
-    /// it, where the caret is drawn. Not while the carets are still the text's before a change (mid-edit, or while those
-    /// who heard of someone else's edit first move what they show through it), which they may lie past the end of.</summary>
+    /// <summary>Tells a focused editor's input method what moved: the caret's line, the selection in it, where the
+    /// caret is drawn. Not while the carets are still the text's before a change (mid-edit, or while those who heard of
+    /// someone else's edit first move what they show through it), which they may lie past the end of.</summary>
     private void FollowInputMethod()
     {
         if (inputMethod is not null && IsFocused && ReferenceEquals(caretsText, document.Snapshot))

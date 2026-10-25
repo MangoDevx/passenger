@@ -7,7 +7,7 @@ namespace Passenger.Lsp;
 public sealed class LanguageServerFailed(string reason, string? method = null, Exception? inner = null)
     : Exception(string.Concat(reason[..1].ToUpperInvariant(), reason[1..]), inner)
 {
-    /// <summary>Why, as a clause the status bar puts after what failed: "the language server stopped before it answered".</summary>
+    /// <summary>Why, as a clause to follow what failed: "the language server stopped before it answered".</summary>
     public string Reason { get; } = reason;
 
     /// <summary>The request that failed, when one was sent.</summary>

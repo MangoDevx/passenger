@@ -5,8 +5,8 @@ using A = Passenger.App.AppActions;
 
 namespace Passenger.App;
 
-/// <summary>Rider's Target Framework: for a file the language server compiles in several projects (each target framework
-/// of a multi-targeted project), the editor's context switcher beside its problem counts, and the action it runs, which
+/// <summary>Target Framework: for a file the language server compiles in several projects (each target framework of a
+/// multi-targeted project), the editor's context switcher beside its problem counts, and the action it runs, which
 /// offers the others. One chosen has the server answer for the file in it (Roslyn's <c>_vs_projectContext</c>): its
 /// colours, diagnostics and what else is asked of it.</summary>
 public partial class MainWindow

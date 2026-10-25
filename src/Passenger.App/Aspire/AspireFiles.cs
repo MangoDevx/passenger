@@ -171,7 +171,7 @@ public sealed class AspireFiles(ProjectSession session)
     }
 
     /// <summary>Whether a file, by its path from the folder, is a C# file a single-file AppHost may be: not under a hidden
-    /// folder or one every walk passes over, as a walk for what projects build passes over them.</summary>
+    /// folder or one every walk passes over.</summary>
     private static bool IsSource(string root, string relative)
     {
         if (!relative.EndsWith(".cs", StringComparison.OrdinalIgnoreCase) || Path.IsPathRooted(relative))

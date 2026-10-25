@@ -13,9 +13,10 @@ using Avalonia.VisualTree;
 
 namespace Passenger.Inspector;
 
-/// <summary>One visual looked at closely: its XAML, its layout, each Avalonia property with its value and where the value
-/// came from, read from Avalonia's own value store as its old DevTools read it (GetDiagnostic for the value and its
-/// priority, GetValueStoreDiagnostic for the frames that gave it), and the styles that could apply (<see cref="Styling"/>).</summary>
+/// <summary>One visual looked at closely: its XAML, its layout, each Avalonia property with its value and where the
+/// value came from, read from Avalonia's own value store (GetDiagnostic for the value and its priority,
+/// GetValueStoreDiagnostic for the frames that gave it), and the styles that could apply
+/// (<see cref="Styling"/>).</summary>
 internal sealed class Details(Inspector inspector)
 {
     public ElementDetails Of(Visual visual)

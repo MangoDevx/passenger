@@ -154,7 +154,6 @@ public sealed class AspireTests : IClassFixture<AspireApp>, IDisposable
             using HttpClient http = Client();
             Assert.Equal("4", Ui.Await(http.GetStringAsync(new Uri(HttpUrl(Resource(window, "apiservice")), "/passenger-edit")), "the rebuilt API's method"));
 
-            // The AppHost's own code changed: it stops with its services, then is built and run again.
             File.AppendAllText(Path.Combine(Path.GetDirectoryName(project.Host)!, "AppHost.cs"), "\n// Rerun runs a changed AppHost again.\n");
             Ui.Run(window, AppActions.Rerun);
             Ui.WaitFor(() => window.AspireRuntime.Apps is [{ ProcessId: int again }] && again != hostPid
@@ -208,8 +207,7 @@ public sealed class AspireTests : IClassFixture<AspireApp>, IDisposable
             Assert.Equal(ServiceStart.Run, saved.ServiceActions["webfrontend"]);
             Assert.True(PathNames.Same(project.ApiProject, saved.ServiceProjects["apiservice"]));
             Assert.True(PathNames.Same(Path.Combine(Path.GetDirectoryName(project.WebProgram)!, $"{AspireApp.Name}.Web.csproj"), saved.ServiceProjects["webfrontend"]));
-            // One of the folder's own beside it that runs the companion starter with the first, and a single-file AppHost
-            // that comes as the window opens again, which must not take the chosen configuration's place.
+            // A configuration of the folder's own running both starters, and a single-file AppHost not to replace it.
             RunConfiguration linked = generated with { Name = "Both starters", Generated = false, LinkedAppHosts = [project.CompanionHost] };
             window.SetConfigurations([.. window.Configurations.Where(configuration => !configuration.Generated), linked], linked.Name);
             string single = PathNames.Canonical(project.Write("OtherDiscovered.cs", $"// discovered independently of the project host\n  #:sdk Aspire.AppHost.Sdk@{AspireApp.TemplatesVersion}\nvar builder = DistributedApplication.CreateBuilder(args);\nbuilder.Build().Run();\n"));
@@ -281,7 +279,6 @@ public sealed class AspireTests : IClassFixture<AspireApp>, IDisposable
                     "Stop to end the gutter-started AppHost and every program it ran");
             }
 
-            // The declaration the menu was opened on, changed while it was open: the start is refused, nothing runs.
             OpenGutter(window, "apiservice");
             string path = window.EditorArea.Active!.Path;
             string source = File.ReadAllText(path);
@@ -362,7 +359,6 @@ public sealed class AspireTests : IClassFixture<AspireApp>, IDisposable
             window.Width = 900;
             window.Height = 650;
             Ui.Settle();
-            // The window's last tab, AppHost Log, after Telemetry's.
             Avalonia.Controls.Primitives.ToggleButton lastTab = window.AspireWindow.GetVisualDescendants()
                 .OfType<Avalonia.Controls.Primitives.ToggleButton>().Single(button => button.Content is TextBlock { Text: "AppHost Log" });
             Point? tabBottom = lastTab.TranslatePoint(new Point(0, lastTab.Bounds.Height), window.AspireWindow);
@@ -379,7 +375,6 @@ public sealed class AspireTests : IClassFixture<AspireApp>, IDisposable
             int[] owned = OwnedPids(window);
             Assert.True(Processes.IsRunning(oldPid) && Processes.IsRunning(webPid), "The API and frontend must be real Passenger-owned processes");
 
-            // The API's health and address on its row, the address a link.
             FindAction(window, "Show Aspire Resources");
             Ui.WaitFor(() => Resource(window, "apiservice").HealthStatus == "Healthy", "the API's native health update");
             Control apiNode = AspireStandInTests.Row(window, "apiservice");
@@ -390,7 +385,6 @@ public sealed class AspireTests : IClassFixture<AspireApp>, IDisposable
             Ui.Click(portLink);
             Assert.Contains(window.Browsed, browsed => browsed == endpoint);
 
-            // A request through both services, in the merged console under each one's prefix and found there.
             FindAction(window, "Show Aspire Log");
             Uri request = new(HttpUrl(web), "/passenger-test");
             Assert.Equal("5", Ui.Await(http.GetStringAsync(request), "the frontend's cross-service HTTP response"));
@@ -405,7 +399,6 @@ public sealed class AspireTests : IClassFixture<AspireApp>, IDisposable
             Ui.Press(window, "ESCAPE");
             Assert.True(window.IsRunning);
 
-            // Its structured log, correlated with its trace, whose spans cross both services.
             Roomy(window);
             FindAction(window, "Show Aspire Structured logs");
             RefreshUntil(window, () => window.AspireWindow.Telemetry.Logs
@@ -425,7 +418,6 @@ public sealed class AspireTests : IClassFixture<AspireApp>, IDisposable
             ClickListItem(window, window.AspireWindow.TraceList, trace);
             Assert.True(window.AspireWindow.SpanList.Items.Count >= 2, "The native trace hierarchy must show cross-service spans");
 
-            // A child span chosen stays chosen as the next request's trace streams in.
             Passenger.App.Telemetry.TelemetryView.SpanRow child = window.AspireWindow.Telemetry.Spans.First(row => row.Depth > 0);
             ClickListItem(window, window.AspireWindow.SpanList, child);
             string[] before = window.AspireWindow.Telemetry.Traces.Select(item => item.TraceId).ToArray();
@@ -435,7 +427,6 @@ public sealed class AspireTests : IClassFixture<AspireApp>, IDisposable
             Assert.Equal(trace.TraceId, window.AspireWindow.Telemetry.SelectedTrace?.TraceId);
             Assert.Equal(child.Span.SpanId, window.AspireWindow.Telemetry.SelectedSpan?.Span.SpanId);
 
-            // The API's own command: a confirmation cancelled, then a form the AppHost validates, answered from the window.
             File.Delete(project.InteractionAnswer);
             ChooseResource(window, "apiservice");
             Ui.WaitFor(() => window.Aspire.SelectedResource?.Commands.Any(command => command.DisplayName == "Passenger interaction") == true,
@@ -464,7 +455,6 @@ public sealed class AspireTests : IClassFixture<AspireApp>, IDisposable
             Ui.WaitFor(() => AppHostSaid(window).Contains("passenger-interaction: Succeeded", StringComparison.Ordinal),
                 "the command's result in the AppHost's console");
 
-            // Restart of the API alone, from its commands.
             AspireResourceCommand restart = Assert.Single(Resource(window, "apiservice").Commands, command => command.Name is "restart" or "resource-restart");
             ChooseResource(window, "apiservice");
             Ui.WaitFor(() => window.Aspire.SelectedResource?.Commands.Any(command => command.Name == restart.Name && command.Enabled) == true,
@@ -536,7 +526,6 @@ public sealed class AspireTests : IClassFixture<AspireApp>, IDisposable
             Ui.WaitFor(() => window.Configurations.Any(configuration => PathNames.Same(configuration.Project, loose))
                 && window.Configurations.Any(configuration => PathNames.Same(configuration.Project, file)), "both single-file AppHosts' configurations");
 
-            // One beside a project: refused by what the pinned CLI takes, before any process starts.
             Assert.True(window.SelectConfiguration(window.Configurations.Single(configuration => PathNames.Same(configuration.Project, loose)).Name));
             string? beside = Ui.Await(window.RunAsync(), "the pinned CLI's sibling-project refusal");
             Assert.Contains("13.x (13.6.0 or newer)", beside, StringComparison.Ordinal);
@@ -564,7 +553,6 @@ public sealed class AspireTests : IClassFixture<AspireApp>, IDisposable
             {
                 Assert.Fail($"The single-file AppHost did not launch: {refused}{Ui.BuildErrors(window)}\nAppHost output:\n{Redacted(AppHostSaid(window))}");
             }
-            // Built in the Build window, as a project AppHost is, where Stop and Problems reach its build.
             window.BottomPanel.Build.Flush();
             string built = window.BottomPanel.Build.Document.Snapshot.ToString();
             Assert.True(built.Contains($"build {file}", StringComparison.Ordinal) && built.Contains("--output", StringComparison.Ordinal),
@@ -665,7 +653,6 @@ public sealed class AspireTests : IClassFixture<AspireApp>, IDisposable
             ChooseResource(window, "apiservice");
             Assert.Same(service, window.AspireRuntime.SelectedService);
 
-            // Another program's Debug tab chosen leaves no Aspire service chosen; the service's tab chosen again chooses it.
             LaunchPlan plan = new()
             {
                 Name = "Native console",
@@ -724,7 +711,6 @@ public sealed class AspireTests : IClassFixture<AspireApp>, IDisposable
         Uri root = new($"http://127.0.0.1:{endpoint.Port}");
         using HttpClient http = Client();
 
-        // The resource service admits only the key the IDE gave the AppHost.
         using JsonDocument launchSettings = JsonDocument.Parse(File.ReadAllText(Path.Combine(Path.GetDirectoryName(project.Host)!, "Properties", "launchSettings.json")));
         string resourceEndpoint = launchSettings.RootElement.GetProperty("profiles").GetProperty("http")
             .GetProperty("environmentVariables").GetProperty("ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL").GetString()!;
@@ -738,7 +724,6 @@ public sealed class AspireTests : IClassFixture<AspireApp>, IDisposable
         });
         Assert.Equal(StatusCode.Unauthenticated, denied.StatusCode);
 
-        // The execution endpoint refuses a wrong token, a missing instance and malformed or invalid launches.
         AspireResourceRun service = Service(window, Resource(window, "apiservice"));
         int pid = service.ProcessId!.Value;
         using HttpResponseMessage unauthorized = Send(http, root, HttpMethod.Get, "/info", "not-the-token", service.InstanceId);
@@ -764,7 +749,6 @@ public sealed class AspireTests : IClassFixture<AspireApp>, IDisposable
         Assert.False(File.Exists(project.FileServiceRan));
         Assert.True(Processes.IsRunning(pid));
 
-        // A foreign instance's delete cannot end the starter's API.
         const string Foreign = "passenger-tests-abcdefghijkl";
         using (ClientWebSocket socket = Notifications(endpoint, Foreign, "a foreign instance's real notification connection"))
         {
@@ -775,7 +759,6 @@ public sealed class AspireTests : IClassFixture<AspireApp>, IDisposable
             socket.Abort();
         }
 
-        // A launch whose profile names a folder that is not there fails, holding no resource and ending no service.
         int services = app.Services.Count;
         using (ClientWebSocket notifications = Notifications(endpoint, "passenger-review-abcdefghijkl", "the failed-launch instance's notification subscription"))
         {
@@ -793,8 +776,6 @@ public sealed class AspireTests : IClassFixture<AspireApp>, IDisposable
             notifications.Abort();
         }
 
-        // A foreign instance that never reads its notifications cannot end the service it started by filling its console;
-        // its disconnect ends that service alone.
         const string Flooding = "passenger-flood-abcdefghijkl";
         int[] siblings = [.. app.Services.Select(running => running.ProcessId).OfType<int>().Where(Processes.IsRunning)];
         Assert.True(siblings.Length >= 2, "The official starter's API and frontend must be running before queue pressure");
@@ -820,7 +801,6 @@ public sealed class AspireTests : IClassFixture<AspireApp>, IDisposable
             Assert.All(siblings, id => Assert.True(Processes.IsRunning(id), "Disconnecting the foreign DCP instance must leave the starter's services alive"));
         }
 
-        // A create whose client goes while the window is held: closed before the window runs again, it starts nothing.
         const string Instance = "passenger-cancel-abcdefghijkl";
         string marker = project.PathOf("canceled-dcp-request.pid");
         using ClientWebSocket held = Notifications(endpoint, Instance, "the request-cancellation instance's notification connection");

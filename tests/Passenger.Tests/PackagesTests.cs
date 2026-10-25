@@ -56,7 +56,6 @@ public sealed class PackagesTests : IDisposable
     [AvaloniaFact]
     public void A_package_found_in_the_feed_is_installed_updated_and_removed_in_a_project_below_a_folder_with_no_solution()
     {
-        // The folder above Lib: its project is a folder down, and no solution names it.
         MainWindow window = Open(new FolderFeed(feed), folder);
         NuGetView nuget = window.NuGet;
         nuget.Query = "sample";
@@ -80,7 +79,6 @@ public sealed class PackagesTests : IDisposable
         Assert.Null(Version(window));
         Assert.DoesNotContain("Passenger.Sample", File.ReadAllText(project), StringComparison.Ordinal);
 
-        // The Install on the project's line, the latest version chosen.
         Ui.Landed(() => !nuget.IsBusy && nuget.Versions.Count == 2, "the package's versions once it was removed");
         nuget.ChosenVersion = "1.1.0";
         Button install = InstallButton(nuget, "Lib") ?? throw new Xunit.Sdk.XunitException("The NuGet window lists no Lib project to install the package in");
@@ -132,7 +130,6 @@ public sealed class PackagesTests : IDisposable
         // The window waits on the versions held back, as background work, so nothing settles until they are let go.
         Ui.PumpUntil(() => nuget.Rows.Count == 2 && nuget.Selected is not null, "both packages listed, the first chosen");
 
-        // The first row is chosen as the list fills; the other and then the first again are chosen before any answer.
         PackageRow first = nuget.Selected!;
         ListBox list = Descendants<ListBox>(nuget).Single();
         list.SelectedItem = nuget.Rows.Single(r => r.Id != first.Id);
@@ -156,7 +153,6 @@ public sealed class PackagesTests : IDisposable
         Assert.Equal(["4.21.0", "4.20.72", "4.20.70", "4.20.69", "4.18.4", "4.7.0", "4.5.30"], nuget.Versions);
         Assert.Equal("4.21.0", nuget.ChosenVersion);
 
-        // A listed prerelease joins them; the unlisted 4.20.0-rc does not.
         Prerelease(nuget).IsChecked = true;
         Ui.Landed(() => nuget.Versions.Contains("4.6.62-alpha"), "Moq's listed prerelease");
         Assert.Equal(["4.21.0", "4.20.72", "4.20.70", "4.20.69", "4.18.4", "4.7.0", "4.6.62-alpha", "4.5.30"], nuget.Versions);
@@ -181,7 +177,6 @@ public sealed class PackagesTests : IDisposable
         Ui.Landed(() => searched.IsCompleted && nuget.Selected?.IsInstalled == true, "Passenger.Sample listed as installed");
         Assert.Equal("1.1.0", ShownVersion(nuget, "Lib"));
 
-        // Another installed goes into the project by name, its version beside the first's in Directory.Packages.props.
         nuget.Query = "other";
         searched = nuget.RefreshAsync();
         Ui.Landed(() => searched.IsCompleted && nuget.Selected?.Id == "Passenger.Other" && nuget.Versions.Count == 1, "Passenger.Other and its version");

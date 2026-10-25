@@ -311,8 +311,7 @@ public sealed partial class PassengerTools
                 path.Add(Frame(at.Name, at.Total, at.Self));
             }
         }
-        // The folder's own methods by their place, from their PDBs (read in its container for a program there), for an agent
-        // to go straight to.
+        // The folder's own methods by their place, from their PDBs (read in its container for a program there).
         IReadOnlyList<Passenger.Profiler.HotSpot> spots = [.. snapshot.HotSpots.Take(Math.Clamp(top, 1, 200))];
         IReadOnlyDictionary<Passenger.Profiler.MethodCode, (string File, int Line)> sources =
             await Passenger.Profiler.MethodSources.FindAsync(snapshot, spots.Select(h => h.Code).OfType<Passenger.Profiler.MethodCode>(), cancel);

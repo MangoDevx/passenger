@@ -19,7 +19,7 @@ public static class Product
     /// <summary>The full hash of the commit it was built from, or null for a build from source outside Git.</summary>
     public static string? Commit { get; } = Informational.Split('+') is [_, { Length: > 0 } commit, ..] ? commit : null;
 
-    /// <summary>The .NET it runs on and the processor it runs as, as Rider's About names its runtime (".NET 11.0.0 arm64").</summary>
+    /// <summary>The .NET it runs on and the processor it runs as (".NET 11.0.0 arm64").</summary>
     public static string Runtime => $"{RuntimeInformation.FrameworkDescription} {RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant()}";
 
     /// <summary>Passenger's licence, beside the app.</summary>

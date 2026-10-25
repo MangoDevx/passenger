@@ -43,8 +43,8 @@ public partial class ManagedDebugger
     /// <summary>Where each active statement went in its method's new code, by the old code's place.</summary>
     private readonly Dictionary<(Guid Module, int Token, int Version, int ILOffset), StatementUpdate> _statementUpdates = [];
 
-    /// <summary>The edits the program's runtime can take, as its CoreLib names them (MetadataUpdater.GetCapabilities, the
-    /// string dotnet watch's agent reads in the program), or why they are unknown.</summary>
+    /// <summary>The edits the program's runtime can take, as its CoreLib names them (MetadataUpdater.GetCapabilities),
+    /// or why they are unknown.</summary>
     public (IReadOnlyList<string>? Capabilities, string? Unknown) HotReloadCapabilities()
     {
         if (_modules.Values.FirstOrDefault(m => m.ModuleName == "System.Private.CoreLib.dll") is not { } coreLib)
@@ -193,7 +193,6 @@ public partial class ManagedDebugger
                 }
                 if (_modules.Values.FirstOrDefault(m => !m.IsDynamic && m.MetadataReader.Mvid == update.Module) is not { } module)
                 {
-                    // Applied as the module loads, as Visual Studio's debugger holds them.
                     if (!_heldUpdates.TryGetValue(update.Module, out List<ModuleUpdate>? held))
                     {
                         _heldUpdates[update.Module] = held = [];

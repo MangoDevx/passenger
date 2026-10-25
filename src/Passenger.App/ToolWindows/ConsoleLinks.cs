@@ -24,13 +24,13 @@ public sealed record WebLink(Uri Address) : LinkTarget;
 /// terminal's file paths) is drawn as plain text until Cmd or Ctrl is held over it.</summary>
 public readonly record struct FoundLink(int Start, int Length, LinkTarget Target, bool Hidden = false);
 
-/// <summary>The links in a console's lines, as Rider's console filters find them: web addresses (its URL filter's), a .NET
-/// stack frame's file and line ("at X in /path/File.cs:line 12"), and a compiler's message ("File.cs(12,5): error ...", as
-/// its Build window links a build's). The terminal's (<see cref="FilePaths"/>) add, as its generic file filter does, any
-/// path to a file, with a line and column after it or not. A path is a link only to a file there is, a relative one found
-/// under the folders given (the project's first); a stack frame's <c>/_/</c>, a deterministic build's name for the source
-/// root, is relative too. A line's links are kept while its text is the same, so drawing it again and the pointer moving
-/// over it look for nothing. As a highlighter it colours them, for a view with no colours of its own.</summary>
+/// <summary>The links in a console's lines: web addresses, a .NET stack frame's file and line ("at X in
+/// /path/File.cs:line 12"), and a compiler's message ("File.cs(12,5): error ..."). The terminal's (<see cref="FilePaths"/>)
+/// add any path to a file, with a line and column after it or not. A path is a link only to a file there is, a relative
+/// one found under the folders given (the project's first); a stack frame's <c>/_/</c>, a deterministic build's name for
+/// the source root, is relative too. A line's links are kept while its text is the same, so drawing it again and the
+/// pointer moving over it look for nothing. As a highlighter it colours them, for a view with no colours of its
+/// own.</summary>
 public sealed partial class ConsoleLinks : IHighlighter
 {
     /// <summary>Lines longer than this have no links: output written without line breaks costs nothing more to draw.</summary>
@@ -51,8 +51,7 @@ public sealed partial class ConsoleLinks : IHighlighter
     /// tried first for a path that starts at the root; null for output from this machine alone.</summary>
     public Func<Containers.ContainerPaths?> Paths { get; set; } = () => null;
 
-    /// <summary>Whether any path to a file is a link (hidden), as in Rider's terminal; a console links only frames and
-    /// compiler messages.</summary>
+    /// <summary>Whether any path to a file is a link (hidden); a console links only frames and compiler messages.</summary>
     public bool FilePaths { get; init; }
 
     /// <summary>Forgets what was found, for output from another program (another project's relative paths) or a file
@@ -284,13 +283,13 @@ public sealed partial class ConsoleLinks : IHighlighter
         return found;
     }
 
-    /// <summary>A web address as IntelliJ's URL filter reads one (mailto:, http, https, ftp, ftps, news, and www. without a
-    /// scheme) to its last character that cannot end a sentence, or a file: URL.</summary>
+    /// <summary>A web address (mailto:, http, https, ftp, ftps, news, and www. without a scheme) to its last character that
+    /// cannot end a sentence, or a file: URL.</summary>
     [GeneratedRegex(@"\b(?:mailto:|(?:news|(?:ht|f)tps?)://|(?<![\p{L}0-9_.])www\.)[-A-Za-z0-9+$&@#/%?=~_|!:,.;]*[-A-Za-z0-9+$&@#/%=~_|]|\bfile:(?:/|[A-Za-z]:)[^\s()\[\]]*[^\s()\[\]:;?!,.]")]
     private static partial Regex Url();
 
-    /// <summary>A .NET stack frame, a line beginning "at" as Rider's exception filter reads one: "at Type.Method(args) in
-    /// /path/File.cs:line 12", the path after the method's closing parenthesis, so one with spaces (or " in ") is whole.</summary>
+    /// <summary>A .NET stack frame, a line beginning "at": "at Type.Method(args) in /path/File.cs:line 12", the path after
+    /// the method's closing parenthesis, so one with spaces (or " in ") is whole.</summary>
     [GeneratedRegex(@"^\s*at\s[^\r\n]*?\) in (?<path>[^\r\n]+?):line (?<line>\d{1,9})\b")]
     private static partial Regex Frame();
 
@@ -312,8 +311,8 @@ public sealed partial class ConsoleLinks : IHighlighter
     [GeneratedRegex(@"\[(?<project>[^\[\]]+\.\w*proj)\]\s*$")]
     private static partial Regex Project();
 
-    /// <summary>A path as Rider's terminal finds one, absolute or relative, and what may follow it: ":12", ":12:5", ":12-14",
-    /// "(12,5)" or " (12, 5)".</summary>
+    /// <summary>A path, absolute or relative, and what may follow it: ":12", ":12:5", ":12-14", "(12,5)" or
+    /// " (12, 5)".</summary>
     [GeneratedRegex(@"(?<![\w.~/\\@+-])(?<path>(?:[A-Za-z]:[\\/]|~?[\\/]|\.{1,2}[\\/])?[\w.@+-]+(?:[\\/][\w.@+-]+)*)(?::(?<line>\d{1,9})(?::(?<column>\d{1,9}))?(?:-\d{1,9})?|\s?\((?<line>\d{1,9})(?:,\s?(?<column>\d{1,9}))?\))?(?![\w\\/])")]
     private static partial Regex AnyPath();
 }

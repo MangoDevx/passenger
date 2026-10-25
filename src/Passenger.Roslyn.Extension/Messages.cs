@@ -2,9 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace Passenger.Roslyn.Extension;
 
-// What Passenger and its extension in Roslyn's server say to each other, compiled into both: each request is a message to
-// a handler named by its type, about the document the caret is in, and each answer says what it found or why not. Names
-// are given, since the server reads and writes them with System.Text.Json's defaults.
+// Messages to Passenger's extension in Roslyn's server, compiled into both; names given for System.Text.Json's defaults.
 
 /// <summary>The handlers' names, as the server knows them: their types' full names.</summary>
 public static class Handlers
@@ -260,7 +258,7 @@ public sealed record RoutesFound(
 /// <summary>The AppHost whose proven project resources and source locations are read.</summary>
 public sealed record AspireResourcesRequest(string AppHost);
 
-/// <summary>A project resource and the source fingerprint that makes its gutter location current.</summary>
+/// <summary>A project resource, where it is declared, and the fingerprint of the text that place is in.</summary>
 public sealed record AspireRunResource(string Name, string Project, string Source, Place At, string SourceHash);
 
 /// <summary>Proven resources, or why the AppHost cannot be read yet.</summary>
@@ -291,7 +289,7 @@ public sealed record Parameter(
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("defaultValue")] string DefaultValue);
 
-/// <summary>The method or constructor at the caret, as Change Signature shows it: what it is ("method", "constructor"),
+/// <summary>The method or constructor at the caret, for Change Signature: what it is ("method", "constructor"),
 /// its type's name, its modifiers ("public static"), its name, its return type (empty for a constructor), its parameters,
 /// and whether it extends a type, whose first parameter stays first. A problem instead when there is none to change.</summary>
 public sealed record Signature(
@@ -328,7 +326,7 @@ public sealed record Member(
     [property: JsonPropertyName("text")] string Text,
     [property: JsonPropertyName("kind")] string Kind);
 
-/// <summary>The type at the caret as Extract Interface shows it: its name, the interface's suggested name and file, its
+/// <summary>The type at the caret, for Extract Interface: its name, the interface's suggested name and file, its
 /// namespace, and the members it could give the interface. A problem instead when there is none.</summary>
 public sealed record InterfaceSource(
     [property: JsonPropertyName("problem")] string? Problem,
@@ -346,7 +344,7 @@ public sealed record InterfaceExtraction(
     [property: JsonPropertyName("fileName")] string FileName,
     [property: JsonPropertyName("members")] IReadOnlyList<string> Members);
 
-/// <summary>The type at the caret as Move shows it: its name and kind, its namespace (empty for the global one), the
+/// <summary>The type at the caret, for Move: its name and kind, its namespace (empty for the global one), the
 /// file it is in, the file it would move to, and how many types that file declares. A problem instead when there is none.</summary>
 public sealed record TypeSource(
     [property: JsonPropertyName("problem")] string? Problem,
@@ -367,7 +365,7 @@ public sealed record TypeToNamespace(
     [property: JsonPropertyName("at")] Place At,
     [property: JsonPropertyName("namespace")] string Namespace);
 
-/// <summary>A type's place in its hierarchy as Pull Members Up and Push Members Down show it: its name, its members that
+/// <summary>A type's place in its hierarchy, for Pull Members Up and Push Members Down: its name, its members that
 /// could move, the base types in the solution they could go up to, and its derived types they could go down to.</summary>
 public sealed record Hierarchy(
     [property: JsonPropertyName("problem")] string? Problem,

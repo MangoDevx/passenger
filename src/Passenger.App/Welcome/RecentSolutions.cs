@@ -3,26 +3,26 @@ using Passenger.App.State;
 
 namespace Passenger.App.Welcome;
 
-/// <summary>The folders and solutions opened lately, as Rider's recentSolutions.xml keeps them, by path (a solution file, a
-/// project opened alone, or a folder without either, canonical): what the Welcome screen and File, Recent Solutions list,
-/// and those a start reopens, each still open in a window as Passenger last quit. Kept by path rather than as a list, so
-/// two windows' openings and removals merge entry by entry.</summary>
+/// <summary>The folders and solutions opened lately, by canonical path (a solution file, a project opened alone, or a
+/// folder without either): what the Welcome screen and File, Recent Solutions list, and those still open in a window as
+/// Passenger last quit, which a start reopens. Kept by path rather than as a list, so two windows' openings and
+/// removals merge entry by entry.</summary>
 public sealed record RecentSolutionsState : IStateDocument<RecentSolutionsState>
 {
-    /// <summary>How many are kept, the oldest dropped past it, as IntelliJ's recent projects are.</summary>
+    /// <summary>How many are kept, the oldest dropped past it.</summary>
     public const int Limit = 50;
 
     public Dictionary<string, RecentSolution> Solutions { get; init; } = [];
 
-    /// <summary>Version 2 marks the solutions open: a build before it reopened the newest alone, which is marked.</summary>
+    /// <summary>Version 2 marks which solutions are open; in an older file, the newest is.</summary>
     public static IReadOnlyList<Action<JsonObject>> Upgrades { get; } = [StateStore.Unversioned, MarkNewestOpen];
 
     /// <summary>The newest first, each with its path.</summary>
     public IReadOnlyList<(string Path, RecentSolution Entry)> Newest() =>
         [.. Solutions.OrderByDescending(s => s.Value.Opened).ThenBy(s => s.Key, StringComparer.Ordinal).Select(s => (s.Key, s.Value))];
 
-    /// <summary>Those a window had open as Passenger last quit, or has open now, the oldest first, as Rider's Reopen
-    /// projects on startup reopens them, the newest last and so in front.</summary>
+    /// <summary>Those a window had open as Passenger last quit, or has open now, oldest first, so the newest opens last
+    /// and in front.</summary>
     public IReadOnlyList<(string Path, RecentSolution Entry)> StillOpen() => [.. Newest().Where(s => s.Entry.Open).Reverse()];
 
     /// <summary>With a path opened now, newest of all even on a clock that has not moved since the last, and open.</summary>
@@ -89,8 +89,8 @@ public sealed record RecentSolutionsState : IStateDocument<RecentSolutionsState>
         all.Count <= Limit ? all : all.OrderByDescending(s => s.Value.Opened).Take(Limit).ToDictionary(s => s.Key, s => s.Value);
 }
 
-/// <summary>One recent folder or solution: its name as the window showed it, when it was last opened, and whether a window
-/// still had it open as Passenger last quit (Rider's opened).</summary>
+/// <summary>One recent folder or solution: its name as the window showed it, when it was last opened, and whether a
+/// window still had it open as Passenger last quit.</summary>
 public sealed record RecentSolution
 {
     public string Name { get; init; } = string.Empty;
@@ -107,7 +107,7 @@ public sealed record RecentRow(string Path, string Name, string Shown, bool Miss
     public static RecentRow Of(string path, RecentSolution entry) =>
         new(path, entry.Name, Home(path), !Directory.Exists(path) && !File.Exists(path));
 
-    /// <summary>A path under the home folder as IntelliJ shows it, from ~.</summary>
+    /// <summary>A path under the home folder, shown from ~.</summary>
     public static string Home(string path)
     {
         string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);

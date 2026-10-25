@@ -14,7 +14,6 @@ public partial class ManagedDebugger
     {
         bool hasFlagsAttribute = metaDataImport.TryGetCustomAttributeByName(enumTypeDef, "System.FlagsAttribute", out _, out _) is Cor.S_OK;
 
-        // Fast path: exact match
         string? exact = GetEnumNameForValue(metaDataImport, enumTypeDef, valueAsString);
         if (exact is not null)
         {
@@ -90,13 +89,11 @@ public partial class ManagedDebugger
             }
         }
 
-        // Only return flags if we fully decomposed the value
         if (flags.Count > 0 && remaining == 0)
         {
             return string.Join(" | ", flags.Values);
         }
 
-        // Fallback: numeric value
         return enumValue.ToString();
     }
 
@@ -129,7 +126,6 @@ public partial class ManagedDebugger
 
             unsafe
             {
-                // TODO: update Passenger.Debugger.Interop to return resolvedScope as a COM interface
                 enumMetadataImport = ComInterfaceMarshaller<IMetaDataImport>.ConvertToManaged((void*)resolvedScope);
             }
             if (enumMetadataImport is null)

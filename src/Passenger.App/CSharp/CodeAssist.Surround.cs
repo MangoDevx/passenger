@@ -9,9 +9,9 @@ namespace Passenger.App.CSharp;
 /// Current Statement.</summary>
 public sealed partial class CodeAssist
 {
-    /// <summary>Rider's Surround With: the surround templates that fit the code chosen (or the caret's line), each with
-    /// its digit; the one chosen goes around that code and is filled in as a live template, from its first variable to
-    /// where Rider leaves the caret.</summary>
+    /// <summary>Surround With: the surround templates that fit the code chosen (or the caret's line), each with its
+    /// digit; the one chosen goes around that code and is filled in as a live template, from its first variable to
+    /// where it leaves the caret.</summary>
     private void ShowSurround()
     {
         if (editors.Active is { } markup && XamlService.IsXaml(markup.Path))
@@ -32,7 +32,7 @@ public sealed partial class CodeAssist
             return;
         }
         ChangeTracker opened = new(document.Text);
-        // At the caret, as Rider places it, below the code chosen when the caret ends it.
+        // At the caret, below the code chosen when the caret ends it.
         ShowModal(new ChoicePopup("Surround With", [.. offered.Select(t => new Choice(t.Abbreviation, t.Description, t, Mnemonic: t.Mnemonic))]),
             Caret, "Surround With", choice =>
             {
@@ -77,7 +77,8 @@ public sealed partial class CodeAssist
         Editor.InsertSnippet(range, Snippet.Parse(template.Text, Values(template, range.Start), indent, Editor.Indent.Unit, string.Join('\n', lines)));
     }
 
-    /// <summary>Rider's Complete Current Statement on the caret's line (<see cref="StatementCompletion"/>), as one undo step.</summary>
+    /// <summary>Complete Current Statement on the caret's line (<see cref="StatementCompletion"/>), as one undo
+    /// step.</summary>
     private void CompleteStatement()
     {
         if (editors.Active?.Syntax is not { } parser)

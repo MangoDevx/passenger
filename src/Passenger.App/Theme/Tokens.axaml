@@ -1,11 +1,9 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!-- Passenger's own theme, the default: every colour the IDE paints, once in Dark and once in Light, and the few shapes
-         a theme may draw its own way. A control names a token, never a colour. Every other theme (Harbour.axaml, and those tools/themes.py writes) gives every token
-         again, laid over these when chosen, and Rider's colour scheme (RiderScheme.axaml) the code's over either (Themes).
-         Passenger.Editor.*, Passenger.Syntax.* and Passenger.SyntaxStyle.* are read by the code editor by name; a syntax
-         kind left out draws as plain text. A theme gives tokens alone: Fluent's own keys are FluentKeys.axaml's, named once
-         as these tokens for every theme.
+         a theme may draw its own way. A control names a token, never a colour, and every other theme gives every token
+         again. Passenger.Editor.*, Passenger.Syntax.* and Passenger.SyntaxStyle.* are read by the code editor by name; a
+         syntax kind left out draws as plain text.
 
          The look: the app icon's blue as the window's own colour on cool blue-tinted neutrals, the icon's blue-to-teal
          ground across the title bar, and its amber dot wherever the window says "you are here" (the focus ring, the caret,
@@ -14,7 +12,7 @@
          the editor the page. -->
 
     <!-- Shapes: a control's corners, a toolbar's and a stripe's buttons', a popup's; a badge's and a chip's; the editor tabs'
-         (pills on their strip here, cards joined to the editor in Harbour); a popup's top edge (its crown here). -->
+         (pills on their strip here); a popup's top edge (its crown here). -->
     <CornerRadius x:Key="Passenger.ControlRadius">6</CornerRadius>
     <CornerRadius x:Key="Passenger.ToolRadius">8</CornerRadius>
     <CornerRadius x:Key="Passenger.PopupRadius">10</CornerRadius>
@@ -199,8 +197,8 @@
             <SolidColorBrush x:Key="Passenger.File.Folder" Color="#AEB4BF" />
             <SolidColorBrush x:Key="Passenger.File.SolutionFolder" Color="#9F92DB" />
             <SolidColorBrush x:Key="Passenger.File.Plain" Color="#AEB4BF" />
-            <!-- The file icons' colours: this theme's own hues (its red the editor's error, its pink between its
-                 red and purple) through tools/themes.py's file_icons(), as the generated themes take theirs. -->
+            <!-- The file icons' colours: this theme's own hues (its red the editor's error, its pink between its red and
+                 purple) through tools/themes.py's file_icons(). -->
             <SolidColorBrush x:Key="Passenger.FileIcon.Red" Color="#FF6B7A" />
             <SolidColorBrush x:Key="Passenger.FileIcon.Orange" Color="#E8975A" />
             <SolidColorBrush x:Key="Passenger.FileIcon.Yellow" Color="#D9BC5F" />
@@ -218,9 +216,9 @@
             <SolidColorBrush x:Key="Passenger.Editor.Gutter" Color="#0F131C" />
             <SolidColorBrush x:Key="Passenger.Editor.PopupBorder" Color="#2F384B" />
 
-            <!-- Passenger Dark, the editor's own colour scheme (RiderScheme.axaml gives Rider's in its place): the code's
-                 words, line numbers, the current line, selection and the amber caret, search matches, problems'
-                 squiggles, the debugger's marks, inlay hints, usages, braces and whitespace. -->
+            <!-- Passenger Dark, the editor's own colour scheme: the code's words, line numbers, the current line,
+                 selection and the amber caret, search matches, problems' squiggles, the debugger's marks, inlay hints,
+                 usages, braces and whitespace. -->
             <SolidColorBrush x:Key="Passenger.Editor.Text" Color="#D3DAE6" />
             <SolidColorBrush x:Key="Passenger.Editor.LineNumber" Color="#7A869E" />
             <SolidColorBrush x:Key="Passenger.Editor.LineNumberCurrent" Color="#FFB547" />

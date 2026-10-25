@@ -58,9 +58,8 @@ public sealed class WarmServer : IAsyncDisposable
         return ending is null ? Task.CompletedTask : Task.Run(() => ending.DisposeAsync().AsTask());
     }
 
-    /// <summary>Whether the server kept holds these files as the texts given, waited for until the limit: a test that put
-    /// back files it had changed keeps the server once the server has read them again through its own watcher. False when
-    /// none is kept, or one of them is no document of its solution, or it still held another text at the limit.</summary>
+    /// <summary>Whether the server kept holds these files as the texts given, waited for until the limit; false when
+    /// none is kept, one of them is no document of its solution, or it still held another text at the limit.</summary>
     public async Task<bool> HoldsAsync(IReadOnlyDictionary<string, string> texts, TimeSpan limit)
     {
         RoslynSession? session;

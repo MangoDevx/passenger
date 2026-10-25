@@ -30,8 +30,8 @@ public sealed class EditorTab(OpenDocument document) : Observable
         set => Set(ref isActive, value);
     }
 
-    /// <summary>Rider's Pin Tab: it stands left of the unpinned tabs, and Close Others, Close All and closing by side
-    /// leave it open.</summary>
+    /// <summary>Pin Tab: it stands left of the unpinned tabs, and Close Others, Close All and closing by side leave it
+    /// open.</summary>
     public bool IsPinned
     {
         get => isPinned;
@@ -39,9 +39,9 @@ public sealed class EditorTab(OpenDocument document) : Observable
     }
 }
 
-/// <summary>One editor of a split, as Rider's: its tabs (the pinned ones first), its find bar and its editor, which shows
-/// the active tab's file. A file may be open in two groups at once (Split Right on it), each with its own carets and
-/// scroll over the one text.</summary>
+/// <summary>One editor of a split: its tabs (the pinned ones first), its find bar and its editor, which shows the
+/// active tab's file. A file may be open in two groups at once (Split Right on it), each with its own carets and scroll
+/// over the one text.</summary>
 public sealed class EditorGroup : DockPanel
 {
     private readonly EditorArea area;
@@ -81,7 +81,6 @@ public sealed class EditorGroup : DockPanel
             ItemsPanel = new FuncTemplate<Panel?>(() => new StackPanel { Orientation = Orientation.Horizontal }),
             ItemTemplate = new FuncDataTemplate<EditorTab>((tab, _) => Tab(tab), supportsRecycling: false),
         };
-        // A Markdown file's preview shown or hidden at the strip's end, over the editor's top-right corner.
         MarkdownToggle = ToolButtons.Toggle("Icon.Preview", "Markdown Preview");
         MarkdownToggle.Classes.Add("tabStripTool");
         MarkdownToggle.IsVisible = false;
@@ -105,9 +104,7 @@ public sealed class EditorGroup : DockPanel
                 },
             },
         };
-        // Rider's editor notification: what a file is when it is not the project's own.
         bannerText = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0), FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis };
-        // What the notice offers to do, at the banner's right, as Rider's notifications put their links.
         bannerLink = new Button
         {
             Name = "BannerLink",
@@ -657,7 +654,6 @@ public sealed class EditorGroup : DockPanel
             area.CloseTab(this, document);
             e.Handled = true;
         };
-        // A pinned tab's pin, which unpins it, as Rider's does.
         PathIcon pinGlyph = new() { Classes = { "small" } };
         pinGlyph.Bind(PathIcon.DataProperty, pinGlyph.GetResourceObservable("Icon.Pin"));
         Button pin = new() { Classes = { "tabPin" }, Content = pinGlyph };
@@ -721,7 +717,6 @@ public sealed class EditorGroup : DockPanel
             document.PropertyChanged -= OnFileChanged;
         };
         Paint();
-        // Rider's tab menu, which the window fills with its tab actions, run on this tab, as it opens.
         ContextMenu menu = new();
         menu.Opening += (_, _) => area.OpenTabMenu(this, document, menu);
         border.ContextMenu = menu;

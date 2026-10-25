@@ -9,8 +9,8 @@ using Passenger.Roslyn.Extension;
 
 namespace Passenger.App.Run;
 
-/// <summary>Rider's Run/Debug Configurations dialog (Run, Edit Configurations): the configurations down the left under
-/// Add, Copy and Remove, the chosen one's fields on the right, OK, Cancel and Apply below. A generated one changes in place
+/// <summary>The Run/Debug Configurations dialog (Run, Edit Configurations): the configurations down the left under Add,
+/// Copy and Remove, the chosen one's fields on the right, OK, Cancel and Apply below. A generated one changes in place
 /// but for what makes it the one it is (its name, project and launch profile): each field changed from what its source gives
 /// is marked, and kept with the folder over that source, or written to its launch profile; Reset puts it back as its source
 /// makes it. It edits copies, which Apply and OK hand back with the one chosen.</summary>
@@ -187,9 +187,7 @@ public sealed class RunConfigurationsDialog : Window
         Border leftPane = new() { BorderThickness = new Thickness(0, 0, 1, 0), Child = left };
         leftPane.Bind(Border.BorderBrushProperty, leftPane.GetResourceObservable("Passenger.Divider"));
 
-        // Each kind's page is the rows it takes: a project's as before, a Compose application's files and services, a
-        // Dockerfile's build, an SDK container's run; the name, environment and browser every kind's. Each row names the
-        // fields it shows, which a change from a generated configuration's source marks.
+        // Each kind's page is the rows it takes; each row names the fields it shows, which a change from the source marks.
         Control projectRow = Row("Project", ProjectBox);
         linkedRow = Row("Linked Aspire apps", linkedAppHosts, top: true, fields: ["linkedAppHosts"]);
         AspireTable.Changed += (_, _) => Edit(c => c with
@@ -378,10 +376,10 @@ public sealed class RunConfigurationsDialog : Window
 
     public CheckBox BuildBox { get; }
 
-    /// <summary>Rider's Use external console: the program runs in a tab of the Terminal window.</summary>
+    /// <summary>Use external console: the program runs in a tab of the Terminal window.</summary>
     public CheckBox ConsoleBox { get; }
 
-    /// <summary>Rider's Open browser, After launch: the browser opens at the URL once the program listens.</summary>
+    /// <summary>Open browser after launch: the browser opens at the URL once the program listens.</summary>
     public CheckBox BrowserBox { get; }
 
     public TextBox BrowserUrlBox { get; }
@@ -639,7 +637,7 @@ public sealed class RunConfigurationsDialog : Window
         return string.Join(", ", marks.Where(m => m.Fields.Any(named.Contains)).Select(m => m.Title).Distinct());
     }
 
-    /// <summary>The first of the folder's own that cannot be kept, and why: Rider's own checks, a name and a project.</summary>
+    /// <summary>The first of the folder's own that cannot be kept, and why: a name and a project.</summary>
     private (Entry Row, string Problem)? Unkeepable()
     {
         HashSet<string> names = new(generated.Select(g => g.Configuration.Name), StringComparer.OrdinalIgnoreCase);
@@ -668,7 +666,7 @@ public sealed class RunConfigurationsDialog : Window
         return null;
     }
 
-    /// <summary>Add New Configuration's menu of kinds, under the button, as Rider lists its configuration types.</summary>
+    /// <summary>Add New Configuration's menu of kinds, under the button.</summary>
     public ContextMenu? AddMenu { get; private set; }
 
     private void ChooseKind()
@@ -696,8 +694,8 @@ public sealed class RunConfigurationsDialog : Window
         menu.Open(AddButton);
     }
 
-    /// <summary>Rider's Add New Configuration: a configuration of the kind chosen named Unnamed, of the first executable
-    /// project (a Compose one of the folder's first compose file).</summary>
+    /// <summary>Add New Configuration: a configuration of the kind chosen named Unnamed, of the first executable project (a
+    /// Compose one of the folder's first compose file).</summary>
     private void Add(RunKind kind)
     {
         Entry added = new(new RunConfiguration
@@ -717,7 +715,7 @@ public sealed class RunConfigurationsDialog : Window
         Dispatcher.UIThread.Post(() => NameBox.Focus(), DispatcherPriority.Loaded);
     }
 
-    /// <summary>Rider's Copy Configuration: the chosen one, generated or not, as one of the folder's own to change.</summary>
+    /// <summary>Copy Configuration: the chosen one, generated or not, as one of the folder's own to change.</summary>
     private void Copy()
     {
         if (list.SelectedItem is not Entry source)
@@ -775,8 +773,7 @@ public sealed class RunConfigurationsDialog : Window
         written = null;
         if (renamed || row.IsChanged != wasChanged)
         {
-            // A rename shows in the list as it is typed, as does a generated one's being changed from its source or back;
-            // the fields hold what they show already.
+            // A rename, or a change from the source, shows in the list as it is typed; the fields hold what they show already.
             showing = true;
             try
             {
@@ -797,8 +794,7 @@ public sealed class RunConfigurationsDialog : Window
         }
     }
 
-    /// <summary>A launch profile chosen fills the fields with its values, as choosing one in Rider's dialog does; none
-    /// keeps them.</summary>
+    /// <summary>A launch profile chosen fills the fields with its values; none keeps them.</summary>
     private RunConfiguration FromProfile(RunConfiguration current)
     {
         if (ProfileBox.SelectedIndex <= 0 || Project(current) is not { } project

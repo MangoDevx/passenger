@@ -34,8 +34,7 @@ public sealed class FoldingTests : IDisposable
         window.OpenFile(path);
         Ui.Settle();
         CodeEditor editor = window.EditorArea.CodeEditor;
-        // The usings, the class and the method; the expression-bodied member has nothing to fold. The usings open folded,
-        // as Rider's Imports fold by default; Ctrl+M, X expands everything.
+        // The usings, the class and the method; the usings open folded.
         Ui.WaitFor(() => editor.FoldRegions.Count == 3, "the file's regions");
         Assert.Equal(FoldKind.Imports, Assert.Single(editor.FoldRegions, r => r.Folded).Kind);
         editor.Focus();
@@ -44,7 +43,6 @@ public sealed class FoldingTests : IDisposable
         int twice = Source.IndexOf("int Twice", StringComparison.Ordinal);
         double before = editor.PointOf(twice).Y;
 
-        // Ctrl+M, S in the body folds the method: its brace and body lines go, the caret to the signature's end.
         editor.GoTo(new TextPosition(7, 8));
         editor.Focus();
         Ui.Press(window, "control M , control S");
@@ -55,18 +53,15 @@ public sealed class FoldingTests : IDisposable
         Assert.Equal(before - (4 * editor.LineHeight), editor.PointOf(twice).Y, 3);
         Assert.Equal(editor.FoldRegions, window.EditorArea.Active!.FoldRegions);
 
-        // Down from the signature goes past the fold; Up comes back to it.
         Ui.Press(window, "DOWN");
         Assert.Equal(10, editor.CaretPosition.Line);
         Ui.Press(window, "UP");
         Assert.Equal(5, editor.CaretPosition.Line);
 
-        // Ctrl+M, M toggles it open again.
         Ui.Press(window, "control M , control M");
         Assert.DoesNotContain(editor.FoldRegions, r => r.Folded);
         Assert.Equal(before, editor.PointOf(twice).Y, 3);
 
-        // Ctrl+M, A folds everything; going to a line inside opens what hid it and leaves the usings folded.
         Ui.Press(window, "control M , control A");
         Assert.All(editor.FoldRegions, r => Assert.True(r.Folded));
         editor.GoTo(new TextPosition(8, 8));
@@ -74,7 +69,6 @@ public sealed class FoldingTests : IDisposable
         Assert.Single(editor.FoldRegions, r => r.Folded);
         Assert.Equal(new TextPosition(8, 8), editor.CaretPosition);
 
-        // A click on the method's chevron, at the gutter's right edge, folds it.
         Point chevron = editor.TranslatePoint(editor.GutterColumnPoint(GutterColumn.Folding, 5), window)!.Value;
         window.MouseDown(chevron, MouseButton.Left);
         window.MouseUp(chevron, MouseButton.Left);
@@ -83,10 +77,9 @@ public sealed class FoldingTests : IDisposable
         window.Close();
     }
 
-    /// <summary>A folded method is one line to every line command, as the person sees it: Move Line takes it whole and steps
-    /// whole over a folded method beside it, both staying folded, and Duplicate, Copy, Cut and Delete Line take its body
-    /// with its signature. Each command leaves every method whole, where moving the signature alone put it inside the
-    /// hidden body beside it, or left its body behind the placeholder.</summary>
+    /// <summary>A folded method is one line to every line command, as the person sees it: Move Line takes it whole and
+    /// steps whole over a folded method beside it, both staying folded, and Duplicate, Copy, Cut and Delete Line take
+    /// its body with its signature. Each command leaves every method whole.</summary>
     [AvaloniaFact]
     public void Line_commands_take_a_folded_method_whole_and_step_over_one_whole_leaving_every_body_whole()
     {
@@ -135,7 +128,6 @@ public sealed class FoldingTests : IDisposable
         Shows("Move Line Down on folded Area", Shapes(Perimeter, Area, Twice), ["int Perimeter(int w, int h)", "int Area(int w, int h)"], "int Area(int w, int h)");
         At(Area, 0, EditorActions.MoveLineUp);
         Shows("Move Line Up on folded Area", Shapes(Area, Perimeter, Twice), ["int Area(int w, int h)", "int Perimeter(int w, int h)"], "int Area(int w, int h)");
-        // A line moved up over a folded method goes above its signature, never into the body it hides.
         At(Twice, 0, EditorActions.MoveLineUp);
         Shows("Move Line Up past folded Perimeter", Shapes(Area, Twice, Perimeter), ["int Area(int w, int h)", "int Perimeter(int w, int h)"], "int Twice(int x) => x * 2;");
         At(Twice, 0, EditorActions.MoveLineDown);
@@ -146,7 +138,6 @@ public sealed class FoldingTests : IDisposable
         At(Area, 0, EditorActions.Duplicate);
         Shows("Duplicate on folded Area", Shapes(Area, Area, Perimeter, Twice), ["int Area(int w, int h)", "int Perimeter(int w, int h)"], "int Area(int w, int h)");
         Assert.Equal(7, editor.CaretPosition.Line);
-        // The copy is open, as the code it is: Delete Line on the folded one above it takes that one whole.
         At(Area, 0, EditorActions.DeleteLine);
         Shows("Delete Line on folded Area", Shapes(Area, Perimeter, Twice), ["int Perimeter(int w, int h)"], "int Area(int w, int h)");
         At(Perimeter, 0, EditorActions.Cut);
@@ -197,11 +188,10 @@ public sealed class FoldingTests : IDisposable
         Assert.True(asking.Asked.Count == 0, $"A frame with nothing changed asked for colours again: {string.Join(", ", asking.Asked)}.");
     }
 
-    /// <summary>A key in a file of 20,000 lines costs its parse what the key changed: Roslyn builds a new tree's nodes as
-    /// they are read, so a walk of every node after each key (for the folds, or for each bracket's depth) built the whole
-    /// file again in the background. Each key here (in a method or in the usings), and each member pasted in, deleted or
-    /// wrapped in a #region, allocates on the parsing worker under a twentieth of what opening the file did, and after
-    /// each the folds are those the same text has opened afresh.</summary>
+    /// <summary>A key in a file of 20,000 lines costs its parse what the key changed: each key here (in a method or in
+    /// the usings), and each member pasted in, deleted or wrapped in a #region, allocates on the parsing worker under a
+    /// twentieth of what opening the file did, and after each the folds are those the same text has opened
+    /// afresh.</summary>
     [AvaloniaFact]
     public void Typing_in_twenty_thousand_lines_parses_what_each_key_changed_and_the_folds_stay_those_of_the_whole_text()
     {
@@ -294,25 +284,20 @@ public sealed class FoldingTests : IDisposable
             });
         }
 
-        // A member changed: a statement typed in a method's body.
         TypeAt("int value0 = seed + 100;", " int added = value0 * 2;");
         SameAsOpenedAfresh("a statement typed in a method");
-        // A using typed: Roslyn's parse makes the namespace below it anew, around the members it reuses.
         TypeAt("using System", ".IO");
         SameAsOpenedAfresh("a using typed");
-        // A member put in, as a paste puts it, and a key typed in it.
         Replace("a method pasted in", "        public int Property120", "        public int Property120",
             "        /// <summary>\n        /// Pasted.\n        /// </summary>\n        public void Pasted()\n        {\n            int x = 0;\n        }\n\n        public int Property120");
         TypeAt("int x = 0", "1");
         SameAsOpenedAfresh("a method pasted in");
-        // A member deleted, and two wrapped in a #region.
         Replace("a method deleted", "        /// <summary>\n        /// Method 150.", "return Local(value89);\n        }\n\n", string.Empty);
         SameAsOpenedAfresh("a method deleted");
         Replace("a #region begun", "        /// <summary>\n        /// Method 60.", "        /// <summary>\n        /// Method 60.",
             "        #region Sixty\n        /// <summary>\n        /// Method 60.");
         Replace("a #region ended", "        public int Property61", "        public int Property61", "        #endregion\n\n        public int Property61");
         SameAsOpenedAfresh("two members wrapped in a #region");
-        // A lambda's body, a block comment opened and closed, a brace that ends a method early.
         TypeAt("int value1 = value0 * 3 + \"10:1\".Length;", " Func<int> made = () => { return 1; };");
         TypeAt("int value2 = value1 * 3 + \"30:2\".Length;", " /*");
         SameAsOpenedAfresh("a block comment left open");
@@ -325,11 +310,9 @@ public sealed class FoldingTests : IDisposable
         window.Close();
     }
 
-    /// <summary>Every key moves the regions below it, and the parse it makes brings them again: the window moves region by
-    /// region the run of them the key reaches and shifts the runs below whole, and keeps them when the parse finds the same.
-    /// The least of twenty keys above 2,000 doc comments allocates on the UI thread under 4 bytes for each more than above
-    /// plain comments, where a moved copy of every region (24 bytes) was made each key, and before that mapped, sorted and
-    /// copied again by the editor, and twice more as each parse landed. A region folded below keeps its fold.</summary>
+    /// <summary>Every key moves the regions below it, and the parse it makes brings them again: the least of twenty
+    /// keys above 2,000 doc comments allocates on the UI thread under 4 bytes for each more than above plain comments,
+    /// and a region folded below keeps its fold.</summary>
     [AvaloniaFact]
     public void Typing_above_two_thousand_regions_moves_them_on_the_UI_thread_without_copying_each_again_and_again()
     {
@@ -472,13 +455,11 @@ public sealed class FoldingTests : IDisposable
         window.MouseMove(placeholder, RawInputModifiers.None);
         Ui.WaitFor(() => editor.FoldPreviewText is not null, "the card of the folded method's lines");
         Assert.Equal("{\n    int area = w * h;\n    return area;\n}", editor.FoldPreviewText);
-        // Over the chip still, the card stays; the method stays folded.
         window.MouseMove(placeholder + new Point(character, 0), RawInputModifiers.None);
         Ui.Settle();
         Assert.NotNull(editor.FoldPreviewText);
         Assert.Single(editor.FoldRegions, r => r.Folded && r.Kind == FoldKind.Body);
 
-        // Off the placeholder the card goes, and a click on it unfolds the method.
         window.MouseMove(placeholder + new Point(0, editor.LineHeight * 4), RawInputModifiers.None);
         Ui.Settle();
         Assert.Null(editor.FoldPreviewText);
@@ -503,11 +484,8 @@ public sealed class FoldingTests : IDisposable
             CodeEditor editor = first.EditorArea.CodeEditor;
             Passenger.App.Workspace.OpenDocument document = first.EditorArea.Active!;
             Ui.WaitFor(() => document.FoldsFound, "the file's regions");
-            // As Rider opens it: the header, the usings and the #region folded.
             Assert.Equal([FoldKind.FileHeader, FoldKind.Imports, FoldKind.Region], Folded(editor).Select(r => r.Kind));
 
-            // The usings opened, and inside the #region (which a caret going in opens) the doc comment over Area and the
-            // property's accessors folded.
             editor.Focus();
             editor.GoTo(new TextPosition(2, 0));
             Ui.Press(first, "control M , control E");
@@ -518,7 +496,6 @@ public sealed class FoldingTests : IDisposable
             FoldRegion[] folded = Folded(editor);
             Assert.Equal([FoldKind.FileHeader, FoldKind.DocComment, FoldKind.Body], folded.Select(r => r.Kind));
 
-            // Closed and opened again, it is folded as it was.
             Assert.True(first.EditorArea.Close(document), "The file did not close");
             first.OpenFile(path);
             Ui.Settle();
@@ -526,7 +503,6 @@ public sealed class FoldingTests : IDisposable
             Assert.Equal(folded, Folded(first.EditorArea.CodeEditor));
             first.Close();
 
-            // A window that opens the folder again opens the file, folded as it was.
             MainWindow second = Keeping(settings);
             second.OpenFolder(folder);
             Ui.Settle();
@@ -561,7 +537,6 @@ public sealed class FoldingTests : IDisposable
             editor.FoldRegions.Select(r => (editor.Document.Snapshot.GetLineFromOffset(r.Start), r.Kind)));
         Assert.Equal([FoldKind.FileHeader, FoldKind.Imports, FoldKind.Region], Folded(editor).Select(r => r.Kind));
 
-        // Ctrl+M, X expands all; Ctrl+M, O folds the members' bodies and the doc comments, and leaves the rest open.
         editor.Focus();
         Ui.Press(window, "control M , control X");
         Assert.Empty(Folded(editor));
@@ -573,11 +548,9 @@ public sealed class FoldingTests : IDisposable
         Assert.Equal(editor.PointOf(text.GetLineStart(14)).Y + editor.LineHeight, editor.PointOf(text.GetLineStart(17)).Y, 1);
         Assert.Equal(editor.PointOf(text.GetLineStart(17)).Y + (2 * editor.LineHeight), editor.PointOf(text.GetLineStart(26)).Y, 1);
 
-        // Rider's Code, Folding menu has it, by its name and keys.
         Assert.Equal("Collapse to Definitions", window.Actions[EditorActions.FoldToDefinitions]!.Title);
         Assert.Contains("M, O", window.Actions.Shortcut(EditorActions.FoldToDefinitions), StringComparison.Ordinal);
 
-        // Settings' Fold by default changes what the next file opens folded: its doc comments and bodies, not its usings.
         SettingsDialog dialog = window.ShowSettings();
         Ui.Settle();
         dialog.Query = "fold by default";
@@ -668,7 +641,6 @@ public sealed class FoldingTests : IDisposable
         Assert.Equal([(0, "...</Project>"), (1, "...-->"), (3, "...</PropertyGroup>"), (8, "...</ItemGroup>"), (9, "... />")], Regions(editor));
         Assert.All(editor.FoldRegions, r => Assert.Equal(editor.Document.Snapshot.GetLine(editor.Document.Snapshot.GetLineFromOffset(r.Start)).End, r.Start));
 
-        // The item group folded, a property typed above it: it stays folded, and the new element folds too.
         editor.Focus();
         editor.GoTo(new TextPosition(11, 8));
         Ui.Press(window, "control M , control S");
@@ -709,7 +681,6 @@ public sealed class FoldingTests : IDisposable
         Ui.WaitFor(() => settings.FoldsFound, "the JSON file's regions");
         Assert.Equal([(0, "...}"), (3, "...}"), (7, "...]"), (11, "...*/")], Regions(editor));
 
-        // The scripts folded, a key typed above them: they stay folded, and the files' array takes the new line.
         editor.GoTo(new TextPosition(4, 8));
         Ui.Press(window, "control M , control S");
         Assert.Equal("...}", Assert.Single(editor.FoldRegions, r => r.Folded).Placeholder);
@@ -776,7 +747,6 @@ public sealed class FoldingTests : IDisposable
             Ui.Settle();
         }
 
-        // Keys in the middle of the file, each landing before the next: a scan each, of a few milliseconds.
         int middle = source.IndexOf("File500_3.cs", StringComparison.Ordinal);
         editor.Selections = SelectionSet.Single(middle);
         editor.Focus();
@@ -794,7 +764,6 @@ public sealed class FoldingTests : IDisposable
             $"A key's scan allocated {each / 1024:N0} KB for {regions:N0} regions of 24 bytes in {source.Length / 1024:N0} K characters: more than the regions it found");
         SameAsOpenedAfresh("keys typed in an attribute");
 
-        // An element over two lines typed in, and an end tag deleted, whose start tag then folds nothing.
         int after = document.Text.Snapshot.ToString().IndexOf("    <None Update", middle, StringComparison.Ordinal);
         editor.Selections = SelectionSet.Single(after);
         window.KeyTextInput("<Content Include=\"a\">");

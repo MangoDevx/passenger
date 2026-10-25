@@ -41,9 +41,9 @@ public sealed record HotSpot(string Name, string Module, int Self, int Total)
 /// <summary>A managed method by its module's file and metadata token.</summary>
 public readonly record struct MethodCode(string ModuleFile, int Token);
 
-/// <summary>A type the program allocated: about how many bytes and objects (the runtime reports an allocation tick
-/// each 100 KB or so, naming the type and stack that crossed it), and the stacks that allocated it, the allocating
-/// method first and its callers below (dotMemory's back traces), weighed in kilobytes.</summary>
+/// <summary>A type the program allocated: about how many bytes and objects (the runtime reports an allocation tick each
+/// 100 KB or so, naming the type and stack that crossed it), and the stacks that allocated it, the allocating method
+/// first and its callers below, weighed in kilobytes.</summary>
 public sealed record AllocatedType(string Name, long Bytes, int Ticks, CallNode BackTraces);
 
 /// <summary>A garbage collection: its number, generation, why, when it began and how long the program was paused.</summary>
@@ -211,7 +211,7 @@ public sealed class Snapshot
     /// <summary>The time some samples of this run stand for, in milliseconds.</summary>
     public double Milliseconds(int samples) => samples * SampleMs;
 
-    /// <summary>The .nettrace file the run was written to, which other tools (PerfView, speedscope) read too.</summary>
+    /// <summary>The .nettrace file the run was written to.</summary>
     public string TracePath { get; }
 
     /// <summary>Where the program ran when not on this machine (its container), whose modules' PDBs are read there
@@ -224,8 +224,8 @@ public sealed class Snapshot
 
     private ProfilePlace? place;
 
-    /// <summary>The same views over a stretch of the run, as selecting an interval on dotTrace's timeline gives. Its work
-    /// grows with the run's stacks and runs, and it reads the run without changing it, so any thread may ask.</summary>
+    /// <summary>The same views over a stretch of the run. Its work grows with the run's stacks and runs, and it reads
+    /// the run without changing it, so any thread may ask.</summary>
     public Snapshot Within(double fromMs, double toMs)
     {
         Snapshot whole = Whole;
@@ -304,7 +304,7 @@ public sealed class Snapshot
                 spots[frame] = (spot.Self + (i == 0 ? count : 0), spot.Total + (first ? count : 0));
             }
         }
-        // The thread the program's entry point runs on is its main thread, as dotTrace names it.
+        // The thread the program's entry point runs on is named its main thread.
         foreach (CallNode thread in all.Children)
         {
             if (RunsEntryPoint(thread, 4))
@@ -400,7 +400,7 @@ public sealed class Snapshot
             || c.Name.Contains(".<Main>$(", StringComparison.Ordinal)
             || RunsEntryPoint(c, depth - 1));
 
-    /// <summary>A method as dotTrace writes it: its parameters by their types' own names ("Main(String[])"), not IL's
+    /// <summary>A method written with its parameters by their types' own names ("Main(String[])"), not IL's
     /// ("Main(class System.String[])").</summary>
     public static string Pretty(string method)
     {

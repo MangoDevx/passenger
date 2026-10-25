@@ -9,11 +9,12 @@ using Passenger.Text;
 
 namespace Passenger.App.CSharp;
 
-/// <summary>Rider's refactorings that ask their options in a dialog of their own: Change Signature, Extract Interface,
-/// Move to Another File and Move to Namespace, Pull Members Up and Push Members Down. Each asks Passenger's extension in
-/// the language server what is at the caret, shows its dialog, and on Next has the extension compute the change, which is
-/// applied as one command that Undo takes back whole, the files it makes included. The making is a method of its own per
-/// refactoring (<see cref="ChangeSignatureAsync"/>...), which an agent's refactor tool calls with the dialog's options.</summary>
+/// <summary>The refactorings that ask their options in a dialog of their own: Change Signature, Extract Interface, Move
+/// to Another File and Move to Namespace, Pull Members Up and Push Members Down. Each asks Passenger's extension in the
+/// language server what is at the caret, shows its dialog, and on Next has the extension compute the change, which is
+/// applied as one command that Undo takes back whole, the files it makes included. The making is a method of its own
+/// per refactoring (<see cref="ChangeSignatureAsync"/>...), which an agent's refactor tool calls with the dialog's
+/// options.</summary>
 public sealed partial class CodeAssist
 {
     private async Task ChangeSignature()
@@ -54,7 +55,7 @@ public sealed partial class CodeAssist
         }
     }
 
-    /// <summary>Rider's Move on a type: a list of where it can go, then the dialog of the one chosen.</summary>
+    /// <summary>Move on a type: a list of where it can go, then the dialog of the one chosen.</summary>
     private async Task Move()
     {
         const string name = "Move";
@@ -94,8 +95,8 @@ public sealed partial class CodeAssist
         }
     }
 
-    /// <summary>Rider's Pull Members Up (to a base type in the solution) or Push Members Down (to the classes derived from
-    /// the one at the caret).</summary>
+    /// <summary>Pull Members Up (to a base type in the solution) or Push Members Down (to the classes derived from the
+    /// one at the caret).</summary>
     private async Task MoveMembers(bool up)
     {
         string name = up ? "Pull Members Up" : "Push Members Down";
@@ -123,8 +124,8 @@ public sealed partial class CodeAssist
     public static Task<T> DescribeAtAsync<T>(LspDocument lsp, int offset, string handler) where T : class =>
         lsp.ExtensionAsync<T>(handler, new Roslyn.Extension.Caret(lsp.PlaceOf(offset)));
 
-    /// <summary>Why Pull Members Up or Push Members Down has nothing to do for the type described, as Rider says it before
-    /// its dialog would open; null when it has.</summary>
+    /// <summary>Why Pull Members Up or Push Members Down has nothing to do for the type described, said before its
+    /// dialog would open; null when it has.</summary>
     public static string? MembersMoveProblem(Hierarchy hierarchy, bool up) => hierarchy.Problem
         ?? (up && hierarchy.Bases.Count == 0 ? $"'{hierarchy.Type}' has no base type in this solution to pull members up to"
         : !up && hierarchy.Derived.Count == 0 ? $"No class in this solution derives from '{hierarchy.Type}' to push members down to"

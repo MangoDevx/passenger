@@ -67,8 +67,8 @@ public sealed class MSBuildService(Func<string?> folder, Func<WorkspaceModel?> w
         }
     }
 
-    /// <summary>Files the IDE itself made, moved or deleted, which the folder watcher may take for saves: each open file whose
-    /// evaluation walked folders is evaluated again, the host answering from its cache while none of them changed.</summary>
+    /// <summary>Files the IDE itself made, moved or deleted, which the folder watcher may take for saves: each open
+    /// file whose evaluation walked folders is evaluated again.</summary>
     public void FilesCameOrWent()
     {
         UiThread.Check();

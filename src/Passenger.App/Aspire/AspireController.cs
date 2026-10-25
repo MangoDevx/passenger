@@ -55,8 +55,7 @@ public sealed partial class AspireController(ProjectSession workspace, string st
     public event EventHandler<string>? ContainersElsewhere;
 
     /// <summary>The engines besides the window's that hold the folder's AppHosts' containers: the runtime an orchestrator
-    /// chose where it is not the engine Passenger's docker reaches (Podman's beside Docker's), listed in the Containers
-    /// window under their AppHost.</summary>
+    /// chose where it is not the engine Passenger's docker reaches (Podman's beside Docker's).</summary>
     public IReadOnlyList<Containers.ContainerEngine> ContainerEngines => containers?.OtherEngines ?? [];
 
     /// <summary><see cref="ContainerEngines"/> changed. On the UI thread.</summary>
@@ -107,7 +106,7 @@ public sealed partial class AspireController(ProjectSession workspace, string st
 
     /// <summary>How long Profile of a configuration waits for the service it records to reach the profiler, counted from DCP's
     /// request to start that service (however long its AppHost takes to ask, which Stop ends): past it the start is given up,
-    /// said as the time limit it is. A test's shorter one gives it up at once.</summary>
+    /// said as the time limit it is.</summary>
     public TimeSpan ProfileLimit { get; set; } = TimeSpan.FromMinutes(1);
 
     /// <summary>Whether the Debug window's chosen tab is another program's than any service's (a plain launch beside the
@@ -298,8 +297,7 @@ public sealed partial class AspireController(ProjectSession workspace, string st
             }
             if (mode == RunStart.Profile)
             {
-                // However long the AppHost takes to ask for the service it records (Stop ends the wait), then the limit from its ask.
-                // The AppHost's own pace is not drawing: Run's start, its caller, lets go of its hold on what is drawn meanwhile.
+                // The AppHost asks in its own time (Stop ends the wait), which no drawing waits on: the hold is let go.
                 Task asked;
                 BackgroundWork.End();
                 try
@@ -697,7 +695,7 @@ public sealed partial class AspireController(ProjectSession workspace, string st
         }, cancellation);
         string output = Path.Combine(stateFolder, "aspire", Convert.ToHexString(SHA256.HashData(
             System.Text.Encoding.UTF8.GetBytes(PathNames.Canonical(configuration.Project)))), "output");
-        // A build of the Build window's, as a project AppHost's is: Stop ends it, Problems lists what it found.
+        // A build of the Build window's: Stop ends it, Problems lists what it found.
         if (configuration.BuildBeforeLaunch && await build(new BuildStep(configuration.Project, null, output)) is { Succeeded: false } failed)
         {
             throw new LaunchException(failed.Message);
@@ -808,8 +806,7 @@ public sealed partial class AspireController(ProjectSession workspace, string st
 
     /// <summary>Whether this start is the one Profile of its configuration records: the first asked for of its run's AppHosts,
     /// or of the service Profile chose; claimed, the profile's time limit counts from now and falls due on its own timer, so
-    /// a start that lands after it is past it however late Profile's start looks again (a look that measured the limit then
-    /// took a start that had landed before it, however late, for one in time).</summary>
+    /// a start that lands after it is past it however late Profile's start looks again.</summary>
     private bool ClaimsProfile(AspireAppRun app, AspireProjectLaunch request)
     {
         string path = PathNames.Canonical(request.ProjectPath);
@@ -874,7 +871,7 @@ public sealed partial class AspireController(ProjectSession workspace, string st
         }
         if (app.OverHttp)
         {
-            // No certificate for this run: a service told to serve HTTPS serves HTTP where it would have, as its AppHost does.
+            // No certificate for this run: a service told to serve HTTPS serves HTTP where it would have.
             foreach ((string name, string value) in DevelopmentCertificate.OverHttp(environment))
             {
                 environment[name] = value;
@@ -904,9 +901,7 @@ public sealed partial class AspireController(ProjectSession workspace, string st
         string? failure = null;
         try
         {
-            // Held for the debugger (quietly for Hot Reload) as the run of services holds it: from its first start in this run,
-            // as a person chose it in an earlier one, else as the configuration and DCP's request say; the one Profile records,
-            // held for the profiler.
+            // Held as the run decides from its first start (FirstHold); the one Profile records, for the profiler.
             RunStart? chosen = app.Starting(resource, () => FirstHold(app, resource, request));
             RunStart? held = profiling ? RunStart.Profile : chosen;
             resource.Inspection = held != RunStart.HotReload ? LiveApp.For(plan, workspace.Overlays) : null;
@@ -917,8 +912,7 @@ public sealed partial class AspireController(ProjectSession workspace, string st
             LaunchPlan inspected = resource.Inspection?.Plan ?? plan;
             if (held is not null)
             {
-                // Held at its runtime's start until what attaches to it lets it go: the debugger, its code open to Hot Reload,
-                // or the profiler, with no code made changeable, which it would measure.
+                // Held until what attaches lets it go; the profiler's gets no changeable code, which it would measure.
                 Dictionary<string, string> holding = new(inspected.Environment, StringComparer.Ordinal) { [RuntimeVariables.DefaultDiagnosticPortSuspend] = "1" };
                 if (held != RunStart.Profile)
                 {
@@ -943,8 +937,7 @@ public sealed partial class AspireController(ProjectSession workspace, string st
                 {
                     throw new LaunchException(unattached);
                 }
-                // Held for a debugger that could not reach it, it would wait at its start for good: it runs on unheld, its hold for
-                // the run let go, said, as a container run's service restarted held does.
+                // Held for a debugger that could not reach it, it would wait for good: it runs on unheld, said.
                 await app.HoldAsync(serviceName, null, CancellationToken.None);
                 resource.Held = null;
                 await LetGoAsync(resource.ProcessId);
@@ -991,9 +984,8 @@ public sealed partial class AspireController(ProjectSession workspace, string st
     });
 
     /// <summary>What a service is held at its start for, its first start in a run: as a person chose it as the configuration
-    /// last ran, else debugged where the configuration marks it Debug, or, with none marked, where DCP's request says (a
-    /// container run's rule: those marked Debug, else every one), quietly for Hot Reload under Run with Hot Reload, else
-    /// unheld (and every one unheld under Profile but the one profiled).</summary>
+    /// last ran, else debugged where the configuration marks it Debug, or, with none marked, where DCP's request says;
+    /// quietly for Hot Reload under Run with Hot Reload; else unheld (every one but the one profiled under Profile).</summary>
     private RunStart? FirstHold(AspireAppRun app, AspireResourceRun resource, AspireProjectLaunch request)
     {
         if (app.Mode == RunStart.Profile)
@@ -1103,7 +1095,7 @@ public sealed partial class AspireController(ProjectSession workspace, string st
             {
                 await app.Runner.Ended;
             }
-            // Its session containers last, once its AppHost has gone, as a container run's Stop takes its own down.
+            // Its session containers last, once its AppHost has gone.
             await Containers.TakeDownAsync(app.Configuration.Project, "as its AppHost stopped");
         }
         finally
@@ -1186,7 +1178,7 @@ public sealed partial class AspireController(ProjectSession workspace, string st
             }
             app.Following?.Dispose();
             app.Runner.Dispose();
-            // Its session containers once its AppHost and its services have gone, as the folder's own containers go with it.
+            // Its session containers once its AppHost and its services have gone.
             pending.Add(Containers.TakeDownAsync(app.Configuration.Project, "as the folder closed", Task.WhenAll(pending)));
             endings.Add(CompleteAppAsync(app, pending));
         }
@@ -1373,8 +1365,8 @@ public sealed class AspireAppRun : ServiceRun
             })
             : throw new ServiceUnreachedException($"{service.Name} of {Name} has no program running");
 
-    /// <summary>Why no debugger or profiler can reach a program its environment starts with its runtime's diagnostics off (which
-    /// no hold then holds either), as Passenger's container tools say it of a container's; null when they are on.</summary>
+    /// <summary>Why no debugger or profiler can reach a program its environment starts with its runtime's diagnostics off
+    /// (which no hold then holds either); null when they are on.</summary>
     private static string? DiagnosticsOff(IReadOnlyDictionary<string, string> environment) =>
         environment.GetValueOrDefault("DOTNET_EnableDiagnostics") == "0" || environment.GetValueOrDefault("DOTNET_EnableDiagnostics_Debugger") == "0"
             ? "Its runtime was started with DOTNET_EnableDiagnostics=0, which turns its debugger off: nothing can attach to it" : null;
@@ -1458,8 +1450,8 @@ public sealed class AspireAppRun : ServiceRun
     public string? UnstartedName(AspireResource resource) => resource.State == "FailedToStart" ? unstarted.FirstOrDefault(name =>
         resource.IsNamed(name)) : null;
 
-    /// <summary>A resource's state as Passenger says it, the window's rows and Details and an agent's answers alike:
-    /// <see cref="NotStarted"/> for one the run left unstarted, else DCP's own.</summary>
+    /// <summary>A resource's state as Passenger says it everywhere: <see cref="NotStarted"/> for one the run left unstarted,
+    /// else DCP's own.</summary>
     public string? StateOf(AspireResource resource) => IsLeftUnstarted(resource) ? NotStarted : resource.State;
 
     /// <summary>A service's start has landed: started, attached to where held, or failed (<paramref name="failure"/>).</summary>

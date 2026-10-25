@@ -9,9 +9,9 @@ namespace Passenger.Languages.CSharp;
 /// <summary>What Complete Current Statement does to a text: its edits, and where the caret goes once they are made.</summary>
 public sealed record CompletedStatement(IReadOnlyList<TextEdit> Edits, int Caret);
 
-/// <summary>Rider's Complete Current Statement, read from the file's syntax (Roslyn parses what is half typed, marking
-/// what it lacks as missing): the statement on the caret's line gets the brackets it leaves open and its semicolon, and
-/// the caret a new line after it; a header (<c>if (x</c>, a method's signature, a type's) gets its closing parenthesis and
+/// <summary>Complete Current Statement, read from the file's syntax (Roslyn parses what is half typed, marking what it
+/// lacks as missing): the statement on the caret's line gets the brackets it leaves open and its semicolon, and the
+/// caret a new line after it; a header (<c>if (x</c>, a method's signature, a type's) gets its closing parenthesis and
 /// braces, and the caret their body; a statement already whole, a new line after it.</summary>
 public static class StatementCompletion
 {

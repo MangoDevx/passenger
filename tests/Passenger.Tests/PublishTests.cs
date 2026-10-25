@@ -53,7 +53,6 @@ public sealed class PublishTests : IClassFixture<RestoredFolders>, IDisposable
         try
         {
             PublishDialog dialog = DialogButtonsTests.Check(Show(window, "Hello"));
-            // A project with no profile is offered a new one, Release and portable, landing where MSBuild puts it.
             string landing = PathNames.Canonical(Path.Combine(folder, "src", "Hello", "bin", "Release", TestProjects.Framework, "publish"));
             Assert.Equal((null, "FolderProfile", "Release", null, false), (dialog.Chosen, dialog.ProfileName, dialog.Configuration, dialog.Runtime, dialog.SelfContained));
             Assert.True(dialog.Destination is { } shown && PathNames.Same(shown, landing), $"The dialog says the app lands in {dialog.Destination}, not in {landing}");
@@ -67,7 +66,6 @@ public sealed class PublishTests : IClassFixture<RestoredFolders>, IDisposable
                 && !profile.Contains("PublishDir", StringComparison.Ordinal), $"The new profile says:\n{profile}");
             Assert.Equal("Hello from the publish, 1 given", Run(Dotnet([Path.Combine(landing, "Hello.dll"), "one"], landing)));
 
-            // The status bar and the Build window say where it landed; a click on the status bar's words opens the folder.
             Assert.Equal($"Published Hello (FolderProfile) to {Path.GetRelativePath(PathNames.Canonical(folder), landing)}", window.Status);
             Assert.Contains($"Published Hello (FolderProfile) to {landing}", window.BottomPanel.Build.Document.Snapshot.ToString(), StringComparison.Ordinal);
             Button said = window.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "StatusMessage");
@@ -103,7 +101,6 @@ public sealed class PublishTests : IClassFixture<RestoredFolders>, IDisposable
             dialog.Close();
             Ui.Settle();
 
-            // Undo from the Solution view takes the profile away, Redo puts it back.
             window.Confirm = (_, _, _) => Task.FromResult(true);
             Choose(window, "Hello");
             Ui.Run(window, EditorActions.Undo);
@@ -112,7 +109,6 @@ public sealed class PublishTests : IClassFixture<RestoredFolders>, IDisposable
             Ui.Run(window, EditorActions.Redo);
             Assert.Equal(saved, File.ReadAllText(profile));
 
-            // Offered again, it publishes as it says: Debug, to its folder.
             dialog = Show(window, "Hello");
             Assert.Equal(("Nightly", "Debug", "../../out/nightly/"), (dialog.Chosen?.Name, dialog.Configuration, dialog.OutputFolder));
             BuildOutcome ended = Publish(window, dialog.PublishAsync);
@@ -124,7 +120,6 @@ public sealed class PublishTests : IClassFixture<RestoredFolders>, IDisposable
             window.Close();
         }
 
-        // After a restart, Publish Again publishes Hello with the profile it last published with.
         TestFolders.Delete(nightly);
         window = Keeping(state);
         try
@@ -139,7 +134,6 @@ public sealed class PublishTests : IClassFixture<RestoredFolders>, IDisposable
             window.Close();
         }
 
-        // The profile is the SDK's own: dotnet publish takes it as it is.
         TestFolders.Delete(nightly);
         ChildResult published = Run(Dotnet(["publish", Path.Combine("src", "Hello", "Hello.csproj"), "-c", "Debug", "-p:PublishProfile=Nightly"], folder), check: false);
         Assert.True(published.Succeeded && File.Exists(Path.Combine(nightly, "Hello.dll")), $"dotnet publish with the profile exited with {published.ExitCode}:\n{published.Output}{published.Error}");
@@ -165,7 +159,6 @@ public sealed class PublishTests : IClassFixture<RestoredFolders>, IDisposable
             string portable = PathNames.Canonical(Path.Combine(folder, "src", "Hello", "bin", "Release", TestProjects.Framework, "publish", "portable"));
             Assert.True(dialog.Destination is { } shown && PathNames.Same(shown, portable), $"The dialog says the profile lands in {dialog.Destination}, not in {portable}");
 
-            // Changed, it is saved only once the person agrees.
             List<string> asked = [];
             bool agree = false;
             window.Confirm = (_, _, yes) =>
@@ -184,7 +177,6 @@ public sealed class PublishTests : IClassFixture<RestoredFolders>, IDisposable
             Assert.True(written == vs.Replace("<Configuration>Release<", "<Configuration>Debug<", StringComparison.Ordinal),
                 $"The profile changed more than its configuration:\n{written.Replace("\r", "<CR>", StringComparison.Ordinal)}");
 
-            // A new profile of a name taken asks before it takes the file's place.
             dialog.ChooseProfile(null);
             Ui.Settle();
             dialog.ProfileName = "FolderProfile";
@@ -295,7 +287,6 @@ public sealed class PublishTests : IClassFixture<RestoredFolders>, IDisposable
             // Pumped, not settled: a settle waits for the publish, which holds background work until it ends.
             Ui.PumpUntil(() => window.BottomPanel.Build.Document.Snapshot.ToString().Contains("Lingering a while", StringComparison.Ordinal), "the publish to reach its waiting step",
                 TimeSpan.FromMinutes(2));
-            // The status bar says what it does, as every build's work.
             Assert.Equal("Building Hello (FolderProfile)…", window.Actions.Work.Of(AppActions.Publish)?.Stage);
             window.Perform(AppActions.Stop);
             Ui.WaitFor(() => window.LastPublish is { IsCompleted: true }, "the stopped publish to end", TimeSpan.FromSeconds(30));
@@ -332,9 +323,8 @@ public sealed class PublishTests : IClassFixture<RestoredFolders>, IDisposable
     }
 
     /// <summary>A project's Publish... in its Explorer menu: whether it can be chosen, and its tip. Right-clicked again until
-    /// the menu opens on its row: a project file written is read again with the solution, which makes every row anew
-    /// (MainWindow.OnFolderChanged), whenever the system's watcher tells of the write, so the row found a moment before may
-    /// be gone by the click (at once on Linux's inotify, later on macOS's FSEvents).</summary>
+    /// the menu opens on its row: a project file written makes every row anew whenever the system's watcher tells of the
+    /// write, so the row found a moment before may be gone by the click.</summary>
     private static (bool Enabled, string? Tip) MenuItem(MainWindow window, string project)
     {
         (bool Enabled, string? Tip)? found = null;

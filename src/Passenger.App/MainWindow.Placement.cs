@@ -7,7 +7,7 @@ namespace Passenger.App;
 public partial class MainWindow
 {
     /// <summary>Fits the window to the screen it opens on before it is shown (the one under its place when it has one,
-    /// else the primary), as Rider's window opens: see <see cref="FitWithin"/>.</summary>
+    /// else the primary): see <see cref="FitWithin"/>.</summary>
     public void FitToScreen(bool keepPlace)
     {
         Screen? screen = (keepPlace ? Screens.ScreenFromPoint(Position) : null) ?? Screens.Primary;

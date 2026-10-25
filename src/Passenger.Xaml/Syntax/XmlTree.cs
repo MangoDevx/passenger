@@ -33,7 +33,7 @@ public sealed class XmlTree
 
     public IReadOnlyList<TextRange> Comments => comments;
 
-    /// <summary>Where the markup is not well-formed, in the words a person reads in Problems.</summary>
+    /// <summary>Where the markup is not well-formed, in a person's words.</summary>
     public IReadOnlyList<XmlProblem> Problems { get; }
 
     public static XmlTree Parse(string text) => new Reader(text).Read();

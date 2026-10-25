@@ -16,7 +16,7 @@ public partial class MainWindow
 {
     private ContainersView? containersView;
 
-    /// <summary>The container engine the window asks: the person's, or a test's stand-in.</summary>
+    /// <summary>The container engine the window asks: the person's, unless one is given.</summary>
     public ContainerEngine Engine { get; init; } = ContainerEngine.Shared;
 
     /// <summary>The Containers tool window, built as it is first shown or asked for (an agent's or a run's action on a row).</summary>
@@ -75,7 +75,6 @@ public partial class MainWindow
         ContainersView view = new(new ContainersParts(() => Engine, work, Say, Browse, () => StateFolder, id => actions![id]!.Title, RowMenuItem));
         containersView = view;
         view.RowChosen += (_, _) => lastServiceWindow = ToolWindowIds.Containers;
-        // An AppHost's containers under it, as its run's resources name them (the folder's AppHosts that run now).
         view.AppHostOf = container => session is { IsEnded: false } current
             && current.Aspire.Apps.FirstOrDefault(app => app.KnownContainerIds.Any(id => ContainerRow.SameId(id, container.Id))) is { } run
             ? (run.Configuration.Project, run.Configuration.Name) : null;
@@ -236,7 +235,7 @@ public partial class MainWindow
         return await ContainerActAsync(AppActions.ContainerRemove, "remove", row);
     }
 
-    /// <summary>The question Prune or a volume's Remove asked last, for the tests.</summary>
+    /// <summary>The question Prune or a volume's Remove asked last.</summary>
     public ConfirmDialog? Asked { get; private set; }
 
     /// <summary>Scale: how many containers a Compose service runs, asked for, then <c>docker compose up --scale</c>.</summary>

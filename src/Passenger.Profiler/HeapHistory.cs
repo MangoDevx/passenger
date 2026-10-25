@@ -6,13 +6,12 @@ using Microsoft.Diagnostics.Tracing.Parsers.Clr;
 
 namespace Passenger.Profiler;
 
-/// <summary>A run's memory snapshots, and what follows their objects from one to the next as dotMemory's object identity
-/// does: a GC moves objects, so an address alone says nothing across a collection. From the first snapshot an EventPipe
-/// session of its own hears every collection (the GCHeapSurvivalAndMovement keyword): which generations it condemned,
-/// their ranges as it began, and every stretch of objects it kept, moved or not. Each earlier snapshot's objects are
-/// carried through those, those in a condemned generation and in no kept stretch dying. A dump is placed among the
-/// collections by when createdump held the program, which the runtime's sampler shows as the one long stretch with no
-/// sample; a full collection induced right after it (the GCHeapCollect keyword, as dotnet-gcdump does) says when every
+/// <summary>A run's memory snapshots, and what follows their objects from one to the next: a GC moves objects, so an
+/// address alone says nothing across a collection. From the first snapshot an EventPipe session of its own hears every
+/// collection (the GCHeapSurvivalAndMovement keyword): which generations it condemned, their ranges as it began, and
+/// every stretch of objects it kept, moved or not. Each earlier snapshot's objects are carried through those, those in
+/// a condemned generation and in no kept stretch dying. A dump is placed among the collections by when createdump held
+/// the program, the one long stretch with no sample; a full collection induced right after it says when every
 /// collection before has been heard.</summary>
 internal sealed class HeapHistory(int processId) : IAsyncDisposable
 {
@@ -364,7 +363,7 @@ internal sealed class HeapHistory(int processId) : IAsyncDisposable
         return await Task.WhenAny(heard.Task, Task.Delay(limit)) == heard.Task && heard.Task.Result;
     }
 
-    /// <summary>Has the runtime collect in full, as enabling the GCHeapCollect keyword does, and gives that collection's
+    /// <summary>Has the runtime collect in full (a session with the GCHeapCollect keyword), and gives that collection's
     /// number, or -1. The collection is over when the session's start returns.</summary>
     private async Task<int> InduceAsync(CancellationToken cancel)
     {

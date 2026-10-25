@@ -16,12 +16,12 @@ using Debuggees = Passenger.Tests.Debugging.Helpers.Debuggees;
 
 namespace Passenger.Tests;
 
-/// <summary>A WPF app debugged from the window, as an Avalonia one is in LiveTreeTests and BindingErrorsTests:
-/// tests/Debuggees/WpfTreeApp, written into a folder of its own with a project file for the tests' own target, restored from
-/// the run's own feed, built and launched by Debug as a person's app is, with Passenger's WPF inspector in it. Its window
-/// shows on the screen (WPF has no headless platform), and its standard input stands in for the person's pointer ("click
-/// X,Y", typed into the Debug window's console, which the app sends its window as Windows sends a mouse's messages). WPF runs
-/// on Windows alone, so elsewhere the tests skip. Debugged through the window, so run alone.</summary>
+/// <summary>A WPF app debugged from the window: tests/Debuggees/WpfTreeApp, written into a folder of its own with a
+/// project file for the tests' own target, restored from the run's own feed, built and launched by Debug as a person's app
+/// is, with Passenger's WPF inspector in it. Its window shows on the screen (WPF has no headless platform), and its
+/// standard input stands in for the person's pointer ("click X,Y", typed into the Debug window's console, which the app
+/// sends its window as Windows sends a mouse's messages). WPF runs on Windows alone, so elsewhere the tests skip. Debugged
+/// through the window, so run alone.</summary>
 [Collection(Alone.Name)]
 public sealed class WpfLiveTreeTests : IClassFixture<RestoredFolders>, IDisposable
 {
@@ -81,7 +81,6 @@ public sealed class WpfLiveTreeTests : IClassFixture<RestoredFolders>, IDisposab
         Assert.True(window.LiveApp is { Kind: LiveAppKind.Wpf } && window.LiveApp.Framework.StartsWith("WPF ", StringComparison.Ordinal),
             $"The app was taken for {window.LiveApp?.Kind}, {window.LiveApp?.Framework}");
 
-        // A value set on the element is local; a button's background comes from its default style, the theme's.
         ElementDetails delete = Choose(window, "Delete");
         PropertyValue deleteBackground = delete.Properties.Single(p => p.Name == "Background");
         Assert.True(deleteBackground.Source == ValueSources.Local, $"Delete's Background came from {deleteBackground.Source} {deleteBackground.Detail}, not its local value");
@@ -89,18 +88,15 @@ public sealed class WpfLiveTreeTests : IClassFixture<RestoredFolders>, IDisposab
         PropertyValue countBackground = count.Properties.Single(p => p.Name == "Background");
         Assert.True(countBackground.Source == ValueSources.Theme, $"Count's Background came from {countBackground.Source} {countBackground.Detail}, not Button's default style");
 
-        // The implicit Style for Button in App.xaml gives its margin, linked to its setter's line there.
         PropertyValue margin = count.Properties.Single(p => p.Name == "Margin");
         Assert.True(margin.Source == ValueSources.Style, $"Count's Margin came from {margin.Source} {margin.Detail}, not the implicit Style for Button");
         Assert.Equal((AppXaml, Line(AppXaml, "Property=\"Margin\"")), (PathNames.Canonical(margin.Place!.File), margin.Place.Line));
         StyleReport implicitStyle = count.Styles.Single(s => s.Kind == StyleKinds.Style);
         Assert.Equal(("Style TargetType=Button", Line(AppXaml, "<Style TargetType=\"Button\">")), (implicitStyle.Selector, implicitStyle.Place?.Line));
-        // Its trigger does not apply while the pointer is elsewhere, and says why.
         StyleReport hover = count.Styles.Single(s => s.Kind == StyleKinds.Trigger && s.Selector == "Trigger IsMouseOver=True");
         Assert.True(hover is { Applies: false, WhyNot: "IsMouseOver is False, not True" }, $"The IsMouseOver trigger applies {hover.Applies}: {hover.WhyNot}");
         Assert.Contains(hover.Setters, s => s.Property == "Foreground" && s.State == SetterStates.Inactive);
 
-        // A keyed Style's setter gives the greeting its weight, and the window's FontSize reaches it by inheritance.
         ElementDetails greeting = Choose(window, "Greeting");
         PropertyValue weight = greeting.Properties.Single(p => p.Name == "FontWeight");
         Assert.True(weight.Source == ValueSources.Style, $"Greeting's FontWeight came from {weight.Source} {weight.Detail}, not its Style");
@@ -108,18 +104,15 @@ public sealed class WpfLiveTreeTests : IClassFixture<RestoredFolders>, IDisposab
         PropertyValue size = greeting.Properties.Single(p => p.Name == "FontSize");
         Assert.True(size is { Source: ValueSources.Inherited, Value: "15" } && size.Detail == "From MainWindow (its local value)",
             $"Greeting's FontSize {size.Value} came from {size.Source} {size.Detail}, not the window's local value");
-        // Its bounds, in its window and in its parent.
         Assert.True(greeting.Layout.InWindow is { X: >= 12, Y: >= 12, Width: > 0, Height: > 0 }, $"Greeting's box in its window is {greeting.Layout.InWindow}");
         Assert.True(greeting.Layout.Bounds.Width > 0 && greeting.Layout.Margin == new Edges(0, 0, 0, 0), $"Greeting's layout: {greeting.Layout}");
 
-        // Go to source lands on the element in its XAML, from WPF's own record of where it was made.
         Choose(window, "Delete");
         Assert.NotNull(tree.GoToSource);
         Ui.Click(tree.GoToSource!);
         Assert.Equal(Xaml, window.EditorArea.Active?.Path);
         Assert.Equal(Line(Xaml, "x:Name=\"Delete\"") - 1, window.EditorArea.CodeEditor.CaretPosition.Line);
 
-        // Paused, the app answers nothing: the tree stays as it last ran and says so, until the app runs again.
         Ui.Run(window, AppActions.Pause);
         Ui.WaitFor(() => window.Debugger.Session?.State == DebugState.Paused, "the app to pause");
         Ui.WaitFor(() => tree.BannerText is not null, "the tree to say the app is paused");
@@ -149,7 +142,6 @@ public sealed class WpfLiveTreeTests : IClassFixture<RestoredFolders>, IDisposab
             throw new TimeoutException($"{waited.Message}: {Said(window)}", waited);
         }
 
-        // WPF's System.Windows.Data Error, its place first and linked: a click opens MainWindow.xaml at the misspelt member.
         Assert.StartsWith($"MainWindow.xaml({Misspelt.Line + 1},{Misspelt.Column + 1}): binding error: TextBlock#Caption.Text to Nmae: ", line, StringComparison.Ordinal);
         Assert.Contains("'Nmae' property not found", line, StringComparison.Ordinal);
         Assert.Contains("System.Windows.Data Error: 40", line, StringComparison.Ordinal);
@@ -157,7 +149,6 @@ public sealed class WpfLiveTreeTests : IClassFixture<RestoredFolders>, IDisposab
         Ui.ClickLink(console, line);
         Assert.Equal((Xaml, Misspelt), (window.EditorArea.Active?.Path, window.EditorArea.CodeEditor.CaretPosition));
 
-        // In Problems' Bindings, once, with its element, property, path and count, at the misspelt member.
         ProblemsModel problems = window.BottomPanel.Problems;
         BindingProblem caption = Assert.Single(problems.BindingProblems);
         Assert.Equal(("TextBlock#Caption", "Text", "Nmae", 1), (caption.Failure.Control, caption.Failure.Property, caption.Failure.Path, caption.Failure.Count));
@@ -165,7 +156,6 @@ public sealed class WpfLiveTreeTests : IClassFixture<RestoredFolders>, IDisposab
         Assert.Equal(["Name"], caption.Failure.Nearest);
         Assert.Equal(Line(Xaml, "x:Name=\"Caption\""), caption.Failure.Place?.Line);
 
-        // Failing again, it is counted, not listed again.
         Ui.TypeToDebugged(window, "rebind");
         Ui.WaitFor(() => problems.BindingProblems.SingleOrDefault()?.Failure.Count == 2, "the caption's failure to be counted twice");
         Assert.Single(problems.BindingProblems);
@@ -212,7 +202,6 @@ public sealed class WpfLiveTreeTests : IClassFixture<RestoredFolders>, IDisposab
             $"the editor to show the misspelt member, not {window.EditorArea.Active?.Path} {window.EditorArea.CodeEditor.CaretPosition} ({frames})");
         Ui.WaitFor(() => window.Status?.Contains("paused on a binding error at MainWindow.xaml", StringComparison.Ordinal) == true,
             $"the status bar to say the binding error, not \"{window.Status}\"", TimeSpan.FromSeconds(20));
-        // $bindingError above the frame's values, as an Avalonia app's is, opening into the failure.
         Assert.Equal("\"Nmae\"", Member(window, "$bindingError", "Path"));
         Assert.Equal("\"Nmae\"", Member(window, "$bindingError", "FailedPart"));
         Assert.Contains("MainViewModel", Member(window, "$bindingError", "DataContext"), StringComparison.Ordinal);

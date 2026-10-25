@@ -5,7 +5,7 @@ using Avalonia.Layout;
 
 namespace Passenger.App.Vcs;
 
-/// <summary>Rider's merge window over the Conflicts dialog: the three-way merge, with Accept Left and Accept Right (the
+/// <summary>The merge window over the Conflicts dialog: the three-way merge, with Accept Left and Accept Right (the
 /// whole file as that side has it), Cancel and Apply Changes (the result), either of which writes the file and marks it
 /// resolved. Applying with changes left asks first, as cancelling a merge begun does; Escape cancels. The merge's own keys
 /// go to it wherever in the window the keys are, ahead of the IDE's.</summary>
@@ -36,7 +36,6 @@ public sealed class MergeWindow : Window, IOwnKeys
         Button apply = Action("Apply Changes", ApplyAsync);
         apply.Classes.Add("primary");
         buttons = [acceptLeft, acceptRight, cancel, apply];
-        // Accept Left and Accept Right at the footer's left, Cancel and Apply at its right, as Rider's merge dialog has them.
         StackPanel sides = new() { Classes = { "footer" }, Children = { acceptLeft, acceptRight } };
         Border bar = DialogFooter.Bar(DialogFooter.Of(apply, cancel), sides);
         DockPanel.SetDock(bar, Avalonia.Controls.Dock.Bottom);
@@ -130,7 +129,7 @@ public sealed class MergeWindow : Window, IOwnKeys
         return true;
     }
 
-    /// <summary>Rider's words for what Apply Changes leaves behind.</summary>
+    /// <summary>The words for what Apply Changes leaves behind.</summary>
     private static string Unprocessed(int changes, int conflicts)
     {
         List<string> left = [];

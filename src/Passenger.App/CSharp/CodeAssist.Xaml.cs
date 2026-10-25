@@ -120,9 +120,9 @@ public sealed partial class CodeAssist
         }
     }
 
-    /// <summary>A XAML project was read anew (its restore landed, a file it reads was written): a list shown in one of its
-    /// files, or asked there and found empty at the caret as it still stands, was made from the project as it was, so it is
-    /// asked again of the project as it is (a tag's '&lt;' typed as the restore that brings Avalonia's controls lands).</summary>
+    /// <summary>A XAML project was read anew (its restore landed, a file it reads was written): a list shown in one of
+    /// its files, or asked there and found empty at the caret as it still stands, was made from the project as it was,
+    /// so it is asked again of the project as it is.</summary>
     internal void XamlProjectRead(XamlProject project)
     {
         if (xamlAsked is not (XamlDocument xaml, int version, int caret) || XamlCurrent != xaml
@@ -610,8 +610,8 @@ public sealed partial class CodeAssist
         return XamlNavigation.Describe(found.File, found.Symbol);
     }
 
-    /// <summary>A C# definition that lands in the field Avalonia's generator or WPF's MarkupCompile made for a named element
-    /// goes to the element's name in its XAML instead, as Rider's does; null for any other.</summary>
+    /// <summary>A C# definition that lands in the field Avalonia's generator or WPF's MarkupCompile made for a named
+    /// element goes to the element's name in its XAML instead; null for any other.</summary>
     private async Task<XamlTarget?> NamedElementOfAsync(IReadOnlyList<LspLocation> definitions, int offset)
     {
         foreach (LspLocation place in definitions)
@@ -670,7 +670,7 @@ public sealed partial class CodeAssist
     [GeneratedRegex(@"(?<class>[\w.]+)\.g\.cs")]
     private static partial Regex GeneratedFile();
 
-    /// <summary>The protocol's kind for a XAML item, which gives its badge the letter and colour Rider's has.</summary>
+    /// <summary>The protocol's kind for a XAML item, which gives its badge its letter and colour.</summary>
     private static int KindOf(XamlItemKind kind) => kind switch
     {
         XamlItemKind.Element or XamlItemKind.Type or XamlItemKind.ClosingTag => 7,

@@ -3,11 +3,12 @@ using Passenger.Debugger.Interop;
 
 namespace Passenger.Debugger;
 
-/// <summary>Stopping an evaluation past its time. The runtime takes an abort only where the thread runs managed code, at a
-/// safe point and outside any catch or finally; asked anywhere else (a wait on a lock a paused thread holds, a sleep, a
-/// read of input, a finally), it stays pending until the thread gets there, which for a wait is after the program has gone
-/// on, inside what it waited for: a lock, then never let go (#238). So an abort is asked only of a thread caught, the
-/// program held a moment, where it takes as the thread goes on, and never a rude one, which runs no finally.</summary>
+/// <summary>Stopping an evaluation past its time. The runtime takes an abort only where the thread runs managed code,
+/// at a safe point and outside any catch or finally; asked anywhere else (a wait on a lock a paused thread holds, a
+/// sleep, a read of input, a finally), it stays pending until the thread gets there, which for a wait is after the
+/// program has gone on, inside what it waited for: a lock, then never let go. So an abort is asked only of a thread
+/// caught, the program held a moment, where it takes as the thread goes on, and never a rude one, which runs no
+/// finally.</summary>
 public partial class ManagedDebugger
 {
     /// <summary>Why an abort asked now of a thread running an evaluation, the program held, would not take as the thread goes

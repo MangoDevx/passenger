@@ -194,7 +194,6 @@ public sealed partial class CodeAssist
     /// .resx's new entry, an XLIFF unit's target), one command of global undo, worked out again as it is chosen and refused
     /// once the file gives the key.</summary>
     public IReadOnlyList<EditorFix> LocalizationFixes(OpenDocument file, int offset) =>
-        // The line's warnings, the one the caret is on first.
         [.. LackingKeys(file, offset).OrderBy(m => m.Range.Start <= offset && offset <= m.Range.End ? 0 : 1)
             .DistinctBy(m => (m.Key, m.File)).Select(m => TranslationFix(file, m.Range, m.Key, m.File, m.Culture, m.Base, m.Untranslated))];
 

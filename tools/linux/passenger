@@ -1,6 +1,5 @@
 #!/bin/sh
-# Passenger's launcher on Linux (tools/package-linux.sh puts it at the top of the passenger/ folder): it runs the app in
-# app/ beside it, from wherever the folder was unpacked or installed, and through a link to it too (install.sh's
-# ~/.local/bin/passenger), with everything it is given: a folder, a solution or a file, and Passenger's flags.
+# Passenger's launcher on Linux: it runs the app in app/ beside it, from wherever the folder was unpacked or installed
+# and through a link to it too, with everything it is given: a folder, a solution or a file, and Passenger's flags.
 self=$(readlink -f "$0") || self=$0
 exec "$(dirname "$self")/app/Passenger" "$@"

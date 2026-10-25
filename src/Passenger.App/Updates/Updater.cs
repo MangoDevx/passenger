@@ -5,8 +5,7 @@ namespace Passenger.App.Updates;
 /// <summary>How this copy of Passenger installs a newer release: it downloads the release's package for this system in
 /// the background, checks it against the SHA-256 the release gives (and the app's signature on macOS), and installs it
 /// as Passenger ends, starting the new version when the person chose Restart to Update. Only a copy that Passenger's
-/// installer (Windows) or disk image (macOS) put in place has one; a build from source, the tests' windows, a screenshot
-/// and an agent's headless IDE never update themselves.</summary>
+/// installer (Windows) or disk image (macOS) put in place has one.</summary>
 public abstract class Updater
 {
     /// <summary>Where this copy is installed, for the log.</summary>

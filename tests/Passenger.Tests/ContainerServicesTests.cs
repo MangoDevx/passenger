@@ -13,11 +13,10 @@ using Passenger.Core;
 namespace Passenger.Tests;
 
 /// <summary>One .NET service of a running container run acted on as the run goes on, against a real engine, from the
-/// Containers window's rows and the gutter's run icon: Debug restarts it held and stops in its Main, the window's Restart
-/// goes through the run and holds it again, Run without Debugger lets its session go with no restart, Attach reaches
-/// another as it runs (its startup said to have run), and the gutter's menu offers them; the others never restart. A
-/// debugged run's own Restart, Stop and Remove are ContainerRunDebuggingTests'. Skips, saying why, where no Linux engine
-/// runs.</summary>
+/// Containers window's rows and the gutter's run icon: Debug restarts it held and stops in its Main, the window's
+/// Restart goes through the run and holds it again, Run without Debugger lets its session go with no restart, Attach
+/// reaches another as it runs (its startup said to have run), and the gutter's menu offers them; the others never
+/// restart. Skips, saying why, where no Linux engine runs.</summary>
 [Collection(Alone.Name)]
 public sealed class ContainerServicesTests(ContainerRunDebuggingTests.Tools tools) : IClassFixture<ContainerRunDebuggingTests.Tools>
 {
@@ -65,17 +64,14 @@ public sealed class ContainerServicesTests(ContainerRunDebuggingTests.Tools tool
             string apiStarted = ContainerRunsTests.Started(project, "api");
             ContainersView view = Shown(window);
 
-            // Debug of web alone: made again held at its start, it stops in Main; api runs on, never restarted.
             Act(window, view, project, "web", AppActions.ServiceDebug);
             DebugTab web = ContainerRunDebuggingTests.Tab(window, "web");
             ContainerRunDebuggingTests.StoppedAt(window, web, Source(folder, "Web"), InMain, "web, made again held, to stop in Main");
             Assert.Equal(apiStarted, ContainerRunsTests.Started(project, "api"));
             Assert.True(window.IsRunning, "Debug of one service took the run down");
-            // Made anew, still on the loopback address and the port the browser was opened at.
             Assert.Equal(webAt, WebPublished());
             ContainerRunDebuggingTests.Resume(window, web);
 
-            // The Containers window's Restart goes through the run: its session ended, held again, stopping in Main again.
             string webDebugged = ContainerRunsTests.Started(project, "web");
             Act(window, view, project, "web", AppActions.ContainerRestart);
             Ui.WaitFor(() => ContainerRunsTests.Started(project, "web") is { Length: > 0 } now && now != webDebugged, "web to restart", TimeSpan.FromMinutes(2));
@@ -84,14 +80,12 @@ public sealed class ContainerServicesTests(ContainerRunDebuggingTests.Tools tool
             Assert.Equal(webAt, WebPublished());
             ContainerRunDebuggingTests.Resume(window, web);
 
-            // Run without Debugger lets its session go, no restart, web answering on.
             string webRestarted = ContainerRunsTests.Started(project, "web");
             Act(window, view, project, "web", AppActions.ServiceRun);
             Ui.WaitFor(() => !window.Debugger.Tabs.Any(t => t.Name == "web" && t.IsLive), "web's session to be let go");
             Assert.Equal(webRestarted, ContainerRunsTests.Started(project, "web"));
             Assert.Equal("web 1", Answered(Request(project, "web"), project, "web"));
 
-            // Attach reaches api as it runs, no restart, saying its startup has run; a request stops in its handler.
             Act(window, view, project, "api", AppActions.ServiceAttach);
             DebugTab api = ContainerRunDebuggingTests.Tab(window, "api");
             Ui.WaitFor(() => api.Session is { State: DebugState.Running }, "api to be attached to as it runs");
@@ -102,16 +96,12 @@ public sealed class ContainerServicesTests(ContainerRunDebuggingTests.Tools tool
             ContainerRunDebuggingTests.Resume(window, api);
             Assert.Equal("api 1", Answered(answer, project, "api"));
 
-            // The gutter's icon beside web offers its actions on the run (a service's Profile as the run goes on, recorded in its
-            // container, is ContainerRunProfilingTests' Attach Profiler, the same recording).
             Avalonia.Controls.MenuItem[] items = GutterMenu(window, folder, "  web:");
-            // Under the titles Find Action and the Containers and Aspire windows give them.
             Assert.Equal(["Debug Service", "Attach to Service", "Run Service without Debugger", "Profile Service"], items.Select(i => (string?)i.Header));
             Assert.IsType<MenuFlyout>(window.RunMarkMenu).Hide();
             Ui.Settle();
 
-            // api's container stopped from outside, taking docker exec and the debugger in it: its program's end, said so, never
-            // the debugger's failure (an IDE error, which fails the test).
+            // Stopped from outside, api's program ends, said so, never as a debugger's failure (an IDE error).
             string apiContainer = ContainerRunsTests.Container(project, "api");
             Docker.Run("stop", apiContainer);
             Ui.WaitFor(() => !api.IsLive, "api's session to end with its container", TimeSpan.FromMinutes(1));
@@ -126,9 +116,9 @@ public sealed class ContainerServicesTests(ContainerRunDebuggingTests.Tools tool
         window.Close();
     }
 
-    /// <summary>A container run's .NET services followed by the Requests window through Passenger's tools in their containers
-    /// (trace --requests), each request listed with the service that served it; and a route's request sent from the folder's
-    /// code goes to the port the engine published for its service (#417's send address).</summary>
+    /// <summary>A container run's .NET services followed by the Requests window through Passenger's tools in their
+    /// containers (trace --requests), each request listed with the service that served it; and a route's request sent
+    /// from the folder's code goes to the port the engine published for its service.</summary>
     [AvaloniaFact]
     public void The_requests_window_follows_each_service_in_its_container_and_a_routes_request_goes_to_its_published_port()
     {
@@ -146,11 +136,9 @@ public sealed class ContainerServicesTests(ContainerRunDebuggingTests.Tools tool
             Assert.Equal("api 1", ContainerRunDebuggingTests.Get(ContainerRunsTests.Published(project, "api")).GetAwaiter().GetResult());
             Ui.WaitFor(() => window.RequestLog.Requests.Count(r => r.Path == "/" && r.Status == 200) == 2, "both services' requests, listed as they ended", TimeSpan.FromSeconds(30));
             Assert.Equal(["api of Compose: compose.yaml", "web of Compose: compose.yaml"], window.RequestLog.Requests.Select(r => r.From).Order(StringComparer.Ordinal));
-            // Each reached its own project's route, read from its code.
             Assert.All(window.RequestLog.Requests, r => Assert.True(r.Route is { } route && route.Project.Contains(r.From[..3], StringComparison.OrdinalIgnoreCase),
                 $"{r.From}'s request reached {r.Route?.Project ?? "no route"}"));
 
-            // web's route sent from the code goes to the port the engine published for web, not its launch profile's.
             Passenger.Roslyn.Extension.WebRoute webRoute = window.Session.Routes.All.Single(r => r.Project.Contains("Web", StringComparison.Ordinal) && r.Template == "/");
             Task<string?> sent = window.SendRouteAsync(webRoute);
             Ui.WaitFor(() => sent.IsCompleted && window.Endpoints.Response.Response is not null, "web's answer to the route's request", TimeSpan.FromMinutes(1));
@@ -231,7 +219,6 @@ public sealed class ContainerServicesTests(ContainerRunDebuggingTests.Tools tool
             Assert.True(states.GetValueOrDefault("cache") == "running" && !states.ContainsKey("web") && !states.ContainsKey("api"),
                 $"A run whose .NET services are marked Don't start left these: {string.Join(", ", states)}");
 
-            // Listed under the project as not started, as an AppHost's resource so left is; Attach has nothing to reach.
             ContainersView view = Shown(window);
             foreach (string service in (string[])["web", "api"])
             {
@@ -245,14 +232,12 @@ public sealed class ContainerServicesTests(ContainerRunDebuggingTests.Tools tool
                 window.Actions.WhyNot(AppActions.ContainerStop, window.Actions.Context()));
             Assert.Null(window.Actions.WhyNot(AppActions.ServiceRun, window.Actions.Context()));
 
-            // Run from its row: built, then started from that build without the debugger, answering on its port.
             Later(window, view, project, "web", AppActions.ServiceRun);
             Assert.Contains("web of Later started, without the debugger", window.Status, StringComparison.Ordinal);
             Assert.DoesNotContain(window.Debugger.Tabs, t => t.Name == "web" && t.IsLive);
             Assert.Equal("web 1", Answered(Request(project, "web"), project, "web"));
             Ui.WaitFor(() => view.Rows.Any(r => r.Service == "web" && !r.LeftUnstarted && r.Containers.Any(c => c.IsRunning)), "web's row to be its running container's");
 
-            // Rerun keeps it the run's: its changed build is built and web restarted with it.
             TestFolders.Write(folder, "Web/Message.cs", "public static class Message\n{\n    public const string Text = \"web 2\";\n}\n");
             Assert.True(window.Perform(AppActions.Rerun), "Rerun did not run");
             Assert.True(Ui.Pumped(() => window.Status?.Contains("restarted web with the new build", StringComparison.Ordinal) == true, TimeSpan.FromMinutes(3)),
@@ -261,7 +246,6 @@ public sealed class ContainerServicesTests(ContainerRunDebuggingTests.Tools tool
             Assert.True(window.IsRunning, "Rerun took the run down");
             string webStarted = ContainerRunsTests.Started(project, "web");
 
-            // Debug from its row: built, then started held, so it stops in its Main; web runs on, never restarted.
             Later(window, view, project, "api", AppActions.ServiceDebug);
             DebugTab api = ContainerRunDebuggingTests.Tab(window, "api");
             ContainerRunDebuggingTests.StoppedAt(window, api, Source(folder, "Api"), InMain, "api, started later held, to stop in Main");
@@ -269,7 +253,6 @@ public sealed class ContainerServicesTests(ContainerRunDebuggingTests.Tools tool
             ContainerRunDebuggingTests.Resume(window, api);
             Assert.Equal("api 1", Answered(Request(project, "api"), project, "api"));
 
-            // Rerun while debugging is Debug of the configuration, run whole: both started again with the rest, api held as chosen.
             Assert.True(window.Perform(AppActions.Rerun), "Rerun did not run");
             Ui.WaitFor(() => ContainerRunsTests.Started(project, "web") is { Length: > 0 } now && now != webStarted
                 && window.Debugger.Tabs.Any(t => t.Name == "api" && t.IsLive && t.Session is { State: DebugState.Paused }), "the run made again, api stopping in Main", TimeSpan.FromMinutes(5));

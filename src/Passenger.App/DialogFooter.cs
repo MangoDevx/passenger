@@ -4,9 +4,9 @@ using Avalonia.Layout;
 
 namespace Passenger.App;
 
-/// <summary>A dialog's buttons at its foot, at its right, in the two orders Rider lays them in, and what goes beside them
-/// (Don't ask again, a problem the page has) at the row's left in every dialog. Shell.axaml's <c>StackPanel.footer</c>
-/// spaces the buttons and gives each one minimum width.</summary>
+/// <summary>A dialog's buttons at its foot, at its right, in the order each platform lays them in, and what goes beside
+/// them (Don't ask again, a problem the page has) at the row's left in every dialog. Shell.axaml's
+/// <c>StackPanel.footer</c> spaces the buttons and gives each one minimum width.</summary>
 public static class DialogFooter
 {
     /// <summary>A dialog's OK, Cancel and Apply: the default first and Cancel after it on Windows and Linux, the default
@@ -14,16 +14,16 @@ public static class DialogFooter
     public static StackPanel Of(Button chosen, Button? cancel, params Button[] more) =>
         Buttons((OperatingSystem.IsMacOS() ? [cancel, .. more, chosen] : (Button?[])[chosen, cancel, .. more]).OfType<Button>());
 
-    /// <summary>Buttons as Rider's DialogWrapper lists them (its createActions): in that order on Windows and Linux, and on
-    /// macOS the same with the default moved to the end (sortActionsOnMac), as Reload, Convert, Cancel stand.</summary>
+    /// <summary>Buttons in the order given on Windows and Linux, and on macOS the same with the default moved to the
+    /// end, as Reload, Convert, Cancel stand.</summary>
     public static StackPanel Listed(params Button?[] buttons)
     {
         Button[] shown = [.. buttons.OfType<Button>()];
         return Buttons(OperatingSystem.IsMacOS() ? [.. shown.Where(b => !b.IsDefault), .. shown.Where(b => b.IsDefault)] : shown);
     }
 
-    /// <summary>A question's answers as Rider's message dialogs (its AlertDialog) lay them: in the order asked, Cancel last,
-    /// on Windows and Linux, and the whole row reversed on macOS, as This Window, New Window, Cancel stand.</summary>
+    /// <summary>A question's answers: in the order asked, Cancel last, on Windows and Linux, and the whole row reversed
+    /// on macOS, as This Window, New Window, Cancel stand.</summary>
     public static StackPanel Answers(params Button[] answers) => Buttons(OperatingSystem.IsMacOS() ? [.. answers.Reverse()] : answers);
 
     /// <summary>The footer's row: its buttons at the right, and at the left what goes beside them.</summary>

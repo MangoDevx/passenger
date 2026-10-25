@@ -31,8 +31,7 @@ public sealed partial class TextMateHighlighter
     /// its name and its end copies it once.</summary>
     private (TextSnapshot? Text, int Line, int Start, int Length) copied;
 
-    /// <summary>How many lines the searches for a bracket's or a tag's pair have read: what a caret move costs, for a test to
-    /// count rather than time.</summary>
+    /// <summary>How many lines the searches for a bracket's or a tag's pair have read: what a caret move costs.</summary>
     public long LinesPaired { get; private set; }
 
     public BracePair? PairAt(TextSnapshot text, int offset, bool far = false)

@@ -6,11 +6,11 @@ using Passenger.Core;
 
 namespace Passenger.App.Workspace;
 
-/// <summary>Rider's Solution view edits to a solution's file, a .sln or a .slnx: solution folders added, renamed and
+/// <summary>The Solution view's edits to a solution's file, a .sln or a .slnx: solution folders added, renamed and
 /// removed with all they hold, projects and files put in a folder, taken out again and followed where they moved. Each
-/// changes only the lines or elements it is about, the rest kept in its encoding, line endings and indentation (dotnet sln
-/// rewrites a whole .sln). A folder is named by its path in the solution, <see cref="SolutionFolder.Path"/>. An edit
-/// returns null when done, else why not; a file that cannot be read or written throws.</summary>
+/// changes only the lines or elements it is about, the rest kept in its encoding, line endings and indentation. A
+/// folder is named by its path in the solution, <see cref="SolutionFolder.Path"/>. An edit returns null when done, else
+/// why not; a file that cannot be read or written throws.</summary>
 public static class SolutionEdits
 {
     public static string? AddFolder(string solution, string? parent, string name) =>
@@ -28,7 +28,7 @@ public static class SolutionEdits
 
     public static string? RemoveProject(string solution, string project) => Edit(solution, file => file.RemoveProject(project));
 
-    /// <summary>Puts a file (a canonical path) in a folder, as Visual Studio's Solution Items are.</summary>
+    /// <summary>Puts a file (a canonical path) in a folder, as a Solution Item.</summary>
     public static string? AddFile(string solution, string folder, string path) => Edit(solution, file => file.AddFile(folder, path));
 
     public static string? RemoveFile(string solution, string folder, string path) => Edit(solution, file => file.RemoveFile(folder, path));
@@ -100,9 +100,8 @@ public static class SolutionEdits
 
         protected abstract string Written();
 
-        /// <summary>Writes the solution back as an editor's save does (<see cref="FileText.Save"/>): through a temporary
-        /// file, so a crash or a full disk leaves it whole, through a symlink to its target with its permissions, never
-        /// over a read-only one, and to Local History with what it held.</summary>
+        /// <summary>Writes the solution back as an editor's save does (<see cref="FileText.Save"/>), in the encoding
+        /// and line breaks it came with.</summary>
         public void Write() => FileText.Save(FilePath, Written(), file.Encoding, file.HasBom, file.CrBreaks);
 
         /// <summary>A path the solution names, relative to it, as the file system names it.</summary>
@@ -301,7 +300,6 @@ public static class SolutionEdits
             }
             Dictionary<string, string> parents = Parents();
             HashSet<string> gone = new(StringComparer.OrdinalIgnoreCase) { removed.Id };
-            // Everything nested under it, however deep, goes with it.
             for (bool more = true; more;)
             {
                 more = false;
@@ -327,8 +325,7 @@ public static class SolutionEdits
             }
             string id = NewId();
             InsertEntry(TypeOf(project), NameOf(project), Relative(project).Replace('/', '\\'), id);
-            // A project the solution's configurations do not name is never built with it: each builds it as Any CPU, the
-            // platform an SDK project builds for, as dotnet sln add maps it.
+            // A project the configurations do not name is never built with the solution: each builds it as Any CPU.
             (int Start, int End) configurations = Section("SolutionConfigurationPlatforms")
                 ?? AddSection("SolutionConfigurationPlatforms", "preSolution", null, ["Debug|Any CPU = Debug|Any CPU", "Release|Any CPU = Release|Any CPU"]);
             List<string> names = [.. lines.GetRange(configurations.Start + 1, configurations.End - configurations.Start - 1).Select(l => l.Split('=')[0].Trim()).Where(l => l.Length > 0)];

@@ -2,12 +2,12 @@ using Passenger.App.State;
 
 namespace Passenger.App.Settings;
 
-/// <summary>The settings as every window that follows them has them, Rider's application settings: one per state folder in
-/// the process (the person's windows all follow theirs, kept in its settings.json), or one of a window's own that keeps
-/// nothing. A change reads the file again first, so what another Passenger wrote meanwhile stays, puts over it only the
-/// values the change makes differ, is written through the store, and raises <see cref="Changed"/>; settings.json changed
-/// on disk by another Passenger is read again as it lands. The theme, the keymap and the logs' switches are the
-/// process's: put in force here, once, before any window hears. UI thread only.</summary>
+/// <summary>The settings as every window that follows them has them: one per state folder in the process (the person's
+/// windows all follow theirs, kept in its settings.json), or one of a window's own that keeps nothing. A change reads
+/// the file again first, so what another Passenger wrote meanwhile stays, puts over it only the values the change makes
+/// differ, is written through the store, and raises <see cref="Changed"/>; settings.json changed on disk by another
+/// Passenger is read again as it lands. The theme, the keymap and the logs' switches are the process's: put in force
+/// here, once, before any window hears. UI thread only.</summary>
 public sealed class SettingsStore : IDisposable
 {
     private readonly StateDocument<AppSettings>? document;
@@ -31,7 +31,7 @@ public sealed class SettingsStore : IDisposable
             {
                 NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size | NotifyFilters.CreationTime,
             };
-            // Written through a temporary file moved over it: a rename onto the name as well as a write to it.
+            // Written by a temporary file moved over it, so a rename onto the name counts as well as a write.
             watcher.Changed += (_, _) => UiThread.Post(ReadAgain);
             watcher.Created += (_, _) => UiThread.Post(ReadAgain);
             watcher.Renamed += (_, e) =>

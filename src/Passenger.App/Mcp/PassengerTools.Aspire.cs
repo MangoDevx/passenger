@@ -93,10 +93,10 @@ public sealed partial class PassengerTools
         return snapshot;
     }
 
-    /// <summary>Waits until the AppHost an agent's run started is up, as a container configuration's run waits for its services:
-    /// its resource service has listed its resources and each shown one is up, has ended or was left unstarted; or until the
-    /// AppHost ends or the limit passes. It never ends by itself nor shows a UI, so a run that waited for either waited it all.
-    /// An AppHost that lists no resource waits the limit, as one whose resources have yet to come.</summary>
+    /// <summary>Waits until the AppHost an agent's run started is up: its resource service has listed its resources and
+    /// each shown one is up, has ended or was left unstarted; or until the AppHost ends or the limit passes. It never
+    /// ends by itself nor shows a UI, so a run that waited for either waited it all. An AppHost that lists no resource
+    /// waits the limit, as one whose resources have yet to come.</summary>
     private async Task AppHostUpAsync(AspireAppRun app, TimeSpan limit, CancellationToken cancel)
     {
         if (limit <= TimeSpan.Zero)

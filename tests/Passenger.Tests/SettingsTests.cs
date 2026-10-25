@@ -10,9 +10,9 @@ using Passenger.App.Settings;
 
 namespace Passenger.Tests;
 
-/// <summary>Settings as Rider's: a search narrows the pages to those with an option whose words match and shows only
-/// those options; a change is in force the moment it is applied, in every editor (one a split makes later too), and a
-/// window that keeps its settings opens on them again.</summary>
+/// <summary>Settings: a search narrows the pages to those with an option whose words match and shows only those options;
+/// a change is in force the moment it is applied, in every editor (one a split makes later too), and a window that keeps
+/// its settings opens on them again.</summary>
 public sealed class SettingsTests : IDisposable
 {
     private readonly string folder = TestFolders.Create("folder-");
@@ -38,7 +38,6 @@ public sealed class SettingsTests : IDisposable
         Assert.Contains("Font size", dialog.Shown);
         Assert.DoesNotContain("Show line numbers", dialog.Shown);
 
-        // An action's name finds its shortcut on the Keymap page.
         dialog.Query = "split right";
         Ui.Settle();
         Assert.Equal([SettingsDialog.KeymapPage], dialog.Pages);
@@ -89,7 +88,6 @@ public sealed class SettingsTests : IDisposable
             SettingsDialog dialog = window.ShowSettings();
             Ui.Settle();
             dialog.Rebind(AppActions.SplitRight, mine);
-            // Save All's shortcut given to Split Down: Save All has none left.
             string saveAll = Ui.Shortcut(AppActions.SaveAll);
             dialog.Rebind(AppActions.SplitDown, saveAll);
             Assert.Empty(AppActions.Keymap(dialog.Working.Shortcuts).ShortcutsFor(AppActions.SaveAll));
@@ -98,7 +96,6 @@ public sealed class SettingsTests : IDisposable
 
             Ui.Press(window, mine);
             Assert.Equal(2, window.EditorArea.Groups.Count);
-            // Save All's old keys split down now.
             Ui.Press(window, saveAll);
             Assert.True(window.EditorArea.Groups.Count == 3, "Save All's old keys, given to Split Down, split nothing");
         }
@@ -110,9 +107,9 @@ public sealed class SettingsTests : IDisposable
         }
     }
 
-    /// <summary>Rider's Toolset and Build, Presentation, by its names and with its defaults: the Build window opens as an
-    /// explicit build starts, not an implicit one, and comes forward only for errors; the implicit build's option is for
-    /// changing only while the explicit build's is on, as in Rider. What is chosen is kept, by name.</summary>
+    /// <summary>Toolset and Build, Presentation, with Rider's names and defaults: the Build window opens as an explicit build
+    /// starts, not an implicit one, and comes forward only for errors; the implicit build's option is for changing only while
+    /// the explicit build's is on. What is chosen is kept, by name.</summary>
     [AvaloniaFact]
     public void The_build_windows_options_are_riders_with_its_defaults_and_are_kept()
     {

@@ -6,9 +6,9 @@ using Passenger.Xaml.Features;
 
 namespace Passenger.App.CSharp;
 
-/// <summary>Go to Declaration in a compose file: Passenger's own (<see cref="ComposeDeclarations"/>) first, read from the
-/// YAML server's outline, then the server's own (an alias to its anchor) where Passenger's finds nothing. An image goes to
-/// its registry's page in the browser, as a link would.</summary>
+/// <summary>Go to Declaration in a compose file: Passenger's own (<see cref="ComposeDeclarations"/>) first, read from
+/// the YAML server's outline, then the server's own (an alias to its anchor) where Passenger's finds nothing. An image
+/// goes to its registry's page in the browser.</summary>
 public sealed partial class CodeAssist
 {
     /// <summary>The solution's projects, which a Dockerfile's project is found among.</summary>

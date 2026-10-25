@@ -2,32 +2,27 @@
   <!-- One version per package for the whole repo; a project's reference names the package only. -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <!-- Roslyn's language server, roslyn-language-server.<rid>: a package per system, downloaded rather than
-         referenced (src/Passenger.Lsp/RoslynServer.targets), so its version is a property, not a PackageVersion. Held at
-         5.11.0, its newest stable release: its builds since (prereleases, 5.12.0-1.26475.2 to 5.13.0-1.26514.10) start
-         Visual Studio Telemetry's session even with telemetry off, which loads Microsoft.VisualStudio.RemoteControl, under
-         Visual Studio's terms and left out of roslyn/, so the server ends as it starts; dotnet/roslyn#86130's fix is in
-         none yet (#234). -->
+    <!-- Roslyn's language server, a package per system downloaded rather than referenced (RoslynServer.targets), so its
+         version is a property. Held at 5.11.0, its newest stable release: later builds start Visual Studio Telemetry's
+         session even with telemetry off, loading an assembly left out of roslyn/, so the server ends as it starts
+         (dotnet/roslyn#86130's fix is in none yet). -->
     <RoslynServerVersion>5.11.0</RoslynServerVersion>
-    <!-- Avalonia's dotnet new templates, at the Avalonia version below: downloaded for the tests' own local feed, from
-         which they install them without reaching nuget.org (tests/Passenger.Tests/AvaloniaApp.cs). -->
+    <!-- Avalonia's dotnet new templates at the Avalonia version below, downloaded for the tests' local feed so no test
+         reaches nuget.org for them. -->
     <AvaloniaTemplatesVersion>12.1.4</AvaloniaTemplatesVersion>
-    <!-- Aspire's templates, AppHost SDK and AppHost package, its dashboard, orchestrator and CLI for the tests' runs, at
-         one version, downloaded for the tests' local feed as Avalonia's templates are (AspireApp). -->
+    <!-- Aspire's templates, AppHost SDK and package, dashboard, orchestrator and CLI at one version, downloaded for the
+         tests' local feed. -->
     <AspireTemplatesVersion>13.6.3</AspireTemplatesVersion>
-    <!-- WPF's reference pack, at the version the SDK in global.json gives its own target's WPF (its
-         KnownFrameworkReference's TargetingPackVersion): downloaded for the tests' local feed, from which the WPF app they
-         make restores off Windows without reaching nuget.org (tests/Passenger.Tests/WpfApp.cs). Another SDK's version
-         fails WpfXamlTests saying which to pin here, rather than the app's restore reaching nuget.org. A release candidate
-         while global.json's SDK is one, until .NET 11 ships (then 11.0.0, with the SDK at 11.0.100). -->
+    <!-- WPF's reference pack at the version global.json's SDK gives its own WPF (its TargetingPackVersion), downloaded
+         for the tests' local feed so the WPF app they make restores off Windows; another SDK's fails WpfXamlTests naming
+         the version to pin. A release candidate until .NET 11 ships (then 11.0.0, with the SDK at 11.0.100). -->
     <WindowsDesktopRefVersion>11.0.0-rc.2.26504.105</WindowsDesktopRefVersion>
-    <!-- EF Core for the Migrations window's tests (tests/EfGraphs), and the dotnet-ef tool, at its version and at the one
-         before: a tool that does not match, and the EF Core a stand-in provider that trails it supports. Downloaded for the
-         tests' local feed, from which a test folder restores and installs them without reaching nuget.org (MigrationsTests). -->
+    <!-- EF Core and the dotnet-ef tool for the Migrations window's tests, downloaded for the tests' local feed: at its
+         version, and at the one before for a tool that does not match and a stand-in provider that trails it. -->
     <EfCoreVersion>10.0.13</EfCoreVersion>
     <EfCoreOlderVersion>10.0.12</EfCoreOlderVersion>
-    <!-- Npgsql's provider of EF Core, at a version whose range holds EfCoreVersion, for the test of a compose run's Postgres
-         (MigrationsPostgresTests, tests/EfGraphs/Npgsql). -->
+    <!-- Npgsql's provider of EF Core, at a version whose range holds EfCoreVersion, for the test of a compose run's
+         Postgres. -->
     <NpgsqlEfVersion>10.0.3</NpgsqlEfVersion>
   </PropertyGroup>
   <ItemGroup>
@@ -42,16 +37,16 @@
     <PackageVersion Include="Grpc.Net.Client" Version="2.84.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
     <PackageVersion Include="ModelContextProtocol.Core" Version="2.3.0" />
-    <!-- NuGet's own reading of its configuration (the NuGet window's package sources), as the CLI reads it. -->
+    <!-- The NuGet window's package sources, read by NuGet's own code, so they match the CLI's. -->
     <PackageVersion Include="NuGet.Configuration" Version="7.9.0" />
     <PackageVersion Include="StreamJsonRpc" Version="2.26.150" />
     <PackageVersion Include="Porta.Pty" Version="2.2.3" />
-    <!-- TextMate grammars' tokenizer, with Oniguruma's regular expressions (Onigwrap, a native per system): colour for
-         the files beside the C#. -->
+    <!-- TextMate grammars' tokenizer, with Oniguruma's regular expressions (a native per system): colour for every
+         language but C#. -->
     <PackageVersion Include="TextMateSharp" Version="2.0.4" />
     <!-- VSTest's own client for the vstest.console the SDK ships: discovery, runs and debugging of tests. -->
     <PackageVersion Include="Microsoft.TestPlatform.TranslationLayer" Version="18.11.0" />
-    <!-- The Windows install's hooks (Installation.cs), at the version of the vpk tool that packs it (dotnet-tools.json). -->
+    <!-- The Windows install's hooks, at the version of the vpk tool that packs it (dotnet-tools.json). -->
     <PackageVersion Include="Velopack" Version="1.2.161" />
   </ItemGroup>
   <!-- The project host (Passenger.Host): MSBuild compiled against at the oldest an SDK it may load carries (8.0.4xx's
@@ -76,9 +71,8 @@
   <!-- Tests. xunit v3 stays on 3.2, the line Avalonia.Headless.XUnit is built against. -->
   <ItemGroup>
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="$(AspireTemplatesVersion)" />
-    <!-- At the versions Aspire's templates at AspireTemplatesVersion write (its starter's API service and ServiceDefaults),
-         not their newest: tests/AspireGraphs puts these in the package cache, where the test folders made from those
-         templates find them without reaching nuget.org. -->
+    <!-- At the versions Aspire's templates at AspireTemplatesVersion write, not their newest, so the test folders made
+         from those templates restore from the package cache tests/AspireGraphs fills. -->
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.10.0" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.10.0" />

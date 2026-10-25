@@ -1,11 +1,11 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:app="using:Passenger.App">
-    <!-- Passenger's own themes for controls whose every part is Rider's, in place of Fluent's: in App.axaml's resources,
-         which a control finds before the Fluent theme's. Shell.axaml restyles the rest. -->
+    <!-- Passenger's own themes for the controls it draws whole, in place of Fluent's: in App.axaml's resources, which a
+         control finds before the Fluent theme's. Shell.axaml restyles the rest. -->
 
-    <!-- The ring round what has the keys, as Rider draws it: rounded as what it surrounds, just outside its edge, a check
-         box's or a radio button's round the box alone (FocusRing). -->
+    <!-- The ring round what has the keys: rounded as what it surrounds, just outside its edge, a check box's or a radio
+         button's round the box alone (FocusRing). -->
     <ControlTheme x:Key="{x:Type AdornerLayer}" TargetType="AdornerLayer">
         <Setter Property="DefaultFocusAdorner">
             <FocusAdornerTemplate>
@@ -14,11 +14,11 @@
         </Setter>
     </ControlTheme>
 
-    <!-- Every scrollbar, as Rider's: a thin rounded thumb over what scrolls, no arrows, no track until the pointer is over
-         it, shown only while there is something to scroll (a ScrollViewer's Auto, the editor's own rule). A ScrollViewer
-         lays what it shows under its upright bar (Fluent's AllowAutoHide, on by default), so that bar takes no room of its
-         own; a sideways bar, and a text box's upright one, take their own while they show (Shell.axaml), so no row or line
-         is ever under one. -->
+    <!-- Every scrollbar: a thin rounded thumb over what scrolls, no arrows, no track until the pointer is over it, shown
+         only while there is something to scroll (a ScrollViewer's Auto, the editor's own rule). A ScrollViewer lays what it
+         shows under its upright bar (Fluent's AllowAutoHide, on by default), so that bar takes no room of its own; a
+         sideways bar, and a text box's upright one, take their own while they show (Shell.axaml), so no row or line is
+         ever under one. -->
 
     <!-- How broad a bar is, and its thumb at rest and under the pointer; the editor's bar is broader, as it carries the
          error stripe's marks. -->
@@ -41,7 +41,7 @@
         </Style>
     </ControlTheme>
 
-    <!-- The track either side of the thumb: a click there pages, as it does in Rider. -->
+    <!-- The track either side of the thumb: a click there pages. -->
     <ControlTheme x:Key="Passenger.ScrollPageTheme" TargetType="RepeatButton">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Focusable" Value="False" />
@@ -116,7 +116,7 @@
             <Setter Property="Width" Value="{DynamicResource Passenger.EditorScrollBarSize}" />
         </Style>
 
-        <!-- Under the pointer the track shows and the thumb darkens and broadens, as Rider's does. -->
+        <!-- Under the pointer the track shows and the thumb darkens and broadens. -->
         <Style Selector="^:pointerover /template/ Border#PART_Root">
             <Setter Property="Background" Value="{DynamicResource Passenger.ScrollTrackHover}" />
         </Style>

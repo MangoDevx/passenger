@@ -7,13 +7,12 @@ using Avalonia.Logging;
 
 namespace Passenger.Inspector;
 
-/// <summary>The app's failed bindings, as Avalonia logs them in its Binding area: a sink of the inspector's takes Avalonia's
-/// logger from before the app's Main, and again over whichever sink the app sets (its LogToTrace), handing the app's sink
-/// everything it asked for, so the app logs as it always did. Each distinct failure (its control's XAML element, property,
-/// path and message) is sent the first time and its count again as it repeats, a quarter second apart at most; past the
-/// most it lists, failures are only counted, their count said (untold) as repeats are. In a debugged app each failure,
-/// repeats too, also calls <see cref="Breaks.BindingFailed"/> before Avalonia goes on. Non-user code, so the stop there
-/// shows the app's own code below as where it stopped.</summary>
+/// <summary>The app's failed bindings, as Avalonia logs them in its Binding area: a sink of the inspector's takes
+/// Avalonia's logger from before the app's Main, and again over whichever sink the app sets (its LogToTrace), handing
+/// the app's sink everything it asked for, so the app logs as it always did. Each failure is known by its control's
+/// XAML element, property, path and message (<see cref="BindingFailures"/>); in a debugged app each, repeats too, also
+/// calls <see cref="Breaks.BindingFailed"/> before Avalonia goes on. Non-user code, so the stop there shows the app's
+/// own code below as where it stopped.</summary>
 [DebuggerNonUserCode]
 internal static partial class Bindings
 {

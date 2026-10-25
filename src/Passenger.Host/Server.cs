@@ -39,8 +39,7 @@ public sealed class Server(TextWriter protocol, HostReady ready)
                 continue;
             }
             running.RemoveAll(t => t.IsCompleted);
-            // Cancellable before the next line is read: a cancel sent right behind its request (a hold released at once)
-            // could otherwise be handled first, find nothing, and leave the request running for good.
+            // Before the next line is read, or a cancel right behind its request would find nothing and leave it running.
             CancellationTokenSource cancel = new();
             cancellable[request.Id] = cancel;
             running.Add(Task.Run(() => Handle(request, cancel)));

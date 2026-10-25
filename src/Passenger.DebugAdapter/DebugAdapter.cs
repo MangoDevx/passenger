@@ -118,8 +118,7 @@ public sealed partial class DebugAdapter
             List<StackFrameInfo> frames = await Read(() => debugger.GetStackTrace(arguments.ThreadId, arguments.StartFrame ?? 0, arguments.Levels));
             return new StackTraceResponse([.. frames.Select(ToProtocol)]);
         });
-        // The frame's assembly is decompiled between two holds of the engine's lock, never under one (CoreLib's takes many
-        // seconds), so a request meanwhile, a disconnect among them, is answered; the second fails if the program ran on.
+        // Decompiled between two holds of the engine's lock, never under one (CoreLib's takes seconds).
         connection.Handle<ResolveStackFrameArguments, ResolveStackFrameResponse>(DapCommands.ResolveStackFrame, async arguments =>
         {
             if (await Read(() => debugger.SymbolsWantedAt(arguments.StackFrameId)) is { } wanted)
@@ -148,7 +147,7 @@ public sealed partial class DebugAdapter
         });
         connection.Handle<EvaluateArguments, EvaluateResponse>(DapCommands.Evaluate, async arguments =>
         {
-            // A hover, or a value the client shows of itself, is evaluated as the Variables view's getters are.
+            // A hover, or a value the client shows of itself, is an implicit evaluation.
             VariableInfo value = await Read(() => debugger.Evaluate(arguments.Expression, arguments.FrameId, implicitly: arguments.Context is "hover" or "variables"));
             return new EvaluateResponse
             {
@@ -158,8 +157,7 @@ public sealed partial class DebugAdapter
                 PresentationHint = ToProtocol(value.PresentationHint),
             };
         });
-        // Set Next Statement: a target per line asked of, in the method the last stopped thread is in; its id is the
-        // IL offset, which goto hands back.
+        // Set Next Statement: a target per line, in the last stopped thread's method, its id the IL offset goto takes.
         connection.Handle<GotoTargetsArguments, GotoTargetsResponse>(DapCommands.GotoTargets, async arguments =>
         {
             if (stoppedThread is not int thread || arguments.Source.Path is not { } path)
@@ -182,13 +180,11 @@ public sealed partial class DebugAdapter
         });
         connection.Handle<SetExpressionArguments, SetExpressionResponse>(DapCommands.SetExpression, async arguments =>
         {
-            // The expression compiler compiles an assignment as it does any expression, and the interpreter writes it
-            // through to the frame, the object or the array; the value is then read back as it now is.
+            // The value is set as an assignment's evaluation, then read back as it now is.
             string value = arguments.Value;
             if (RealLiteral().IsMatch(value))
             {
-                // A float's or a decimal's value is shown as C# writes a double's (3.14), which C# assigns to neither:
-                // the text shown takes the suffix its type's literal has, so it sets back what was shown.
+                // A float or a decimal is shown with no suffix, which its literal needs to be assigned: it is added.
                 VariableInfo target = await Locked(() => debugger.Evaluate(arguments.Expression, arguments.FrameId));
                 value += target.Type switch { "float" or "float?" => "f", "decimal" or "decimal?" => "m", _ => string.Empty };
             }
@@ -379,7 +375,7 @@ public sealed partial class DebugAdapter
             bool hotReload = arguments.HotReload ?? false;
             if (hotReload)
             {
-                // The runtime's own switch for code that may change, as dotnet watch sets it; a launch's own is kept.
+                // The runtime's switch for code that may change (Hot Reload); a launch's own is kept.
                 environment.TryAdd(RuntimeVariables.ModifiableAssemblies, "debug");
             }
             LaunchInfo launch = new()
@@ -487,7 +483,7 @@ public sealed partial class DebugAdapter
             _ => throw new InvalidOperationException($"Unknown exception breakpoint filter: '{filter}'"),
         };
 
-        // The path is CLR, then the types (none: every exception); Rider's scenarios, when given, stand for the break mode.
+        // The path is CLR, then the types (none: every exception); scenarios, when given, stand for the break mode.
         static ExceptionRuleRequest Rule(DapExceptionOptions option)
         {
             IReadOnlyList<DapExceptionPathSegment> path = option.Path ?? [];
@@ -507,7 +503,7 @@ public sealed partial class DebugAdapter
         }
     }
 
-    /// <summary>The data breakpoints, each watching for a write: a write access alone is this debugger's, as the runtime's.</summary>
+    /// <summary>The data breakpoints, each watching for a write, the only access the runtime watches.</summary>
     private async Task<SetDataBreakpointsResponse> SetDataBreakpoints(SetDataBreakpointsArguments arguments)
     {
         List<DataBreakpointRequest> requests = [];

@@ -13,8 +13,8 @@ using Passenger.Core;
 
 namespace Passenger.Tests;
 
-/// <summary>Rider's recent solutions and Welcome screen, in the run's own state folder: the window a person uses keeps
-/// each folder it opens, and a start that names nothing reopens the last unless Settings says not to. The Welcome screen
+/// <summary>Recent solutions and the Welcome screen, in the run's own state folder: the window a person uses keeps each
+/// folder it opens, and a start that names nothing reopens the last unless Settings says not to. The Welcome screen
 /// lists them newest first, narrowed as a search is typed, opened by Up, Down and Enter, removed for good by Delete; one
 /// gone from disk is marked and refused with why. Clone Repository clones and opens, says why it could not, and stops
 /// when canceled; File, Recent Solutions opens one with its recent files. File, Open takes the solution or project chosen
@@ -62,7 +62,6 @@ public sealed class WelcomeTests : IClassFixture<WelcomeTests.Workspaces>, IDisp
         Assert.Equal("Two.cs", second.EditorArea.Active?.Name);
         Assert.False(Shown(second), "The Welcome screen shows over the folder reopened");
 
-        // A folder named on the command line is opened in its place.
         second.Close();
         MainWindow third = Started(LaunchOptions.Empty with { Folder = alpha });
         Assert.Equal(PathNames.Canonical(alpha), third.Folder);
@@ -87,7 +86,6 @@ public sealed class WelcomeTests : IClassFixture<WelcomeTests.Workspaces>, IDisp
         Assert.Equal([Name(beta), Name(alpha)], window.Welcome.Rows.Select(r => r.Name));
         Assert.Equal([RecentRow.Home(PathNames.Canonical(beta)), RecentRow.Home(PathNames.Canonical(alpha))], window.Welcome.Rows.Select(r => r.Shown));
 
-        // The search has the keys as the screen opens.
         Type(window, "alpha");
         Assert.Equal([Name(alpha)], window.Welcome.Rows.Select(r => r.Name));
         Ui.Press(window, "ESCAPE");
@@ -166,7 +164,6 @@ public sealed class WelcomeTests : IClassFixture<WelcomeTests.Workspaces>, IDisp
         InThisWindow(window);
         Assert.Equal(PathNames.Canonical(alpha), window.Folder);
 
-        // The folder's own recent files came back with it, the one shown first.
         Passenger.App.Navigation.SymbolPopup files = window.ShowRecentFiles();
         Ui.WaitFor(() => files.Rows.Count > 0, "the recent files");
         Assert.Equal("Three.cs", window.EditorArea.Active?.Name);
@@ -191,7 +188,6 @@ public sealed class WelcomeTests : IClassFixture<WelcomeTests.Workspaces>, IDisp
         Ui.Settle();
         OpenedAs(window, b, "B", ["AppB"]);
 
-        // With another folder open, File, Recent Solutions lists B as itself, newest first, and opens it as B again.
         window.Open(beta);
         Ui.Settle();
         InThisWindow(window);
@@ -278,7 +274,6 @@ public sealed class WelcomeTests : IClassFixture<WelcomeTests.Workspaces>, IDisp
         Ui.Settle();
         CloneDialog dialog = Assert.Single(window.OwnedWindows.OfType<CloneDialog>());
         dialog.Folder = clones;
-        // The URL has the keys as the dialog opens, and Enter clones.
         Type(dialog, bare);
         Assert.Equal(Path.Combine(clones, "shared"), dialog.Destination);
         Ui.Press(dialog, "ENTER");
@@ -365,7 +360,7 @@ public sealed class WelcomeTests : IClassFixture<WelcomeTests.Workspaces>, IDisp
             Assert.True(Directory.Exists(Path.Combine(clones, "stuck")), "git asked the server before making the clone's folder");
             int[] running = [git!.Value, .. Processes.Descendants(git.Value)];
 
-            // Escape is Cancel; the dialog it closes takes no key's release.
+            // The dialog Escape closes takes no key's release.
             dialog.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.None, null);
             Ui.Settle();
             Assert.False(dialog.IsVisible, "Cancel left the dialog open");
@@ -439,7 +434,6 @@ public sealed class WelcomeTests : IClassFixture<WelcomeTests.Workspaces>, IDisp
             Assert.True(Processes.Gone(server), "The language server went on running once its solution was closed");
             Assert.False(MenuItem(window, "File", "Close Solution").IsEnabled, "Close Solution can still run with nothing open");
 
-            // Opened again from the Welcome screen, it has its file back where it was.
             File.Delete(Path.Combine(app, "build.pid"));
             Assert.Null(window.OpenRecent(solution));
             Ui.Settle();
@@ -472,7 +466,7 @@ public sealed class WelcomeTests : IClassFixture<WelcomeTests.Workspaces>, IDisp
 
     private static string Name(string folder) => Path.GetFileName(folder);
 
-    /// <summary>Rider's Open Solution question, asked as another folder or solution opens over the one open, answered This
+    /// <summary>The Open Solution question, asked as another folder or solution opens over the one open, answered This
     /// Window by its button.</summary>
     private static void InThisWindow(MainWindow window)
     {

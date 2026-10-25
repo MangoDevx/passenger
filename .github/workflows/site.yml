@@ -1,6 +1,6 @@
 # passenger-ide.net: site/ as it is, served by Cloudflare Pages, deployed by hand only (Actions > Site > Run workflow, or
-# `gh workflow run Site --ref main`). Actions are pinned to a release's commit, and
-# wrangler, which holds the Cloudflare token, to one version.
+# `gh workflow run Site --ref main`). Actions are pinned to a release's commit, and wrangler, which holds the Cloudflare
+# token, to one version.
 name: Site
 
 on:

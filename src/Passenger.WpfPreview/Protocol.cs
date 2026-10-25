@@ -1,13 +1,12 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+// What Passenger and its WPF previewer say to each other, one definition for both ends (the app compiles this file
+// too): one JSON object a line each way over the previewer's standard input and output. Passenger sends the file's text
+// as it stands (WpfPreviewRequest) whenever it changes or the window's scale does; the previewer answers the newest it
+// has read (WpfPreviewReply, by its sequence): a frame, the error that kept the XAML from loading, or why there is
+// nothing to draw.
 namespace Passenger.WpfPreview;
-
-// What Passenger and its WPF previewer say to each other, one definition for both ends (the app compiles this file too):
-// one JSON object a line each way over the previewer's standard input and output. Passenger sends the file's text as it
-// stands (WpfPreviewRequest) whenever it changes or the window's scale does; the previewer answers the newest it has read
-// (WpfPreviewReply, by its sequence): a frame, the error that kept the XAML from loading, or why there is nothing to draw.
-// Its standard error is its own log, which Passenger keeps the end of for when it ends.
 
 /// <summary>A XAML file to draw: its text as it stands, the pack URI it has in its project's assembly (what relative
 /// URIs in it resolve against, as they would in the build), the application's definition (App.xaml) whose resources it
@@ -30,10 +29,10 @@ public sealed record WpfPreviewRequest
 /// <summary>Another XAML file the drawing reads (App.xaml): its text, open or on disk, and its pack URI.</summary>
 public sealed record WpfPreviewSource(string Path, string Xaml, string BaseUri);
 
-/// <summary>The previewer's answer to the newest request it read. A frame is a PNG at 96 DPI of <see cref="Scale"/> times
-/// the design's size, with the boxes of the file's elements drawn in it; an error says what the XAML did not load for,
-/// with its line and column (from 1, as XML readers count the text sent, which Passenger says at the editor's) when it has
-/// them; nothing says why there is nothing to draw.</summary>
+/// <summary>The previewer's answer to the newest request it read. A frame is a PNG at 96 DPI of <see cref="Scale"/>
+/// times the design's size, with the boxes of the file's elements drawn in it; an error says what the XAML did not load
+/// for, with its line and column (from 1, as XML readers count the text sent) when it has them; nothing says why there
+/// is nothing to draw.</summary>
 public sealed record WpfPreviewReply
 {
     public required string Kind { get; init; }
@@ -56,8 +55,8 @@ public sealed record WpfPreviewReply
     public IReadOnlyList<WpfPreviewNote>? Notes { get; init; }
 }
 
-/// <summary>Something the frame was drawn without and why, with the line of the file's element it is about (from 1, as XML
-/// readers count, in the text sent), which Passenger says at the editor's line.</summary>
+/// <summary>Something the frame was drawn without and why, with the line of the file's element it is about (from 1, as
+/// XML readers count, in the text sent).</summary>
 public sealed record WpfPreviewNote(string Message, int? Line = null);
 
 /// <summary>An element of the file the frame draws: where its start tag is (line and column from 1, as XML readers count,

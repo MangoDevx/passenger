@@ -12,8 +12,7 @@ using Xunit;
 namespace Passenger.Tests;
 
 /// <summary>A click on an action that takes a while is answered at once: its button turns a ring and the status bar says
-/// each stage until the work is done, a second click starts nothing more, and Stop ends the start (#254). Debug's is
-/// <see cref="WorkingActionsDebuggingTests"/>'.</summary>
+/// each stage until the work is done, a second click starts nothing more, and Stop ends the start.</summary>
 public sealed class WorkingActionsTests : WorkingActionsFolders, IClassFixture<RestoredFolders>
 {
     public WorkingActionsTests(RestoredFolders folders)

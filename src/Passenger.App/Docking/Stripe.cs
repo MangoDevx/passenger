@@ -44,8 +44,7 @@ internal sealed class Stripe : Border
         // Wide apart and drawn plainly, so the upper and lower windows read as two places, not one list.
         gap = new Rectangle { Height = 1, Width = 22, Margin = new Thickness(0, 12) };
         gap.Bind(Shape.FillProperty, gap.GetResourceObservable("Passenger.StripeSeparator"));
-        // A window too short for every button puts the last ones behind More (the bottom group's first, then the lower
-        // side's), as Rider's stripe puts what it has no room for behind its More Tool Windows button.
+        // A window too short for every button puts the last ones behind More.
         PathIcon dots = new();
         dots.Bind(PathIcon.DataProperty, dots.GetResourceObservable("Icon.More"));
         more = new ToggleButton { Classes = { "stripe" }, Content = dots, IsVisible = false, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 4, 0, 0) };
@@ -100,8 +99,7 @@ internal sealed class Stripe : Border
         {
             return bottom;
         }
-        // Past the upper group's buttons is the lower group; a side with no lower buttons splits the stripe, and one with
-        // no upper buttons takes a drop above its first lower button's middle into the upper group, as Rider's do.
+        // A side lacking lower buttons splits the stripe; one lacking upper ones takes a drop above its first button.
         double boundary = groups[lower].Children.Count == 0 ? Math.Max(Placed(groups[upper]).Bottom + 6, sidesEnd / 2)
             : groups[upper].Children.Count == 0 && groups[lower].Children[0] is Control first ? Placed(first).Center.Y
             : Placed(groups[upper]).Bottom + 6;
@@ -226,7 +224,7 @@ internal sealed class Stripe : Border
     private void ShowMore()
     {
         more.IsChecked = false;
-        // Level with the button, beside the stripe and into the window: right of the left one, left of the right one.
+        // Beside the stripe, level with the button, opening into the window.
         bool left = upper == ToolAnchor.LeftTop;
         double at = more.TranslatePoint(default, this)?.X ?? 0;
         ContextMenu menu = new()

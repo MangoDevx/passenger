@@ -4,10 +4,10 @@ using Passenger.Text;
 
 namespace Passenger.Editor;
 
-/// <summary>What the caret lights up: the uses of the symbol it rests on, from the host (writes in a colour of their own,
-/// each marked on the stripe), and the bracket it touches with its pair, from a highlighter that knows the language's
-/// brackets (<see cref="IBraceMatcher"/>). An edit takes the uses away, so none is ever left on text that changed under
-/// it, unless they were kept (Rider's Highlight Usages in File), which move with the text until Escape.</summary>
+/// <summary>What the caret lights up: the uses of the symbol it rests on, from the host (writes in a colour of their
+/// own, each marked on the stripe), and the bracket it touches with its pair, from a highlighter that knows the
+/// language's brackets (<see cref="IBraceMatcher"/>). An edit takes the uses away, so none is ever left on text that
+/// changed under it, unless they were kept (Highlight Usages in File), which move with the text until Escape.</summary>
 public sealed partial class CodeEditor
 {
     /// <summary>The pair at the primary caret and what it was found in, found again only when one of those changed.</summary>
@@ -48,9 +48,9 @@ public sealed partial class CodeEditor
         }
     }
 
-    /// <summary>The bracket a caret touches and its pair. Of two brackets it stands between, the one it is outside of (after
-    /// a closer, before an opener), as IntelliJ prefers; the syntax is read only beside a bracket's character. Away from a
-    /// bracket, the name of the tag the caret is in and its pair's.</summary>
+    /// <summary>The bracket a caret touches and its pair. Of two brackets it stands between, the one it is outside of
+    /// (after a closer, before an opener); the syntax is read only beside a bracket's character. Away from a bracket,
+    /// the name of the tag the caret is in and its pair's.</summary>
     private BracePair? BracesAt(TextSnapshot text, int caret)
     {
         if (highlighter is not IBraceMatcher matcher)
@@ -89,8 +89,8 @@ public sealed partial class CodeEditor
         UsagesKept = UsageHighlights.Count > 0;
     }
 
-    /// <summary>Move Caret to Matching Brace, as IntelliJ's: each caret at a bracket (the one after it, else the one before)
-    /// goes before its pair, so going again comes back; one in a tag's name goes to its pair's name.</summary>
+    /// <summary>Move Caret to Matching Brace: each caret at a bracket (the one after it, else the one before) goes
+    /// before its pair, so going again comes back; one in a tag's name goes to its pair's name.</summary>
     private void MatchBrace()
     {
         TextSnapshot text = document.Snapshot;
@@ -105,7 +105,7 @@ public sealed partial class CodeEditor
 
     private static bool IsBracket(char c) => IsBracket(c, opener: true) || IsBracket(c, opener: false);
 
-    /// <summary>The uses on a line, behind its text and its selection: each the whole line high, as Rider fills them.</summary>
+    /// <summary>The uses on a line, behind its text and its selection: each the whole line high.</summary>
     private void DrawUsages(DrawingContext context, LineView view, Gap[] gaps, double left, double y)
     {
         RowSpan span = view.Span;

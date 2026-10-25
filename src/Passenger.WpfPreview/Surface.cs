@@ -205,8 +205,7 @@ internal sealed partial class Surface
         Corner origin = default;
         ClientToScreen(handle, ref origin);
         client = new Size(inner.Right * fromDevice.M11, inner.Bottom * fromDevice.M22);
-        // What the system draws above the client area beyond the frame it draws below it: none without a caption, or
-        // where a WindowChrome makes the whole window the client's.
+        // The caption: what the system draws above the client area beyond the frame below it.
         int caption = origin.Y - outer.Top - (outer.Bottom - origin.Y - inner.Bottom);
         Top = 0;
         bar = null;

@@ -33,7 +33,6 @@ public class SetNextStatementTests(ITestOutputHelper testOutputHelper)
         await host.WaitForStoppedEvent();
         Assert.Equal("210", Evaluate(host, thread, "jumps"));
 
-        // A line of another method is no place to go on from.
         GotoTargetsResponse elsewhere = host.Request<GotoTargetsResponse>("gotoTargets",
             new GotoTargetsArguments(new DapSource { Path = Debuggees.Source("PassengerCases", "Program.cs") }, Debuggees.Line("PassengerCases", "Console.WriteLine(\"interpreter\");"), null));
         Assert.Empty(elsewhere.Targets);

@@ -31,6 +31,11 @@ public sealed class LiveTreeTests : IClassFixture<RestoredFolders>, IDisposable
 
     public void Dispose() => TestFolders.Delete(folder);
 
+    /// <summary>The app's controls in the tree, and where each value and style comes from: a button's background from
+    /// Fluent's theme by its selector, a style that does not apply saying which part of its selector fails, a local
+    /// value and the theme's setter it overrides, an application style's setter at its line; Go to Source on an element
+    /// and on a style's selector; the tree kept as it last ran while the app is paused; and Select Element choosing the
+    /// control clicked in the app.</summary>
     [AvaloniaFact]
     public void A_debugged_avalonia_app_shows_its_controls_where_each_value_and_style_comes_from_and_the_control_clicked_in_it()
     {
@@ -42,14 +47,12 @@ public sealed class LiveTreeTests : IClassFixture<RestoredFolders>, IDisposable
         Assert.Contains(tree.Rows, r => r.Element is { Type: "TextBlock", Name: "Greeting" } && r.Element.Classes.Contains("title"));
         Assert.Contains(tree.Rows, r => r.Element is { Type: "Button", Name: "Save" });
 
-        // A button's background comes from Fluent's control theme for Button, named by its selector and its theme.
         ElementDetails save = Choose(window, "Save");
         PropertyValue background = save.Properties.Single(p => p.Name == "Background");
         Assert.True(background.Source == ValueSources.Theme && background.Detail == "Button (FluentTheme)",
             $"Save's Background came from {background.Source} {background.Detail}, not Fluent's theme for Button");
         Assert.Contains(tree.PropertyRows, p => p.Name == "Background" && p.Source == ValueSources.Theme);
 
-        // A style of the window's that does not apply says which part of its selector fails, and links to its selector.
         StyleReport danger = save.Styles.Single(s => s.Selector == "Button.danger");
         Assert.False(danger.Applies, "Button.danger applied to a button without the class");
         Assert.Equal("`.danger` is not in its Classes", danger.WhyNot);
@@ -58,20 +61,18 @@ public sealed class LiveTreeTests : IClassFixture<RestoredFolders>, IDisposable
         StyleReport pressed = save.Styles.Single(s => s.Selector == "Button:pressed");
         Assert.Equal("`:pressed` is not active on it", pressed.WhyNot);
 
-        // A value set on the element is local, and the theme's setter for it says what overrides it.
         ElementDetails delete = Choose(window, "Delete");
         Assert.Equal(ValueSources.Local, delete.Properties.Single(p => p.Name == "Background").Source);
         SetterReport themes = delete.Styles.Single(s => s.Kind == StyleKinds.Theme).Setters.Single(s => s.Property == "Background");
         Assert.True(themes is { State: SetterStates.Overridden, By: "its local value" }, $"The theme's Background setter was {themes.State} by {themes.By}");
 
-        // A style of the application's gives the title its size, from its setter's line in App.axaml.
         ElementDetails greeting = Choose(window, "Greeting");
         PropertyValue size = greeting.Properties.Single(p => p.Name == "FontSize");
         Assert.Equal(ValueSources.Style, size.Source);
         Assert.Equal("TextBlock.title (Application.Styles)", size.Detail);
         Assert.Equal((Path.Combine(folder, "App.axaml"), Line("App.axaml", "Property=\"FontSize\"")), (PathNames.Canonical(size.Place!.File), size.Place.Line));
 
-        // Go to source lands on the element in its XAML, its link kept as the tree is asked again (a copy loses a click on it).
+        // Its link kept as the tree is asked again: a copy of it would lose the click.
         Choose(window, "Delete");
         Button link = tree.GoToSource!;
         Ui.Click(tree.GetLogicalDescendants().OfType<Button>().Single(b => ToolTip.GetTip(b) is "Refresh"));
@@ -83,7 +84,6 @@ public sealed class LiveTreeTests : IClassFixture<RestoredFolders>, IDisposable
         Assert.Equal(deleteLine, window.EditorArea.CodeEditor.CaretPosition.Line);
         Assert.StartsWith("Button", File.ReadAllLines(xaml)[deleteLine][window.EditorArea.CodeEditor.CaretPosition.Column..], StringComparison.Ordinal);
 
-        // And from a style to its selector's line, on the Styles page.
         tree.ShowPage(LiveTreePage.Styles);
         Ui.Settle();
         Control block = tree.StyleBlocks.First(b => b.GetLogicalDescendants().OfType<TextBlock>().Any(t => t.Text == "Button.danger"));
@@ -91,7 +91,6 @@ public sealed class LiveTreeTests : IClassFixture<RestoredFolders>, IDisposable
         Assert.Equal(xaml, window.EditorArea.Active?.Path);
         Assert.Equal(Line("MainWindow.axaml", "Selector=\"Button.danger\"") - 1, window.EditorArea.CodeEditor.CaretPosition.Line);
 
-        // Paused, the app answers nothing: the tree stays as it last ran and says so, until the app runs again.
         Ui.Run(window, AppActions.Pause);
         Ui.WaitFor(() => window.Debugger.Session?.State == DebugState.Paused, "the app to pause");
         Ui.WaitFor(() => tree.BannerText is not null, "the tree to say the app is paused");
@@ -100,7 +99,6 @@ public sealed class LiveTreeTests : IClassFixture<RestoredFolders>, IDisposable
         Ui.Run(window, AppActions.Resume);
         Ui.WaitFor(() => tree.BannerText is null, "the tree to be live again once the app runs");
 
-        // Select Element chooses the control clicked in the app.
         Box saved = Choose(window, "Save").Layout.InWindow!;
         Choose(window, "Greeting");
         Ui.Click(tree.SelectElement);

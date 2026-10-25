@@ -10,7 +10,7 @@ namespace Passenger.App;
 /// words say it says why. A click on the words, or Enter on them, goes there.</summary>
 public partial class MainWindow
 {
-    /// <summary>Where a click on the status bar's words goes now, null when nowhere: for tests, which click to see it go.</summary>
+    /// <summary>Where a click on the status bar's words goes now, null when nowhere.</summary>
     public StatusPlace? StatusPlace => status.Place;
 
     /// <summary>Says something in the status bar, with where a click on it goes; the same words said again keep the place

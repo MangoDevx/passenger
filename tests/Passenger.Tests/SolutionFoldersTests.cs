@@ -13,7 +13,7 @@ using Passenger.Core;
 
 namespace Passenger.Tests;
 
-/// <summary>Solution folders as Rider's Solution view shows and edits them: an icon of their own, the files they list,
+/// <summary>Solution folders as the Solution view shows and edits them: an icon of their own, the files they list,
 /// folders before projects by name at every level, and New Solution Folder, Rename, Existing Project, Existing Item and
 /// Remove from their menus and keys, and a project's Rename, each changing the .sln or .slnx on disk and nothing else in
 /// it, which still builds.</summary>
@@ -77,14 +77,12 @@ public sealed class SolutionFoldersTests : IDisposable
         Assert.NotSame(Resource("Passenger.File.Folder"), items.IconBrush);
         Assert.Same(Resource("Passenger.File.SolutionFolder"), items.IconBrush);
 
-        // Opened from the keys, as a person opens one: Right on the chosen row.
         Ui.ClickRow(window, items);
         Ui.Press(window, "RIGHT");
         Ui.ClickRow(window, Row(window, NodeKind.SolutionFolder, "src"));
         Ui.Press(window, "RIGHT");
         Assert.True(ReferenceEquals(Resource("Icon.SolutionFolderOpen"), items.Icon), "An open solution folder still shows the closed one's icon");
-        // The solution declares the project first and README.md before .editorconfig; Rider shows folders, then projects,
-        // then files, each by name.
+        // The solution declares the project first and README.md before .editorconfig: the view sorts by kind, then name.
         Assert.Equal(
             ["Shop", "  Solution Items", "    .editorconfig", "    README.md", "  src", "    Shop.Core", "  Shop.Web"],
             tree.Rows.Select(r => new string(' ', r.Depth * 2) + r.Name));
@@ -92,11 +90,9 @@ public sealed class SolutionFoldersTests : IDisposable
             [NodeKind.Solution, NodeKind.SolutionFolder, NodeKind.File, NodeKind.File, NodeKind.SolutionFolder, NodeKind.Project, NodeKind.Project],
             tree.Rows.Select(r => r.Kind));
 
-        // A file a solution folder lists opens on a double-click, as any file does.
         Ui.DoubleClick(Ui.Row(window.ExplorerView, Row(window, NodeKind.File, "README.md")));
         Assert.Equal(PathNames.Canonical(Path.Combine(folder, "README.md")), window.EditorArea.Active?.Path);
 
-        // Remove on one of them takes it out of the solution folder; the file stays on disk.
         List<string> asked = Answer(window);
         Ui.ClickRow(window, Row(window, NodeKind.File, ".editorconfig"));
         Ui.Press(window, "BACK_SPACE");
@@ -122,8 +118,7 @@ public sealed class SolutionFoldersTests : IDisposable
         IReadOnlyList<string> pick = [];
         window.PickFiles = (_, _, _) => Task.FromResult(pick);
         ExplorerTree tree = window.ExplorerView.Tree;
-        // The folder watcher hears of each change to the file and reads the solution again, making new rows: that lands
-        // before the next step finds one.
+        // Each change to the file is read again, making new rows, which lands before the next step finds one.
         int heard = 0;
         window.FolderWatcher!.Changed += (_, changes) => heard += changes.Paths.Contains(PathNames.Canonical(solution)) ? 1 : 0;
         void Edit(Action edit)
@@ -134,7 +129,6 @@ public sealed class SolutionFoldersTests : IDisposable
             Ui.Settle();
         }
 
-        // New Solution Folder, from the solution's own menu.
         Ui.ChooseFromRowMenu(window, Row(window, NodeKind.Solution, "Shop"), "Add", "New Solution Folder…");
         Edit(() => Name(window, "Tools"));
         ExplorerNode tools = Row(window, NodeKind.SolutionFolder, "Tools");
@@ -150,7 +144,6 @@ public sealed class SolutionFoldersTests : IDisposable
             Assert.Matches(new Regex($"^Project\\(\"{Regex.Escape(FolderType)}\"\\) = \"Tools\", \"Tools\", \"\\{{[0-9A-F-]{{36}}\\}}\"\r$", RegexOptions.Multiline), text);
         }
 
-        // Rename, by its key.
         Ui.ClickRow(window, Row(window, NodeKind.SolutionFolder, "Tools"));
         Ui.Run(window, AppActions.Rename);
         Edit(() => Name(window, "Utilities"));
@@ -162,7 +155,6 @@ public sealed class SolutionFoldersTests : IDisposable
         Assert.DoesNotContain("Tools", text, StringComparison.Ordinal);
         Assert.Contains(slnx ? "<Folder Name=\"/Utilities/\" />" : "\"Utilities\", \"Utilities\"", text, StringComparison.Ordinal);
 
-        // Existing Project, from its menu opened by the menu key.
         pick = [Path.Combine(folder, "tools", "Importer", "Importer.csproj")];
         Ui.ClickRow(window, Utilities());
         Ui.Run(window, AppActions.ShowContextMenu);
@@ -184,7 +176,6 @@ public sealed class SolutionFoldersTests : IDisposable
             Assert.Contains($"\t\t{importer} = {Id(text, "Utilities")}\r\n", text, StringComparison.Ordinal);
         }
 
-        // Existing Item, and a folder inside it.
         pick = [Path.Combine(folder, "docs", "notes.md")];
         Ui.RightClick(Ui.Row(window.ExplorerView, Utilities()));
         Edit(() => Ui.Choose(window.ExplorerView.OpenMenu, "Add", "Existing Item…"));
@@ -204,12 +195,11 @@ public sealed class SolutionFoldersTests : IDisposable
             Assert.Contains("\"Utilities\", \"Utilities\", \"" + Id(text, "Utilities") + "\"\r\n\tProjectSection(SolutionItems) = preProject\r\n\t\tdocs\\notes.md = docs\\notes.md\r\n\tEndProjectSection\r\nEndProject\r\n", text, StringComparison.Ordinal);
             Assert.Contains($"\t\t{Id(text, "Scripts")} = {Id(text, "Utilities")}\r\n", text, StringComparison.Ordinal);
         }
-        // One build, of the solution with every kind of change made so far, each of which a later one built on.
+        // One build of every kind of change so far, each of which a later one built on.
         Builds(solution, "solution folders, a project and a file were added and a folder renamed");
         Assert.True(File.Exists(Path.Combine(folder, "tools", "Importer", "bin", "Debug", TestProjects.Framework, "Importer.dll")),
             "The project added to the solution folder was not built with the solution");
 
-        // Remove, by its key, once the person agrees to what goes with it.
         Ui.ClickRow(window, Utilities());
         Edit(() => Ui.Press(window, "BACK_SPACE"));
         Assert.Equal(["Remove Solution Folder"], asked);
@@ -247,7 +237,6 @@ public sealed class SolutionFoldersTests : IDisposable
         }
         IEnumerable<string> ProjectFiles() => Directory.EnumerateFiles(projects, "*.csproj").Select(Path.GetFileName).Order(StringComparer.Ordinal)!;
 
-        // Rename's keys on the project in its solution folder: the name box holds its name, and a new one renames its file.
         Ui.ClickRow(window, Row(window, NodeKind.SolutionFolder, "src"));
         Ui.Press(window, "RIGHT");
         Ui.ClickRow(window, Row(window, NodeKind.Project, "Shop.Core"));
@@ -268,7 +257,6 @@ public sealed class SolutionFoldersTests : IDisposable
         // The language server's restore of the project renamed has the solution read again, its rows made anew.
         Quiet(window);
 
-        // Undo in the Solution view takes all of it back, asked first.
         Ui.ClickRow(window, Row(window, NodeKind.Project, "Shop.Domain"));
         Edit(() => Ui.Run(window, Passenger.Editor.EditorActions.Undo));
         Assert.Equal(["Undo"], asked);
@@ -277,7 +265,6 @@ public sealed class SolutionFoldersTests : IDisposable
         Assert.Equal(referencing, File.ReadAllText(web));
         Quiet(window);
 
-        // Redo makes all of it again: one project file, and the solution and the reference naming it as the rename did.
         Ui.ClickRow(window, Row(window, NodeKind.Project, "Shop.Core"));
         Edit(() => Ui.Run(window, Passenger.Editor.EditorActions.Redo));
         Assert.Equal(["Undo", "Redo"], asked);
@@ -285,7 +272,6 @@ public sealed class SolutionFoldersTests : IDisposable
         Assert.Equal(renamed, Read(solution, "the rename was redone"));
         Assert.Equal(referencing.Replace("Shop.Core.csproj", "Shop.Domain.csproj", StringComparison.Ordinal), File.ReadAllText(web));
 
-        // A file a solution folder lists, renamed where the folder shows it on disk, is listed under its new name.
         Edit(() => Assert.Null(window.Rename(PathNames.Canonical(Path.Combine(folder, "README.md")), "Shop.md")));
         Assert.Equal(renamed.Replace(format == "slnx" ? "<File Path=\"README.md\" />" : "\t\tREADME.md = README.md", format == "slnx" ? "<File Path=\"Shop.md\" />" : "\t\tShop.md = Shop.md", StringComparison.Ordinal),
             Read(solution, "a file it lists was renamed"));
@@ -315,7 +301,6 @@ public sealed class SolutionFoldersTests : IDisposable
         string without = Regex.Replace(written, $"Project\\(\"{Regex.Escape(FolderType)}\"\\) = \"Tools\", \"Tools\", \"\\{{[0-9A-F-]{{36}}\\}}\"\r\nEndProject\r\n", string.Empty);
         Assert.Equal(Encoding.Latin1.GetString(original), without);
 
-        // Local History has the .sln as it was before, as it has every file an IDE write replaces.
         string path = PathNames.Canonical(solution);
         Ui.WaitFor(() => window.LocalHistory!.Snapshot().Events.Any(e => e.Path == path && e.Before is { } hash && window.LocalHistory.Content(hash) is { } before && before.AsSpan().SequenceEqual(original)),
             "Local History to keep the .sln as it was before the solution folder went in");

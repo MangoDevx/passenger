@@ -19,8 +19,7 @@ public partial class MainWindow
             _ = WorkingAsync(A.AspireRefresh, "Refreshing resources", () => Aspire.RequestRefreshAsync());
         },
             _ => Aspire.SelectedApp is null ? "No Aspire AppHost is selected" : null);
-        // A resource's Debug, Attach, Run without Debugger and Profile are the service actions every run of services has
-        // (AddServiceActions), which act on the Aspire window's resource chosen too.
+        // A resource's Debug, Attach, Run without Debugger and Profile are every run of services' (AddServiceActions).
         Add(A.AspireCommand, "Run Aspire Resource Command…", "Aspire", context =>
         {
             if (Aspire.TakePendingCommand() is { } command)
@@ -39,8 +38,7 @@ public partial class MainWindow
             _ => aspireView?.Telemetry is { SelectedTrace: not null, SelectedSpan: not null } ? null : "No trace span is selected");
         foreach (string page in AspireModel.Pages)
         {
-            // Details is the chosen resource's, beside every resource listed: shown as the window's resources are asked for.
-            // Each is found by the name its tab had before the windows shared one vocabulary too.
+            // Details is the chosen resource's, beside every resource listed; each found by its tab's former name too.
             string id = AspireModel.PageAction(page);
             Add(id, id == A.AspireResources ? "Show Aspire Resources" : $"Show Aspire {page}", "Aspire", _ =>
             {
@@ -54,7 +52,6 @@ public partial class MainWindow
                 _ => null,
             });
         }
-        // The Telemetry tab's two pages, as a log's trace and a span's logs choose them.
         foreach ((string id, string title, Passenger.App.Telemetry.TelemetryPage page) in (ReadOnlySpan<(string, string, Passenger.App.Telemetry.TelemetryPage)>)[
             (A.AspireLogs, "Show Aspire Structured logs", Passenger.App.Telemetry.TelemetryPage.Logs), (A.AspireTraces, "Show Aspire Traces", Passenger.App.Telemetry.TelemetryPage.Traces)])
         {

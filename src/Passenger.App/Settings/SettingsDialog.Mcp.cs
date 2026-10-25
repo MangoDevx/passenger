@@ -7,9 +7,9 @@ using Passenger.App.Mcp;
 
 namespace Passenger.App.Settings;
 
-/// <summary>The MCP Server page: Rider's Enable MCP Server, the folders agents join unasked (each Always for this folder
-/// the window's question kept, each taken back by Remove), and how to set up each agent with this copy of Passenger,
-/// its own path in every command and configuration, each with a Copy button.</summary>
+/// <summary>The MCP Server page: Enable MCP Server, the folders agents join unasked (each Always for this folder the
+/// window's question kept, each taken back by Remove), and how to set up each agent with this copy of Passenger, its
+/// own path in every command and configuration, each with a Copy button.</summary>
 public sealed partial class SettingsDialog
 {
     /// <summary>The agents' setups the page shows, by their headings, in its order.</summary>
@@ -29,7 +29,6 @@ public sealed partial class SettingsDialog
     private void AddAgents(AgentSetup setup)
     {
         const string Words = "mcp model context protocol agents ai claude codex opencode attach socket";
-        // What turning it on allows is said under it, as Rider's consent to its MCP server says.
         Add(McpPage, "Enable MCP Server", Check(Working.McpServer, v => Change(s => s with { McpServer = v })), Words,
             "Agents started with passenger --mcp-attach can use this window without asking to: read and change files, build, run and "
             + "debug, use Git, NuGet and the terminal. Off, the window asks before letting each agent in. Either way, an agent asks "
@@ -126,7 +125,6 @@ public sealed partial class SettingsDialog
             {
                 await clipboard.SetTextAsync(text);
             }
-            // The one copied last says so until another is.
             foreach (Button other in copyButtons.Values)
             {
                 other.Content = other == copy ? "Copied" : "Copy";

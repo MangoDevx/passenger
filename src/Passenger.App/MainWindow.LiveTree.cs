@@ -2,7 +2,7 @@ using Passenger.App.LiveTree;
 
 namespace Passenger.App;
 
-/// <summary>The window's Live Visual Tree (<see cref="LiveTreeController"/>), over its session: what the tests ask of it.</summary>
+/// <summary>The window's Live Visual Tree (<see cref="LiveTreeController"/>), over its session.</summary>
 public partial class MainWindow
 {
     private LiveTreeController? liveTree;

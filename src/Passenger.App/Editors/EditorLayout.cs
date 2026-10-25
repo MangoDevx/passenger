@@ -21,8 +21,8 @@ public sealed record KeptTab(string Path, int Line, int Column)
     public bool Pinned { get; init; }
 }
 
-/// <summary>An editor window as a folder keeps it: where it stood (its place in screen pixels, its size in its own units,
-/// as a floating tool window's) and its splits.</summary>
+/// <summary>An editor window as a folder keeps it: where it stood (its place in screen pixels, its size in its own
+/// units) and its splits.</summary>
 public sealed record KeptEditorWindow
 {
     public int[]? Bounds { get; init; }

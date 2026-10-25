@@ -13,11 +13,11 @@ using Passenger.App.ToolWindows;
 
 namespace Passenger.Tests;
 
-/// <summary>What a project loads with, said as Rider says it. A package with a known vulnerability (from a stand-in feed
-/// whose VulnerabilityInfo restore's audit reads, so nothing reaches nuget.org) is a warning naming the package and its
-/// severity in the status bar, under the project with its advisory's link in Problems' Toolset, Environment, and marked in
-/// the NuGet window, which offers the version that fixes it; updating to it takes the warning away. A project whose SDK
-/// cannot be found is an error naming why, in the status bar and under the project in Problems.</summary>
+/// <summary>What a project loads with. A package with a known vulnerability (from a stand-in feed whose VulnerabilityInfo
+/// restore's audit reads, so nothing reaches nuget.org) is a warning naming the package and its severity in the status
+/// bar, under the project with its advisory's link in Problems' Toolset, Environment, and marked in the NuGet window,
+/// which offers the version that fixes it; updating to it takes the warning away. A project whose SDK cannot be found is
+/// an error naming why, in the status bar and under the project in Problems.</summary>
 public sealed class ProjectLoadTests : IDisposable
 {
     private const string Advisory = "https://github.com/advisories/GHSA-pass-load-test";
@@ -76,8 +76,6 @@ public sealed class ProjectLoadTests : IDisposable
         Assert.True(tip?.StartsWith(window.Status!, StringComparison.Ordinal) == true && tip.EndsWith("Click to see it in Problems, Toolset, Environment", StringComparison.Ordinal),
             $"Hovering the status bar's load warning, which the bar cuts, shows \"{tip}\", not its whole text and where a click on it goes");
 
-        // A click on it shows it in Problems' Toolset, Environment: under the project, with the advisory's link, which opens
-        // in the browser.
         ProblemsModel problems = window.BottomPanel.Problems;
         window.DockHost.Hide("problems");
         problems.Shown = ProblemsTab.File;
@@ -94,7 +92,6 @@ public sealed class ProjectLoadTests : IDisposable
         Ui.Click(link, settle: false);
         Assert.True(window.Browsed.Contains(new Uri(Advisory)), $"Clicking the advisory's link opened [{string.Join(", ", window.Browsed)}]");
 
-        // The NuGet window marks the package, says what Rider says of it, and offers the version that fixes it.
         NuGetView nuget = window.NuGet;
         window.Perform(AppActions.ShowNuGet);
         Ui.Landed(() => nuget.Selected is { Id: "Passenger.Vulnerable", IsVulnerable: true } && nuget.Versions.Count == 3, "the vulnerable package marked and its versions");
@@ -150,7 +147,6 @@ public sealed class ProjectLoadTests : IDisposable
         Ui.Click(update, settle: false);
         Ui.WaitFor(() => !nuget.IsBusy && Version(window) == "1.0.1", $"Web updated to 1.0.1:\n{nuget.Log}", TimeSpan.FromMinutes(3));
 
-        // The server loads the project again, without the warning, as the update's restore left it.
         Ui.WaitFor(() => problems.ToolsetProblems.Count == 0, $"the warning gone from Problems once the project loaded again ({problems.ToolsetProblems.FirstOrDefault()?.Message})",
             TimeSpan.FromMinutes(2));
         Assert.True(window.Status == $"{Path.Combine("Web", "Web.csproj")} loaded without problems" && window.StatusSeverity is null,
@@ -174,7 +170,6 @@ public sealed class ProjectLoadTests : IDisposable
             $"The status bar says \"{window.Status}\" once the projects loaded, not that Bad.csproj did not load and why");
         Assert.True(window.StatusSeverity == ProblemSeverity.Error, $"The status bar's load error is marked as {window.StatusSeverity?.ToString() ?? "nothing"}, not an error");
 
-        // A click on it shows it under the project in Problems' Toolset, Environment.
         ProblemsModel problems = window.BottomPanel.Problems;
         window.DockHost.Hide("problems");
         problems.Shown = ProblemsTab.File;
@@ -187,7 +182,6 @@ public sealed class ProjectLoadTests : IDisposable
         Assert.Equal(["Bad", Reason], problems.Rows.Select(r => r.Label));
         Assert.True(problems.Selected == error, $"A click on the status bar's load error chose {problems.Selected?.Message ?? "nothing"} in Problems, not the error");
 
-        // What is said next takes the error's place away: its words go nowhere, look like none, and a click does nothing.
         window.DockHost.Hide("problems");
         problems.Shown = ProblemsTab.File;
         Ui.Press(window, Ui.Shortcut(AppActions.ApplyHotReloadChanges));
@@ -199,7 +193,6 @@ public sealed class ProjectLoadTests : IDisposable
         Assert.True(!window.DockHost.IsShown(ToolWindowIds.Problems) && problems.Shown == ProblemsTab.File,
             "A click on status bar words that go nowhere showed Problems, as the load error said before them did");
 
-        // Going to the error opens the project file.
         window.Perform(AppActions.ShowProblems);
         problems.Shown = ProblemsTab.Toolset;
         Ui.Settle();

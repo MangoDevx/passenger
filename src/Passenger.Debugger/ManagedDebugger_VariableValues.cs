@@ -60,7 +60,7 @@ public partial class ManagedDebugger
         bool resultIsError = false;
         if (EvalStatus.ImplicitOff is not null && !EvalStatus.Explicit && formatKind is CorDebugValueFormatKind.ToString or CorDebugValueFormatKind.DebuggerDisplay)
         {
-            // Neither its ToString nor its [DebuggerDisplay] is run while implicit evaluation is off: its type, as Visual Studio shows it.
+            // Neither its ToString nor its [DebuggerDisplay] runs while implicit evaluation is off: its type in braces.
             return new FormattedValue(friendlyTypeName, $"{{{friendlyTypeName}}}", debuggerProxyTypeName, false);
         }
         string? displayName = null;
@@ -83,8 +83,7 @@ public partial class ManagedDebugger
             }
             catch (EvalException)
             {
-                // A ToString that throws or never returns, or one a pause caught in the runtime's optimized code cannot run:
-                // its type, as Visual Studio shows it, its fields still there to open.
+                // A ToString that throws, never returns or cannot run: its type in braces, its fields there to open.
                 return new FormattedValue(friendlyTypeName, $"{{{friendlyTypeName}}}", debuggerProxyTypeName, false);
             }
             try
@@ -118,8 +117,8 @@ public partial class ManagedDebugger
         return new FormattedValue(friendlyTypeName, value, debuggerProxyTypeName, resultIsError, displayName);
     }
 
-    /// <summary>The [DebuggerTypeProxy] made for a value, or null when its constructor throws, so the value
-    /// opens into its own members rather than the exception's (upstream #56).</summary>
+    /// <summary>The [DebuggerTypeProxy] made for a value, or null when its constructor throws, so the value opens into
+    /// its own members rather than the exception's.</summary>
     private async Task<ICorDebugValue?> CreateDebuggerProxyInstance(ICorDebugValue value, ThreadId threadId, ICorDebugModule module, string proxyTypeName, ICorDebugType[] typeArguments)
     {
         IMetaDataImport metadataImport = module.GetMetaDataInterface<IMetaDataImport>();
@@ -127,7 +126,6 @@ public partial class ManagedDebugger
         ArgumentNullException.ThrowIfNull(proxyTypeDef);
         ICorDebugClass proxyClass = module.GetClassFromToken(proxyTypeDef.Value);
 
-        // TODO: pass a specific signature to handle proxy types that have multiple constructors - see ManagedDebugger.FindMethodOnType
         mdMethodDef constructor = metadataImport.FindMethod(proxyClass.Token, ".ctor", 0, 0);
         ICorDebugEval eval = _process!.GetThread(threadId.Value).CreateEval();
         try
@@ -151,7 +149,6 @@ public partial class ManagedDebugger
 
             ICorDebugContext corDebugContext => throw new NotImplementedException(),
             ICorDebugObjectValue corDebugObjectValue => GetCorDebugObjectValue_Value_AsString(corDebugObjectValue, escapeStringValue),
-            //CorDebugHandleValue corDebugHandleValue => throw new NotImplementedException(), // handled by CorDebugReferenceValue
             ICorDebugReferenceValue corDebugReferenceValue => GetCorDebugReferenceValue_Value_AsString(corDebugReferenceValue, escapeStringValue),
 
             ICorDebugHeapValue corDebugHeapValue => throw new NotImplementedException(),
@@ -230,7 +227,7 @@ public partial class ManagedDebugger
         }
         if (typeName == "decimal")
         {
-            // This technically isn't necessary - System.Decimal overrides ToString, which we call below. This might technically be faster? This is how it is implemented in netcoredbg, but they don't handle overridden ToString's
+            // Read from its fields, not by its ToString, which would run the program.
             string decimalString = GetDecimalValueString(corDebugObjectValue);
             return new(typeName, decimalString, CorDebugValueFormatKind.None, null);
         }
@@ -351,9 +348,7 @@ public partial class ManagedDebugger
             return $"{elementName}[{new string(',', corDebugType.Rank - 1)}]";
         }
         ICorDebugClass corDebugClass = corDebugType.Class;
-        // The specific CorDebugType may have type parameters, but they could be for its enclosing type (e.g. a class defined inside a generic class)
-        // So we get them here, and pass it into the recursive GetCorDebugTypeFriendlyNameInternal. Starting from the bottom (highest enclosing type), each level will consume the type parameters it needs, based on its arity, indicated in the name (`1, `2, etc.)
-        // e.g. for MyClassContainingAnotherClass<string, int>.MyNestedClass<long, float>, type parameters contains [string, int, long, float]
+        // Type parameters cover enclosing types too, each level taking as many as its arity (`1, `2), outermost first.
         List<ICorDebugType> typeParameters = corDebugType.TypeParameters.ToList();
         string name = GetCorDebugTypeFriendlyNameInternal(corDebugClass, typeParameters);
         return name;
@@ -376,8 +371,7 @@ public partial class ManagedDebugger
             parentTypeName = GetCorDebugTypeFriendlyNameInternal(parentTypeCorDebugClass, typeParameterTypes);
         }
 
-        // This will be first reached by the outermost type
-        // The below will consume type parameters it requires based on arity
+        // Reached first by the outermost type, which takes the type parameters its arity names.
 
         int backtickIndex = typeName.LastIndexOf('`');
         bool typeHasTypeParameters = backtickIndex is not -1;
@@ -443,8 +437,6 @@ public partial class ManagedDebugger
         try
         {
             corDebugGenericValue.GetValue(buffer);
-            // Read the value from buffer based on the CorElementType
-            // e.g., for int: Marshal.ReadInt32(buffer)
             string value = corDebugGenericValue.Type switch
             {
                 CorElementType.VOID => "void",
@@ -458,15 +450,15 @@ public partial class ManagedDebugger
                 CorElementType.U2 => ((ushort)Marshal.ReadInt16(buffer)).ToString(),
                 CorElementType.U4 => ((uint)Marshal.ReadInt32(buffer)).ToString(),
                 CorElementType.U8 => ((ulong)Marshal.ReadInt64(buffer)).ToString(),
-                // Apparently this will blow up on big-endian systems
+                // Little-endian only.
                 CorElementType.R4 => BitConverter.ToSingle(BitConverter.GetBytes(Marshal.ReadInt32(buffer)), 0).ToString(),
                 CorElementType.R8 => BitConverter.ToDouble(BitConverter.GetBytes(Marshal.ReadInt64(buffer)), 0).ToString(),
                 // native integer
                 CorElementType.I => IntPtr.Size is 4 ? Marshal.ReadInt32(buffer).ToString() : Marshal.ReadInt64(buffer).ToString(),
                 CorElementType.U => IntPtr.Size is 4 ? ((uint)Marshal.ReadInt32(buffer)).ToString() : ((ulong)Marshal.ReadInt64(buffer)).ToString(),
-                CorElementType.STRING => throw new ArgumentOutOfRangeException(), // Marshal.PtrToStringUni(Marshal.ReadIntPtr(buffer)) ?? "null",
-                CorElementType.PTR => throw new ArgumentOutOfRangeException(), // $"0x{Marshal.ReadIntPtr(buffer).ToInt64():X}",
-                CorElementType.BYREF => throw new ArgumentOutOfRangeException(), // $"0x{Marshal.ReadIntPtr(buffer).ToInt64():X}",
+                CorElementType.STRING => throw new ArgumentOutOfRangeException(),
+                CorElementType.PTR => throw new ArgumentOutOfRangeException(),
+                CorElementType.BYREF => throw new ArgumentOutOfRangeException(),
                 CorElementType.VALUETYPE => throw new NotImplementedException(),
                 CorElementType.CLASS => throw new NotImplementedException(),
                 _ => throw new ArgumentOutOfRangeException()
@@ -528,7 +520,7 @@ public partial class ManagedDebugger
             CorElementType.R4 => "float",
             CorElementType.R8 => "double",
             CorElementType.STRING => "string",
-            CorElementType.OBJECT => "object", // Should we ever see this?
+            CorElementType.OBJECT => "object",
             CorElementType.I => "nint",
             CorElementType.U => "nuint",
             _ => null

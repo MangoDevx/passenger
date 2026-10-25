@@ -21,17 +21,16 @@ public sealed partial class CodeEditor
     private int colouring;
 
     /// <summary>How many characters the editor has given the text formatter: each line, window and label it formatted.
-    /// What a key or a frame costs to draw, for a test to count rather than time.</summary>
+    /// What a key or a frame costs to draw.</summary>
     public long CharactersFormatted { get; private set; }
 
     /// <summary>How many characters the editor has asked its highlighter to colour.</summary>
     public long CharactersColoured { get; private set; }
 
-    /// <summary>How many frames the editor has drawn: what a key costs to draw, for a test to count rather than time.</summary>
+    /// <summary>How many frames the editor has drawn: what a key costs to draw.</summary>
     public long Frames { get; private set; }
 
-    /// <summary>How many times the caret's blink has asked for a frame, one each: what a count of a key's frames leaves
-    /// out, since the blink draws the editor again whenever a wait outlasts its 530 ms.</summary>
+    /// <summary>The caret's blinks, a frame asked for each, which a count of a key's frames leaves out.</summary>
     public long Blinks { get; private set; }
 
     /// <summary>The views of the rows a frame shows: the ones they had while their text and colours (and a long line's

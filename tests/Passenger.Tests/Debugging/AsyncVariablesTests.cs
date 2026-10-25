@@ -71,7 +71,7 @@ public class AsyncVariablesTests(ITestOutputHelper testOutputHelper)
             .WithStackTraceRequest(stoppedEvent3.ThreadId!.Value, out StackTraceResponse? stackTraceResponse3)
             .WithScopesRequest(stackTraceResponse3.StackFrames!.First().Id, out ScopesResponse? scopesResponse3)
             .WithVariablesRequest(scopesResponse3.Scopes.Single().VariablesReference, out List<DapVariable>? variables3);
-        // Assert the variables reference count resets on continue, by asserting the variables are the same as the first time (code is in a while loop)
+        // The same variables as the first time round the loop: their references reset on continue.
         variables3.ShouldBeEquivalentToDebuggerVariables(expectedVariables);
     }
 }

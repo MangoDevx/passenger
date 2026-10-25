@@ -4,11 +4,11 @@ using Passenger.Debugger.Interop;
 
 namespace Passenger.Debugger;
 
-/// <summary>Letting go of a program held at a breakpoint or a step's end. With CET's shadow stacks (x64 Windows, any .NET 9+
-/// apphost) a thread resumes from the runtime's handling of a patch or a single step only by the debugger setting its context
-/// out of process (the runtime's SetThreadContextNeeded flare, debugger.cpp's FirstChanceNativeException), and mscordbi's
-/// Detach waits for that only once it has answered one flare (process.cpp's DetachShim): let go before, such a thread finds no
-/// debugger to answer and the program ends with 0xC0000409, so the engine runs it off its stop first.</summary>
+/// <summary>Letting go of a program held at a breakpoint or a step's end. With CET's shadow stacks (x64 Windows, any
+/// .NET 9+ apphost) a thread resumes from the runtime's handling of a patch or a single step only by the debugger
+/// setting its context out of process, which mscordbi's Detach waits for only once it has answered one such request:
+/// let go before, such a thread finds no debugger to answer and the program ends with 0xC0000409, so the engine runs it
+/// off its stop first.</summary>
 public partial class ManagedDebugger
 {
     /// <summary>The thread of the stop shown when the runtime stopped it inside its handling of a breakpoint or a step's end
@@ -27,12 +27,11 @@ public partial class ManagedDebugger
         _ => null,
     };
 
-    /// <summary>Runs the program a moment and stops it again, still held by the debugger, until every thread held inside the
-    /// runtime's handling of a breakpoint or a step's end has moved on from where it stood (<paramref name="held"/>, measured
-    /// before anything of the let-go ran it, so one already run off its stop is done), each then answered, the program has
-    /// ended, four rounds are spent, or the client's time for the let-go (<paramref name="until"/>, a timestamp) is up. Its
-    /// breakpoints, steppers and data breakpoints are gone by now, so none stops it again; the events that come meanwhile
-    /// are let go, and another thread's breakpoint queued behind the stop joins those watched.</summary>
+    /// <summary>Runs the program a moment and stops it again, still held, until every thread held inside the runtime's
+    /// handling of a breakpoint or a step's end has moved on from where it stood (<paramref name="held"/>), or the
+    /// program has ended, four rounds are spent, or the client's time (<paramref name="until"/>) is up. Its breakpoints
+    /// and steppers are gone by now, so none stops it again; the events that come meanwhile are let go, and another
+    /// thread's breakpoint queued behind the stop joins those watched.</summary>
     private void RunOffDispatch(ICorDebugProcess process, Dictionary<int, ThreadPlace?> held, long? until)
     {
         if (!held.Any(h => h.Value is { } place && PlaceOf(process, h.Key) == place))
@@ -118,14 +117,10 @@ public partial class ManagedDebugger
     }
 
     /// <summary>Waits out the evaluations given up that still run in the program before it is let go: Detach is refused
-    /// while one runs, and one that returns once the debugger has gone holds its thread for good, the runtime waiting for a
-    /// debugger to go on with it (a stop's proxy read on the main thread, a moment before Detach, left an app that never got
-    /// past its startup). The program runs until each has said it ended, every other event let go, then is stopped again:
-    /// each is waited for to the end of its own time (<see cref="EvalStatus.DueAt"/>), the wait ending at the latest still
-    /// to come or the client's time (<paramref name="until"/>), whichever is first; one that could not be stopped has had its
-    /// time and its abort's window already, and is not waited for. None is aborted: an abort fires wherever its thread then is, and
-    /// one that landed in the runtime's making of the thread pool's gate thread ended the program ("Failed to create the
-    /// thread pool Gate thread").</summary>
+    /// while one runs, and one that returns once the debugger has gone holds its thread for good. The program runs
+    /// until each has ended, other events let go, each waited for to the end of its own time
+    /// (<see cref="EvalStatus.DueAt"/>) or the client's (<paramref name="until"/>), but one that could not be stopped.
+    /// None is aborted: an abort fires wherever its thread then is, which can end the program.</summary>
     private void EndAbandonedEvaluations(ICorDebugProcess process, long? until)
     {
         Dictionary<int, long> left = EvalStatus.DueAt.Where(d => EvalStatus.Abandoned.ContainsKey(d.Key)).ToDictionary();

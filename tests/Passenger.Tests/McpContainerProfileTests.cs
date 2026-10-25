@@ -52,7 +52,6 @@ public sealed class McpContainerProfileTests : McpRig
             Assert.True(spin.TryGetProperty("source", out JsonElement source) && source.GetString()!.EndsWith($"Program.cs:{ContainerRunProfilingTests.SpinLine}", StringComparison.Ordinal),
                 $"The service's hot method is not named at its line: {spin}");
             Assert.Contains(profiled.GetProperty("heap").EnumerateArray(), t => t.GetProperty("type").GetString() == "Keepsake");
-            // The snapshot taken, the run goes on until stop.
             Assert.Equal("running", ContainerRunsTests.States(project)["api"]);
         }
         finally

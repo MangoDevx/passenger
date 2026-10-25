@@ -14,10 +14,10 @@ using Passenger.Text;
 
 namespace Passenger.Tests;
 
-/// <summary>Rider's Show History over real working trees, as tabs of the Git window: a file's commits followed through a
-/// rename, each opening what it did to the file; a folder's, only those that touched it; and those that changed the lines
-/// chosen, counted as the last commit has them under unsaved edits. Compare with Branch or Tag puts another branch's text
-/// beside the file's.</summary>
+/// <summary>Show History over real working trees, as tabs of the Git window: a file's commits followed through a
+/// rename, each opening what it did to the file; a folder's, only those that touched it; and those that changed the
+/// lines chosen, counted as the last commit has them under unsaved edits. Compare with Branch or Tag puts another
+/// branch's text beside the file's.</summary>
 public sealed class HistoryTests : IDisposable
 {
     private const string Shop = "class Shop\n{\n    int count;\n\n    void Add() { count++; }\n}\n";
@@ -42,7 +42,6 @@ public sealed class HistoryTests : IDisposable
         Git("commit", "-q", "-am", "Notes");
         MainWindow window = Open("src/Store.cs");
 
-        // From the editor's menu, as Rider's Git submenu has it.
         Ui.ChooseFromEditorMenu(window, "Git", "Show History");
         GitLogView history = window.GitWindow.Shown;
         Ui.Landed(() => history.Rows.Count == 4, "the four commits that changed the file, under either name");
@@ -57,7 +56,6 @@ public sealed class HistoryTests : IDisposable
         Ui.Landed(() => history.Files.Count == 1, "the rename's one file");
         Assert.Equal((Full("src/Store.cs"), ChangeKind.Renamed, Full("src/Shop.cs")), (history.Files[0].Path, history.Files[0].Kind, history.Files[0].From));
 
-        // A double-click on a commit shows what it did to the file, under its old name too.
         DoubleClick(history, "Long count");
         Ui.Landed(() => window.OwnedWindows.OfType<DiffWindow>().Any(), "the commit's diff of the file");
         DiffWindow diff = window.OwnedWindows.OfType<DiffWindow>().Single();
@@ -66,7 +64,6 @@ public sealed class HistoryTests : IDisposable
         Assert.Single(diff.View.Hunks);
         diff.Close();
 
-        // Show History again for the file goes back to its tab rather than opening another.
         window.GitWindow.ShowLog();
         Assert.True(window.Perform(AppActions.ShowHistory), window.Status);
         Assert.Same(history, window.GitWindow.Shown);
@@ -99,7 +96,6 @@ public sealed class HistoryTests : IDisposable
         Assert.Equal(["Both", "B", "First"], history.Rows.Select(r => r.Commit.Subject));
         Assert.Equal(["Log", "src"], window.GitWindow.Titles);
 
-        // A commit that changed files elsewhere too lists only the folder's.
         history.Select(Commit(history, "Both"));
         Ui.Landed(() => history.Files.Count == 1, "the one file Both changed in src");
         Assert.Equal((Full("src/A.cs"), ChangeKind.Modified), (history.Files[0].Path, history.Files[0].Kind));
@@ -107,7 +103,6 @@ public sealed class HistoryTests : IDisposable
         Ui.Landed(() => history.Files.Count == 1, "the one file First added to src");
         Assert.Equal(Full("src/A.cs"), history.Files[0].Path);
 
-        // A file's row offers its versions too; the Log stays the Log.
         ExplorerNode docs = window.ExplorerView.Tree.Rows.First(r => r.Name == "docs");
         window.ExplorerView.Tree.Expand(docs);
         Ui.Settle();
@@ -149,7 +144,6 @@ public sealed class HistoryTests : IDisposable
         Assert.Equal(["Line 6", "Line 5", "First"], history.Rows.Select(r => r.Commit.Subject));
         Assert.Equal(["Log", "Lines.txt, lines 5–7"], window.GitWindow.Titles);
 
-        // Enter on a commit shows what it did to the file.
         history.Select(Commit(history, "Line 5"));
         history.FocusRows();
         Ui.Press(window, "ENTER");
@@ -159,7 +153,6 @@ public sealed class HistoryTests : IDisposable
         Assert.Contains("line 5, changed\n", diff.View.Right.Document.Snapshot.ToString(), StringComparison.Ordinal);
         diff.Close();
 
-        // Lines only typed since the last commit have no history to show.
         editor.GoTo(new TextPosition(0, 2));
         Assert.True(window.Perform(AppActions.ShowHistoryForSelection));
         Ui.Settle();
@@ -186,7 +179,6 @@ public sealed class HistoryTests : IDisposable
         window.EditorArea.CodeEditor.GoTo(new TextPosition(0, 0));
         window.KeyTextInput("sealed ");
 
-        // The branches, the current one first, then the tags.
         Assert.True(window.Perform(AppActions.CompareWithBranch), window.Status);
         Ui.Settle();
         ChoicePopup popup = Assert.IsType<ChoicePopup>(window.Popup);
@@ -202,7 +194,6 @@ public sealed class HistoryTests : IDisposable
         Assert.Equal(2, diff.View.Hunks.Count);
         diff.Close();
 
-        // A file the branch does not have says so.
         window.OpenFile(Path.Combine(folder, "New.cs"));
         Ui.Settle();
         Assert.True(window.Perform(AppActions.CompareWithBranch), window.Status);

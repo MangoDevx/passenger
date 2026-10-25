@@ -4,12 +4,6 @@ using Passenger.Profiler;
 
 // Passenger's container tools, run by the IDE through docker exec. The first word is the mode; a mode or flag it does not
 // know is fatal (exit code 2), so a typo never runs something other than what was asked.
-//   passenger-tools dap --interpreter=vscode [--symbolCache=FOLDER] [--remote] [--engineLogging=FILE]
-//   passenger-tools processes
-//   passenger-tools trace --pid PID [--resume] [--requests]
-//   passenger-tools heap --pid PID
-//   passenger-tools sources
-//   passenger-tools version
 const string Usage = """
     passenger-tools MODE [FLAGS]
       dap        Passenger's debug adapter on standard input and output (dap --help lists its flags)
@@ -75,7 +69,7 @@ switch (args[0])
             Console.Error.WriteLine($"version takes no flags, not '{string.Join(' ', rest)}'");
             return 2;
         }
-        // As the IDE's Product.Version reads its own: the informational version, less the commit after its '+'.
+        // The informational version, less the commit after its '+'.
         Console.WriteLine((System.Reflection.CustomAttributeExtensions.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(typeof(Processes).Assembly)
             ?.InformationalVersion ?? "0.0.0").Split('+')[0]);
         return 0;

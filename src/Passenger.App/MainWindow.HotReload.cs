@@ -7,15 +7,15 @@ using Passenger.Core;
 namespace Passenger.App;
 
 /// <summary>Hot Reload while debugging in the window: what an Apply Changes came to in the status bar and Problems' Hot
-/// Reload tab, and the restart an edit the runtime cannot take needs: at once (Settings' Always restart, on by default), or
-/// asked as dotnet watch asks it, Yes, No, Always or Never.</summary>
+/// Reload tab, and the restart an edit the runtime cannot take needs: at once (Settings' Always restart, on by
+/// default), or asked: Yes, No, Always or Never.</summary>
 public partial class MainWindow
 {
     /// <summary>The debugging session the person said Never to restarting for, which is not asked again.</summary>
     private DebugSession? neverRestart;
 
-    /// <summary>How long the last restart for an edit Hot Reload could not apply took, from the program stopped to the new
-    /// one launched: said with it, and read by tests.</summary>
+    /// <summary>How long the last restart for an edit Hot Reload could not apply took, from the program stopped to the
+    /// new one launched, said with it.</summary>
     public TimeSpan? LastHotReloadRestart { get; private set; }
 
     /// <summary>dotnet watch's question, and its answers, in the order the dialog shows them (the last its default).</summary>
@@ -23,9 +23,9 @@ public partial class MainWindow
 
     public static readonly string[] RestartAnswers = ["Never", "Always", "No", "Yes"];
 
-    /// <summary>Rider's Apply Hot Reload Changes (Alt+F10 in both its Visual Studio keymaps, after Rerun and Stop in its Run
-    /// menu): the program debugged takes the edits through Edit and Continue; one Run runs under dotnet watch takes them as
-    /// the files are saved, which dotnet watch applies.</summary>
+    /// <summary>Apply Hot Reload Changes (Alt+F10 in both of Rider's Visual Studio keymaps): the program debugged takes
+    /// the edits through Edit and Continue; one Run runs under dotnet watch takes them as the files are saved, which
+    /// dotnet watch applies.</summary>
     private void AddHotReload()
     {
         Add(AppActions.ApplyHotReloadChanges, "Apply Hot Reload Changes", "Run", context =>
@@ -63,13 +63,13 @@ public partial class MainWindow
         ("Unable to apply changes due to compilation errors", "Hot Reload: dotnet watch could not apply the changes: the code does not compile", HotReloadResult.Errors),
     ];
 
-    /// <summary>The variable that gives <see cref="WatchSaysLater"/> in milliseconds (the tests' run, shorter).</summary>
+    /// <summary>The variable that gives <see cref="WatchSaysLater"/> in milliseconds.</summary>
     public const string WatchSaysLaterVariable = "PASSENGER_WATCH_LATER_MS";
 
-    /// <summary>How long an agent's answer waits, once dotnet watch has applied the changes, for the restart they can still
-    /// end in when the program next calls a method the update deleted (one whose signature changed); the status bar follows
-    /// on whatever the answer. 10 s, or what <see cref="WatchSaysLaterVariable"/> gives; a value there that is no whole number
-    /// of milliseconds above 0 is fatal, as a malformed flag is (Program checks it before the window opens).</summary>
+    /// <summary>How long an agent's answer waits, once dotnet watch has applied the changes, for the restart they can
+    /// still end in when the program next calls a method the update deleted (one whose signature changed); the status
+    /// bar follows on whatever the answer. 10 s, or what <see cref="WatchSaysLaterVariable"/> gives; a value there that
+    /// is no whole number of milliseconds above 0 is fatal.</summary>
     internal static TimeSpan WatchSaysLater => Environment.GetEnvironmentVariable(WatchSaysLaterVariable) is { Length: > 0 } given
         ? int.TryParse(given, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int milliseconds) && milliseconds > 0
             ? TimeSpan.FromMilliseconds(milliseconds)
@@ -104,8 +104,7 @@ public partial class MainWindow
         HotReloadOutcome? last = null;
         EventHandler<string> heard = (_, line) =>
         {
-            // A restart said stands: dotnet watch can tell the apply before it after it, the program having called the
-            // deleted method first.
+            // A restart said stands: dotnet watch can tell of the apply after it, the deleted method called first.
             if (session != current || WatchMeant(line) is not { } meant
                 || (last?.Result == HotReloadResult.RestartNeeded && meant.Result == HotReloadResult.Applied))
             {

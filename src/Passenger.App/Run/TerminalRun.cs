@@ -4,10 +4,10 @@ using Passenger.Terminal;
 
 namespace Passenger.App.Run;
 
-/// <summary>A program run in a tab of the Terminal window, as Run and Debug start a configuration that uses the terminal
-/// (Rider's Use external console): a real terminal, which it reads keys from and draws on as it likes. It ends with the
-/// IDE, a crash included (<see cref="ChildProcesses.Adopt"/>), Stop ends it and all it started, and its tab says when it
-/// ended and its exit code, as Rider's console does. A UI-thread object.</summary>
+/// <summary>A program run in a tab of the Terminal window, for a configuration that uses the terminal: a real terminal,
+/// which it reads keys from and draws on as it likes. It ends with the IDE, a crash included
+/// (<see cref="ChildProcesses.Adopt"/>), Stop ends it and all it started, and its tab says when it ended and its exit
+/// code. A UI-thread object.</summary>
 public sealed class TerminalRun
 {
     /// <summary>The exit code a shell gives a program SIGKILL ended, which is how Stop ends one on macOS and Linux.</summary>
@@ -62,8 +62,8 @@ public sealed class TerminalRun
         }
     }
 
-    /// <summary>Says the IDE is ending it, as the debugger's Stop does through the debugger: an end Porta.Pty gives no code
-    /// of its own (a signal's, on macOS and Linux) is then told as SIGKILL's.</summary>
+    /// <summary>Says the IDE is ending it, the debugger's Stop included: an end Porta.Pty gives no code of its own (a
+    /// signal's, on macOS and Linux) is then told as SIGKILL's.</summary>
     public void Stopping() => stopping = true;
 
     /// <summary>The program has started, as this process.</summary>
@@ -81,8 +81,8 @@ public sealed class TerminalRun
         ended.TrySetResult(-1);
     }
 
-    /// <summary>The program has ended, its last output on the screen: its tab says so with its exit code, as Rider's console
-    /// does, below what it wrote.</summary>
+    /// <summary>The program has ended, its last output on the screen: its tab says so with its exit code, below what it
+    /// wrote.</summary>
     public void OnExited(int code)
     {
         int exitCode = stopping && code == 0 && !OperatingSystem.IsWindows() ? Killed : code;

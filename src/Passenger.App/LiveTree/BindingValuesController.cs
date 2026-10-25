@@ -12,14 +12,14 @@ using Passenger.Text;
 
 namespace Passenger.App.LiveTree;
 
-/// <summary>A debugged Avalonia app's binding values after an .axaml file's bindings on screen, as C#'s inline values are, a
-/// failed one marked, and on hover the path walked step by step. Paused, the debugger evaluates the inspector's read on the UI
-/// thread (<see cref="Wire.ReadValues"/>), each value as Variables shows it; running, the inspector answers for the control
-/// chosen in the Live Visual Tree, which also tells apart an element's instances (a template's). Read once a stop or a choice,
-/// for the lines shown. A UI-thread object.</summary>
+/// <summary>A debugged Avalonia app's binding values after an .axaml file's bindings on screen, a failed one marked, and
+/// on hover the path walked step by step. Paused, the debugger evaluates the inspector's read on the UI thread
+/// (<see cref="Wire.ReadValues"/>), each value as Variables shows it; running, the inspector answers for the control
+/// chosen in the Live Visual Tree, which also tells apart an element's instances (a template's). Read once a stop or a
+/// choice, for the lines shown. A UI-thread object.</summary>
 public sealed class BindingValuesController
 {
-    /// <summary>The longest value shown after a line, as C#'s inline values are cut.</summary>
+    /// <summary>The longest value shown after a line.</summary>
     private const int Longest = 60;
 
     private readonly EditorArea editors;
@@ -50,8 +50,8 @@ public sealed class BindingValuesController
     /// <summary>The waits and reads under way, from a change to the values it brings landing.</summary>
     private int reading;
 
-    /// <summary>Whether values are being read for the files shown, or about to be: an agent's debug_state waits until
-    /// they are not, so what it says the editor shows is what the editor shows once the stop is read.</summary>
+    /// <summary>Whether values are being read for the files shown, or about to be, so a wait for it ends with what the
+    /// editor shows once the stop is read.</summary>
     public bool IsReading => reading > 0 || refreshing;
 
     private IDisposable Hold()
@@ -211,7 +211,7 @@ public sealed class BindingValuesController
     private DebugStop? readAt;
 
     /// <summary>Reads again when what is shown was read before the stop now (read a moment after the program paused, which
-    /// raises nothing of its own): what an agent's debug_state asks before it waits out <see cref="IsReading"/>.</summary>
+    /// raises nothing of its own).</summary>
     public void CatchUp()
     {
         UiThread.Check();
@@ -338,8 +338,7 @@ public sealed class BindingValuesController
         try
         {
             IReadOnlyList<DapThread> threads = await debugged.ThreadsAsync();
-            // The thread running Main is known by the debugger's mark, as an app may name it anything; the first listed
-            // stands in only where the debugger knows none.
+            // Main's thread is known by the debugger's mark (an app may name it anything), else the first listed.
             List<int> tried = [stop.Thread];
             tried.AddRange((threads.Any(t => t.IsMain == true) ? threads.Where(t => t.IsMain == true) : threads.Take(1)).Select(t => t.Id));
             foreach (int thread in tried.Distinct())
@@ -500,7 +499,7 @@ public sealed class BindingValuesController
         return new DebuggerHover(string.Join('\n', lines), why);
     }
 
-    /// <summary>A value with its type before it, as the debugger's hover writes one: <c>{string} "Ada"</c>.</summary>
+    /// <summary>A value with its type before it: <c>{string} "Ada"</c>.</summary>
     private static string Typed(ShownValue? value) => value is null
         ? "(not read)"
         : value.Type.Length > 0 && value.Text != value.Type && value.Text != $"{{{value.Type}}}" ? $"{{{value.Type}}} {value.Text}" : value.Text;

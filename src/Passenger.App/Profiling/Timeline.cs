@@ -7,9 +7,9 @@ using Passenger.Profiler;
 
 namespace Passenger.App.Profiling;
 
-/// <summary>dotTrace's timeline: the run from left to right, a row per busy thread shaded where it was sampled (the
-/// denser, the darker), the garbage collections marked above them. A drag across it selects a stretch, which the other
-/// views then show alone; a click without a drag goes back to the whole run.</summary>
+/// <summary>The run's timeline: from left to right, a row per busy thread shaded where it was sampled (the denser, the
+/// darker), the garbage collections marked above them. A drag across it selects a stretch, which the other views then
+/// show alone; a click without a drag goes back to the whole run.</summary>
 public sealed class Timeline : Control
 {
     private const double Label = 170;
@@ -109,7 +109,6 @@ public sealed class Timeline : Control
             }
         }
 
-        // The time, every so often.
         double axisY = CollectionsRow + (Math.Min(MostThreads, whole.Timeline.Count) * Row) + 2;
         double span = whole.EndMs - whole.StartMs;
         double step = Nice(span / 8);

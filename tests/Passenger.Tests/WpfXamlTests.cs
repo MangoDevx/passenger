@@ -13,9 +13,8 @@ namespace Passenger.Tests;
 /// <summary>WPF XAML through the window, on an app made by <c>dotnet new wpf</c> with a view model its window names with
 /// <c>d:DataContext</c>, brushes merged in by App.xaml and a style with triggers: what completion offers, what is marked
 /// as typed and after a build (MarkupCompile's errors), where names lead, and that XAML Preview off Windows says WPF
-/// previews only there (<see cref="WpfPreviewTests"/> preview it on Windows). Off
-/// Windows the app says <c>EnableWindowsTargeting</c>, which the SDK gives for building Windows apps elsewhere: the
-/// reference assemblies its XAML reads are the same, and MarkupCompile builds it.</summary>
+/// previews only there. Off Windows the app says <c>EnableWindowsTargeting</c>, which the SDK gives for building Windows
+/// apps elsewhere: the reference assemblies its XAML reads are the same, and MarkupCompile builds it.</summary>
 public sealed class WpfXamlTests : IClassFixture<WpfXamlTests.Gallery>
 {
     private readonly Gallery app;
@@ -61,7 +60,6 @@ public sealed class WpfXamlTests : IClassFixture<WpfXamlTests.Gallery>
         window.KeyTextInput("orizontalA");
         Ui.Settle();
         Assert.Equal("HorizontalAlignment", window.Assist.CompletionLabels.FirstOrDefault());
-        // The property goes in with its quotes, the caret between them, and its values are offered there at once.
         Ui.Press(window, "ENTER");
         Assert.EndsWith("<Button HorizontalAlignment=\"|\"", CaretLine(editor), StringComparison.Ordinal);
         Ui.WaitFor(() => window.Assist.CompletionLabels.Contains("Center"), "the enum's members offered inside the new value's quotes");
@@ -122,7 +120,6 @@ public sealed class WpfXamlTests : IClassFixture<WpfXamlTests.Gallery>
         Assert.DoesNotContain("Greeting", window.Assist.CompletionLabels);
         Ui.Press(window, "ESCAPE");
 
-        // An item template's bindings resolve against the items its list's ItemsSource binds.
         Ui.PlaceAfter(editor, "<TextBlock Text=\"{Binding Name}\" />");
         window.KeyTextInput("<TextBlock Text=\"{Binding ");
         Ui.Run(window, AppActions.Complete);
@@ -134,7 +131,6 @@ public sealed class WpfXamlTests : IClassFixture<WpfXamlTests.Gallery>
         Ui.WaitFor(() => window.Assist.CompletionLabels.Contains("ControlBrushKey"), "SystemColors' static members");
         Ui.Press(window, "ESCAPE");
 
-        // A namespace as WPF writes it: the project's own by its name, another assembly's with that assembly's.
         Ui.PlaceAfter(editor, "xmlns:vm=\"clr-namespace:Gallery.ViewModels\"");
         window.KeyTextInput(" xmlns:items=");
         window.KeyTextInput("\"");
@@ -156,7 +152,6 @@ public sealed class WpfXamlTests : IClassFixture<WpfXamlTests.Gallery>
             "another assembly's namespace, with its assembly");
         Ui.Press(window, "ESCAPE");
 
-        // A grid column's binding, and a hierarchical template's own, resolve against the items.
         window.OpenFile(app.PathOf("ListsWindow.xaml"));
         Ui.Settle();
         Ui.PlaceAfter(window.EditorArea.CodeEditor, "<DataGridTextColumn Header=\"Name\" Binding=\"{Binding ");
@@ -178,7 +173,6 @@ public sealed class WpfXamlTests : IClassFixture<WpfXamlTests.Gallery>
         OpenDocument document = window.EditorArea.Active!;
         Assert.True(window.XamlService.For(document)?.IsLoaded, "MainWindow.xaml was not read as WPF's XAML");
         Assert.True(document.Markers.Count == 0, $"The window, which compiles, is marked: {string.Join("; ", document.Markers.Select(m => m.Message))}");
-        // Nor do a list's, a grid's or a tree's items, bound outside the window's data context, or XAML's own elements.
         foreach (string other in (string[])["App.xaml", "Themes/Brushes.xaml", "ListsWindow.xaml"])
         {
             window.OpenFile(app.PathOf(other));
@@ -198,7 +192,7 @@ public sealed class WpfXamlTests : IClassFixture<WpfXamlTests.Gallery>
         Assert.Equal("Cannot resolve property 'Foregrund' on Button", MarkerOn(editor, document, "Foregrund").Message);
         Assert.Equal("'Centre' is not a value of HorizontalAlignment", MarkerOn(editor, document, "Centre").Message);
         Assert.Equal("Resource 'Acent' is not found", MarkerOn(editor, document, "Acent").Message);
-        // WPF's bindings are read as the app runs: a path its design-time data context lacks is a warning, as Rider's is.
+        // WPF's bindings are read as the app runs, so a path its design-time data context lacks is a warning.
         Marker path = MarkerOn(editor, document, "Greting");
         Assert.Equal(MarkerKind.Warning, path.Kind);
         Assert.Equal("Cannot resolve property 'Greting' in data context of type MainViewModel", path.Message);
@@ -231,7 +225,6 @@ public sealed class WpfXamlTests : IClassFixture<WpfXamlTests.Gallery>
         Assert.Equal("MC3089: The object 'Button' already has a child and cannot add 'TextBlock'. 'Button' can accept only one child.", marked.Message);
         Assert.Equal(line, editor.Document.Snapshot.GetLineFromOffset(marked.Range.Start));
 
-        // The line edited, the build's word on it is the build's, no longer this text's.
         Replace(editor, "<TextBlock Text=\"b\" />", string.Empty);
         Ui.Settle();
         Assert.Empty(document.Markers);
@@ -259,7 +252,6 @@ public sealed class WpfXamlTests : IClassFixture<WpfXamlTests.Gallery>
         Ui.Press(window, "ESCAPE");
         Ui.Run(window, AppActions.GoToDeclaration);
         Ui.Settle();
-        // WPF's own TextBlock, decompiled from WindowsDesktop's reference assembly, read-only, at the class.
         OpenDocument library = window.EditorArea.Active!;
         Assert.Equal("System.Windows.Controls.TextBlock.cs", library.Name);
         Assert.True(library.IsReadOnly, "the library's code opened editable");
@@ -296,7 +288,6 @@ public sealed class WpfXamlTests : IClassFixture<WpfXamlTests.Gallery>
     {
         MainWindow window = app.Open(app.PathOf("MainWindow.xaml.cs"));
         CodeEditor code = window.EditorArea.CodeEditor;
-        // The field MarkupCompile makes for the button leads to its name in the XAML.
         Ui.PlaceAfter(code, "        G");
         Ui.Run(window, AppActions.GoToDeclaration);
         Ui.Settle();
@@ -327,7 +318,6 @@ public sealed class WpfXamlTests : IClassFixture<WpfXamlTests.Gallery>
     [AvaloniaFact]
     public void A_user_control_with_no_code_behind_is_a_class_its_x_class_and_its_uses_are_not_marked_and_go_to_declaration_reaches_its_xaml()
     {
-        // MarkupCompile alone makes the class: no C# declares it, and it is a UserControl, as its root says.
         string badge = app.Write("Badge.xaml", Badge);
         string uses = app.Write("Badges.xaml", Badges);
         MainWindow window = app.Open(badge);

@@ -21,7 +21,7 @@ namespace Passenger.App.Debugging;
 /// choosing its tab. A UI-thread object.</summary>
 public sealed class DebugController : IDisposable
 {
-    /// <summary>Rider's words in the console of a program attached to, whose output goes where it always went.</summary>
+    /// <summary>The words in the console of a program attached to, whose output goes where it always went.</summary>
     public const string AttachedConsole = "Console output is not available when the debugger is attached to a running process";
 
     private readonly EditorArea editors;
@@ -77,8 +77,8 @@ public sealed class DebugController : IDisposable
     /// <summary>The data breakpoints whose refusal the status bar has said, so it says each once.</summary>
     private readonly HashSet<DataBreakpoint> refusalsTold = [];
 
-    /// <summary>Clears the last stop's frames and values a moment after the program goes on, as Rider's views do: a step
-    /// that stops again at once replaces them without the panes going blank between.</summary>
+    /// <summary>Clears the last stop's frames and values a moment after the program goes on: a step that stops again at once
+    /// replaces them without the panes going blank between.</summary>
     private readonly Debounce clearing;
 
     /// <summary>Takes this debugger's handlers off the Debug window, which the next session's debugger has from then.</summary>
@@ -171,7 +171,7 @@ public sealed class DebugController : IDisposable
     public BreakpointStore Breakpoints { get; } = new();
 
     /// <summary>What a session's program has written (the chosen one's by default), as its console in the Debug window has it
-    /// now, what is on its way to it taken in first: what an agent reads of a debugged program, rather than the window's view.</summary>
+    /// now, what is on its way to it taken in first.</summary>
     public TextSnapshot Output(DebugSession? session = null)
     {
         OutputView console = (session is null ? chosen : TabOf(session))?.Console ?? view.Console;
@@ -260,8 +260,8 @@ public sealed class DebugController : IDisposable
     /// <summary>An Apply Changes ended: the window shows its problems and says it.</summary>
     public event EventHandler<HotReloadOutcome>? Applied;
 
-    /// <summary>Restarts the program for edits Hot Reload cannot apply, as Settings says (or asks, as dotnet watch does);
-    /// true once it restarts, so a resume that applied first does not go on. The window's.</summary>
+    /// <summary>Restarts the program for edits Hot Reload cannot apply, as Settings says (or asks); true once it restarts,
+    /// so a resume that applied first does not go on. The window's.</summary>
     public Func<HotReloadOutcome, Task<bool>> RestartFor { get; set; } = _ => Task.FromResult(false);
 
     /// <summary>The Apply Changes under way, which a second one waits for.</summary>
@@ -276,7 +276,7 @@ public sealed class DebugController : IDisposable
             : "This program was launched with Hot Reload when debugging off (Settings, Hot Reload)")
         : hotReload.WhyNot);
 
-    /// <summary>Rider's Apply Hot Reload Changes: the edits since the launch or the last apply, applied to the program
+    /// <summary>Apply Hot Reload Changes: the edits since the launch or the last apply, applied to the program
     /// paused or running. Applied, the files' lines are the program's from now (the built lines forget their edits), their
     /// breakpoints are bound again in the new code, and a paused program's stop is read again where it now is.</summary>
     public Task<HotReloadOutcome> ApplyChangesAsync()
@@ -295,14 +295,14 @@ public sealed class DebugController : IDisposable
         }
     }
 
-    /// <summary>The window's restart for edits Hot Reload cannot apply: as Settings say, or asked as dotnet watch asks it
+    /// <summary>The window's restart for edits Hot Reload cannot apply: as Settings say, or asked
     /// (<see cref="RestartFor"/>, <see cref="RestartRunningFor"/>).</summary>
     public HotReloadRestart SettingsRestart => (outcome, running) => running ? RestartRunningFor(outcome) : RestartFor(outcome);
 
     /// <summary>A restart for edits Hot Reload cannot apply to the program of <paramref name="applied"/>'s tab, made as
     /// <paramref name="restart"/> says, the tab chosen again first should another program's stop have taken the window
     /// meanwhile (the restart acts on the chosen), while it is still debugged and its folder open; declined, those edits are
-    /// not asked about again until the next edit, as dotnet watch's No.</summary>
+    /// not asked about again until the next edit.</summary>
     private async Task<bool> RestartAsked(HotReloadOutcome outcome, DebugTab? applied, HotReloadRestart restart)
     {
         if (applied is null || !applied.IsLive || disposed || ending || !view.Sessions.Contains(applied))
@@ -435,13 +435,11 @@ public sealed class DebugController : IDisposable
         return text is null ? null : XamlBreakpoints.Column(text, breakpoint.Line, breakpoint.Attribute);
     }
 
-    /// <summary>Attaches the debugger to a running .NET process, as Attach to Process does, beside any other program debugged:
-    /// what it writes goes where it always went, as Rider's Console says. With <paramref name="hotReload"/> the program was
-    /// started held for the debugger with DOTNET_MODIFIABLE_ASSEMBLIES=debug, so Hot Reload is offered as for a launch (while
-    /// Settings' Hot Reload while debugging is on); with
-    /// <paramref name="elsewhere"/> it runs on another machine, and with <paramref name="place"/> the adapter runs where it
-    /// is (in its container). An inspected <paramref name="app"/> (an Aspire service's) is held by its tab. Null once the
-    /// session is open, else why it could not.</summary>
+    /// <summary>Attaches the debugger to a running .NET process beside any other program debugged, its output going
+    /// where it always went. With <paramref name="hotReload"/> the program was started held with
+    /// DOTNET_MODIFIABLE_ASSEMBLIES=debug, so Hot Reload is offered as for a launch while Settings has it on;
+    /// <paramref name="elsewhere"/> runs it on another machine, <paramref name="place"/> the adapter where it is, and an
+    /// inspected <paramref name="app"/> is held by its tab. Null once the session is open, else why it could not.</summary>
     public Task<string?> AttachAsync(int processId, string name, bool hotReload = false, bool elsewhere = false, AdapterPlace? place = null, string? group = null,
         LiveApp? app = null)
     {
@@ -534,13 +532,11 @@ public sealed class DebugController : IDisposable
         }
     }
 
-    /// <summary>Starts a session in a tab of its own, its output in the tab's Console; a program it launched reads what is
-    /// typed there, as in Rider's Debug console (one attached to has an input of its own, and one in the terminal reads the
-    /// terminal's; one whose place follows its output from outside, a container run's service, has that). The tab is chosen,
-    /// and its session <see cref="Session"/> from its first moment, as Rider's Stop is there as soon as a session begins:
-    /// its start waits for the program's runtime as long as that takes. A start that failed leaves its tab ended, with no
-    /// session. Tabs of one <paramref name="group"/> (a container run's services) take Hot Reload's changes together; an
-    /// inspected <paramref name="app"/> is held by its tab.</summary>
+    /// <summary>Starts a session in a tab of its own, its output in the tab's Console, which a program it launched reads
+    /// what is typed into. The tab is chosen, and its session <see cref="Session"/> from its first moment, so Stop is there
+    /// as soon as a session begins: its start waits for the program's runtime as long as that takes. A start that failed
+    /// leaves its tab ended, with no session. Tabs of one <paramref name="group"/> (a container run's services) take Hot
+    /// Reload's changes together; an inspected <paramref name="app"/> is held by its tab.</summary>
     private async Task<string?> OpenAsync(Func<BuiltLines, Action<string>, Action<OutputEvent>, Action<DebugSession>, Task<DebugSession>> open, string name, bool launched,
         bool inTerminal = false, bool hotReloadOn = false, AdapterPlace? place = null, string? group = null, DebugTab? tab = null, LiveApp? app = null)
     {
@@ -695,7 +691,7 @@ public sealed class DebugController : IDisposable
             System.Diagnostics.ProcessStartInfo start = follow();
             start.RedirectStandardOutput = true;
             start.RedirectStandardError = true;
-            // Its fork off the window's thread (#441).
+            // Its fork off the window's thread.
             process = await ChildProcesses.StartAsync(start);
         }
         catch (Exception failed) when (failed is FileNotFoundException or System.ComponentModel.Win32Exception or InvalidOperationException)
@@ -1058,11 +1054,11 @@ public sealed class DebugController : IDisposable
     private Task EndAsync(DebugTab tab) =>
         tab.Session is { Attached: true, State: DebugState.Running or DebugState.Paused } attached ? attached.DetachAsync() : StopAsync(tab);
 
-    /// <summary>Rider's Detach: the debugger lets go of the program it attached to, which runs on. Null once it has, else why
-    /// it could not (nothing attached to).</summary>
+    /// <summary>Detach: the debugger lets go of the program it attached to, which runs on. Null once it has, else why it
+    /// could not (nothing attached to).</summary>
     public Task<string?> DetachAsync() => DetachAsync(Session);
 
-    /// <summary>Detach of one session's program (the chosen tab's by default, else one an agent names), as Detach does it.</summary>
+    /// <summary>Detach of one session's program: the chosen tab's by default, else the one given.</summary>
     public async Task<string?> DetachAsync(DebugSession? session)
     {
         UiThread.Check();
@@ -1169,9 +1165,8 @@ public sealed class DebugController : IDisposable
         Add(AppActions.Evaluate, "Evaluate Expression…", (d, c) => d.view.FocusEvaluate(c.Symbol ?? string.Empty), (d, _) => d.NotPaused(), new("Run", 1, 9));
         Add(AppActions.AddToWatches, "Add to Watches", (d, c) => _ = d.Evaluate(c.Symbol!, watch: true),
             (d, c) => d.NotPaused() ?? (c.Symbol is { Length: > 0 } ? null : "No expression is at the caret"), null);
-        // In Rider's Run menu after Stop, and on the Debug window's toolbar after it.
         Add(AppActions.Detach, "Detach", (d, c) => _ = d.DetachAsync(), (d, _) => d.WhyNotDetach(), new("Run", 0, 8));
-        // Rider's toggle: every breakpoint stays as it is, and none stops the program until it is chosen again.
+        // Every breakpoint stays as it is, and none stops the program until it is chosen again.
         actions.Add(new IdeAction(AppActions.MuteBreakpoints, "Mute Breakpoints", "Debug", _ => current().Breakpoints.SetMuted(!current().Breakpoints.Muted))
         {
             Menus = [new("Run", 2, 4)],
@@ -1190,8 +1185,8 @@ public sealed class DebugController : IDisposable
             ? XamlBreakpoints.AttributeAt(file.Text.Snapshot, file.Text.Snapshot.GetOffset(context.Caret))
             : null;
 
-    /// <summary>The edits made while the program was paused, applied before it steps or resumes, by the window's keys and an
-    /// agent's tools alike: false when the program restarted for them, or is no longer paused, and so is not to be set going.</summary>
+    /// <summary>The edits made while the program was paused, applied before it steps or resumes: false when the program
+    /// restarted for them, or is no longer paused, and so is not to be set going.</summary>
     public async Task<bool> ApplyBeforeResumingAsync(DebugSession session)
     {
         DebugTab? tab = TabOf(session);
@@ -1219,9 +1214,9 @@ public sealed class DebugController : IDisposable
         : null;
 
     /// <summary>Sets the paused program going as an action asks, shown running at once; one the debugger refuses shows the
-    /// stop again, and the reason in the status bar. Edits made while it was paused are applied first, as Rider's "Changes
-    /// will be applied on the next step or resume": one that needs a restart restarts it (or asks, as Settings says); one
-    /// that does not compile is left, and the program goes on in the code it has, never stranded.</summary>
+    /// stop again, and the reason in the status bar. Edits made while it was paused are applied first: one that needs a
+    /// restart restarts it (or asks, as Settings says); one that does not compile is left, and the program goes on in the
+    /// code it has, never stranded.</summary>
     private async Task ResumeAsync(Func<DebugSession, Task> resume, string action)
     {
         asked = (action, System.Diagnostics.Stopwatch.GetTimestamp());
@@ -1243,7 +1238,7 @@ public sealed class DebugController : IDisposable
         }
     }
 
-    /// <summary>Rider's Smart Step Into: the calls of the line the program is paused at, in the order they run, offered in
+    /// <summary>Smart Step Into: the calls of the line the program is paused at, in the order they run, offered in
     /// its editor (each filled, the chosen one boxed, in the colour scheme's colours) to step straight into: the arrow keys
     /// or Tab move the choice, Enter or a click takes it, Escape leaves it. One call is stepped into at once; with none, it
     /// is Step Into.</summary>
@@ -1276,7 +1271,7 @@ public sealed class DebugController : IDisposable
         List<(StepInTarget Target, TextRange Range)> placed = editors.Active?.Path == path ? Placed(targets, path, editor.Document.Snapshot) : [];
         if (placed.Count <= 1)
         {
-            // Nothing to choose between: the one call there is, else Step Into, as Rider does.
+            // Nothing to choose between: the one call there is, else Step Into.
             await ResumeAsync(session => placed.Count == 1 ? session.StepIntoTargetAsync(placed[0].Target.Id) : session.StepIntoAsync(), "step into");
             return;
         }
@@ -1317,7 +1312,7 @@ public sealed class DebugController : IDisposable
         return placed;
     }
 
-    /// <summary>Rider's Set Next Statement: the paused thread goes on from a line (from zero) of the method it is
+    /// <summary>Set Next Statement: the paused thread goes on from a line (from zero) of the method it is
     /// in, skipping or repeating what lies between; null when it went, else why not.</summary>
     public async Task<string?> SetNextStatementAsync(DebugSession session, string path, int line)
     {
@@ -1401,7 +1396,7 @@ public sealed class DebugController : IDisposable
 
     private void OnSaved(object? sender, EventArgs e)
     {
-        // A program run with Hot Reload takes a save's edits, as one under dotnet watch does, whatever else is debugged.
+        // A program run with Hot Reload takes a save's edits, whatever else is debugged.
         bool run = running.Any(r => r.Reload.Changed);
         bool debugged = HotReload is { Changed: true } && HotReloadOnSave() && WhyNotApply() is null;
         if (applyOnSave || !run && !debugged)
@@ -1432,10 +1427,10 @@ public sealed class DebugController : IDisposable
         }
     }
 
-    /// <summary>Apply Hot Reload Changes, the window's action and an agent's hot_reload alike: the programs run with Hot Reload
-    /// through the debugger take the edits whenever they have any (or nothing else would take them), whatever else is
-    /// debugged, and the chosen session debugged with Hot Reload takes them too; each that needs it restarts as
-    /// <paramref name="restart"/> says (the window's: <see cref="SettingsRestart"/>). Answers what each came to.</summary>
+    /// <summary>Apply Hot Reload Changes: the programs run with Hot Reload through the debugger take the edits whenever
+    /// they have any (or nothing else would take them), whatever else is debugged, and the chosen session debugged with Hot
+    /// Reload takes them too; each that needs it restarts as <paramref name="restart"/> says (the window's:
+    /// <see cref="SettingsRestart"/>). Answers what each came to.</summary>
     public async Task<HotReloadApplied> ApplyAllAsync(HotReloadRestart restart)
     {
         UiThread.Check();
@@ -1552,8 +1547,8 @@ public sealed class DebugController : IDisposable
         }
     }
 
-    /// <summary>The member access chain ending at the word around an offset: "this.name" for "name"
-    /// in "this.name.Length", as Rider evaluates a hover.</summary>
+    /// <summary>The member access chain ending at the word around an offset: "this.name" for "name" in
+    /// "this.name.Length".</summary>
     public static string? ExpressionAt(TextSnapshot text, int offset)
     {
         if (offset >= text.Length || !IsWordChar(text[offset]))
@@ -1761,8 +1756,7 @@ public sealed class DebugController : IDisposable
         {
             try
             {
-                // Said by the inspector's call the debugger stopped in: the values, and what set the new one, with where that
-                // is written apart, at its XAML compiler's line, said at the editor's.
+                // The inspector's call says the values and what set the new one, its place at the editor's line.
                 if ((await session.StackTraceAsync(thread)).FirstOrDefault() is { } changed
                     && StringValue((await session.EvaluateAsync("change", changed.Id, "watch")).Result) is { } words)
                 {
@@ -1860,8 +1854,8 @@ public sealed class DebugController : IDisposable
         };
     }
 
-    /// <summary>The members behind a reference, as Variables and an agent open them: those of <c>$bindingError</c> with its
-    /// Xaml, which the app wrote at its XAML compiler's line, at the editor's (<see cref="BindingStop.Xaml"/>).</summary>
+    /// <summary>The members behind a reference: those of <c>$bindingError</c> with its Xaml, which the app wrote at its XAML
+    /// compiler's line, at the editor's (<see cref="BindingStop.Xaml"/>).</summary>
     public async Task<IReadOnlyList<DapVariable>> MembersAsync(DebugSession session, int reference)
     {
         IReadOnlyList<DapVariable> members = await session.VariablesAsync(reference);
@@ -1905,11 +1899,7 @@ public sealed class DebugController : IDisposable
         {
             return;
         }
-        // A property breakpoint, and XAML Binding Errors, stop in the inspector's call, under Avalonia's: the user's code
-        // that set the value or made the binding fail is where it stopped, as Just My Code shows it; with none (a style a
-        // pointer set) the call's own frame, whose values say what happened, but no line of the inspector's.
-        // An exception thrown in a library with sources of its own (xunit's Assert.Equal, its PDB naming /_/src/...) stops
-        // there, but under Just My Code the user's frame it came through is the one shown, as Rider and Visual Studio show it.
+        // Shown is the first frame of the user's code (Just My Code), past the inspector's call and a library's own sources.
         DapStackFrame? user = stack.FirstOrDefault(f => f.Source?.Path is not null && f.PresentationHint != "subtle");
         bool inspected = thread == session.StoppedThread && (session.PropertyStop is not null || session.BindingErrorStop);
         bool thrown = thread == session.StoppedThread && session.StopReason == StopReasons.Exception;
@@ -1966,7 +1956,7 @@ public sealed class DebugController : IDisposable
         List<VariableNode> rows = [];
         if (bindingStop is { } failed && Stop is { } stopped && stopped.Frames.Any(f => f.Id == current.Id))
         {
-            // The failed binding above the frame's own values, where Rider lists $exception: the inspector call's parameter.
+            // The failed binding above the frame's own values, where $exception would be: the inspector call's parameter.
             rows.Add(new VariableNode(BindingStop.Name, failed.Value, failed.Type, failed.Reference, 0, VariableRole.Value));
         }
         foreach (string watch in watches)
@@ -1999,7 +1989,7 @@ public sealed class DebugController : IDisposable
                 }
                 if (scopes.Count == 1)
                 {
-                    // One scope (the locals) needs no node of its own, as Rider shows them.
+                    // One scope (the locals) needs no node of its own.
                     rows.AddRange(variables.Select(v => VariableNode.From(v, 0)));
                 }
                 else
@@ -2081,7 +2071,7 @@ public sealed class DebugController : IDisposable
         }
     }
 
-    /// <summary>An exception as Rider's stop names it: its type without the namespace, and its message.</summary>
+    /// <summary>An exception as a stop names it: its type without the namespace, and its message.</summary>
     public static string Describe(ExceptionInfoResponse info)
     {
         string type = info.Details?.TypeName ?? info.ExceptionId.Replace("CLR/", "", StringComparison.Ordinal);
@@ -2114,8 +2104,8 @@ public sealed class DebugController : IDisposable
     /// <summary>Why no data breakpoint can watch a row of Variables that is no member of a value: a local, a watch, a result.</summary>
     public const string NotAMember = "A data breakpoint watches a field or property of an object, or an element of an array, and this is neither";
 
-    /// <summary>What Rider's Set Data Breakpoint offers on a row of Variables, the debugger asked: to set one, to remove the
-    /// one set on it (Remove Data Breakpoint), or neither and why (the system, the kind of member, the program running).</summary>
+    /// <summary>What Set Data Breakpoint offers on a row of Variables, the debugger asked: to set one, to remove the one set
+    /// on it (Remove Data Breakpoint), or neither and why (the system, the kind of member, the program running).</summary>
     public async Task<DataWatchOffer> DataWatchAsync(VariableNode node)
     {
         UiThread.Check();
@@ -2126,8 +2116,8 @@ public sealed class DebugController : IDisposable
             : new DataWatchOffer(DataWatchOffer.Set, whyNot);
     }
 
-    /// <summary>Sets a data breakpoint on a row of Variables, or removes the one set on it, as Rider's Set Data Breakpoint
-    /// and Remove Data Breakpoint do; why it cannot is said in the status bar.</summary>
+    /// <summary>Sets a data breakpoint on a row of Variables, or removes the one set on it (Set Data Breakpoint, Remove Data
+    /// Breakpoint); why it cannot is said in the status bar.</summary>
     public async Task ToggleDataBreakpointAsync(VariableNode node)
     {
         UiThread.Check();
@@ -2175,7 +2165,7 @@ public sealed class DebugController : IDisposable
         }
     }
 
-    /// <summary>A watched member as Rider's Data Breakpoint Hit names it: the member on its object, and the object's type.</summary>
+    /// <summary>A watched member as a data breakpoint's stop names it: the member on its object, and its type.</summary>
     private static string DataLocation(VariableNode node)
     {
         VariableNode owner = node.Parent is { Name: "Raw View", Parent: { } viewed } ? viewed : node.Parent!;
@@ -2280,7 +2270,7 @@ public sealed class DebugController : IDisposable
             return;
         }
         bool debugging = IsDebugging;
-        // Muted, a breakpoint shows as Rider's muted ones do, grey whatever the debugger said of it.
+        // Muted, a breakpoint shows grey whatever the debugger said of it.
         bool muted = Breakpoints.Muted;
         TextSnapshot text = document.Text.Snapshot;
         List<LineMark> marks = [.. Breakpoints.In(document.Path).Select(b => new LineMark(b.Line, b switch
@@ -2291,8 +2281,7 @@ public sealed class DebugController : IDisposable
             { Status: BreakpointStatus.Invalid } when debugging => LineMarkKind.BreakpointInvalid,
             _ => LineMarkKind.Breakpoint,
         }, Conditional: b.Condition is not null || b.HitCondition is not null, Tracepoint: !b.Suspend, Muted: muted,
-            // An attribute's breakpoint tints the attribute, as Rider's inline breakpoints tint what they are on; nothing once
-            // the attribute is edited away.
+            // An attribute's breakpoint tints the attribute; nothing once the attribute is edited away.
             Range: b.Attribute is { } attribute ? XamlBreakpoints.AttributeRange(text, b.Line, attribute) ?? new TextRange(0, 0) : null))];
         if (executionPoint is { } point && point.Path == document.Path)
         {
@@ -2301,8 +2290,8 @@ public sealed class DebugController : IDisposable
         document.LineMarks = marks;
     }
 
-    /// <summary>Carries the stop shown in a file through an edit to it, as Rider's execution point and inline values go
-    /// with the text: the arrow and the frames' rows from the built lines, the values a line at a time.</summary>
+    /// <summary>Carries the stop shown in a file through an edit to it: the arrow and the frames' rows from the built lines,
+    /// the values a line at a time.</summary>
     private void FollowStop(OpenDocument document, DocumentChangedEventArgs change)
     {
         if (executionPoint is { } point && point.Path == document.Path)
@@ -2373,7 +2362,7 @@ public sealed class DebugController : IDisposable
 /// <summary>The exact native tab and process started or attached by an additional launch.</summary>
 public sealed record DebugLaunch(DebugTab Tab, int ProcessId);
 
-/// <summary>What Set Data Breakpoint offers on a row of Variables: its title (Rider's Set Data Breakpoint, or Remove Data
+/// <summary>What Set Data Breakpoint offers on a row of Variables: its title (Set Data Breakpoint, or Remove Data
 /// Breakpoint on a member watched), and why it cannot be chosen when it cannot.</summary>
 public sealed record DataWatchOffer(string Title, string? WhyNot)
 {
@@ -2401,7 +2390,7 @@ public sealed record BindingStop(BindingProblem Problem, string Value, string? T
     /// column: the app wrote its XAML compiler's, which a lone '\r' above puts lines ahead.</summary>
     public string? Xaml { get; init; }
 
-    /// <summary>Its row in Variables, as Rider names the exception stopped at $exception; the breakpoint's condition and log
-    /// message read it by the same name.</summary>
+    /// <summary>Its row in Variables, named as the exception stopped at is <c>$exception</c>; the breakpoint's condition and
+    /// log message read it by the same name.</summary>
     public const string Name = "$bindingError";
 }

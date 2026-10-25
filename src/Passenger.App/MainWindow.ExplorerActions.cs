@@ -7,13 +7,13 @@ using A = Passenger.App.AppActions;
 
 namespace Passenger.App;
 
-/// <summary>The Explorer's actions, as Rider's Project view has them: a row's menu is the window's actions run on the row
-/// it opened on (<see cref="ActionContext.ExplorerRow"/>), as a tab's menu runs them on its tab, and its keys are the
-/// keymap's, run on the row chosen while the Explorer has them. Rider gives one key two actions told apart by where it is
-/// pressed, so the editor's own Cut, Copy, Paste, Delete, Undo and Redo act on the Explorer's rows (its $Cut, $Delete and
-/// the rest; MainWindow.FileMoves.cs), Rename renames a row (its RenameElement), and the editor's Duplicate keys compare
-/// files where Rider's Visual Studio keymap gives Compare Files (CompareTwoFiles) the same Ctrl+D (on macOS it is Cmd+D,
-/// apart from Duplicate's Ctrl+D).</summary>
+/// <summary>The Explorer's actions: a row's menu is the window's actions run on the row it opened on
+/// (<see cref="ActionContext.ExplorerRow"/>), as a tab's menu runs them on its tab, and its keys are the keymap's, run
+/// on the row chosen while the Explorer has them. One key runs two actions told apart by where it is pressed, so the
+/// editor's own Cut, Copy, Paste, Delete, Undo and Redo act on the Explorer's rows (Rider's $Cut, $Delete and the rest;
+/// MainWindow.FileMoves.cs), Rename renames a row (RenameElement), and the editor's Duplicate keys compare files where
+/// Rider's Visual Studio keymap gives Compare Files (CompareTwoFiles) the same Ctrl+D (Cmd+D on macOS, apart from
+/// Duplicate's Ctrl+D).</summary>
 public partial class MainWindow
 {
     private const string ExplorerGroup = "Explorer";
@@ -24,7 +24,7 @@ public partial class MainWindow
         Explorer.MenuFor = ExplorerMenu;
         Row(A.NewFile, "New File…", row => AskName("New File", string.Empty, name => CreateFile(NewGoesIn(row)!, name, string.Empty)), Holds);
         Row(A.NewFolder, "New Folder…", row => AskName("New Folder", string.Empty, name => CreateFolder(NewGoesIn(row)!, name)), Holds);
-        // Rider's C# file templates share this place: Class, Interface, Record, Struct and Enum, chosen in its popup.
+        // Class, Interface, Record, Struct and Enum share this place, chosen in its popup.
         Row(A.NewType, "Class/Interface…", row => AskType(NewGoesIn(row)!), Holds);
         Row(A.NewSolutionFolder, "New Solution Folder…", row => AskName("New Solution Folder", string.Empty, name => AddSolutionFolder(row.SolutionPath, name)),
             row => row.Kind is NodeKind.Solution or NodeKind.SolutionFolder ? null : "A solution folder goes in the solution or one of its folders");
@@ -53,16 +53,15 @@ public partial class MainWindow
             row => row is not { Kind: NodeKind.Project, Path: { } project } ? $"{row.Name} is not a project" : Explorer.Tree.Unloaded.Contains(project) ? $"{row.Name} is unloaded" : null);
         Row(A.ReloadProject, "Reload Project", row => SetUnloaded(row.Path!, false),
             row => row is not { Kind: NodeKind.Project, Path: { } project } ? $"{row.Name} is not a project" : Explorer.Tree.Unloaded.Contains(project) ? null : $"{row.Name} is loaded");
-        // Rider's Compare With... for one file, Compare Files for two chosen together.
+        // Compare With... for one file, Compare Files for two chosen together.
         actions!.Add(new IdeAction(A.CompareFiles, "Compare Files", ExplorerGroup, c => _ = CompareAsync(RowOf(c)!))
         {
             WhyNot = c => RowOf(c) is not { } row ? NoRow : row is { Kind: NodeKind.File, IsSolutionItem: false, Path: not null } ? null : "Choose a file in the Explorer",
             TitleIn = c => RowOf(c) is { } row && Explorer.SelectedNodes.Contains(row) && Explorer.SelectedNodes.Count(n => n.IsFile) == 2 ? "Compare Files" : "Compare With…",
-            // Rider's CompareTwoFiles is $default's Ctrl+D: the editor's Duplicate keys in Visual Studio's keymap off macOS,
-            // Cmd+D of its own on macOS (AppActions), none in VS Code's.
+            // CompareTwoFiles is $default's Ctrl+D: the editor's Duplicate keys in Visual Studio's keymap off macOS.
             KeysOf = () => AppActions.Preset == KeymapPreset.VisualStudio && !OperatingSystem.IsMacOS() ? E.Duplicate : null,
         });
-        // The path of what is chosen in the Explorer, else of the file shown, as Rider's CopyPaths and RevealIn take either.
+        // The path of what is chosen in the Explorer, else of the file shown.
         OnDisk(A.CopyPath, "Copy Path", path => _ = CopyPathAsync(path));
         OnDisk(A.RevealInFileManager, FileManager.Showing, ShowInFileManager, FileManager.Name);
         OnDisk(A.OpenInTerminal, "Open in Terminal", path => _ = OpenTerminalAt(Directory.Exists(path) ? path : Path.GetDirectoryName(path)!), "Terminal");
@@ -123,8 +122,8 @@ public partial class MainWindow
         _ => null,
     };
 
-    /// <summary>Rider's Rename on a row: a solution folder's name in the solution, a project's file with what names it, a
-    /// file or folder on disk, offering to rename a C# type named after it.</summary>
+    /// <summary>Rename on a row: a solution folder's name in the solution, a project's file with what names it, a file
+    /// or folder on disk, offering to rename a C# type named after it.</summary>
     private void RenameRow(ExplorerNode row)
     {
         switch (row)
@@ -141,7 +140,7 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>Rider's Delete on a row: what is the solution's own (a project, a solution folder, a file it lists) and a
+    /// <summary>Delete on a row: what is the solution's own (a project, a solution folder, a file it lists) and a
     /// project reference leave it, their files staying on disk; a file or folder goes to the Trash.</summary>
     private async Task DeleteRowAsync(ExplorerNode row)
     {
@@ -174,12 +173,11 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>Rider's menu for a row, its items the window's actions run on the row: Build, Rebuild and Clean for the
-    /// solution or the projects chosen (a solution folder's, every one under it), their unit tests, a project's packages,
-    /// file and unloading, Add where things can go, Edit (the clipboard's actions, Delete or for the solution's own Remove,
-    /// Rename, Find and Replace in Files), the path of what is on disk, Open In (the file manager, a terminal), Tools'
-    /// Compare, Local History and Git's history. A project's Dependencies add a reference, and a project reference is
-    /// removed. None for a row with nothing to do (a package).</summary>
+    /// <summary>A row's menu, its items the window's actions run on the row: Build, Rebuild and Clean for the solution
+    /// or the projects chosen, their unit tests, a project's packages, file and unloading, Add where things can go,
+    /// Edit (the clipboard's actions, Delete or for the solution's own Remove, Rename, Find and Replace in Files), the
+    /// path of what is on disk, Open In, Tools' Compare, Local History and Git's history. A project's Dependencies add
+    /// a reference, and a project reference is removed. None for a row with nothing to do (a package).</summary>
     private IReadOnlyList<Control>? ExplorerMenu(ExplorerNode node)
     {
         bool onDisk = node.Kind is NodeKind.File or NodeKind.Folder or NodeKind.Project;
@@ -249,7 +247,6 @@ public partial class MainWindow
             }
             entries.AddRange([Sub("Add", add), separator]);
         }
-        // Rider's Edit submenu: the clipboard's actions, Delete and Rename, then Find and Replace in Files on the row.
         List<MenuEntry> edit = [];
         if (node.IsMovable)
         {
@@ -289,14 +286,11 @@ public partial class MainWindow
         bool histories = node.Kind is NodeKind.File or NodeKind.Folder or NodeKind.Project or NodeKind.Solution && node.Path is not null && !node.IsSolutionItem;
         if (histories)
         {
-            // Rider's Local History submenu, just before its Git one, as the editor's menu has it: a file's versions, or a
-            // folder's (a project's or the solution's folder).
             entries.AddRange([separator, Sub("Local History", [Item(A.ShowLocalHistory)])]);
         }
         if (node.Kind is NodeKind.File or NodeKind.Folder or NodeKind.Project or NodeKind.Solution && node.Path is { } versioned
             && session.Vcs.Repository?.IsInside(versioned) == true)
         {
-            // Rider's Git submenu, last: a file's or a folder's history (a project's or the solution's folder), a file's versions.
             List<MenuEntry> git = node.Kind == NodeKind.File ? [Item(A.CompareWithRevision), Item(A.CompareWithBranch)] : [];
             git.Add(Item(A.ShowHistory));
             if (!histories)
@@ -321,9 +315,9 @@ public partial class MainWindow
         static MenuEntry Sub(string title, IReadOnlyList<MenuEntry> entries) => new(null, title, entries);
     }
 
-    /// <summary>The editor's keys the Explorer takes while it has them, as Rider's Project view takes them: Cut, Copy,
-    /// Paste, Delete, Backspace, Undo and Redo act on its chosen row, and the keys Compare Files shares (Duplicate's in
-    /// Visual Studio's keymap off macOS) compare files. True once taken.</summary>
+    /// <summary>The editor's keys the Explorer takes while it has them: Cut, Copy, Paste, Delete, Backspace, Undo and
+    /// Redo act on its chosen row, and the keys Compare Files shares (Duplicate's in Visual Studio's keymap off macOS)
+    /// compare files. True once taken.</summary>
     private bool ExplorerTakes(string action)
     {
         ActionContext context = actions!.Context();

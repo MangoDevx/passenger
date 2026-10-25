@@ -4,8 +4,7 @@ using Passenger.Editor;
 
 namespace Passenger.App.Packages;
 
-/// <summary>How grave an advisory says a vulnerability is: NuGet's four levels, 0 to 3 in a feed's data, by Rider's
-/// names.</summary>
+/// <summary>How grave an advisory says a vulnerability is: NuGet's four levels, 0 to 3 in a feed's data.</summary>
 public enum AdvisorySeverity
 {
     Low,
@@ -22,9 +21,9 @@ public sealed record Advisory(AdvisorySeverity Severity, string Address, string 
     /// <summary>The advisory's page to open, only where its address is http or https: a feed may name any scheme.</summary>
     public Uri? Link { get; } = Updates.Releases.Web(Address);
 
-    /// <summary>Whether a version is in the range, NuGet's notation read as NuGet reads it: a bare version is the least
-    /// version, a bracket includes its end and a parenthesis leaves it out, an end left empty is unbounded, and
-    /// "[1.0]" is that version alone. A version that is not plain (a floating "1.*") is in none.</summary>
+    /// <summary>Whether a version is in the range, in NuGet's notation: a bare version is the least version, a bracket
+    /// includes its end and a parenthesis leaves it out, an end left empty is unbounded, and "[1.0]" is that version alone.
+    /// A version that is not plain (a floating "1.*") is in none.</summary>
     public bool Affects(string version)
     {
         string range = Versions.Trim();
@@ -52,9 +51,8 @@ public sealed record Advisory(AdvisorySeverity Severity, string Address, string 
     }
 }
 
-/// <summary>Every advisory the audit's feeds know, by package: what NuGetAudit warns of in a restore and
-/// <c>dotnet list package --vulnerable</c> reports, from the same resources (the folder's auditSources, else its enabled
-/// package sources), with the feeds that did not answer.</summary>
+/// <summary>Every advisory the audit's feeds know (the folder's auditSources, else its enabled package sources), by
+/// package, with the feeds that did not answer.</summary>
 public sealed class VulnerabilityData
 {
     private readonly Dictionary<string, IReadOnlyList<Advisory>> byPackage;
@@ -81,9 +79,9 @@ public sealed class VulnerabilityData
             .OrderBy(v => v, VersionOrder.Instance)
             .FirstOrDefault();
 
-    /// <summary>Reads the advisories of the feeds the audit uses, each asked at once; a v3 feed with a VulnerabilityInfo
-    /// resource gives them, any other feed has none to give, as for NuGet. A feed that does not answer is named in
-    /// <see cref="Failed"/>, never thrown.</summary>
+    /// <summary>Reads the advisories of the feeds the audit uses, each asked at once; only a v3 feed with a
+    /// VulnerabilityInfo resource has any. A feed that does not answer is named in <see cref="Failed"/>, never
+    /// thrown.</summary>
     public static async Task<VulnerabilityData> ReadAsync(IReadOnlyList<FeedSource> sources, CancellationToken cancel)
     {
         (string Feed, IReadOnlyDictionary<string, IReadOnlyList<Advisory>>? Found, string? Problem)[] answers = await Task.WhenAll(sources.Select(async source =>

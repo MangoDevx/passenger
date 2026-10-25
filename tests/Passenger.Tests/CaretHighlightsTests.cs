@@ -34,7 +34,6 @@ public sealed class CaretHighlightsTests : IClassFixture<CaretHighlightsTests.Pr
     {
         MainWindow window = project.Open("Totals.cs");
         CodeEditor editor = window.EditorArea.CodeEditor;
-        // A click in the local's declaration, which gives it its value.
         Ui.Click(editor, editor.PointOf(Totals.IndexOf("total = 0", StringComparison.Ordinal) + 2) + new Point(1, editor.LineHeight / 2));
         Ui.Settle();
 
@@ -43,13 +42,11 @@ public sealed class CaretHighlightsTests : IClassFixture<CaretHighlightsTests.Pr
             $"The declaration with its value, the += and the return should read write, write, read: {string.Join(", ", editor.UsageHighlights.Select(u => u.IsWrite ? "write" : "read"))}");
         Assert.Equal([4, 7, 9], editor.UsageHighlights.Select(u => editor.Document.Snapshot.GetLineFromOffset(u.Range.Start)));
 
-        // Drawn behind the text in the theme's colours, a write's apart from a read's.
         UsageHighlight write = editor.UsageHighlights[1];
         UsageHighlight read = editor.UsageHighlights[2];
         Assert.Equal(Token(window, "Passenger.Editor.UsageWrite"), Ui.Pixel(window, InBox(window, editor, write.Range.Start)));
         Assert.Equal(Token(window, "Passenger.Editor.UsageRead"), Ui.Pixel(window, InBox(window, editor, read.Range.Start)));
 
-        // Marked on the scrollbar where each is, in the marks' colours.
         CodeEditor.StripeMark writeMark = Assert.Single(editor.StripeMarks, m => m.Kind == StripeMarkKind.WriteUsage && m.Row == 7);
         CodeEditor.StripeMark readMark = Assert.Single(editor.StripeMarks, m => m.Kind == StripeMarkKind.Usage);
         Assert.Equal(9, readMark.Row);
@@ -68,7 +65,6 @@ public sealed class CaretHighlightsTests : IClassFixture<CaretHighlightsTests.Pr
         Ui.Settle();
         Assert.Equal(3, editor.UsageHighlights.Count);
 
-        // Along the word the highlights stay; off it, a line down, they go with the key, before the server is asked.
         Ui.Press(window, "RIGHT");
         Ui.Press(window, "RIGHT");
         Assert.Equal(3, editor.UsageHighlights.Count);
@@ -79,7 +75,6 @@ public sealed class CaretHighlightsTests : IClassFixture<CaretHighlightsTests.Pr
         Ui.Settle();
         Assert.Empty(editor.UsageHighlights);
 
-        // The loop's variable: its declaration is a write, its two uses reads.
         Ui.Click(editor, editor.PointOf(Totals.IndexOf("value * (", StringComparison.Ordinal) + 1) + new Point(1, editor.LineHeight / 2));
         Ui.Settle();
         Assert.Equal(["value", "value", "value"], editor.UsageHighlights.Select(u => TextOf(editor, u.Range)));
@@ -97,7 +92,6 @@ public sealed class CaretHighlightsTests : IClassFixture<CaretHighlightsTests.Pr
         Ui.Settle();
         Assert.Equal(3, editor.UsageHighlights.Count);
 
-        // A letter typed onto the name: the old uses go with the key, and what comes back is only ever of the new name.
         Ui.Press(window, "END");
         Ui.Press(window, "LEFT");
         Assert.Equal(3, editor.UsageHighlights.Count);
@@ -109,7 +103,6 @@ public sealed class CaretHighlightsTests : IClassFixture<CaretHighlightsTests.Pr
         Ui.Settle();
         Assert.Equal(["total", "total", "total"], editor.UsageHighlights.Select(u => TextOf(editor, u.Range)));
 
-        // A line put in above by a fix, the caret left on the name: none stays behind, and they come back where they moved.
         editor.ApplyEdits([new TextEdit(0, 0, "// Totals of squares.\n")]);
         Assert.Empty(editor.UsageHighlights);
         Ui.Settle();
@@ -131,7 +124,6 @@ public sealed class CaretHighlightsTests : IClassFixture<CaretHighlightsTests.Pr
         Assert.Equal(3, editor.UsageHighlights.Count);
         Assert.StartsWith("3 usages of total found (press ", window.Status, StringComparison.Ordinal);
 
-        // Asked again on one of them, it takes them away, as Rider's does; and once more brings them back.
         Ui.Run(window, AppActions.HighlightUsages);
         Ui.Settle();
         Assert.Empty(editor.UsageHighlights);
@@ -139,7 +131,6 @@ public sealed class CaretHighlightsTests : IClassFixture<CaretHighlightsTests.Pr
         Ui.Settle();
         Assert.Equal(3, editor.UsageHighlights.Count);
 
-        // The caret goes elsewhere and rests, and a line goes in above: the uses stay, on their words.
         Ui.Press(window, "DOWN");
         Ui.Press(window, "DOWN");
         Ui.Settle();
@@ -164,15 +155,12 @@ public sealed class CaretHighlightsTests : IClassFixture<CaretHighlightsTests.Pr
         int outer = Braces.IndexOf("((", StringComparison.Ordinal);
         int closing = Braces.IndexOf("));", StringComparison.Ordinal);
 
-        // Before the outer parenthesis, between the two that open, between the two that close, after the outer close.
         Assert.Equal((outer, closing + 1), PairAt(window, editor, outer));
         Assert.Equal((outer + 1, Braces.IndexOf(") *", StringComparison.Ordinal)), PairAt(window, editor, outer + 1));
         Assert.Equal((closing, Braces.IndexOf("(a + 2", StringComparison.Ordinal)), PairAt(window, editor, closing + 1));
         Assert.Equal((closing + 1, outer), PairAt(window, editor, closing + 2));
-        // Nowhere near a bracket, nothing.
         Assert.Null(PairAt(window, editor, Braces.IndexOf("return", StringComparison.Ordinal) + 2));
 
-        // The method's body: the brace after the caret and the one that closes it four lines down, both drawn.
         int body = Braces.IndexOf("    {\n        return", StringComparison.Ordinal) + 4;
         int end = Braces.IndexOf("    }\n}", StringComparison.Ordinal) + 4;
         Assert.Equal((body, end), PairAt(window, editor, body));
@@ -181,7 +169,6 @@ public sealed class CaretHighlightsTests : IClassFixture<CaretHighlightsTests.Pr
         Assert.Equal(brace, Ui.Pixel(window, InBox(window, editor, end)));
         Assert.NotEqual(brace, Ui.Pixel(window, InBox(window, editor, Braces.LastIndexOf('}'))));
 
-        // A bracket put in with no pair yet highlights nothing.
         int statement = Braces.IndexOf("return", StringComparison.Ordinal);
         editor.ApplyEdits([new TextEdit(statement, 0, "(")]);
         editor.Selections = SelectionSet.Single(statement + 1);
@@ -204,7 +191,6 @@ public sealed class CaretHighlightsTests : IClassFixture<CaretHighlightsTests.Pr
         Ui.Run(window, EditorActions.MatchBrace);
         Assert.Equal(outer, editor.Selections.Primary.Caret);
 
-        // After the brace that opens the method's body, to the one that closes it, lines below.
         int body = Braces.IndexOf("    {\n        return", StringComparison.Ordinal) + 4;
         editor.Selections = SelectionSet.Single(body + 1);
         Ui.Run(window, EditorActions.MatchBrace);

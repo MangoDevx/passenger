@@ -50,10 +50,7 @@ internal static class Program
         Core.ShellEnvironment.Load();
         if (options.Mcp != McpMode.Attach && options.Screenshot is null)
         {
-            // What a crash left (containers no child holds) goes now: those of this state whose process is gone, labelled or
-            // recorded (an AppHost's), for a state that ever labelled or recorded something, so one that never used
-            // containers runs no docker. Not held, and off the start's way: an engine that answers slowly or not at all
-            // delays nothing.
+            // What a crash left goes now, not held: an engine that answers slowly or not at all delays nothing.
             _ = Containers.ContainerLabels.LookForLeftovers(Containers.ContainerEngine.Shared, State.StateStore.DefaultRoot);
         }
         switch (options.Mcp)

@@ -13,7 +13,7 @@ public static class Breaks
 {
     /// <summary>A watched property changed: <c>newValue</c>, <c>oldValue</c>, <c>control</c>, <c>property</c>, and
     /// <c>change</c>, what the IDE says of the stop, with <c>setAt</c>, where the style that set it is written (a
-    /// <see cref="SourcePlace"/> as the protocol writes one), which the IDE says at the editor's line.</summary>
+    /// <see cref="SourcePlace"/> as the protocol writes one).</summary>
     [DebuggerNonUserCode]
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static void Changed(int breakpoint, AvaloniaObject control, AvaloniaProperty property, object? oldValue, object? newValue, string change, string? setAt)
@@ -70,7 +70,7 @@ public sealed class BindingError
     public string Message { get; }
 
     /// <summary>The control's element in its XAML, "MainWindow.axaml:8:20", when the app's build recorded it: its XAML
-    /// compiler's line, which Passenger's Variables show at the editor's.</summary>
+    /// compiler's line.</summary>
     public string? Xaml { get; }
 
     /// <summary>"TextBlock#Caption.Text to Nmae: Could not find a matching property accessor for 'Nmae' on ...".</summary>

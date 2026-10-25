@@ -10,10 +10,10 @@ using Passenger.App.Editors;
 namespace Passenger.App;
 
 /// <summary>The popups over the window the person works in (Go to File, Find Action, a breakpoint's properties, a
-/// change's old lines): one at a time, on the main window's layer or another of the IDE's windows' (<see cref="IdeKeys"/>),
-/// centred under its top or beside a point of it, kept inside it. A click outside one or Escape dismisses it, a
-/// breakpoint's popup and window keeping what was typed in them, as Rider's do; closed, what had the keys has them again.
-/// A UI-thread object of the window.</summary>
+/// change's old lines): one at a time, on the main window's layer or another of the IDE's windows'
+/// (<see cref="IdeKeys"/>), centred under its top or beside a point of it, kept inside it. A click outside one or
+/// Escape dismisses it, a breakpoint's popup and window keeping what was typed in them; closed, what had the keys has
+/// them again. A UI-thread object of the window.</summary>
 public sealed class PopupHost
 {
     /// <summary>How far below the main window's top its popups open: under its toolbar.</summary>
@@ -23,8 +23,8 @@ public sealed class PopupHost
     /// under its toolbar.</summary>
     private const double EditorWindowPopupTop = 48;
 
-    /// <summary>How far below another window's top its popups open: under a diff's or merge's toolbar and the titles of its
-    /// sides, a tool window's header, a test frame's toolbar, where one at an editor window's place cut a side's title.</summary>
+    /// <summary>How far below another window's top its popups open: under a diff's or merge's toolbar and the titles of
+    /// its sides, a tool window's header, a test frame's toolbar.</summary>
     private const double OtherWindowPopupTop = 64;
 
     private readonly Panel overlay;
@@ -110,9 +110,9 @@ public sealed class PopupHost
         layer.IsVisible = true;
     }
 
-    /// <summary>A popup no wider than the window it is over, its frame's shadow inside it, so one over a window narrower than
-    /// the popups' widths (a floating tool window, an editor window) shows its frame whole, where it stood out past both
-    /// sides; as the window is resized, it follows. Its height stays its own: a popup's list is as tall as its rows.</summary>
+    /// <summary>A popup no wider than the window it is over, its frame's shadow inside it, so one over a window
+    /// narrower than the popups' widths (a floating tool window, an editor window) shows its frame whole; as the window
+    /// is resized, it follows. Its height stays its own: a popup's list is as tall as its rows.</summary>
     private static void Fit(Control popup, ContentControl host, Size room)
     {
         if (room.Width > 0)
@@ -132,8 +132,8 @@ public sealed class PopupHost
     }
 
     /// <summary>Room round a popup's frame for its shadow (Shell.axaml's Border.popup), taken from the place the popup
-    /// is put so the frame stands where it would without it: Avalonia draws a control no further out than its parent,
-    /// so a frame that fills its popup lost its shadow and showed square corners.</summary>
+    /// is put so the frame stands where it would without it: a control is drawn no further out than its
+    /// parent.</summary>
     private static Thickness MakeRoom(Control popup, ContentControl host)
     {
         Thickness room = new(32, 24, 32, 40);
@@ -176,8 +176,8 @@ public sealed class PopupHost
         over = null;
     }
 
-    /// <summary>Closes the popup as a click outside it or Escape does: a breakpoint's popup or window keeps what was typed
-    /// in it, as Rider's do.</summary>
+    /// <summary>Closes the popup as a click outside it or Escape does: a breakpoint's popup or window keeps what was
+    /// typed in it.</summary>
     public void Dismiss()
     {
         switch (Layers.Host.Content)

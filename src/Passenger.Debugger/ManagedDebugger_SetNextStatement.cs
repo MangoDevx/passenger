@@ -4,8 +4,8 @@ using Passenger.Debugger.Interop;
 
 namespace Passenger.Debugger;
 
-/// <summary>Set Next Statement, as Rider's: a paused thread goes on from another line of the method it is in, the
-/// runtime moving its instruction pointer (ICorDebugILFrame.SetIP) once it says the move is safe.</summary>
+/// <summary>Set Next Statement: a paused thread goes on from another line of the method it is in, the runtime moving
+/// its instruction pointer (ICorDebugILFrame.SetIP) once it says the move is safe.</summary>
 public partial class ManagedDebugger
 {
     /// <summary>Where a paused thread could go on from at a line: the line's first statement (1-based, as its sequence

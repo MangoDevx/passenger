@@ -6,9 +6,9 @@ using Avalonia.Media;
 namespace Passenger.App;
 
 /// <summary>A toolbar's icon button (a tool window's, a diff's, a dialog's list's): its icon at the one size every icon
-/// has, its tip, and what a click does. It never takes the keys from what it acts on, as Rider's toolbar buttons never do,
-/// so the list or editor beside it keeps them. One call per button, so every toolbar's buttons are alike; one that runs
-/// one of the window's actions is bound by <see cref="ActionButtons"/> too.</summary>
+/// has, its tip, and what a click does. It never takes the keys from what it acts on, so the list or editor beside it
+/// keeps them. One call per button, so every toolbar's buttons are alike; one that runs one of the window's actions is
+/// bound by <see cref="ActionButtons"/> too.</summary>
 public static class ToolButtons
 {
     public static Button Of(string icon, string tip, Action? run = null)

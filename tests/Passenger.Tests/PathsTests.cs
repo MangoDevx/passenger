@@ -14,8 +14,8 @@ namespace Passenger.Tests;
 
 /// <summary>A file is one file however its path is spelled. A repository opened by a lower-case path where case is ignored
 /// (on Windows also by its 8.3 short names, elsewhere through a link) shows its changed file coloured, diffs the open file
-/// itself, commits it and binds a breakpoint in it, as Git, MSBuild and the debugger name it by the disk's own names (its
-/// window starts no C# language server, which none of that asks). Debugged, so run alone; the paths a project's and a folder's names spell are ProjectPathsTests'.</summary>
+/// itself, commits it and binds a breakpoint in it, though Git, MSBuild and the debugger name it by the disk's own names.
+/// Its window starts no C# language server, which none of that asks. Debugged, so run alone.</summary>
 [Collection(Alone.Name)]
 public sealed class PathsTests : IDisposable
 {
@@ -54,12 +54,10 @@ public sealed class PathsTests : IDisposable
         window.OpenFolder(spelled);
         Ui.Settle();
 
-        // Coloured in the Explorer as Git lists it.
         Ui.WaitFor(() => window.Vcs.Changes.Any(c => c.Name == "Program.cs" && c.Kind == ChangeKind.Modified), "Git to list Program.cs as changed");
         ExplorerNode row = Assert.Single(window.ExplorerView.Tree.Rows, r => r.Name == "Program.cs");
         Ui.WaitFor(() => row.Change == ChangeKind.Modified, $"Program.cs to be coloured as changed in the Explorer, which has it at {row.Path} where Git has it at {window.Vcs.Changes[0].Path}");
 
-        // Opened from there, its diff is of the open file itself, not a copy of it.
         window.OpenFile(row.Path!);
         Ui.Settle();
         Assert.Equal(program, window.EditorArea.Active?.Path);
@@ -70,7 +68,6 @@ public sealed class PathsTests : IDisposable
         diff.Close();
         Ui.Settle();
 
-        // A breakpoint set in it binds, and the program stops there.
         CodeEditor editor = window.EditorArea.CodeEditor;
         editor.GoTo(new TextPosition(3, 4));
         Ui.Run(window, AppActions.ToggleBreakpoint);
@@ -81,7 +78,6 @@ public sealed class PathsTests : IDisposable
         Ui.Run(window, AppActions.Stop);
         Ui.WaitFor(() => !window.Debugger.IsDebugging, "the session to end");
 
-        // Committed from the Commit window, it leaves nothing changed.
         CommitView commit = window.CommitView;
         window.Perform(AppActions.Commit);
         Ui.WaitFor(() => commit.Chosen.Any(c => c.Name == "Program.cs"), "Program.cs in the Commit window");
@@ -157,16 +153,13 @@ public sealed class ProjectPathsTests : IDisposable
         window.OpenFile(program);
         Ui.Settle();
 
-        // The Explorer shows the open file in its project.
         Assert.True(window.ExplorerView.Tree.Rows.Any(r => r.Path == program), "The Explorer could not show the open file in its project");
 
-        // Build Selected Projects, nothing chosen in the Explorer: the open file's project.
         window.Perform(AppActions.BuildSelected);
         Ui.WaitFor(() => !window.IsBuilding, "the build", TimeSpan.FromMinutes(2));
         Assert.True(window.Status == "Build succeeded", $"The build did not succeed: {Ui.Said(window)}");
         Assert.True(File.Exists(Path.Combine(folder, "src", "Shop", "bin", "Debug", TestProjects.Framework, "Shop.dll")), "Build Selected Projects did not build the open file's project");
 
-        // New Class in a folder of it: the project's namespace, then the folder's.
         Assert.Null(window.CreateClass(models, "Order"));
         Assert.Equal("namespace Shop.Models;\n\npublic class Order\n{\n}\n", File.ReadAllText(Path.Combine(models, "Order.cs")));
         window.Close();
@@ -183,7 +176,6 @@ public sealed class ProjectPathsTests : IDisposable
         window.OpenFile(inside);
         Ui.Settle();
 
-        // Recent Files names where each file is: Outside.cs by its own folder, not as ../app2 under the open one.
         Passenger.App.Navigation.SymbolPopup recent = window.ShowRecentFiles();
         Ui.WaitFor(() => recent.Rows.Count > 0, "the recent files");
         Assert.Equal(Path.Combine(root, "app2"), Assert.Single(recent.Rows, r => r.Name == "Outside.cs").Where);

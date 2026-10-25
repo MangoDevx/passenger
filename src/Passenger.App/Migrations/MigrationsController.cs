@@ -11,11 +11,8 @@ using Passenger.Editor;
 
 namespace Passenger.App.Migrations;
 
-/// <summary>What the Migrations window works with: the window's editors (global undo, a script's tab), its Build window and
-/// tool windows, its actions' work and status bar, the session and its builds as they are now, the questions it asks the
-/// person (<c>Choose</c>: a title, a question and its answers, the default among them; null when they cancel), the NuGet
-/// window's one way packages go in (one, or several moved together) and its feeds, what follows a file Passenger wrote, and
-/// Problems, given the contexts whose model has changes no migration covers.</summary>
+/// <summary>What the Migrations window works with in the IDE, among them the questions it asks the person
+/// (<c>Choose</c>: a title, a question and its answers, the default among them; null when they cancel).</summary>
 public sealed record MigrationsParts(
     EditorArea Editors,
     ToolViews Views,
@@ -61,12 +58,11 @@ internal sealed record EfSetting(ProjectModel Project, ProjectModel Startup, str
     public EfRunDatabase? Database { get; init; }
 }
 
-/// <summary>The Migrations window's model and commands, the window's own over each session it binds: the folder's projects
-/// that use EF Core, the project, startup project and context chosen, the migrations of that context with which the
-/// database has, and what keeps dotnet ef from working, each with its fix. Every command is found ready first (the tool,
-/// its version, the Design package: <see cref="EfGaps.Before"/>, each gap asked about with its fix and fixed as one step of
-/// global undo), built by Passenger's own build, then run as <c>dotnet ef … --no-build</c> with its output in the Build
-/// window, its failure read into one line with its fix. One command at a time. A UI-thread object.</summary>
+/// <summary>The Migrations window's model and commands over each session it binds: the folder's EF Core projects, the
+/// project, startup project and context chosen, that context's migrations with which the database has, and what keeps
+/// dotnet ef from working, each with its fix. A command is made ready first (<see cref="EfGaps.Before"/>, each gap fixed
+/// as one step of global undo), built, then run as <c>dotnet ef … --no-build</c>, its failure read into one line with its
+/// fix. One command at a time. A UI-thread object.</summary>
 public sealed partial class MigrationsController(MigrationsParts parts)
 {
     private ProjectSession? bound;
@@ -107,7 +103,7 @@ public sealed partial class MigrationsController(MigrationsParts parts)
     public IReadOnlyList<EfPending> Pending { get; private set; } = [];
 
     /// <summary>Where the chosen project's contexts are declared, read from its C# files as the projects are read: where a
-    /// gap's fixes are offered (Show Context Actions, an agent's code_actions) beside the startup project's file.</summary>
+    /// gap's fixes are offered, beside the startup project's file.</summary>
     public IReadOnlyList<EfPending> Declared { get; private set; } = [];
 
     /// <summary>The code Problems lists a context's pending model changes under.</summary>
@@ -550,7 +546,7 @@ public sealed partial class MigrationsController(MigrationsParts parts)
             work.Dispose();
             if (session == parts.Session())
             {
-                // Awaited, so what the command answers (an agent's ide_action reads the window) has the gaps as they now stand.
+                // Awaited, so what the command answers has the gaps as they now stand.
                 await FindGapsAsync();
                 Changed?.Invoke(this, EventArgs.Empty);
             }
@@ -786,7 +782,7 @@ public sealed partial class MigrationsController(MigrationsParts parts)
             work.Dispose();
             if (session == parts.Session())
             {
-                // Awaited, so what the command answers (an agent's ide_action reads the window) has the gaps as they now stand.
+                // Awaited, so what the command answers has the gaps as they now stand.
                 await FindGapsAsync();
                 Changed?.Invoke(this, EventArgs.Empty);
             }
@@ -872,8 +868,7 @@ public sealed partial class MigrationsController(MigrationsParts parts)
             : outcome.Lines.LastOrDefault(l => l.Trim().Length > 0)?.Trim() ?? $"dotnet {arguments[0]} {arguments[1]} exited with code {outcome.ExitCode}";
     }
 
-    /// <summary>A package added to a project through the NuGet window's one way (dotnet add package: central management's
-    /// Directory.Packages.props, the package's own PrivateAssets, the lock file rewritten), as one step of global undo.</summary>
+    /// <summary>A package added to a project through the NuGet window's one way, as one step of global undo.</summary>
     private async Task<string?> AddPackageAsync(ProjectModel project, string id, string version)
     {
         using CommandHistory.Recording recording = parts.Editors.Commands.Record($"Add {id} {version} to {project.Name}");
@@ -1023,8 +1018,7 @@ public sealed partial class MigrationsController(MigrationsParts parts)
         {
             arguments.AddRange(["--context", context]);
         }
-        // A run's database is given only as the environment its app reads, never as --connection: a command line is any
-        // process's to read, and dotnet ef expands even a response file onto ef.dll's.
+        // A run's database goes only in the environment: any process can read a command line.
         System.Diagnostics.ProcessStartInfo start;
         try
         {

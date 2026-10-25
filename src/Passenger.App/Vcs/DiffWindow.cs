@@ -3,8 +3,7 @@ using Avalonia.Input;
 
 namespace Passenger.App.Vcs;
 
-/// <summary>A diff in a window of its own over the IDE's, as Rider opens one from the Commit window; Escape closes
-/// it.</summary>
+/// <summary>A diff in a window of its own over the IDE's; Escape closes it.</summary>
 public sealed class DiffWindow : Window
 {
     public DiffWindow(string title, DiffView view)

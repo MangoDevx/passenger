@@ -9,8 +9,8 @@ namespace Passenger.App.Updates;
 /// <summary>macOS's update, from the disk image a person downloads (Passenger-macos-arm64.dmg or -x64), into the state
 /// folder's <c>updates/</c>: its SHA-256 checked against the release's SHA256SUMS, its Passenger.app copied out and
 /// checked again (bundle, version, signature, and the running app's team once there is one). As the process ends the
-/// two apps trade places in one step where the volume allows (renamex_np's swap, as Sparkle does), and Restart to
-/// Update starts the new one through LaunchServices: nothing of the update runs after Passenger has gone.</summary>
+/// two apps trade places in one step where the volume allows (renamex_np's swap), and Restart to Update starts the new
+/// one through LaunchServices: nothing of the update runs after Passenger has gone.</summary>
 [SupportedOSPlatform("macos")]
 public sealed partial class DiskImageUpdater : Updater
 {
@@ -28,8 +28,8 @@ public sealed partial class DiskImageUpdater : Updater
 
     /// <param name="bundle">The installed Passenger.app.</param>
     /// <param name="staging">Where downloads are made ready: the state folder's <c>updates/</c>.</param>
-    /// <param name="start">How the installed app is started again by Restart to Update: LaunchServices' open
-    /// unless a test runs it its own way.</param>
+    /// <param name="start">How the installed app is started again by Restart to Update: LaunchServices' open by
+    /// default.</param>
     public DiskImageUpdater(string bundle, string staging, Func<string, Task>? start = null)
     {
         Bundle = bundle;
@@ -142,7 +142,7 @@ public sealed partial class DiskImageUpdater : Updater
             IdeErrors.Flush();
             return;
         }
-        // LaunchServices notices a bundle that changed by its date (Sparkle does the same).
+        // LaunchServices notices a bundle that changed by its date.
         Directory.SetLastWriteTimeUtc(Bundle, DateTime.UtcNow);
         IdeErrors.Write($"Updates: Passenger {version} installed in {Bundle}{(restart ? ", and started" : string.Empty)}");
         Restart(restart);
@@ -154,8 +154,8 @@ public sealed partial class DiskImageUpdater : Updater
 
     /// <summary>The new app takes the installed one's place: the two trade places in one step where the volume can swap
     /// folders (APFS), the app copied beside the installed one first when the state folder is on another volume, and on a
-    /// volume that cannot swap (HFS+) in two renames, the old app put back should the second fail, as Velopack falls back.
-    /// Gives why not, or where the old app now is.</summary>
+    /// volume that cannot swap (HFS+) in two renames, the old app put back should the second fail. Gives why not, or where
+    /// the old app now is.</summary>
     private (string? Why, string? Old) Replace(string app, string version)
     {
         int failed = Swap(app, Bundle);

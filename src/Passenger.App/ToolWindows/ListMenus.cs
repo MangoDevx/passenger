@@ -6,7 +6,7 @@ using Avalonia.Input.Platform;
 
 namespace Passenger.App.ToolWindows;
 
-/// <summary>A tool window's list given a right-click menu as Rider gives each row one: made again for the row chosen as
+/// <summary>A tool window's list given a right-click menu for each row: made again for the row chosen as
 /// the choice moves, so a right-click or the menu key finds it ready, and none with nothing to offer. One open stays as it
 /// opened while the list is read again (its rows made anew, the same one chosen), and is made again as it closes.</summary>
 public static class ListMenus

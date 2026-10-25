@@ -6,10 +6,9 @@ using Passenger.Core;
 
 namespace Passenger.Tests;
 
-/// <summary>McpTests' agent with no window (<c>--mcp</c>) where it debugs, or where what it tests is held to a time (a call's
+/// <summary>An agent with no window (<c>--mcp</c>) where it debugs, or where what it tests is held to a time (a call's
 /// progress told every second): the code found, its warnings read and the program debugged, launched and attached to; a
-/// debugged test run's tally; a debug session stopped as it starts; and a long call's progress. Debugging, so run alone,
-/// where McpTests' other tests run beside other classes.</summary>
+/// debugged test run's tally; a debug session stopped as it starts; and a long call's progress. So it runs alone.</summary>
 [Collection(Alone.Name)]
 public sealed class McpDebuggingTests : McpRig, IClassFixture<RestoredFolders>
 {
@@ -26,14 +25,10 @@ public sealed class McpDebuggingTests : McpRig, IClassFixture<RestoredFolders>
         await using McpClient client = await Start(["--mcp", Folder]);
         IList<McpClientTool> tools = await Exchange("Listing the tools", TimeSpan.FromMinutes(1), cancel => client.ListToolsAsync(cancellationToken: cancel).AsTask());
         Assert.Contains(tools, t => t.Name == "debug_start");
-        // An agent reads how its tests will run from the tool: an xUnit v3 project's through the Testing Platform, not VSTest.
         string testsRun = Assert.Single(tools, t => t.Name == "tests_run").Description;
         Assert.True(testsRun.Contains("Testing Platform", StringComparison.Ordinal) && testsRun.Contains("xUnit v3", StringComparison.Ordinal),
             $"tests_run tells an agent its tests run otherwise than they do: {testsRun}");
-        // What every session pays to read says each thing once: the app_ tools' element query in app_tree's description alone
-        // (it was in nine tools), no optional parameter's null default or type, and a tool's title not again in its annotations;
-        // the list was 69 KB, held under 60 KB until Aspire's resources and telemetry took it to 60.6 KB, and is held under
-        // 62 KB (the owner's call), which 0.2.0 reached before its tools another covered were folded and its words trimmed.
+        // Every session pays to read the list, so it says each thing once and is held under 62 KB (the owner's call).
         Assert.Equal(["app_tree"], tools.Where(t => JsonSerializer.Serialize(t.ProtocolTool).Contains("#Panel/Button", StringComparison.Ordinal)).Select(t => t.Name));
         Assert.DoesNotContain(tools, t => SaysNothing(t.ProtocolTool.InputSchema));
         Assert.DoesNotContain(tools, t => t.ProtocolTool.Annotations?.Title is not null);
@@ -54,7 +49,6 @@ public sealed class McpDebuggingTests : McpRig, IClassFixture<RestoredFolders>
         Assert.Equal("warning", warning.GetProperty("severity").GetString());
         Assert.Equal(5, warning.GetProperty("line").GetInt32());
 
-        // The breakpoint is the window's own: the stop comes back with where it is and the locals there.
         await Call(client, "breakpoint_set", new() { ["path"] = "Program.cs", ["line"] = 4 });
         JsonElement stop = await Call(client, "debug_start");
         Assert.Equal("paused", stop.GetProperty("state").GetString());
@@ -62,7 +56,6 @@ public sealed class McpDebuggingTests : McpRig, IClassFixture<RestoredFolders>
         Assert.Equal("1", Local(stop, "i"));
         Assert.Equal("0", Local(stop, "total"));
         Assert.Equal("42", (await Call(client, "debug_evaluate", new() { ["expression"] = "Helper.Twice(i) + 40" })).GetProperty("value").GetString());
-        // A frame past the stack is named as one, with how deep the stack is, never as a list's index out of its range.
         int depth = stop.GetProperty("frames").GetArrayLength();
         foreach ((string tool, Dictionary<string, object?> arguments) in new (string, Dictionary<string, object?>)[]
         {
@@ -79,19 +72,16 @@ public sealed class McpDebuggingTests : McpRig, IClassFixture<RestoredFolders>
         stop = await Call(client, "debug_continue");
         Assert.Equal("2", Local(stop, "i"));
 
-        // A breakpoint set while debugging is in the program when the answer comes, which says it bound: the agent's
-        // next step (a click into an app, which goes no way the debugger sees) cannot come before it.
+        // An agent's next step may be a click the debugger never sees, so the answer comes once the breakpoint is bound.
         JsonElement later = Assert.Single((await Call(client, "breakpoint_set", new() { ["path"] = "Program.cs", ["line"] = 6 })).EnumerateArray(),
             b => b.GetProperty("line").GetInt32() == 6);
         Assert.Equal("bound", later.GetProperty("status").GetString());
         await Call(client, "breakpoint_set", new() { ["path"] = "Program.cs", ["line"] = 6, ["remove"] = true });
 
-        // An edit made while it is paused runs once it goes on, as the window's Resume applies one: Twice(2) and Twice(3)
-        // add one each.
+        // An edit made while paused runs once it goes on: Twice(2) and Twice(3) add one each.
         await Call(client, "open", new() { ["path"] = "Helper.cs", ["line"] = 6, ["column"] = 25 });
         await Call(client, "app_type", new() { ["app"] = "ide", ["text"] = " + 1" });
 
-        // With the breakpoint gone the program runs to its unhandled exception, which is named.
         await Call(client, "breakpoint_set", new() { ["path"] = "Program.cs", ["line"] = 4, ["remove"] = true });
         stop = await Call(client, "debug_continue");
         Assert.Equal("exception", stop.GetProperty("reason").GetString());
@@ -99,7 +89,6 @@ public sealed class McpDebuggingTests : McpRig, IClassFixture<RestoredFolders>
         string output = (await Call(client, "output", new() { ["of"] = "debug" })).GetString()!;
         Assert.True(output.Contains("total 14", StringComparison.Ordinal), $"The edit made while paused did not run once the program went on:\n{output}");
 
-        // Passenger's own window, pictured as an app's are.
         CallToolResult picture = await Result(client, "app_screenshot", new() { ["app"] = "ide" });
         ImageContentBlock image = Assert.IsType<ImageContentBlock>(picture.Content[0]);
         Assert.Equal("image/png", image.MimeType);
@@ -108,13 +97,11 @@ public sealed class McpDebuggingTests : McpRig, IClassFixture<RestoredFolders>
         await Call(client, "stop");
         Assert.Equal("not debugging", (await Call(client, "debug_state")).GetProperty("state").GetString());
 
-        // What a tool refuses reaches the agent in words that say what to do instead.
         CallToolResult refused = await Result(client, "debug_continue");
         Assert.True(refused.IsError);
         Assert.Contains("debug_start starts it", Assert.IsType<TextContentBlock>(Assert.Single(refused.Content)).Text, StringComparison.Ordinal);
 
-        // A program already running, started by the test as a terminal would start it, in its loop when it says so: listed,
-        // attached to and stopped at a breakpoint, then let go to run on in its loop, which the debugger no longer stops.
+        // A program already running, started as a terminal would start it.
         ProcessStartInfo start = ChildProcesses.Command(Debugging.Helpers.Debuggees.Apphost("LoopingConsoleApp"), ["sleep"]);
         start.RedirectStandardOutput = true;
         using (Process looping = ChildProcesses.Start(start))
@@ -141,8 +128,7 @@ public sealed class McpDebuggingTests : McpRig, IClassFixture<RestoredFolders>
             }
         }
 
-        // A project file's problems are what the editor marks, at once: the C# server never takes the file, so a wait for
-        // it to would have run out its two minutes.
+        // The C# server never takes a project file, so its problems must come at once from the editor's marks.
         await Call(client, "open", new() { ["path"] = "Sum.csproj", ["line"] = 7, ["column"] = 1 });
         await Call(client, "app_type", new() { ["app"] = "ide", ["text"] = "<Import Project=\"Missing.props\" />" });
         Stopwatch asked = Stopwatch.StartNew();
@@ -150,7 +136,6 @@ public sealed class McpDebuggingTests : McpRig, IClassFixture<RestoredFolders>
         Assert.True(asked.Elapsed < TimeSpan.FromSeconds(60).Scaled(), $"The project file's diagnostics took {asked.Elapsed}");
         Assert.Equal(("error", 7), (missing.GetProperty("severity").GetString(), missing.GetProperty("line").GetInt32()));
         Assert.Contains("Missing.props", missing.GetProperty("message").GetString(), StringComparison.Ordinal);
-        // Its code help is MSBuild's, from the evaluation before the import that is not there broke it.
         // The hover card's lines end as the system's do (Windows' "\r\n").
         string framework = (await Call(client, "symbol_info", new() { ["path"] = "Sum.csproj", ["line"] = 4, ["column"] = 8 })).GetString()!.ReplaceLineEndings("\n");
         Assert.True(framework.StartsWith($"TargetFramework = {TestProjects.Framework}\nMSBuild property, set in Sum.csproj, line 4", StringComparison.Ordinal),
@@ -158,7 +143,7 @@ public sealed class McpDebuggingTests : McpRig, IClassFixture<RestoredFolders>
     }
 
     /// <summary>A debugged test run an agent goes on with from its stop answers, as its test host ends, with the tally and
-    /// failures tests_run gives, where only tests_list had them.</summary>
+    /// failures tests_run gives.</summary>
     [Fact]
     public async Task An_agent_going_on_from_a_stop_in_a_debugged_test_run_gets_its_tally_as_it_ends()
     {
@@ -194,9 +179,9 @@ public sealed class McpDebuggingTests : McpRig, IClassFixture<RestoredFolders>
         Assert.Contains("Assert.Equal() Failure", failure.GetProperty("details").GetString(), StringComparison.Ordinal);
     }
 
-    /// <summary>An agent's stop ends a debug session still starting, as Stop does: while debug_start waits for a program whose
-    /// runtime is held at its start (a launch profile's diagnostic port, the test's own), stop ends the session and the
-    /// program at once, and debug_start answers that it was stopped.</summary>
+    /// <summary>An agent's stop ends a debug session still starting: while debug_start waits for a program whose runtime is
+    /// held at its start (the test's own diagnostic port), stop ends the session and the program at once, and debug_start
+    /// answers that it was stopped.</summary>
     [Fact]
     public async Task An_agents_stop_ends_a_debug_session_whose_program_is_still_starting()
     {
@@ -246,7 +231,7 @@ public sealed class McpDebuggingTests : McpRig, IClassFixture<RestoredFolders>
         Assert.False(ran.IsError == true, $"run failed: {Text(ran)}{Said()}");
         IReadOnlyList<ModelContextProtocol.ProgressNotificationValue> told = heard.Told;
         Assert.True(told.Count >= 2, $"A run that waited 4 s for its program told its agent {told.Count} times (every second asked): {heard}");
-        // Each told once, under counts of its own: the SDK's client hands them over as they come, not always in order.
+        // The SDK's client hands the progress over as it comes, not always in order.
         Assert.True(told.Select(t => t.Progress).Distinct().Count() == told.Count, $"The progress told repeated a count: {heard}");
         Assert.True(told.Any(t => t.Message?.StartsWith("Running Sum: waiting up to 4 s for it to end", StringComparison.Ordinal) == true),
             $"The agent was never told the run waits for its program: {heard}");

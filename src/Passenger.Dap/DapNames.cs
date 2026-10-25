@@ -85,7 +85,7 @@ public static class StopReasons
 /// written once for both ends.</summary>
 public static class DapRows
 {
-    /// <summary>An EF Core query's SQL (#420): a lazy row, read only as it is opened, whose text the IDE opens in a tab.</summary>
+    /// <summary>An EF Core query's SQL: a lazy row, read only as it is opened.</summary>
     public const string QuerySql = "SQL";
 
     /// <summary>What <see cref="QuerySql"/> says before it is opened.</summary>

@@ -4,13 +4,12 @@ using System.Text;
 
 namespace Passenger.Core;
 
-/// <summary>The one folder Passenger makes its Unix sockets in, a state folder's: its windows' for agents, the process's
-/// <c>PID.open</c>, an inspected app's and a profiled program's diagnostic port. It is in the user's own temporary folder
-/// (macOS's as the system names it, whatever TMPDIR an agent has; Linux's XDG_RUNTIME_DIR, else /tmp; Windows' temporary
+/// <summary>The one folder Passenger makes its Unix sockets in, a state folder's. It is in the user's own temporary
+/// folder (macOS's as the system names it, whatever TMPDIR is; Linux's XDG_RUNTIME_DIR, else /tmp; Windows' temporary
 /// folder), named by a short hash of the user and the state folder, so a socket's path stays within the 104 bytes macOS
-/// allows (108 elsewhere) whatever TMPDIR or PASSENGER_SETTINGS is, and each state, a test run's or the person's, has its
-/// own. Each socket in it is named for its process first (<c>PID-…</c>), which a later Passenger reads to take away one a
-/// process that died left; only a window's ends in .sock, which agents look for.</summary>
+/// allows (108 elsewhere) whatever TMPDIR or PASSENGER_SETTINGS is, and each state has its own. Each socket in it is
+/// named for its process first (<c>PID-…</c>), so one a process that died left can be taken away; only a window's ends
+/// in .sock.</summary>
 public static partial class SocketFolders
 {
     /// <summary>A state folder's socket folder.</summary>

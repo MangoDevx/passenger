@@ -37,9 +37,8 @@ public sealed record EfTool(EfToolPlace Place, string Version, string Where)
     }
 }
 
-/// <summary>Finds a project's <c>dotnet ef</c> as dotnet finds it, and writes the local tool manifest Passenger makes for one:
-/// a manifest (<c>.config/dotnet-tools.json</c> or <c>dotnet-tools.json</c>) in the folder or one above it, up to one that
-/// says it is the root, else the person's global tool in their tools folder, whose version its store's folder names.</summary>
+/// <summary>Finds a project's <c>dotnet ef</c> as dotnet finds it (a local tool manifest from its folder up, else the
+/// person's global tool), and writes the local tool manifest Passenger makes for one.</summary>
 public static class EfTools
 {
     /// <summary>The tool's package and command.</summary>

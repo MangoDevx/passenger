@@ -72,7 +72,6 @@ public sealed class KeymapChoiceTests : IDisposable
 
             VSCodeKeysWork(window);
 
-            // Kept in settings.json, Visual Studio's own key kept apart from it.
             string file = Path.Combine(settings, "settings.json");
             Ui.WaitFor(() => Read(file) is { } kept && (string?)kept["keymap"] == "VSCode", "the keymap chosen in settings.json", TimeSpan.FromSeconds(10));
             Assert.Equal(ownKey, (string?)Read(file)!["shortcuts"]![AppActions.SplitRight]![0]);
@@ -87,7 +86,6 @@ public sealed class KeymapChoiceTests : IDisposable
         {
             Assert.Equal(KeymapPreset.VSCode, again.Settings.Keymap);
             VSCodeKeysWork(again);
-            // Visual Studio's keys and the person's own over them are back the moment it is chosen again.
             again.ApplySettings(again.Settings with { Keymap = KeymapPreset.VisualStudio });
             Ui.Settle();
             again.EditorArea.CodeEditor.Focus();
@@ -113,7 +111,6 @@ public sealed class KeymapChoiceTests : IDisposable
             string visualStudios = Shortcut.Parse($"{Cmd} shift T").Display();
             string vsCodes = Shortcut.Parse($"{Cmd} P").Display();
 
-            // In VS Code's keymap Split Down is given Go to File's Cmd+P, which is warned of and taken from it.
             Choose(dialog, VSCode);
             KeyboardShortcutDialog keys = AddKeyboardShortcut(dialog, AppActions.SplitDown);
             Ui.Press(keys, $"{Cmd} P");
@@ -126,13 +123,11 @@ public sealed class KeymapChoiceTests : IDisposable
             Assert.Empty(dialog.ShortcutsShown(AppActions.GoToFile));
             Assert.True(dialog.ShowsChanged(AppActions.GoToFile), "Go to File, which lost Cmd+P, is not shown as changed");
 
-            // Visual Studio's keymap has none of it: its Go to File keeps its own key and Split Down has none.
             Choose(dialog, VisualStudio);
             Assert.Equal([visualStudios], dialog.ShortcutsShown(AppActions.GoToFile));
             Assert.Empty(dialog.ShortcutsShown(AppActions.SplitDown));
             Assert.False(dialog.ShowsChanged(AppActions.GoToFile), "Go to File, changed in VS Code's keymap alone, is shown changed in Visual Studio's");
 
-            // Back in VS Code's, what was set there is there, and Reset Shortcuts gives Go to File VS Code's own key back.
             Choose(dialog, VSCode);
             Assert.Equal([vsCodes], dialog.ShortcutsShown(AppActions.SplitDown));
             Ui.ChooseFromMenu(dialog.KeymapRow(AppActions.GoToFile), "Reset Shortcuts");
@@ -237,8 +232,7 @@ public sealed class KeymapChoiceTests : IDisposable
             Ui.WaitFor(() => window.TerminalPanel.Active!.Screen.ScreenText().Contains("echo keymap", StringComparison.Ordinal), "what was typed in the terminal");
             Assert.Equal(Source, Text(window));
 
-            // So is a Ctrl+letter the keymap gives a tool window's action (Hide Active Tool Window's Ctrl+J, the Mac's Next
-            // Project Window's Ctrl+W): the shell reads it as a control character, ^W deleting a word.
+            // So is a Ctrl+letter the keymap gives a tool window's action: the shell reads it as a control character.
             Ui.Press(window, "control J");
             Assert.True(window.DockHost.IsShown(ToolWindowIds.Terminal) && window.TerminalPanel.View.IsFocused, "Ctrl+J, pressed in the terminal, hid it rather than going to the shell");
             if (!OperatingSystem.IsWindows())
@@ -369,7 +363,6 @@ public sealed class KeymapChoiceTests : IDisposable
             Ui.Settle();
             string vsCodes = Shortcut.Parse($"{Cmd} shift F8").Display();
             Assert.Equal($"View Breakpoints and Exceptions ({vsCodes})", ToolTip.GetTip(breakpoints));
-            // The Containers window, hidden as the keymap changed, names the key once it is shown, and follows a change while shown.
             window.ShowToolWindow(ToolWindowIds.Containers);
             Ui.Settle();
             Assert.Equal($"Refresh ({Shortcut.Parse(refreshKeys).Display()})", ToolTip.GetTip(refresh));
@@ -389,9 +382,9 @@ public sealed class KeymapChoiceTests : IDisposable
         }
     }
 
-    /// <summary>The Run window's Rerun, Stop and Apply Hot Reload Changes and the Aspire window's Telemetry page buttons
-    /// name their actions' keys as every other tool button does, and the keys a person sets once they are set, whether the
-    /// window was shown or hidden then (#475); the Build window's Rerun, which is Rebuild, names none. They named no keys.</summary>
+    /// <summary>The Run window's Rerun, Stop and Apply Hot Reload Changes and the Aspire window's Telemetry page
+    /// buttons name their actions' keys as every other tool button does, and the keys a person sets once they are set,
+    /// whether the window was shown or hidden then; the Build window's Rerun, which is Rebuild, names none.</summary>
     [AvaloniaFact]
     public void The_Run_windows_and_Telemetrys_buttons_name_their_actions_keys_and_those_set_over_them()
     {

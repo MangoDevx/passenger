@@ -3,7 +3,7 @@ using System.Globalization;
 
 namespace Passenger.Dap;
 
-/// <summary>Rider's hit count modes, as a breakpoint's hitCondition writes them.</summary>
+/// <summary>The hit count modes, as a breakpoint's hitCondition writes them.</summary>
 public enum HitConditionMode
 {
     /// <summary>==N, or N alone, or Visual Studio's =N.</summary>
@@ -25,8 +25,8 @@ public enum HitConditionMode
     MultipleOf,
 }
 
-/// <summary>A breakpoint's hit count, as Passenger's debugger reads the protocol's hitCondition (which the protocol leaves
-/// to the adapter) and the Breakpoint popup checks it as it is typed: one of Rider's modes and a number of hits from 1.</summary>
+/// <summary>A breakpoint's hit count, read from the protocol's hitCondition (whose form the protocol leaves to the
+/// adapter): a mode and a number of hits from 1.</summary>
 public readonly record struct HitCondition(HitConditionMode Mode, int Count)
 {
     /// <summary>The modes as written, longest first so ">=" is not read as ">".</summary>
@@ -41,8 +41,7 @@ public readonly record struct HitCondition(HitConditionMode Mode, int Count)
         ("%", HitConditionMode.MultipleOf),
     ];
 
-    /// <summary>Reads a hit count ("==5", ">= 10", "%2", "3"), or says, in the words the popup and the debugger both use,
-    /// why it cannot be read.</summary>
+    /// <summary>Reads a hit count ("==5", ">= 10", "%2", "3"), or says why it cannot be read.</summary>
     public static bool TryParse(string text, out HitCondition condition, [NotNullWhen(false)] out string? problem)
     {
         ReadOnlySpan<char> rest = text.AsSpan().Trim();

@@ -76,7 +76,6 @@ public sealed class FrameChart : Control
         IBrush muted = Brush("Passenger.TextMuted", Brushes.Transparent);
         Typeface face = new("Inter");
 
-        // The 60 Hz budget, and the tallest frame's time.
         double budget = bottom - (Budget * scale);
         context.DrawLine(new Pen(muted, 0.5, new DashStyle([3, 3], 0)), new Point(Axis - 4, budget), new Point(Bounds.Width, budget));
         Label(context, "16.7 ms", budget, face, muted);

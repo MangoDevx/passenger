@@ -101,7 +101,7 @@ a:focus-visible, summary:focus-visible, .button:focus-visible { outline: 2px sol
 
 /* The opening. */
 /* Top and bottom only: the sides are the wrap's gutter. */
-/* A glow of the icon's blue and teal behind the opening, as the title bar runs from one to the other. */
+/* A glow of the icon's blue and teal behind the opening. */
 .hero {
     padding: 64px 0 48px;
     text-align: center;
@@ -363,7 +363,7 @@ h3 { margin: 0 0 8px; font-size: 19px; line-height: 1.3; font-weight: 650; }
 .checks strong { grid-column: 2; grid-row: 1; font-weight: 650; }
 .checks span { grid-column: 2; grid-row: 2; color: var(--muted); font-size: 15px; line-height: 1.5; margin-top: 2px; }
 
-/* The looks: one window changing look, framed as every picture of the window is, at its own shape. */
+/* The looks: one window changing look, at its own shape. */
 .shot.cycle img { aspect-ratio: 1864 / 1060; }
 
 /* Lines for people switching from another IDE. */

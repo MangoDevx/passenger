@@ -6,15 +6,11 @@ using System.Text;
 namespace Passenger.Core;
 
 /// <summary>Every program Passenger starts is started here, one way: no shell and no window, an input of its own (never
-/// the IDE's terminal, nor an agent's pipe), UTF-8 streams, none of a git hook's repository variables, and a line in the
-/// log when it fails or takes a while, or for every one with the debug log on (<see cref="Started"/>, <see cref="Ended"/>):
-/// one the IDE ended itself (<see cref="Kill"/>, <see cref="Ending"/>) did not fail, nor did a question whose exit code is
-/// its answer (<c>git show</c> of a file the commit lacks). None outlives the IDE, however the IDE ends
-/// (<see cref="Lifeline"/>). Not started here: the terminal's shell (Porta.Pty's,
-/// ended by its pseudo-terminal's hangup), a program run in the terminal (Porta.Pty's, then taken on: <see cref="Adopt"/>),
-/// vstest.console (VSTest's, which ends with the process that started it), on Windows Velopack's Update.exe, which
-/// installs an update once Passenger has ended and so must outlive it, and the person's Passenger that an agent's
-/// <c>--mcp-attach</c> starts (<see cref="StartApart"/>).</summary>
+/// the IDE's), UTF-8 streams, none of a git hook's repository variables, and a line in the log when it fails or takes a
+/// while, or for every one with the debug log on (<see cref="Started"/>, <see cref="Ended"/>): one the IDE ended itself
+/// (<see cref="Kill"/>, <see cref="Ending"/>) did not fail, nor did a question whose exit code is its answer. None outlives
+/// the IDE, however the IDE ends (<see cref="Lifeline"/>). A program run in the terminal is taken on (<see cref="Adopt"/>),
+/// and one that must outlive the IDE starts apart (<see cref="StartApart"/>).</summary>
 public static class ChildProcesses
 {
     private static readonly UTF8Encoding Utf8 = new(encoderShouldEmitUTF8Identifier: false);
@@ -40,10 +36,8 @@ public static class ChildProcesses
     /// pipes is read at once, and only a job it left running, which holds them for as long as it lives, takes longer.</summary>
     private static readonly TimeSpan OutputGrace = TimeSpan.FromSeconds(2);
 
-    /// <summary>How a command line is said wherever Passenger logs or shows one (a child's start and end in the log, what
-    /// this throws, a console's echo of what it runs): <see cref="Display"/> until the IDE gives its mask for secrets as it
-    /// starts, so no program's secret reaches the log or a window, whoever started it. The command line itself, which any
-    /// process on the machine can read, is the starter's to keep secrets off (an environment variable is the child's alone).</summary>
+    /// <summary>How a command line is said wherever Passenger logs or shows one: <see cref="Display"/> until the IDE gives
+    /// its mask for secrets as it starts, so no program's secret reaches the log or a window.</summary>
     public static Func<ProcessStartInfo, string> Shown { get; set; } = Display;
 
     /// <summary>A program and its arguments, to run in a folder (the IDE's own when none is given).</summary>
@@ -62,10 +56,9 @@ public static class ChildProcesses
     }
 
     /// <summary>The .NET command line (<see cref="Dotnet.Host"/>) with these arguments, in English (the IDE reads what it
-    /// says) and with no first-run banner. It builds in its own process and MSBuild's worker nodes, never in MSBuild's server,
-    /// which outlives it and goes on with what it runs when it is ended. A node ends what it runs when its build goes; one
-    /// left for the next build is the IDE's alone, in the group (the job on Windows) of the build that started it, so it
-    /// ends with the IDE (<see cref="Lifeline"/>). A <see cref="FileNotFoundException"/> when there is none.</summary>
+    /// says) and with no first-run banner. It builds in its own process and worker nodes, never in MSBuild's server, which
+    /// would outlive it; a node left for the next build is the IDE's alone, so it ends with the IDE
+    /// (<see cref="Lifeline"/>). A <see cref="FileNotFoundException"/> when there is none.</summary>
     public static ProcessStartInfo DotnetCommand(IEnumerable<string> arguments, string? folder = null)
     {
         ProcessStartInfo start = Command(Dotnet.Host(), arguments, folder);
@@ -79,7 +72,7 @@ public static class ChildProcesses
         // No other build takes up a node of the IDE's, to have it ended under it when the IDE ends.
         start.Environment.TryGetValue("MSBUILDNODEHANDSHAKESALT", out string? salt);
         start.Environment["MSBUILDNODEHANDSHAKESALT"] = $"{salt}passenger-{Environment.ProcessId}";
-        // dotnet test's, for what it tests (an IDE run under it): each node would hold the command's output open as its own.
+        // Set by dotnet test for what it runs: each node would hold the command's output open as its own.
         start.Environment.Remove("MSBUILDENSURESTDOUTFORTASKPROCESSES");
         return start;
     }
@@ -90,7 +83,7 @@ public static class ChildProcesses
     public static Process Start(ProcessStartInfo start) => Start(start, answers: null);
 
     /// <summary><see cref="Start(ProcessStartInfo)"/> off the caller's thread when it has a context of its own (the UI
-    /// thread's), on it otherwise: the fork costs a large process tens of milliseconds (#233), which the window would wait
+    /// thread's), on it otherwise: the fork costs a large process tens of milliseconds, which the window would wait
     /// out. The child is started, its id known, once the task is done; what the start throws, the task throws.</summary>
     public static Task<Process> StartAsync(ProcessStartInfo start) => StartOffAsync(start, answers: null);
 
@@ -138,11 +131,10 @@ public static class ChildProcesses
         return process;
     }
 
-    /// <summary>Takes on a program started in the terminal's pseudo-terminal from <paramref name="start"/> (a run in the
-    /// Terminal window), which ends with the IDE and is logged as a child is: on macOS and Linux it leads a session and
-    /// process group of its own, which goes on the watchdog's list (<see cref="Lifeline"/>); on Windows it is in Porta.Pty's
-    /// job already, which the system ends once the IDE's handle to it goes. <see cref="Kill"/> then ends it with all it
-    /// started; <see cref="Exited"/> logs its end.</summary>
+    /// <summary>Takes on a program started in the terminal's pseudo-terminal from <paramref name="start"/>, so it ends
+    /// with the IDE and is logged as a child is: on macOS and Linux its own session and process group go on the
+    /// watchdog's list (<see cref="Lifeline"/>); on Windows the pseudo-terminal's job holds it already.
+    /// <see cref="Kill"/> then ends it with all it started; <see cref="Exited"/> logs its end.</summary>
     public static void Adopt(int processId, ProcessStartInfo start)
     {
         Lifeline.AdoptGroup(processId);
@@ -187,7 +179,6 @@ public static class ChildProcesses
         start.RedirectStandardInput = true;
         start.RedirectStandardOutput = true;
         start.RedirectStandardError = true;
-        // Started off a caller's own thread (the window's), as every git command the window asks for is.
         using Process process = await StartOffAsync(start, answers);
         using CancellationTokenSource ending = CancellationTokenSource.CreateLinkedTokenSource(cancel);
         // Output past what the caller reads of it ends the child as an overrun limit does, said by the size it went past.
@@ -273,7 +264,7 @@ public static class ChildProcesses
     }
 
     /// <summary>A child's output or errors read to their end, and what was read so far once the reading is let go; with a
-    /// most, the reading stops past it, <see cref="Overran"/>, and the run is ended through <paramref name="ending"/>.</summary>
+    /// most, the reading stops past it, <see cref="Overran"/>, and the run is ended through its <c>ending</c>.</summary>
     private sealed class Reading
     {
         private readonly StringBuilder text = new();
@@ -339,8 +330,7 @@ public static class ChildProcesses
     /// <summary>Ends a child and everything it started, now, passing over what has ended: its tree on Windows, but for a
     /// process of it Windows will not end (one ending, or not ours where a parent's id was reused); on macOS and Linux its
     /// process group, which holds what it started and what it left behind, whether or not it has ended itself. Never the
-    /// runtime's tree kill there: it stops each process before killing it, and .NET 11 on macOS handles a child's end in a
-    /// loop that never ends while another child is stopped, holding the lock that the tree kill then waits on.</summary>
+    /// runtime's tree kill there, which stops each process before killing it and can then hang for good on macOS.</summary>
     public static void Kill(Process process)
     {
         Ending(process);
@@ -374,10 +364,8 @@ public static class ChildProcesses
         }
     }
 
-    /// <summary>Starts a program of the person's own that outlives whatever started it: the person's Passenger, which an
-    /// agent's <c>--mcp-attach</c> starts on its folder when none is running and the build is in no app bundle
-    /// LaunchServices could open. A session of its own (never on the
-    /// watchdog's list, nor in a job), its input and output none of the starter's, which is an agent's protocol.</summary>
+    /// <summary>Starts a program of the person's own that outlives whatever started it (the person's Passenger): a session
+    /// of its own, never on the watchdog's list nor in a job, its input and output none of the starter's.</summary>
     public static void StartApart(ProcessStartInfo start)
     {
         start.UseShellExecute = false;
@@ -429,7 +417,7 @@ public static class ChildProcesses
         _ = task.ContinueWith(t => _ = t.Exception, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
 }
 
-/// <summary>A child that wrote more than its caller reads of it (a container's tools' answer), ended for it.</summary>
+/// <summary>A child that wrote more than its caller reads of it, ended for it.</summary>
 public sealed class ChildOutputException(string message) : IOException(message);
 
 /// <summary>How a child run to its end went: its exit code, and what it wrote to its output and errors.</summary>

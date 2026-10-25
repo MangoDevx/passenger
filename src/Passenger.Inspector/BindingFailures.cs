@@ -3,10 +3,10 @@ using Passenger.Core;
 
 namespace Passenger.Inspector;
 
-/// <summary>The failed bindings an inspector tells Passenger of, kept alike for Avalonia's and WPF's (this file is linked
-/// into both, and touches neither framework): each distinct failure is sent the first time and its count again as it
-/// repeats, a quarter second apart at most; past the most it lists, failures are only counted, their count said (untold)
-/// as repeats are. Non-user code, as each inspector's Bindings is, so a stop below it shows the app's own code.</summary>
+/// <summary>The failed bindings an inspector tells Passenger of, kept alike for Avalonia's and WPF's (this file is
+/// linked into both, and touches neither framework): each distinct failure is sent the first time and its count again
+/// as it repeats, a quarter second apart at most; past the most it lists, failures are only counted, their count said
+/// (untold) as repeats are. Non-user code, so a stop below it shows the app's own code.</summary>
 [DebuggerNonUserCode]
 internal static class BindingFailures
 {

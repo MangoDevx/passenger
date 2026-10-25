@@ -7,11 +7,11 @@ using Passenger.Profiler;
 
 namespace Passenger.Tests;
 
-/// <summary>The profiler as dotTrace's sampling, from the window: a configuration profiled is caught from its first
-/// instruction to its end, its busy method on the main thread's hot path, its allocations and collections listed, and a
-/// .NET program it starts runs free rather than held at the profiler's port; one that never reaches the profiler is said
-/// to, and a running one's heap is counted by type. The tests that start a program which waits on its input and end it
-/// share one (<see cref="Waits"/>), restored and built once.</summary>
+/// <summary>The profiler's sampling, from the window: a configuration profiled is caught from its first instruction to
+/// its end, its busy method on the main thread's hot path, its allocations and collections listed, and a .NET program it
+/// starts runs free rather than held at the profiler's port; one that never reaches the profiler is said to, and a
+/// running one's heap is counted by type. The tests that start a program which waits on its input and end it share one
+/// (<see cref="Waits"/>), restored and built once.</summary>
 [Collection(Alone.Name)]
 public sealed class ProfilerTests : IClassFixture<ProfilerTests.Waits>, IDisposable
 {
@@ -29,8 +29,7 @@ public sealed class ProfilerTests : IClassFixture<ProfilerTests.Waits>, IDisposa
     [AvaloniaFact]
     public void Profile_builds_and_runs_the_configuration_and_its_end_shows_the_snapshot()
     {
-        // Twenty threads: the main one spins, the others wait for it all along. Then 60 MB of short-lived arrays, and a
-        // .NET program of its own, which would wait for ever at the profiler's port if it took it from its parent.
+        // Twenty threads, the main one spinning; 60 MB of short-lived arrays; and a .NET program of its own.
         string project = Project("Spinner", """
             using System.Diagnostics;
             if (args is ["child"])
@@ -76,7 +75,7 @@ public sealed class ProfilerTests : IClassFixture<ProfilerTests.Waits>, IDisposa
                 public static void Wait(ManualResetEventSlim until) => until.Wait();
             }
             """);
-        // The GC sizes its youngest generation from the machine's largest cache, which on CI's Windows outgrows the 60 MB.
+        // The GC sizes its youngest generation from the machine's largest cache, which can outgrow the 60 MB.
         Directory.CreateDirectory(Path.Combine(project, "Properties"));
         File.WriteAllText(Path.Combine(project, "Properties", "launchSettings.json"),
             "{ \"profiles\": { \"Young\": { \"commandName\": \"Project\", \"environmentVariables\": { \"DOTNET_GCgen0size\": \"0x400000\" } } } }");
@@ -85,7 +84,7 @@ public sealed class ProfilerTests : IClassFixture<ProfilerTests.Waits>, IDisposa
         window.Show();
         window.OpenFolder(project);
         Ui.Settle();
-        // The folder's snapshots are kept with its state, as many as the cap from earlier runs, the first the oldest.
+        // As many snapshots as the cap from earlier runs, the first the oldest.
         string kept = window.SnapshotFolder;
         Assert.StartsWith(Path.Combine(settings, "workspaces", "Spinner-"), kept, StringComparison.Ordinal);
         Directory.CreateDirectory(kept);
@@ -106,21 +105,18 @@ public sealed class ProfilerTests : IClassFixture<ProfilerTests.Waits>, IDisposa
         Snapshot snapshot = view.Snapshot!;
         Assert.StartsWith("Main thread", snapshot.Threads[0].Name, StringComparison.Ordinal);
         Assert.Equal(snapshot.Samples, view.Flame.Root!.Total);
-        // The hot path is open down the main thread: Spin is listed without a click.
         Assert.Contains(view.Rows, r => r.Node.Name.StartsWith("Work.Spin", StringComparison.Ordinal));
         Assert.StartsWith("Spinner-", Path.GetFileName(snapshot.TracePath), StringComparison.Ordinal);
         string console = window.BottomPanel.Run.Document.Snapshot.ToString();
         Assert.Contains("spun True", console, StringComparison.Ordinal);
         Assert.Contains("child said: child ran", console, StringComparison.Ordinal);
 
-        // The arrays lead the Allocations page, Allocate first in their back traces, and the GC page has young collections.
         Assert.Equal("System.Byte[]", view.Types[0].Name);
         Assert.InRange(view.Types[0].Bytes, 30_000_000, 120_000_000);
         Assert.Contains(view.BackTraces, r => r.Node.Name.StartsWith("Work.Allocate", StringComparison.Ordinal));
         Assert.Contains("of generation 0", view.CollectionsSummary, StringComparison.Ordinal);
 
-        // What the run holds grows with where its threads were caught, not with how often: each stack is kept once,
-        // and a waiting thread's samples, all at one stack, as a handful of runs.
+        // What the run holds grows with where its threads were caught, not how often: each stack is kept once.
         Assert.True(snapshot.Stacks * 10 < snapshot.Samples, $"{snapshot.Stacks} stacks kept for {snapshot.Samples} samples");
         Assert.True(snapshot.Runs * 4 < snapshot.Samples, $"{snapshot.Runs} runs kept for {snapshot.Samples} samples");
         IReadOnlyList<CallNode> waiters = [.. snapshot.Threads.Where(t => Find(t.Children, n => n.Name.StartsWith("Work.Wait", StringComparison.Ordinal)) is not null)];
@@ -131,7 +127,6 @@ public sealed class ProfilerTests : IClassFixture<ProfilerTests.Waits>, IDisposa
             Assert.True(line.Runs.Count * 4 <= line.Samples, $"{waiter.Name} waited through {line.Samples} samples, kept as {line.Runs.Count} runs");
         }
 
-        // The run is kept with the earlier ones, the oldest gone past the cap, and the status bar says where.
         Assert.Equal(kept, Path.GetDirectoryName(snapshot.TracePath));
         Assert.Equal(Snapshots.Kept, Directory.GetFiles(kept, "*.nettrace").Length);
         Assert.False(File.Exists(Path.Combine(kept, "Spinner-earlier-0.nettrace")), "the oldest snapshot was kept past the cap");
@@ -141,8 +136,7 @@ public sealed class ProfilerTests : IClassFixture<ProfilerTests.Waits>, IDisposa
         Assert.Equal(Snapshots.Kept, view.Kept.Count);
         Assert.Contains(kept, view.KeptSummary, StringComparison.Ordinal);
 
-        // A stretch chosen on the timeline is what the other views show, worked out off the UI thread: the choice
-        // takes the UI thread a sliver of what working the stretch out takes, and the stretch lands once it is done.
+        // The stretch is worked out off the UI thread, so the choice takes it a sliver of what working it out takes.
         (double From, double To) half = (snapshot.StartMs, snapshot.StartMs + ((snapshot.EndMs - snapshot.StartMs) / 2));
         long allocated = GC.GetAllocatedBytesForCurrentThread();
         Snapshot worked = snapshot.Within(half.From, half.To);
@@ -159,7 +153,6 @@ public sealed class ProfilerTests : IClassFixture<ProfilerTests.Waits>, IDisposa
         Assert.True(view.Snapshot.Samples < snapshot.Samples);
         Assert.Contains("ms of", view.Status, StringComparison.Ordinal);
 
-        // Stretches chosen one after another show the last, never an earlier one landing late; a click, the whole run.
         view.Timeline.Select(snapshot.StartMs, snapshot.EndMs - 1);
         view.Timeline.Select(half.To, snapshot.EndMs);
         Ui.Settle();
@@ -171,11 +164,10 @@ public sealed class ProfilerTests : IClassFixture<ProfilerTests.Waits>, IDisposa
         window.Close();
     }
 
-    /// <summary>A profiled program that has not reached the profiler (its diagnostics off, so it runs on without ever coming
-    /// to the profiler's port): Profile pressed again starts no second program, which neither Kill nor a snapshot could reach;
-    /// Kill ends it at once, rather than when the profiler gives up on it 30 s later; a configuration whose working folder is
-    /// gone, and one that ends before it reaches the profiler, are said to in the profiler window; and Close Solution ends a
-    /// start under way with the folder's other programs, which ended only the run handed over. None leaves a port listening.</summary>
+    /// <summary>A profiled program that has not reached the profiler (its diagnostics off, so it never comes to the
+    /// profiler's port): Profile pressed again starts no second program; Kill ends it at once; a configuration whose working
+    /// folder is gone, and one that ends before it reaches the profiler, are said to in the profiler window; and Close
+    /// Solution ends a start under way with the folder's other programs. None leaves a port listening.</summary>
     [AvaloniaFact]
     public void A_profiled_program_that_has_not_reached_the_profiler_is_started_once_and_Kill_or_closing_the_folder_ends_it()
     {
@@ -197,7 +189,6 @@ public sealed class ProfilerTests : IClassFixture<ProfilerTests.Waits>, IDisposa
             Assert.Single(Programs());
             Assert.False(started.IsCompleted, $"The first profile's start ended: {(started.IsCompleted ? started.Result : null)}");
 
-            // Kill is there while the program starts, as Stop is while the debugger waits for one, and ends it at once.
             Passenger.App.Profiling.ProfilerView view = window.ProfilerView;
             Avalonia.Controls.Button kill = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(view).OfType<Avalonia.Controls.Button>()
                 .Single(b => b.Content as string == "Kill");
@@ -212,7 +203,6 @@ public sealed class ProfilerTests : IClassFixture<ProfilerTests.Waits>, IDisposa
             Assert.Equal(before, Ports());
             Assert.Null(window.Actions.WhyNot(AppActions.Profile, window.Actions.Context()));
 
-            // A working folder that is gone is said in the profiler window, nothing started.
             Configure(window, "Elsewhere", pids, workingDirectory: "gone");
             started = window.ProfileAsync();
             Ui.WaitFor(() => started.IsCompleted, "the build and the start", TimeSpan.FromMinutes(3));
@@ -224,8 +214,7 @@ public sealed class ProfilerTests : IClassFixture<ProfilerTests.Waits>, IDisposa
             Assert.Equal(started.Result, view.Placeholder);
             Assert.Equal(before, Ports());
 
-            // A program that ends before it reaches the profiler (no folder to write its id into, it exits at once, its
-            // diagnostics off as a program that is not .NET never comes) is said to.
+            // A program that ends at once, its diagnostics off as a program that is not .NET never comes.
             Configure(window, "Ends first", pids: null, undiagnosed: true);
             started = window.ProfileAsync();
             Ui.WaitFor(() => started.IsCompleted, "the build and the start", TimeSpan.FromMinutes(3));
@@ -234,7 +223,6 @@ public sealed class ProfilerTests : IClassFixture<ProfilerTests.Waits>, IDisposa
             Assert.Equal(started.Result, view.Status);
             Assert.Equal(before, Ports());
 
-            // Close Solution while a profiled program starts ends it with the folder's other programs.
             string closing = TestFolders.Create("pids-");
             Configure(window, "Closed: Undiagnosed", closing, undiagnosed: true);
             started = window.ProfileAsync();
@@ -263,8 +251,7 @@ public sealed class ProfilerTests : IClassFixture<ProfilerTests.Waits>, IDisposa
 
     /// <summary>A memory snapshot of a program being profiled counts its heap by type and it runs on; then Close Solution
     /// ends the run whole: the program killed, the profiler's port gone with its listener, and the profiler window no longer
-    /// following the run, its time no longer counting and its Kill and Get Snapshot gone, rather than all left until the
-    /// IDE quits.</summary>
+    /// following the run, its time no longer counting and its Kill and Get Snapshot gone.</summary>
     [AvaloniaFact]
     public void A_memory_snapshot_of_a_program_being_profiled_counts_its_heap_by_type_and_leaving_the_folder_then_ends_the_run()
     {
@@ -281,11 +268,10 @@ public sealed class ProfilerTests : IClassFixture<ProfilerTests.Waits>, IDisposa
             Assert.NotEqual(before, Ports());
             Ui.PumpUntil(() => window.BottomPanel.Run.Document.Snapshot.ToString().Contains("waiting", StringComparison.Ordinal), "the program to wait on its input");
 
-            // Get Memory Snapshot while it waits: the heap by type on the Memory page, the program still there.
             Avalonia.Controls.Button take = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(view).OfType<Avalonia.Controls.Button>()
                 .Single(b => b.Content as string == "Get Memory Snapshot");
             Ui.Click(take, settle: false);
-            // Bounded, so a createdump that never finishes (CI's macOS runner was left with one) fails here, not the run.
+            // Bounded, so a createdump that never finishes fails here, not the run.
             Ui.WaitFor(() => view.Memory is not null || window.Status?.StartsWith("No memory snapshot", StringComparison.Ordinal) == true,
                 "the memory snapshot", TimeSpan.FromMinutes(2));
             Assert.True(view.Memory is not null, window.Status);
@@ -333,8 +319,7 @@ public sealed class ProfilerTests : IClassFixture<ProfilerTests.Waits>, IDisposa
             Assert.True(Processes.IsRunning(program), "The program Profile started ended with its snapshot");
             Assert.True(view.CanKill, "Kill went with the snapshot, though the program Profile started goes on");
             Assert.Null(window.Actions.WhyNot(AppActions.Stop, window.Actions.Context()));
-            // Windows lists a named pipe until its last handle goes, the program's end of the connection the profiler let
-            // go among them, which the program closes once its runtime sees the profiler's end closed: soon, not at once.
+            // Windows lists a named pipe until its last handle goes, which the program closes soon, not at once.
             Ui.WaitFor(() => Ports().SequenceEqual(before),
                 () => $"the profiler's port to go with the snapshot, the program going on, where {string.Join(", ", Ports())} is still listed",
                 TimeSpan.FromSeconds(10));
@@ -350,7 +335,6 @@ public sealed class ProfilerTests : IClassFixture<ProfilerTests.Waits>, IDisposa
             Assert.Null(window.Actions.WhyNot(AppActions.Profile, window.Actions.Context()));
             Assert.Null(window.Profiling);
 
-            // Profiled again and snapshotted, it ends with its folder.
             int first = program;
             Ui.Launched(window, window.ProfileAsync(), "the second start", TimeSpan.FromMinutes(2));
             Ui.PumpUntil(() => (program = Programs(pids).FirstOrDefault(p => p != first)) > 0, "the program profiled again to start", TimeSpan.FromMinutes(2));
@@ -368,9 +352,9 @@ public sealed class ProfilerTests : IClassFixture<ProfilerTests.Waits>, IDisposa
     }
 
     /// <summary>The Run console is one program's at a time: Profile of another configuration is refused while Run's program
-    /// runs there, its output and typing left to it; Profile of the configuration Run runs ends that run and profiles it, as
-    /// Debug's start does; and Run is refused while Profile's program has it, until that ends, after which typing reaches
-    /// Run's program.</summary>
+    /// runs there, its output and typing left to it; Profile of the configuration Run runs ends that run and profiles it;
+    /// and Run is refused while Profile's program has it, until that ends, after which typing reaches Run's
+    /// program.</summary>
     [AvaloniaFact]
     public void Profile_and_Run_each_wait_for_the_Run_console_while_the_other_s_program_has_it()
     {
@@ -392,7 +376,6 @@ public sealed class ProfilerTests : IClassFixture<ProfilerTests.Waits>, IDisposa
             Ui.TypeToRun(window, "to the run");
             Ui.WaitFor(() => Shows(run, "read to the run"), "Run's program to read what was typed once Profile was refused");
 
-            // Profile of the configuration Run runs ends that run first, as a start of a configuration that runs ends it.
             Assert.True(window.SelectConfiguration(name), $"No configuration {name}");
             Assert.Null(window.Actions.WhyNot(AppActions.Profile, window.Actions.Context()));
             Ui.Launched(window, window.ProfileAsync(), "the profiled run", TimeSpan.FromMinutes(3));
@@ -424,8 +407,7 @@ public sealed class ProfilerTests : IClassFixture<ProfilerTests.Waits>, IDisposa
 
     /// <summary>Attach Profiler where its snapshot cannot be written says so and leaves the program as it was, running and
     /// recorded by nothing: the recording it began there ended (EventPipe released), which the program's frames provider
-    /// hears as turned off; the snapshot's file had failed only once the recording had begun, which was left going on in the
-    /// program. Once a snapshot can be written, Attach Profiler records it.</summary>
+    /// hears as turned off. Once a snapshot can be written, Attach Profiler records it.</summary>
     [AvaloniaFact]
     public void Attach_Profiler_that_cannot_write_its_snapshot_says_why_releases_EventPipe_and_leaves_the_program_running_unrecorded()
     {
@@ -472,8 +454,7 @@ public sealed class ProfilerTests : IClassFixture<ProfilerTests.Waits>, IDisposa
     }
 
     /// <summary>Attach Profiler profiles the program the person runs wherever Run started it: one in a tab of the terminal,
-    /// and under Hot Reload the app dotnet watch started, never dotnet watch's own process, whose threads it took for the
-    /// app's.</summary>
+    /// and under Hot Reload the app dotnet watch started, never dotnet watch's own process.</summary>
     [AvaloniaFact]
     public void Attach_Profiler_profiles_the_program_run_in_the_terminal_and_the_app_dotnet_watch_runs()
     {

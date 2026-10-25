@@ -7,7 +7,7 @@ namespace Passenger.Tests;
 
 /// <summary>An agent's migrations, through the tools it has: the Migrations actions by ide_action with what they would ask the
 /// person as input, answering the context's migrations; and what keeps dotnet ef from working refused with its fixes, which
-/// code_actions lists on the startup project's file and apply_code_action makes, as the window's buttons do.</summary>
+/// code_actions lists on the startup project's file and apply_code_action makes.</summary>
 public sealed class McpMigrationsTests : McpRig
 {
     [Fact]
@@ -16,7 +16,6 @@ public sealed class McpMigrationsTests : McpRig
         string folder = ShopApp.Make(design: false, tool: null);
         await using McpClient client = await Start(["--mcp", folder], languageServer: false);
 
-        // Add Migration, refused before the command: the gaps said with their fixes and where code_actions finds them.
         CallToolResult refused = await Result(client, "ide_action", new() { ["action"] = AppActions.AddMigration, ["input"] = "Initial" });
         string said = Text(refused);
         Assert.True(refused.IsError == true && said.Contains("dotnet ef is not installed here", StringComparison.Ordinal)
@@ -32,7 +31,6 @@ public sealed class McpMigrationsTests : McpRig
         Assert.Contains("Shop.csproj", Text(await Call(client, "apply_code_action", new() { ["path"] = "Shop.csproj", ["line"] = 1, ["column"] = 1, ["title"] = design })),
             StringComparison.Ordinal);
 
-        // Then the commands, each answering the context's migrations.
         string added = Text(await Call(client, "ide_action", new() { ["action"] = AppActions.AddMigration, ["input"] = "Initial" }));
         Assert.True(added.Contains("Added migration Initial", StringComparison.Ordinal) && added.Contains("_Initial: pending", StringComparison.Ordinal),
             $"Add Migration answered: {added}");

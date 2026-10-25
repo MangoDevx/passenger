@@ -6,9 +6,9 @@ using Passenger.Text;
 
 namespace Passenger.App.Debugging;
 
-/// <summary>What every breakpoint has, as Rider's Breakpoints window edits it: on or off, whether it stops, a condition, a
-/// hit count and a message to log. Its <see cref="Status"/> is what the running debuggers last said of it, and goes back to
-/// unknown as their sessions end.</summary>
+/// <summary>What every breakpoint has: on or off, whether it stops, a condition, a hit count and a message to log. Its
+/// <see cref="Status"/> is what the running debuggers last said of it, and goes back to unknown as their sessions
+/// end.</summary>
 public abstract class Breakpoint
 {
     /// <summary>What each session's debugger last said of it, by the session.</summary>
@@ -18,8 +18,8 @@ public abstract class Breakpoint
     public string? Condition { get; internal set; }
     public string? HitCondition { get; internal set; }
 
-    /// <summary>Whether a hit stops the program. One that does not is a tracepoint: it logs its message, or
-    /// Rider's "Breakpoint reached", and lets the program go on.</summary>
+    /// <summary>Whether a hit stops the program. One that does not is a tracepoint: it logs its message, or "Breakpoint
+    /// reached", and lets the program go on.</summary>
     public bool Suspend { get; internal set; } = true;
 
     /// <summary>A message written to the Debug window's console on each hit, its {expressions} evaluated there.</summary>
@@ -60,7 +60,7 @@ public abstract class Breakpoint
 }
 
 /// <summary>A line breakpoint (lines from zero); in Avalonia XAML, on one attribute of the line when it names one
-/// (<see cref="XamlBreakpoints"/>), as Rider's inline breakpoints are on one lambda of theirs.</summary>
+/// (<see cref="XamlBreakpoints"/>).</summary>
 public sealed class LineBreakpoint(string path, int line, string? attribute = null) : Breakpoint
 {
     public string Path { get; internal set; } = path;
@@ -72,15 +72,16 @@ public sealed class LineBreakpoint(string path, int line, string? attribute = nu
     public override string Location => $"{System.IO.Path.GetFileName(Path)}:{Line + 1}{(Attribute is { } on ? $" {on}" : string.Empty)}";
 }
 
-/// <summary>Rider's CLR exception breakpoint: an exception type by its full name, or Rider's "Any exception", which every
-/// folder has and none removes, and the scenarios it stops in. Rider's "Any exception" stops on what the user's code
-/// leaves unhandled; a breakpoint on a type added since stops wherever it is thrown.</summary>
+/// <summary>A CLR exception breakpoint: an exception type by its full name, or "Any exception", which every folder has
+/// and none removes, and the scenarios it stops in. "Any exception" stops on what the user's code leaves unhandled; a
+/// breakpoint on a type added since stops wherever it is thrown.</summary>
 public sealed class ExceptionBreakpoint(string? type) : Breakpoint
 {
-    /// <summary>Rider's name for the breakpoint on every exception.</summary>
+    /// <summary>The name of the breakpoint on every exception.</summary>
     public const string AnyException = "Any exception";
 
-    /// <summary>The scenarios of Rider's "Any exception": thrown anywhere, and handled outside the user's code or not at all.</summary>
+    /// <summary>The scenarios of "Any exception": thrown anywhere, and handled outside the user's code or not at
+    /// all.</summary>
     public const ExceptionScenarios AnyExceptionScenarios = ExceptionScenarios.Thrown | ExceptionScenarios.HandledInExternalCode | ExceptionScenarios.Unhandled;
 
     /// <summary>The type's full name, or null for every exception.</summary>
@@ -93,9 +94,9 @@ public sealed class ExceptionBreakpoint(string? type) : Breakpoint
     public override string Location => Type ?? AnyException;
 }
 
-/// <summary>Rider's data breakpoint (Set Data Breakpoint on a member in Variables): a field, an auto-property or an array
-/// element of one object, watched for a write that changes it. It lasts as long as its session, as Rider's do, the object
-/// being that session's alone, so no folder keeps it and no other session is sent it.</summary>
+/// <summary>A data breakpoint (Set Data Breakpoint on a member in Variables): a field, an auto-property or an array
+/// element of one object, watched for a write that changes it. It lasts as long as its session, the object being that
+/// session's alone, so no folder keeps it and no other session is sent it.</summary>
 public sealed class DataBreakpoint(string dataId, string location, object session) : Breakpoint
 {
     /// <summary>What the debugger named the data watched by.</summary>
@@ -104,7 +105,7 @@ public sealed class DataBreakpoint(string dataId, string location, object sessio
     /// <summary>The session whose program has the object.</summary>
     public object Session { get; } = session;
 
-    /// <summary>The member, and the object it is of with its type: "count on counter (Counter)", Rider's words.</summary>
+    /// <summary>The member, and the object it is of with its type: "count on counter (Counter)".</summary>
     public override string Location { get; } = location;
 }
 
@@ -156,12 +157,13 @@ public enum BreakpointStatus
     Invalid,
 }
 
-/// <summary>A folder's breakpoints as the store keeps them, as Rider keeps them with the project.</summary>
+/// <summary>A folder's breakpoints as the store keeps them.</summary>
 public sealed record BreakpointsState : IStateDocument<BreakpointsState>
 {
     public List<KeptBreakpoint> Breakpoints { get; init; } = [];
 
-    /// <summary>The CLR exception breakpoints, "Any exception" (no type) among them; none kept is "Any exception" as Rider has it.</summary>
+    /// <summary>The CLR exception breakpoints, "Any exception" (no type) among them; none kept is "Any exception" as it
+    /// starts.</summary>
     public List<KeptExceptionBreakpoint>? Exceptions { get; init; }
 
     /// <summary>The XAML Binding Errors breakpoint; none kept is off.</summary>
@@ -191,7 +193,8 @@ public sealed record KeptBreakpoint(string Path, int Line)
     public string? LogMessage { get; init; }
 }
 
-/// <summary>An exception breakpoint as kept: its type (none for "Any exception"), what it does and Rider's "Suspend If".</summary>
+/// <summary>An exception breakpoint as kept: its type (none for "Any exception"), what it does and its "Suspend
+/// If".</summary>
 public sealed record KeptExceptionBreakpoint(string? Type)
 {
     public bool Enabled { get; init; } = true;
@@ -217,10 +220,9 @@ public sealed record KeptBindingErrorBreakpoint
 }
 
 /// <summary>Every breakpoint: the line breakpoints by file, the CLR exception breakpoints, XAML Binding Errors and the
-/// session's data and property breakpoints.
-/// A breakpoint in an open file moves with the text around it, as Rider's do, so an edit above it leaves it on its line;
-/// one whose line is deleted lands where the deletion did, and two on one line become one. Muted, none of them stops the
-/// program, as Rider's Mute Breakpoints has it, though each keeps whether it is on.</summary>
+/// session's data and property breakpoints. A breakpoint in an open file moves with the text around it, so an edit above
+/// it leaves it on its line; one whose line is deleted lands where the deletion did, and two on one line become one.
+/// Muted, none of them stops the program, though each keeps whether it is on.</summary>
 public sealed class BreakpointStore
 {
     private readonly Dictionary<string, List<LineBreakpoint>> byPath = new(StringComparer.Ordinal);
@@ -261,7 +263,7 @@ public sealed class BreakpointStore
     /// <summary>The data breakpoints of the session, in the order they were set.</summary>
     public IReadOnlyList<DataBreakpoint> Data => data;
 
-    /// <summary>Rider's Mute Breakpoints: none stops the program, nor logs, until they are unmuted.</summary>
+    /// <summary>Mute Breakpoints: none stops the program, nor logs, until they are unmuted.</summary>
     public bool Muted { get; private set; }
 
     public IReadOnlyList<LineBreakpoint> In(string path) => byPath.TryGetValue(path, out List<LineBreakpoint>? found) ? found : [];
@@ -363,8 +365,8 @@ public sealed class BreakpointStore
         BindingErrorsChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>Takes every breakpoint away, as another folder opens: each folder's are its own, "Any exception" as Rider
-    /// sets it and XAML Binding Errors off until the folder says otherwise, and none muted.</summary>
+    /// <summary>Takes every breakpoint away, as another folder opens: each folder's are its own, "Any exception" as it
+    /// starts and XAML Binding Errors off until the folder says otherwise, and none muted.</summary>
     public void Clear()
     {
         Muted = false;
@@ -380,7 +382,7 @@ public sealed class BreakpointStore
         ClearData();
     }
 
-    /// <summary>Mutes every breakpoint, or unmutes them, as Rider's Mute Breakpoints toggles.</summary>
+    /// <summary>Mutes every breakpoint, or unmutes them (Mute Breakpoints).</summary>
     public void SetMuted(bool muted)
     {
         if (Muted == muted)
@@ -398,8 +400,8 @@ public sealed class BreakpointStore
         BindingErrorsChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>The data breakpoint on what a session's debugger names by a data id, set as Rider sets one, to stop at every
-    /// write that changes it; the one there is already when there is.</summary>
+    /// <summary>The data breakpoint on what a session's debugger names by a data id, set to stop at every write that changes
+    /// it; the one there is already when there is.</summary>
     public DataBreakpoint AddData(string dataId, string location, object session)
     {
         if (FindData(dataId, session) is { } existing)
@@ -510,8 +512,7 @@ public sealed class BreakpointStore
         PropertiesChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>Sets a breakpoint on a line, or removes those there (its XAML attributes' too, as a click in Rider's gutter
-    /// takes a line's inline breakpoints away).</summary>
+    /// <summary>Sets a breakpoint on a line, or removes those there (its XAML attributes' too).</summary>
     public void Toggle(string path, int line)
     {
         List<LineBreakpoint> list = For(path);
@@ -573,8 +574,8 @@ public sealed class BreakpointStore
         }
     }
 
-    /// <summary>The breakpoint on an exception type (a full name, or "Any exception"), set as Rider sets a new one, to stop
-    /// wherever the exception is thrown; the one there is already when there is.</summary>
+    /// <summary>The breakpoint on an exception type (a full name, or "Any exception"), set to stop wherever the exception is
+    /// thrown; the one there is already when there is.</summary>
     public ExceptionBreakpoint AddException(string type)
     {
         string name = type.Trim();
@@ -593,7 +594,7 @@ public sealed class BreakpointStore
         ? exceptions[0]
         : exceptions.FirstOrDefault(e => string.Equals(e.Type, type.Trim(), StringComparison.Ordinal));
 
-    /// <summary>Which of Rider's scenarios an exception breakpoint stops in.</summary>
+    /// <summary>Which scenarios an exception breakpoint stops in.</summary>
     public void SetScenarios(ExceptionBreakpoint breakpoint, ExceptionScenarios scenarios)
     {
         if (breakpoint.Scenarios != scenarios)
@@ -617,8 +618,7 @@ public sealed class BreakpointStore
         Raise(breakpoint);
     }
 
-    /// <summary>Sets a breakpoint that does not stop, as Shift+click in the gutter does in Rider; or removes the
-    /// one on that line.</summary>
+    /// <summary>Sets a breakpoint that does not stop (Shift+click in the gutter), or removes the one on that line.</summary>
     public void ToggleTracepoint(string path, int line)
     {
         if (In(path).Any(b => b.Line == line))
@@ -633,8 +633,8 @@ public sealed class BreakpointStore
         Changed?.Invoke(this, path);
     }
 
-    /// <summary>Removes a breakpoint; "Any exception" stays, as in Rider, turned off by its box instead, as Avalonia Binding
-    /// Errors is.</summary>
+    /// <summary>Removes a breakpoint; "Any exception" stays, turned off by its box instead, as XAML Binding Errors
+    /// is.</summary>
     public void Remove(Breakpoint breakpoint)
     {
         if (breakpoint is LineBreakpoint line && For(line.Path).Remove(line))

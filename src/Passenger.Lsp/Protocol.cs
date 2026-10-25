@@ -386,7 +386,7 @@ public sealed record ShowToastParams(int MessageType, string Message);
 /// begin, a report or an end.</summary>
 public sealed record ProgressParams(JsonElement Token, JsonElement Value);
 
-/// <summary>Work the server reports on, as a status bar shows it: the token it goes by, whether this is its end, its
+/// <summary>Work the server reports on: the token it goes by, whether this is its end, its
 /// title (from its begin), the latest message and how far it is, in percent, when the server says.</summary>
 public sealed record WorkProgress(string Token, bool Ended, string? Title, string? Message, int? Percentage)
 {

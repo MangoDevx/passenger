@@ -1,6 +1,6 @@
 #!/bin/sh
-# Installs Passenger from the passenger/ folder this script is in (an unpacked Passenger-linux-<arch>.tar.gz, which
-# tools/package-linux.sh makes), or removes it again:
+# Installs Passenger from the passenger/ folder this script is in (an unpacked Passenger-linux-<arch>.tar.gz), or
+# removes it again:
 #   ./install.sh                         for you alone: ~/.local/opt/passenger, ~/.local/bin/passenger, and Passenger in
 #                                        your applications menu with its icon and file types (~/.local/share)
 #   sudo ./install.sh --system           for everyone: /opt/passenger, /usr/local/bin/passenger, /usr/share/applications
@@ -145,8 +145,7 @@ case ":${PATH:-}:" in
     *) echo "$bin is not on your PATH yet: add it, then start Passenger from a shell with: passenger [folder or solution]" ;;
 esac
 
-# What Passenger needs that this system lacks, said now rather than as a window that never opens. ldconfig is in /sbin,
-# which a person's PATH may not have.
+# What Passenger needs and this system lacks, said now, not as a window that never opens (ldconfig may be in /sbin).
 missing=
 ldconfig=$(command -v ldconfig || echo /sbin/ldconfig)
 if [ -x "$ldconfig" ]; then

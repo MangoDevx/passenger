@@ -31,9 +31,9 @@ public sealed class ReferenceChoice(string path, string name, string where, bool
     }
 }
 
-/// <summary>Rider's Add Reference for a project: the solution's other projects, each with a check box, those it references
-/// already checked. Space checks or unchecks the row chosen, Enter is OK and Escape cancels; it closes with the projects
-/// checked, or null when cancelled.</summary>
+/// <summary>Add Reference for a project: the solution's other projects, each with a check box, those it references
+/// already checked. Space checks or unchecks the row chosen, Enter is OK and Escape cancels; it closes with the
+/// projects checked, or null when cancelled.</summary>
 public sealed class AddReferenceDialog : Window
 {
     private readonly ListBox list;
@@ -78,7 +78,7 @@ public sealed class AddReferenceDialog : Window
     /// <summary>Closes as OK does, with the projects checked.</summary>
     public void Accept() => Close((IReadOnlyList<string>)[.. Choices.Where(c => c.IsChosen).Select(c => c.Path)]);
 
-    /// <summary>The keys to the row chosen, as a list in a dialog takes them.</summary>
+    /// <summary>Gives the row chosen the keys.</summary>
     private void FocusChosen()
     {
         if (list.SelectedIndex >= 0)

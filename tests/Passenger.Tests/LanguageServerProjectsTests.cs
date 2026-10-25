@@ -11,10 +11,10 @@ using Passenger.Editor;
 
 namespace Passenger.Tests;
 
-/// <summary>The language server's projects. It loads them from what Passenger's project host built of them at design time,
-/// as its own build host would have built them, so it answers across a project reference; a folder opened again has them
-/// loaded from those builds as kept, none built again while nothing they read changed. A file of a multi-targeted project
-/// is answered for in the target framework chosen in the editor's switcher, as Rider's.</summary>
+/// <summary>The language server's projects. It loads them from what Passenger's project host built of them at design
+/// time, as its own build host would have built them, so it answers across a project reference; a folder opened again
+/// has them loaded from those builds as kept, none built again while nothing they read changed. A file of a
+/// multi-targeted project is answered for in the target framework chosen in the editor's switcher.</summary>
 public sealed class LanguageServerProjectsTests : IClassFixture<RestoredFolders>, IDisposable
 {
     private readonly string folder;

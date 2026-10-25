@@ -3,9 +3,7 @@ using Passenger.Core;
 namespace Passenger.App.Updates;
 
 /// <summary>The release notes a build carries beside it, never fetched: a Markdown file a version, the repository's
-/// <c>docs/release-notes/X.Y.Z.md</c> as <c>release-notes/X.Y.Z.md</c>, which the release workflow also makes the GitHub
-/// release's body. What's New shows the running version's (<see cref="MainWindow.ShowWhatsNew"/>); a test names another
-/// version of the same folder, to read a file the build carries.</summary>
+/// <c>docs/release-notes/X.Y.Z.md</c> as <c>release-notes/X.Y.Z.md</c>.</summary>
 public sealed record ReleaseNotes(string Folder, string Version)
 {
     /// <summary>The folder beside the app that holds them.</summary>
@@ -25,8 +23,8 @@ public sealed record ReleaseNotes(string Folder, string Version)
     /// <summary>What the notes of a version are called, on their tab and at their head.</summary>
     public static string TitleOf(string version) => $"What's New in {version}";
 
-    /// <summary>The version whose notes a file (by its canonical path) is, when it is notes the app carries, which an
-    /// editor shows rendered and read-only; null for any other file.</summary>
+    /// <summary>The version whose notes a file (by its canonical path) is, when it is notes the app carries; null for any
+    /// other file.</summary>
     public static string? VersionOf(string path) =>
         Path.GetExtension(path).Equals(".md", StringComparison.OrdinalIgnoreCase)
         && Path.GetDirectoryName(path) is { } folder && PathNames.Same(folder, Canonical.Value)

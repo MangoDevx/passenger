@@ -5,14 +5,12 @@ using Passenger.App.Settings;
 
 namespace Passenger.App;
 
-/// <summary>Where the main window's toolbar is its title bar, as Rider's main toolbar is: on Windows and macOS always, on
-/// Linux while Settings' Merge main menu with window title is on (as it is at first) and the desktop is one IntelliJ merges
-/// them on (not under WSL, a tiling window manager or a desktop that does not say what it is). And what a double click on
-/// it does.</summary>
+/// <summary>Where the main window's toolbar is its title bar: on Windows and macOS always, on Linux while Settings'
+/// Merge main menu with window title is on (as it is at first) and the desktop allows it (not under WSL, a tiling
+/// window manager or a desktop that does not say what it is). And what a double click on it does.</summary>
 public static partial class TitleBars
 {
-    /// <summary>IntelliJ's tiling window managers (X11UiUtil.TILE_WM), by XDG_CURRENT_DESKTOP, where it keeps the system's
-    /// title bar.</summary>
+    /// <summary>The tiling window managers, by XDG_CURRENT_DESKTOP, where the system's title bar stays.</summary>
     private static readonly string[] Tiling =
     [
         "awesome", "bspwm", "cagebreak", "compiz", "dwl", "dwm", "frankenwm", "herbstluftwm", "hyprland", "i3", "ion", "larswm",
@@ -23,15 +21,15 @@ public static partial class TitleBars
     public static bool Merged(AppSettings settings) =>
         OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() || (settings.MergeMainMenuWithWindowTitle && NotOnThisDesktop is null);
 
-    /// <summary>Settings offers the choice on Linux alone, as Rider does: Windows and macOS always merge them.</summary>
+    /// <summary>Settings offers the choice on Linux alone: Windows and macOS always merge them.</summary>
     public static bool Offered => !OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS();
 
     /// <summary>What Settings says under the choice where it can be made: what the window then draws.</summary>
     public const string OwnFrame = "The window draws its own frame, through Avalonia's window decorations for X11; turn this "
         + "off to have the window manager's title bar over the toolbar.";
 
-    /// <summary>Why this Linux desktop keeps the system's title bar whatever the setting says, in IntelliJ's words for its
-    /// reasons; null where the bars merge.</summary>
+    /// <summary>Why this Linux desktop keeps the system's title bar whatever the setting says; null where the bars
+    /// merge.</summary>
     public static string? NotOnThisDesktop { get; } = Offered ? Why(Environment.GetEnvironmentVariable("WSL_DISTRO_NAME"), Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP")) : null;
 
     private static string? Why(string? wsl, string? desktop)
@@ -61,8 +59,8 @@ public static partial class TitleBars
         };
     }
 
-    /// <summary>Asks the X11 window manager (GNOME's Mutter, KDE's KWin) for its own window menu at a point on the screen,
-    /// as GTK's header bars do on a right click (_GTK_SHOW_WINDOW_MENU); a system without libX11 or a display asks nothing.</summary>
+    /// <summary>Asks the X11 window manager (GNOME's Mutter, KDE's KWin) for its own window menu at a point on the
+    /// screen (_GTK_SHOW_WINDOW_MENU); a system without libX11 or a display asks nothing.</summary>
     public static void ShowWindowMenu(nint window, PixelPoint at)
     {
         try

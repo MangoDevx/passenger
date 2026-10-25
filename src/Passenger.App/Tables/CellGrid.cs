@@ -98,10 +98,10 @@ public sealed class CellGrid : Control
         }
     }
 
-    /// <summary>Raised when the table shown is replaced (read again, another sheet, none), for Find to search it again.</summary>
+    /// <summary>Raised when the table shown is replaced (read again, another sheet, none).</summary>
     public event EventHandler? TableChanged;
 
-    /// <summary>The cells Find matched, marked as the editor marks its matches, the one at <paramref name="current"/> stronger.</summary>
+    /// <summary>The cells Find matched, the one at <paramref name="current"/> marked stronger.</summary>
     public void SetMatches(IReadOnlyList<(int Row, int Column)> matches, int current)
     {
         matched = [.. matches.Select(Spot)];
@@ -177,7 +177,7 @@ public sealed class CellGrid : Control
         return text.ToString();
     }
 
-    /// <summary>An editing action the window sends the focused table (its Edit menu's, macOS's Cmd keys): true when it acts.</summary>
+    /// <summary>An editing action sent to the focused table: true when it acts.</summary>
     public bool Execute(string action)
     {
         switch (action)
@@ -348,7 +348,6 @@ public sealed class CellGrid : Control
         bool extend = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
         if (at.Y < RowHeight && at.X >= gutter)
         {
-            // A header chooses its column, from its first row to its last.
             anchor = extend ? (0, anchor.Column) : (0, column);
             caret = (table.RowCount - 1, column);
         }
@@ -596,7 +595,6 @@ public sealed class CellGrid : Control
             }
         }
 
-        // The header along the top, its chosen columns marked.
         Rect header = new(body.X, 0, body.Width, RowHeight);
         context.FillRectangle(colours.Header, new Rect(0, 0, bounds.Width, RowHeight));
         using (context.PushClip(header))
@@ -616,7 +614,6 @@ public sealed class CellGrid : Control
             }
         }
 
-        // The rows' numbers down the side.
         Rect side = new(0, body.Y, gutter, body.Height);
         context.FillRectangle(colours.Header, new Rect(0, RowHeight, gutter, bounds.Height - RowHeight));
         using (context.PushClip(side))
