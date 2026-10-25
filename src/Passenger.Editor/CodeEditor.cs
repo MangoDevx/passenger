@@ -429,6 +429,7 @@ public sealed partial class CodeEditor : Control
             usages.Clear();
             UsagesKept = false;
             inlineChanges.Clear();
+            highlights.Clear();
             hovered.Release();
             pressed.Release();
             HideFoldPreview();
@@ -561,15 +562,17 @@ public sealed partial class CodeEditor : Control
         stripeDrawn = default;
     }
 
-    /// <summary>Ranges a search found (sorted), drawn behind the text, the current one stronger. The
-    /// search owns them and sets them again when the text changes.</summary>
-    public IReadOnlyList<TextRange> Highlights { get; private set; } = [];
+    private readonly AnchoredList<TextRange> highlights = new(r => r, (_, range) => range);
+
+    /// <summary>Ranges a search found (sorted), drawn behind the text, the current one stronger; they move with edits until
+    /// the search sets them again.</summary>
+    public IReadOnlyList<TextRange> Highlights => highlights.Items;
 
     public int CurrentHighlight { get; private set; } = -1;
 
     public void SetHighlights(IReadOnlyList<TextRange> ranges, int current)
     {
-        Highlights = ranges;
+        highlights.Set(document, ranges);
         CurrentHighlight = current;
         InvalidateVisual();
     }
