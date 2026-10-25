@@ -106,6 +106,8 @@ referenced projects twice).
   the line it checks (a raised budget or limit) does not count as fixing it; neither does an analyzer's baseline.
 - **Work off the UI thread that changes what is drawn goes through `BackgroundWork`** (`Run`, and `Debounce` rather than
   a `DispatcherTimer`), so screenshots and tests wait for it; one that mustn't hold them says why in a comment.
+- **Work nothing awaits goes to `IdeErrors.Observe`** (`Core.UnawaitedWork.Observe` below the App), never a bare `_ =`
+  or a call left as a statement, so its fault is said as it happens: IdeErrorsTests reads the built IL (`DroppedTasks`).
 - **One threading rule.** Controls, documents, the window's `ProjectSession` and its parts, controllers and views belong
   to the UI thread (`UiThread.Check()` in entry points). Text, Vcs, Workspace, Packages, Lsp, Dap, Debugger and Profiler
   never reference Avalonia and raise events on any thread; Editor, Languages and Terminal on the UI thread. The App
@@ -151,13 +153,14 @@ Projects in `src/`:
   `Dotnet`/`Programs`/`ShellEnvironment` (tools found as the login shell would), `PathNames`, `AtomicFile`,
   `SocketFolders` (every Unix socket, short paths), `DotnetProcesses` (attachable programs), `InFlight`,
   `BackgroundWork`, `Product` (the one place the version is read), `PassengerLog` (passenger.log for code below the App,
-  never `IdeLog`), `WebAddress`.
+  never `IdeLog`), `WebAddress`, `UnawaitedWork`.
 - `Passenger.Text`: the rope (an immutable B-tree, so every version is a thread-safe snapshot), `TextDocument` (undo,
-  LSP-ordered changes; carry offsets with `TextEditing.Map*` over the change's `SortedEdits` as it came), carets, every
-  editing command as a pure function to an `EditPlan`, `MarkupIndent`, `WordDiff`, `FuzzyMatch` (allocates nothing),
-  `FileText` (encoding, BOM, `.editorconfig`, line separator), `ChangeMark`, anchors (`TextDocument.AnchorAt`/`RangeAt`,
-  moved before `Changed`; each handler isolated, its failure to `PassengerLog.Report`): hold a place in the text with
-  one, never your own `Map*`.
+  LSP-ordered changes; carets and run lists carry offsets with `TextEditing.Map*` over the change's `SortedEdits` as it
+  came), carets, every editing command as a pure function to an `EditPlan`, `MarkupIndent`, `WordDiff`, `FuzzyMatch`
+  (allocates nothing), `FileText` (encoding, BOM, `.editorconfig`, line separator), `ChangeMark`, anchors
+  (`TextDocument.AnchorAt`/`RangeAt`, moved before `Changed`; each handler isolated, its failure to
+  `PassengerLog.Report`; `AnchoredList` for a list of them, read once a change): hold a place in the text with one,
+  never your own `Map*`.
 - `Passenger.Editor`: the `CodeEditor` control (partials), `Keymap` and `EditorActions` (presets), `IHighlighter`. With
   soft wrap, whatever turns an offset into a place goes through `Rows`/`RowSpan`. Wraps (`WrapMap`), rows (`RowMap`),
   folds (`FoldList`), hints (`HintList`) and built lines (`LineRuns`) are runs an edit moves only where it reaches, so a
@@ -234,7 +237,8 @@ Projects in `src/`:
   files and Dockerfiles and edited in place as `ConfigurationEdit`s), `LaunchPlan` (one resolution for Run, Debug,
   Profile, Hot Reload and a debugged test host; a Passenger it launches keeps its state in the launcher's `sandbox/`),
   `UpToDate` (a launch's build skipped while what its last build read and wrote stands; anything it can't account for
-  builds), Publish (`PublishProfiles`, `PubXml`, a profile's `.pubxml` as the SDK reads it).
+  builds), `TogetherBuild` (a start's projects side by side in one dotnet build), Publish (`PublishProfiles`, `PubXml`,
+  a profile's `.pubxml` as the SDK reads it).
 - **Runs of services.** `ServiceRun` is the one model of a run of several .NET services; `ContainerRun` and
   `AspireAppRun` are its kinds. Debug, Attach, Run without Debugger, Restart and Profile of a service are written once
   (`BuildRunController.Services.cs`); a kind supplies only its restarts, holds, program places and refusals. One start at
