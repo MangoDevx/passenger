@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -13,16 +12,18 @@ using Passenger.Core;
 
 namespace Passenger.App.Profiling;
 
-/// <summary>A row of the call tree: a node, how deep it sits, and whether its callees are listed under it.</summary>
-public sealed class TreeRow(CallNode node, int depth, ObservableCollection<TreeRow> list, string unit, int whole, double scale = 1) : Observable
+/// <summary>A row of the call tree or of a type's back traces: a node, how deep it sits, and whether its callees are listed
+/// under it.</summary>
+public sealed class CallRow(CallNode node, int depth, TreeRows<CallRow> list, string unit, int whole, double scale = 1) : Observable, ITreeRow
 {
     private bool isExpanded;
+    private List<CallRow>? callees;
 
     public CallNode Node { get; } = node;
     public int Depth { get; } = depth;
 
-    /// <summary>The list the row is in, which its callees join when it opens.</summary>
-    public ObservableCollection<TreeRow> List { get; } = list;
+    /// <summary>The rows the row is in, which its callees join when it opens.</summary>
+    public TreeRows<CallRow> List { get; } = list;
 
     /// <summary>What its weight counts (ms of samples, KB allocated), and the whole a share is of.</summary>
     public string Unit { get; } = unit;
@@ -30,6 +31,11 @@ public sealed class TreeRow(CallNode node, int depth, ObservableCollection<TreeR
 
     /// <summary>How much of the unit one count of the weight is: a sample's milliseconds (<see cref="Snapshot.SampleMs"/>).</summary>
     public double Scale { get; } = scale;
+
+    public bool Expands => Node.Children.Count > 0;
+
+    /// <summary>Its callees' rows, the heaviest first, made the first time it opens.</summary>
+    public IReadOnlyList<CallRow> Callees => callees ??= [.. Node.Ordered.Select(c => new CallRow(c, Depth + 1, List, Unit, Whole, Scale))];
 
     public bool IsExpanded
     {
@@ -58,10 +64,10 @@ public enum ProfilerPage
 /// runs.</summary>
 public sealed class ProfilerView : DockPanel
 {
-    private readonly ObservableCollection<TreeRow> rows = [];
+    private readonly TreeRows<CallRow> rows = [];
     private readonly ListBox tree;
     private readonly ListBox spots;
-    private readonly ObservableCollection<TreeRow> traces = [];
+    private readonly TreeRows<CallRow> traces = [];
     private readonly ListBox types;
     private readonly ListBox backTraces;
     private readonly Grid allocations;
@@ -95,16 +101,16 @@ public sealed class ProfilerView : DockPanel
         {
             Classes = { "tree" },
             ItemsSource = rows,
-            ItemTemplate = new FuncDataTemplate<TreeRow>((row, _) => row is null ? new TextBlock() : Row(row), supportsRecycling: false),
+            ItemTemplate = new FuncDataTemplate<CallRow>((row, _) => row is null ? new TextBlock() : Row(row), supportsRecycling: false),
         };
         tree.DoubleTapped += (_, _) =>
         {
-            if (tree.SelectedItem is TreeRow row)
+            if (tree.SelectedItem is CallRow row)
             {
                 Open(row.Node.Name);
             }
         };
-        tree.KeyDown += OnTreeKey;
+        TreeKeys.Attach<CallRow>(tree, Toggle, OpenRow);
         spots = new ListBox
         {
             Classes = { "tree" },
@@ -127,12 +133,12 @@ public sealed class ProfilerView : DockPanel
         {
             Classes = { "tree" },
             ItemsSource = traces,
-            ItemTemplate = new FuncDataTemplate<TreeRow>((row, _) => row is null ? new TextBlock() : Row(row), supportsRecycling: false),
+            ItemTemplate = new FuncDataTemplate<CallRow>((row, _) => row is null ? new TextBlock() : Row(row), supportsRecycling: false),
         };
-        backTraces.KeyDown += OnTreeKey;
+        TreeKeys.Attach<CallRow>(backTraces, Toggle, OpenRow);
         backTraces.DoubleTapped += (_, _) =>
         {
-            if (backTraces.SelectedItem is TreeRow row)
+            if (backTraces.SelectedItem is CallRow row)
             {
                 Open(row.Node.Name);
             }
@@ -327,7 +333,7 @@ public sealed class ProfilerView : DockPanel
     public Snapshot? Snapshot { get; private set; }
 
     /// <summary>The call tree's rows as listed now.</summary>
-    public IReadOnlyList<TreeRow> Rows => rows;
+    public IReadOnlyList<CallRow> Rows => rows;
 
     public FlameGraph Flame => flame;
 
@@ -449,11 +455,11 @@ public sealed class ProfilerView : DockPanel
         rows.Clear();
         foreach (CallNode thread in snapshot.Threads)
         {
-            rows.Add(new TreeRow(thread, 0, rows, "ms", snapshot.Samples, snapshot.SampleMs));
+            rows.Add(new CallRow(thread, 0, rows, "ms", snapshot.Samples, snapshot.SampleMs));
         }
         if (rows.Count > 0)
         {
-            TreeRow at = rows[0];
+            CallRow at = rows[0];
             for (int depth = 0; depth < 60 && at.Node.Children.Count > 0; depth++)
             {
                 Expand(at);
@@ -491,7 +497,7 @@ public sealed class ProfilerView : DockPanel
     public IReadOnlyList<AllocatedType> Types => types.ItemsSource as IReadOnlyList<AllocatedType> ?? [];
 
     /// <summary>The chosen type's back traces as listed now.</summary>
-    public IReadOnlyList<TreeRow> BackTraces => traces;
+    public IReadOnlyList<CallRow> BackTraces => traces;
 
     /// <summary>The GC page's summary line.</summary>
     public string CollectionsSummary => collectionsSummary.Text ?? string.Empty;
@@ -506,10 +512,10 @@ public sealed class ProfilerView : DockPanel
         {
             return;
         }
-        TreeRow root = new(type.BackTraces, 0, traces, "KB", type.BackTraces.Total);
+        CallRow root = new(type.BackTraces, 0, traces, "KB", type.BackTraces.Total);
         traces.Add(root);
         Expand(root);
-        TreeRow at = root;
+        CallRow at = root;
         for (int depth = 0; depth < 12 && at.Node.Children.Count > 0; depth++)
         {
             CallNode heaviest = at.Node.Ordered[0];
@@ -541,7 +547,7 @@ public sealed class ProfilerView : DockPanel
         return new ShrinkingRow { Height = ListRow.Height, Margin = new Thickness(6, 0), Children = { what, when, pause, why } };
     }
 
-    public void Toggle(TreeRow row)
+    public void Toggle(CallRow row)
     {
         if (row.IsExpanded)
         {
@@ -553,59 +559,34 @@ public sealed class ProfilerView : DockPanel
         }
     }
 
-    private static void Expand(TreeRow row)
+    private static void Expand(CallRow row)
     {
-        if (row.IsExpanded || row.Node.Children.Count == 0)
+        if (row.IsExpanded || !row.Expands)
         {
             return;
         }
         row.IsExpanded = true;
-        int at = row.List.IndexOf(row) + 1;
-        foreach (CallNode child in row.Node.Ordered)
-        {
-            row.List.Insert(at++, new TreeRow(child, row.Depth + 1, row.List, row.Unit, row.Whole, row.Scale));
-        }
+        row.List.Open(row, TreeRows<CallRow>.Shown(row.Callees, r => r.Callees));
     }
 
-    private static void Collapse(TreeRow row)
+    private static void Collapse(CallRow row)
     {
-        int at = row.List.IndexOf(row) + 1;
-        while (at < row.List.Count && row.List[at].Depth > row.Depth)
-        {
-            row.List.RemoveAt(at);
-        }
         row.IsExpanded = false;
+        row.List.Close(row);
     }
 
-    private void OnTreeKey(object? sender, KeyEventArgs e)
-    {
-        if ((sender as ListBox)?.SelectedItem is not TreeRow row)
-        {
-            return;
-        }
-        switch (e.Key)
-        {
-            case Key.Right when !row.IsExpanded:
-                Expand(row);
-                e.Handled = true;
-                break;
-            case Key.Left when row.IsExpanded:
-                Collapse(row);
-                e.Handled = true;
-                break;
-            case Key.Enter or Key.F4:
-                Open(row.Node.Name);
-                e.Handled = true;
-                break;
-        }
-    }
+    /// <summary>A row's method opened at its source; false for a thread or a type, at the top, which stand for no method.</summary>
+    private bool OpenRow(CallRow row) => row.Depth > 0 && Open(row.Node.Name);
 
-    private void Open(string method)
+    /// <summary>Goes to a method's source; false for a row no source has (a thread, the runtime's own frames).</summary>
+    private bool Open(string method)
     {
-        if (!method.StartsWith('[') && !method.StartsWith("Thread ", StringComparison.Ordinal))
+        if (method.StartsWith('[') || method.StartsWith("Thread ", StringComparison.Ordinal))
         {
-            OpenRequested?.Invoke(this, method);
+            return false;
         }
+        OpenRequested?.Invoke(this, method);
+        return true;
     }
 
     private ToggleButton PageButton(string label)
@@ -639,7 +620,7 @@ public sealed class ProfilerView : DockPanel
 
     private string Share(int samples) => Snapshot is { Samples: > 0 } shot ? $"{100.0 * samples / shot.Samples,5:0.0}%" : "";
 
-    private Control Row(TreeRow row)
+    private Control Row(CallRow row)
     {
         PathIcon chevron = new() { Classes = { "chevron" }, IsVisible = row.Node.Children.Count > 0, RenderTransformOrigin = RelativePoint.Center };
         chevron.Bind(PathIcon.DataProperty, chevron.GetResourceObservable("Icon.ChevronRight"));

@@ -106,6 +106,7 @@ public sealed class ProfilerTests : IClassFixture<ProfilerTests.Waits>, IDisposa
         Assert.StartsWith("Main thread", snapshot.Threads[0].Name, StringComparison.Ordinal);
         Assert.Equal(snapshot.Samples, view.Flame.Root!.Total);
         Assert.Contains(view.Rows, r => r.Node.Name.StartsWith("Work.Spin", StringComparison.Ordinal));
+        TreeKeysCheck.Press(window, view.Rows, view.Rows[0], "the profiler's call tree");
         Assert.StartsWith("Spinner-", Path.GetFileName(snapshot.TracePath), StringComparison.Ordinal);
         string console = window.BottomPanel.Run.Document.Snapshot.ToString();
         Assert.Contains("spun True", console, StringComparison.Ordinal);

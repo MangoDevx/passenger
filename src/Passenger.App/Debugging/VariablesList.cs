@@ -42,7 +42,16 @@ public sealed class VariablesList : ListBox
                 EditSelectedValue();
             }
         };
-        // Ahead of the list's own keys, which take Right and Left before a handler of its rows hears them.
+        TreeKeys.Attach<VariableNode>(this, node => _ = Toggle(node), node =>
+        {
+            if (!node.IsQueryText || Tree.Rows.Any(r => r.IsEditing))
+            {
+                return false;
+            }
+            TextOpened?.Invoke(this, node);
+            return true;
+        });
+        // Ahead of the list's own keys, as the tree's are.
         AddHandler(KeyDownEvent, OnKey, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         // The menu is made again as the choice moves: each one made says as it closes.
         PropertyChanged += (_, e) =>
@@ -152,26 +161,6 @@ public sealed class VariablesList : ListBox
         }
         switch (e.Key)
         {
-            case Key.Right when node.HasChildren && !node.IsExpanded:
-            case Key.Enter when node.HasChildren:
-                _ = Toggle(node);
-                e.Handled = true;
-                break;
-            case Key.Enter when node.IsQueryText:
-                TextOpened?.Invoke(this, node);
-                e.Handled = true;
-                break;
-            case Key.Left when node.IsExpanded:
-                _ = Tree.Collapse(node);
-                e.Handled = true;
-                break;
-            case Key.Left when node.Parent is { } parent && Tree.Rows.Contains(parent):
-                // On a row that is closed, Left goes up to the row it opened from, as a tree's does.
-                SelectedItem = parent;
-                ScrollIntoView(parent);
-                Dispatcher.UIThread.Post(FocusRow, DispatcherPriority.Loaded);
-                e.Handled = true;
-                break;
             case Key.Delete or Key.Back when node.Role == VariableRole.Watch:
                 WatchRemoved?.Invoke(this, node.Name);
                 e.Handled = true;

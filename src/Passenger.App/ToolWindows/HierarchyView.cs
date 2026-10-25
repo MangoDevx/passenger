@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -18,15 +17,34 @@ public sealed record HierarchyNode(HierarchyItem Item, string Path, TextPosition
 public sealed record HierarchyDirection(string Label, Func<HierarchyItem, Task<IReadOnlyList<HierarchyNode>>> Load);
 
 /// <summary>A row of the tree: a node at its depth, open or not, its next level found the first time it opens.</summary>
-public sealed class HierarchyRow(HierarchyNode node, int depth) : Observable
+public sealed class HierarchyRow(HierarchyNode node, int depth) : Observable, ITreeRow
 {
     private bool expanded;
+    private List<HierarchyRow>? below;
 
     public HierarchyNode Node { get; } = node;
     public int Depth { get; } = depth;
 
     /// <summary>The next level, once asked for; empty for a leaf.</summary>
-    public IReadOnlyList<HierarchyNode>? Children { get; internal set; }
+    public IReadOnlyList<HierarchyNode>? Children
+    {
+        get => children;
+        internal set
+        {
+            if (Set(ref children, value))
+            {
+                Raise(nameof(Expands));
+            }
+        }
+    }
+
+    private IReadOnlyList<HierarchyNode>? children;
+
+    /// <summary>The next level's rows, made the first time it opens.</summary>
+    internal IReadOnlyList<HierarchyRow>? Below => Children is null ? null : below ??= [.. Children.Select(c => new HierarchyRow(c, Depth + 1))];
+
+    /// <summary>Whether it may open: a level not yet asked for may have rows.</summary>
+    public bool Expands => Children is not { Count: 0 };
 
     public bool IsExpanded
     {
@@ -37,10 +55,11 @@ public sealed class HierarchyRow(HierarchyNode node, int depth) : Observable
 
 /// <summary>The Hierarchy window, for calls (Ctrl+Alt+H) and types (Ctrl+E, H): the symbol at the top, and under it
 /// a tree going one way, callers or callees, supertypes or subtypes, each level asked of the language server as it is
-/// opened. The toggles switch the direction; Enter or a double-click goes to a row, Right and Left open and close.</summary>
+/// opened. The toggles switch the direction; Enter or a double-click goes to a row, Right and Left open and close
+/// (<see cref="TreeKeys"/>).</summary>
 public sealed class HierarchyView : DockPanel
 {
-    private readonly ObservableCollection<HierarchyRow> rows = [];
+    private readonly TreeRows<HierarchyRow> rows = [];
     private readonly ListBox list;
     private readonly TextBlock title;
     private readonly ToggleButton first;
@@ -71,7 +90,11 @@ public sealed class HierarchyView : DockPanel
             ItemTemplate = new FuncDataTemplate<HierarchyRow>((row, _) => row is null ? new TextBlock() : Row(row), supportsRecycling: false),
         };
         list.DoubleTapped += (_, _) => Go();
-        list.KeyDown += OnKey;
+        TreeKeys.Attach<HierarchyRow>(list, Toggle, row =>
+        {
+            GoToRequested?.Invoke(this, row.Node);
+            return true;
+        });
         placeholder = new TextBlock { Text = "Call Hierarchy and Type Hierarchy show the symbol at the caret here", Classes = { "emptyText" } };
         Children.Add(new Panel { Children = { list, placeholder } });
         first.IsVisible = second.IsVisible = false;
@@ -139,67 +162,41 @@ public sealed class HierarchyView : DockPanel
             row.Children = [];
             Failed?.Invoke(this, $"{way.Label} of {row.Node.Item.Name} could not be listed: {failed.Reason}");
         }
-        int at = rows.IndexOf(row);
-        if (at < 0)
+        if (!rows.Contains(row))
         {
             return;
         }
         row.IsExpanded = true;
-        for (int i = 0; i < row.Children.Count; i++)
-        {
-            rows.Insert(at + 1 + i, new HierarchyRow(row.Children[i], row.Depth + 1));
-        }
-        Refresh(row);
+        rows.Open(row, TreeRows<HierarchyRow>.Shown(row.Below ?? [], r => r.Below));
+        Choose(row);
     }
 
     public void Collapse(HierarchyRow row)
     {
-        int at = rows.IndexOf(row);
-        if (at < 0 || !row.IsExpanded)
+        if (!row.IsExpanded || !rows.Contains(row))
         {
             return;
-        }
-        while (at + 1 < rows.Count && rows[at + 1].Depth > row.Depth)
-        {
-            rows.RemoveAt(at + 1);
         }
         row.IsExpanded = false;
-        Refresh(row);
+        rows.Close(row);
+        Choose(row);
     }
 
-    private void Refresh(HierarchyRow row)
+    /// <summary>Opens a row, or closes it, as a click on its chevron does.</summary>
+    public void Toggle(HierarchyRow row)
     {
-        // The row's chevron changes with it; its template is drawn again.
-        int at = rows.IndexOf(row);
-        if (at >= 0)
+        if (row.IsExpanded)
         {
-            rows[at] = row;
-            list.SelectedIndex = at;
+            Collapse(row);
+        }
+        else
+        {
+            _ = ExpandAsync(row);
         }
     }
 
-    private void OnKey(object? sender, KeyEventArgs e)
-    {
-        if (list.SelectedItem is not HierarchyRow row)
-        {
-            return;
-        }
-        switch (e.Key)
-        {
-            case Key.Enter or Key.F4:
-                Go();
-                e.Handled = true;
-                break;
-            case Key.Right:
-                _ = ExpandAsync(row);
-                e.Handled = true;
-                break;
-            case Key.Left:
-                Collapse(row);
-                e.Handled = true;
-                break;
-        }
-    }
+    /// <summary>A row opened or closed is the one chosen.</summary>
+    private void Choose(HierarchyRow row) => list.SelectedItem = row;
 
     private void Go()
     {
@@ -211,18 +208,15 @@ public sealed class HierarchyView : DockPanel
 
     private Control Row(HierarchyRow row)
     {
-        PathIcon chevron = new() { Width = 10, Height = 10, Margin = new Thickness(0, 0, 4, 0), IsVisible = row.Children is not { Count: 0 } };
-        chevron.Bind(PathIcon.DataProperty, chevron.GetResourceObservable(row.IsExpanded ? "Icon.ChevronDown" : "Icon.ChevronRight"));
+        PathIcon chevron = new() { Width = 10, Height = 10, Margin = new Thickness(0, 0, 4, 0) };
+        row.FollowWhileShown(chevron, (_, _) =>
+        {
+            chevron.IsVisible = row.Expands;
+            chevron.Bind(PathIcon.DataProperty, chevron.GetResourceObservable(row.IsExpanded ? "Icon.ChevronDown" : "Icon.ChevronRight"));
+        });
         chevron.PointerPressed += (_, e) =>
         {
-            if (row.IsExpanded)
-            {
-                Collapse(row);
-            }
-            else
-            {
-                _ = ExpandAsync(row);
-            }
+            Toggle(row);
             e.Handled = true;
         };
         TextBlock name = new() { Text = row.Node.Item.Name, VerticalAlignment = VerticalAlignment.Center, FontWeight = row.Depth == 0 ? FontWeight.SemiBold : FontWeight.Normal };

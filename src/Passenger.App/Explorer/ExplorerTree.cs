@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using Avalonia;
 using Avalonia.Media;
 using Passenger.App.Workspace;
@@ -34,7 +33,7 @@ public sealed class ExplorerTree
 
     private IReadOnlyDictionary<string, Vcs.ChangeKind> changes = new Dictionary<string, Vcs.ChangeKind>();
 
-    public ObservableCollection<ExplorerNode> Rows { get; } = [];
+    public TreeRows<ExplorerNode> Rows { get; } = [];
 
     /// <summary>Colours the files version control says changed.</summary>
     public void SetChanges(IReadOnlyDictionary<string, Vcs.ChangeKind> changed)
@@ -203,12 +202,12 @@ public sealed class ExplorerTree
             return;
         }
         node.IsExpanded = true;
-        int at = Rows.IndexOf(node) + 1;
-        foreach (ExplorerNode child in Visible(node))
+        List<ExplorerNode> shown = [.. Visible(node)];
+        foreach (ExplorerNode child in shown)
         {
             Mark(child);
-            Rows.Insert(at++, child);
         }
+        Rows.Open(node, shown);
     }
 
     public void Collapse(ExplorerNode node)
@@ -217,12 +216,8 @@ public sealed class ExplorerTree
         {
             return;
         }
-        int at = Rows.IndexOf(node) + 1;
-        while (at < Rows.Count && Rows[at].Depth > node.Depth)
-        {
-            Rows.RemoveAt(at);
-        }
         node.IsExpanded = false;
+        Rows.Close(node);
     }
 
     /// <summary>Reads again only the folders (and projects) that hold these, keeping the rows still there as they were (open,
@@ -262,22 +257,12 @@ public sealed class ExplorerTree
             return;
         }
         List<ExplorerNode> wanted = [Root, .. Visible(Root)];
-        HashSet<ExplorerNode> keep = [.. wanted];
-        for (int at = Rows.Count - 1; at >= 0; at--)
+        HashSet<ExplorerNode> shown = [.. Rows];
+        foreach (ExplorerNode node in wanted.Where(n => !shown.Contains(n)))
         {
-            if (!keep.Contains(Rows[at]))
-            {
-                Rows.RemoveAt(at);
-            }
+            Mark(node);
         }
-        for (int at = 0; at < wanted.Count; at++)
-        {
-            if (at >= Rows.Count || Rows[at] != wanted[at])
-            {
-                Mark(wanted[at]);
-                Rows.Insert(at, wanted[at]);
-            }
-        }
+        Rows.Show(wanted);
     }
 
     /// <summary>The node and every one under it whose children have been read.</summary>
@@ -606,24 +591,11 @@ public sealed class ExplorerTree
         files.Where(parents.ContainsKey).ToLookup(file => parents[file], PathNames.Comparer);
 
     /// <summary>A node's descendants as rows, in order, through every node already open.</summary>
-    private static IEnumerable<ExplorerNode> Visible(ExplorerNode node)
-    {
-        foreach (ExplorerNode child in node.Children ?? [])
-        {
-            yield return child;
-            if (child.IsExpanded)
-            {
-                foreach (ExplorerNode below in Visible(child))
-                {
-                    yield return below;
-                }
-            }
-        }
-    }
+    private static IEnumerable<ExplorerNode> Visible(ExplorerNode node) => TreeRows<ExplorerNode>.Shown(node.Children ?? [], child => child.Children);
 }
 
 /// <summary>One row of the Explorer: a folder or file, or a part of the solution.</summary>
-public sealed class ExplorerNode : Observable
+public sealed class ExplorerNode : Observable, ITreeRow
 {
     private readonly Func<ExplorerNode, List<ExplorerNode>>? load;
     private List<ExplorerNode>? children;
@@ -720,6 +692,9 @@ public sealed class ExplorerNode : Observable
     public bool LeavesFilesBehind => Kind is NodeKind.Project or NodeKind.SolutionFolder or NodeKind.ProjectReference || IsSolutionItem;
 
     public bool HasChildren => load is not null;
+
+    bool ITreeRow.Expands => HasChildren;
+
     public bool IsFile => Kind == NodeKind.File;
     public List<ExplorerNode>? Children => load is null ? null : children ??= load(this);
 

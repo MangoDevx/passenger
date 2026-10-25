@@ -74,6 +74,8 @@ public sealed class BranchesTests : IDisposable
         Ui.Settle();
         Assert.Equal(["HEAD (Current Branch)", "Local", "  team", "    login"], Listed(panel));
         panel.SearchText = string.Empty;
+        Ui.Settle();
+        TreeKeysCheck.Press(window, panel.Rows, panel.Rows.Single(r => r.Title == "Remote"), "the branches panel");
         window.Close();
     }
 

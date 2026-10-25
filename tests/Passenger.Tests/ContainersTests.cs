@@ -427,7 +427,8 @@ public sealed class ContainersTests
         MainWindow window = Ui.OpenFolder(TestFolders.Create("ctr-volume-"));
         ContainersView view = Shown(window);
         Ui.WaitFor(() => view.Rows.Any(r => r.Key == "group:Volumes"), "the Volumes heading");
-        view.Toggle(view.Rows.First(r => r.Key == "group:Volumes"));
+        ListBox list = view.GetVisualDescendants().OfType<ListBox>().First(l => l.ItemsSource is IEnumerable<RunItem<ContainerRow>>);
+        TreeKeysCheck.Press(window, list.ItemsSource!, list.Items.OfType<RunItem<ContainerRow>>().First(i => i.Key == "group:Volumes"), i => i.Data, "the Containers window");
         Ui.WaitFor(() => view.Choose(r => r.Kind == ContainerRowKind.Volume && r.Label == volume), $"{volume}'s row");
 
         Assert.True(window.Perform(AppActions.ContainerRemove), "Remove did not run");

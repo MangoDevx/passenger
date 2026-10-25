@@ -159,18 +159,18 @@ public static class RunRows
             return view;
         }, supportsRecycling: false);
 
-    /// <summary>A list of such rows opens and closes a row by a double click and by Enter.</summary>
-    public static void Toggles(ListBox list, Func<bool> expands, Action toggle)
+    /// <summary>A list of such rows opens and closes a row by a double click, and takes a tree's keys (<see cref="TreeKeys"/>).</summary>
+    public static void Toggles<T>(ListBox list, Action<T> toggle)
+        where T : class, ITreeRow
     {
-        list.DoubleTapped += (_, _) => toggle();
-        list.KeyDown += (_, e) =>
+        list.DoubleTapped += (_, _) =>
         {
-            if (e.Key == Key.Enter && expands())
+            if (list.SelectedItem is RunItem<T> { Data.Expands: true } item)
             {
-                toggle();
-                e.Handled = true;
+                toggle(item.Data);
             }
         };
+        TreeKeys.Attach<RunItem<T>>(list, item => item.Data, item => toggle(item.Data));
     }
 
     /// <summary>The state dot's colour: running green, unhealthy or failed red, between states amber, the rest muted.</summary>

@@ -334,6 +334,20 @@ public sealed class ExplorerFilesTests : IDisposable
         }
     }
 
+    [AvaloniaFact]
+    public void The_explorers_keys_open_and_close_a_folder_go_up_from_its_file_and_open_a_file_on_enter()
+    {
+        File.WriteAllText(Path.Combine(folder, "Models", "Order.cs"), "class Order { }\n");
+        MainWindow window = Open();
+        ExplorerNode order = Row(window, Path.Combine("Models", "Order.cs"));
+        ExplorerNode models = window.ExplorerView.Tree.Rows.Holder(order)!;
+        TreeKeysCheck.Press(window, window.ExplorerView.Tree.Rows, models, "the Explorer");
+        Ui.Press(window, "Down");
+        Ui.Press(window, "Enter");
+        Assert.True(window.EditorArea.Active?.Path == order.Path, $"Enter on a file in the Explorer did not open it: the status bar says '{window.Status}'");
+        window.Close();
+    }
+
     /// <summary>A file's row, opened to and chosen in the Explorer by its name in the folder.</summary>
     private ExplorerNode Row(MainWindow window, string name)
     {

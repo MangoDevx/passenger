@@ -104,7 +104,7 @@ public sealed class ContainersView : DockPanel
                 RowChosen?.Invoke(this, EventArgs.Empty);
             }
         };
-        RunRows.Toggles(list, () => Chosen is { Expands: true }, () => Toggle(Chosen));
+        RunRows.Toggles<ContainerRow>(list, Toggle);
         // The service actions first (greyed with why where it is no .NET service of the run under way), then the row's own.
         ListMenus.Attach(list, () => Chosen is not { Kind: not ContainerRowKind.Group } ? [] :
         [

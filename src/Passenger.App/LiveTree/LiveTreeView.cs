@@ -13,13 +13,21 @@ using Passenger.Inspector;
 namespace Passenger.App.LiveTree;
 
 /// <summary>A row of the tree: an element at its depth, open or not.</summary>
-public sealed class LiveTreeRow(Element element, int depth, bool expanded)
+public sealed class LiveTreeRow(Element element, int depth, bool expanded) : Observable, ITreeRow
 {
+    private bool isExpanded = expanded;
+
     public Element Element { get; } = element;
 
     public int Depth { get; } = depth;
 
-    public bool IsExpanded { get; } = expanded;
+    public bool Expands => Element.Children.Count > 0;
+
+    public bool IsExpanded
+    {
+        get => isExpanded;
+        internal set => Set(ref isExpanded, value);
+    }
 }
 
 /// <summary>The details' three pages.</summary>
@@ -37,7 +45,7 @@ public enum LiveTreePage
 /// <see cref="LiveTreeController"/> asks the app.</summary>
 public sealed class LiveTreeView : DockPanel
 {
-    private readonly ObservableCollection<LiveTreeRow> rows = [];
+    private readonly TreeRows<LiveTreeRow> rows = [];
     private readonly ListBox tree;
     private readonly TextBlock placeholder;
     private readonly TextBlock status;
@@ -96,7 +104,15 @@ public sealed class LiveTreeView : DockPanel
                 ElementChosen?.Invoke(this, row.Element.Id);
             }
         };
-        tree.KeyDown += OnTreeKey;
+        TreeKeys.Attach<LiveTreeRow>(tree, Toggle, row =>
+        {
+            if (Details is not { Source: { } source } || Details.Id != row.Element.Id)
+            {
+                return false;
+            }
+            GoToRequested?.Invoke(this, source);
+            return true;
+        });
         placeholder = new TextBlock { Classes = { "emptyText" } };
 
         heading = new StackPanel { [DockProperty] = Dock.Top, Margin = new Thickness(10, 8, 10, 4), Spacing = 2 };
@@ -397,14 +413,7 @@ public sealed class LiveTreeView : DockPanel
         choosing = true;
         try
         {
-            rows.Clear();
-            if (shown is not null)
-            {
-                foreach (Element root in shown.Roots)
-                {
-                    Add(root, 0);
-                }
-            }
+            rows.Show([.. (shown?.Roots ?? []).SelectMany(root => RowsOf(root, 0))]);
             if (select is long id && rows.FirstOrDefault(r => r.Element.Id == id) is { } row)
             {
                 tree.SelectedItem = row;
@@ -416,16 +425,14 @@ public sealed class LiveTreeView : DockPanel
         }
     }
 
-    private void Add(Element element, int depth)
+    /// <summary>An element's row, and the rows under it while it is open.</summary>
+    private IEnumerable<LiveTreeRow> RowsOf(Element element, int depth)
     {
-        bool expanded = element.Children.Count > 0 && IsOpen(element, depth);
-        rows.Add(new LiveTreeRow(element, depth, expanded));
-        if (expanded)
+        LiveTreeRow row = new(element, depth, element.Children.Count > 0 && IsOpen(element, depth));
+        yield return row;
+        foreach (LiveTreeRow below in row.IsExpanded ? element.Children.SelectMany(child => RowsOf(child, depth + 1)) : [])
         {
-            foreach (Element child in element.Children)
-            {
-                Add(child, depth + 1);
-            }
+            yield return below;
         }
     }
 
@@ -453,7 +460,7 @@ public sealed class LiveTreeView : DockPanel
         return null;
     }
 
-    /// <summary>Opens a row, or closes it.</summary>
+    /// <summary>Opens a row, or closes it, where it is: the rows round it, and the one chosen, stay as they are.</summary>
     public void Toggle(LiveTreeRow row)
     {
         long id = row.Element.Id;
@@ -461,44 +468,28 @@ public sealed class LiveTreeView : DockPanel
         {
             opened.Remove(id);
             closed.Add(id);
+            row.IsExpanded = false;
+            rows.Close(row);
         }
-        else
+        else if (row.Expands)
         {
             closed.Remove(id);
             opened.Add(id);
-        }
-        Rebuild(Details?.Id ?? (tree.SelectedItem as LiveTreeRow)?.Element.Id);
-    }
-
-    private void OnTreeKey(object? sender, KeyEventArgs e)
-    {
-        if (tree.SelectedItem is not LiveTreeRow row)
-        {
-            return;
-        }
-        if ((e.Key == Key.Right && !row.IsExpanded && row.Element.Children.Count > 0) || (e.Key == Key.Left && row.IsExpanded))
-        {
-            Toggle(row);
-            e.Handled = true;
-        }
-        else if (e.Key is Key.Enter or Key.F4 && Details is { Source: { } source } && Details.Id == row.Element.Id)
-        {
-            GoToRequested?.Invoke(this, source);
-            e.Handled = true;
+            row.IsExpanded = true;
+            rows.Open(row, row.Element.Children.SelectMany(child => RowsOf(child, row.Depth + 1)));
         }
     }
 
     private Control Row(LiveTreeRow row)
     {
         Element element = row.Element;
-        PathIcon chevron = new() { Width = 10, Height = 10, Margin = new Thickness(0, 0, 4, 0), Opacity = element.Children.Count > 0 ? 1 : 0 };
-        chevron.Bind(PathIcon.DataProperty, chevron.GetResourceObservable(row.IsExpanded ? "Icon.ChevronDown" : "Icon.ChevronRight"));
+        PathIcon chevron = new() { Width = 10, Height = 10, Margin = new Thickness(0, 0, 4, 0), Opacity = row.Expands ? 1 : 0 };
+        void Point() => chevron.Bind(PathIcon.DataProperty, chevron.GetResourceObservable(row.IsExpanded ? "Icon.ChevronDown" : "Icon.ChevronRight"));
+        Point();
+        row.FollowWhileShown(chevron, (_, _) => Point());
         chevron.PointerPressed += (_, e) =>
         {
-            if (element.Children.Count > 0)
-            {
-                Toggle(row);
-            }
+            Toggle(row);
             e.Handled = true;
         };
         TextBlock type = new() { Text = element.Type, VerticalAlignment = VerticalAlignment.Center };

@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -17,7 +16,7 @@ namespace Passenger.App.ToolWindows;
 public sealed record Usage(string Path, int Line, int Column, int Length, string LineText, UsageKind Kind, string Project);
 
 /// <summary>A row of the Find window's tree: a kind of usage, a project, a file, or a usage, at its depth.</summary>
-public sealed class FindRow(string label, string? detail, int depth, Usage? usage, IReadOnlyList<FindRow> children) : Observable
+public sealed class FindRow(string label, string? detail, int depth, Usage? usage, IReadOnlyList<FindRow> children) : Observable, ITreeRow
 {
     private bool expanded = true;
 
@@ -29,6 +28,8 @@ public sealed class FindRow(string label, string? detail, int depth, Usage? usag
     public Usage? Usage { get; } = usage;
 
     public IReadOnlyList<FindRow> Children { get; } = children;
+
+    public bool Expands => Children.Count > 0;
 
     public bool IsExpanded
     {
@@ -56,7 +57,7 @@ public sealed class FindView : DockPanel
     ];
 
     private readonly List<Search> searches = [];
-    private readonly ObservableCollection<FindRow> rows = [];
+    private readonly TreeRows<FindRow> rows = [];
     private readonly StackPanel tabs = new() { Orientation = Orientation.Horizontal, Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
     private readonly ListBox list;
     private readonly CodeEditor preview;
@@ -90,8 +91,15 @@ public sealed class FindView : DockPanel
         };
         list.SelectionChanged += (_, _) => ShowPreview();
         list.DoubleTapped += (_, _) => Go();
-        // Seen before the list's own keys, which take Enter and the arrows for its selection.
-        list.AddHandler(KeyDownEvent, OnKey, Avalonia.Interactivity.RoutingStrategies.Tunnel);
+        TreeKeys.Attach<FindRow>(list, Toggle, row =>
+        {
+            if (row.Usage is not { } usage)
+            {
+                return false;
+            }
+            GoToRequested?.Invoke(this, usage);
+            return true;
+        });
         preview = new CodeEditor { IsReadOnly = true, ShowErrorStripe = false, LineCommentPrefix = null, FontSize = 12.5, Document = new TextDocument() };
         Grid body = new() { ColumnDefinitions = new ColumnDefinitions("*,1,*") };
         HairlineDivider divider = new(GridResizeDirection.Columns) { [Grid.ColumnProperty] = 1 };
@@ -176,62 +184,47 @@ public sealed class FindView : DockPanel
 
     public void Expand(FindRow row)
     {
-        int at = rows.IndexOf(row);
-        if (at < 0 || row.IsExpanded || row.Children.Count == 0)
+        if (row.IsExpanded || !row.Expands || !rows.Contains(row))
         {
             return;
         }
         row.IsExpanded = true;
-        int index = at + 1;
-        foreach (FindRow child in Visible(row.Children))
-        {
-            rows.Insert(index++, child);
-        }
-        Redraw(row);
+        rows.Open(row, TreeRows<FindRow>.Shown(row.Children, r => r.Children));
+        Choose(row);
     }
 
     public void Collapse(FindRow row)
     {
-        int at = rows.IndexOf(row);
-        if (at < 0 || !row.IsExpanded)
+        if (!row.IsExpanded || !rows.Contains(row))
         {
             return;
         }
-        while (at + 1 < rows.Count && rows[at + 1].Depth > row.Depth)
-        {
-            rows.RemoveAt(at + 1);
-        }
         row.IsExpanded = false;
-        Redraw(row);
+        rows.Close(row);
+        Choose(row);
+    }
+
+    /// <summary>Opens a group, or closes it, as a click on its chevron does.</summary>
+    public void Toggle(FindRow row)
+    {
+        if (row.IsExpanded)
+        {
+            Collapse(row);
+        }
+        else
+        {
+            Expand(row);
+        }
     }
 
     private void ShowSearch(Search search)
     {
         current = search;
-        rows.Clear();
-        foreach (FindRow row in Visible(search.Roots))
-        {
-            rows.Add(row);
-        }
+        rows.Show([.. TreeRows<FindRow>.Shown(search.Roots, r => r.Children)]);
         Body.IsVisible = true;
         placeholder.IsVisible = false;
         DrawTabs();
         list.SelectedItem = rows.FirstOrDefault(r => r.Usage is not null);
-    }
-
-    private static IEnumerable<FindRow> Visible(IEnumerable<FindRow> level)
-    {
-        foreach (FindRow row in level)
-        {
-            yield return row;
-            if (row.IsExpanded)
-            {
-                foreach (FindRow child in Visible(row.Children))
-                {
-                    yield return child;
-                }
-            }
-        }
     }
 
     private void DrawTabs()
@@ -288,29 +281,6 @@ public sealed class FindView : DockPanel
         preview.GoTo(snapshot.GetPosition(start));
     }
 
-    private void OnKey(object? sender, KeyEventArgs e)
-    {
-        if (Selected is not { } row)
-        {
-            return;
-        }
-        switch (e.Key)
-        {
-            case Key.Enter or Key.F4:
-                Go();
-                e.Handled = true;
-                break;
-            case Key.Right:
-                Expand(row);
-                e.Handled = true;
-                break;
-            case Key.Left:
-                Collapse(row);
-                e.Handled = true;
-                break;
-        }
-    }
-
     private void Go()
     {
         if (Selected is { Usage: { } usage })
@@ -319,27 +289,12 @@ public sealed class FindView : DockPanel
         }
         else if (Selected is { } group)
         {
-            if (group.IsExpanded)
-            {
-                Collapse(group);
-            }
-            else
-            {
-                Expand(group);
-            }
+            Toggle(group);
         }
     }
 
-    private void Redraw(FindRow row)
-    {
-        // The row's chevron changes with it; its template is drawn again.
-        int at = rows.IndexOf(row);
-        if (at >= 0)
-        {
-            rows[at] = row;
-            list.SelectedIndex = at;
-        }
-    }
+    /// <summary>A group opened or closed is the one chosen.</summary>
+    private void Choose(FindRow row) => list.SelectedItem = row;
 
     private Control Row(FindRow row)
     {
@@ -353,17 +308,10 @@ public sealed class FindView : DockPanel
             return panel;
         }
         PathIcon chevron = new() { Width = 10, Height = 10, Margin = new Thickness(0, 0, 6, 0) };
-        chevron.Bind(PathIcon.DataProperty, chevron.GetResourceObservable(row.IsExpanded ? "Icon.ChevronDown" : "Icon.ChevronRight"));
+        row.FollowWhileShown(chevron, (_, _) => chevron.Bind(PathIcon.DataProperty, chevron.GetResourceObservable(row.IsExpanded ? "Icon.ChevronDown" : "Icon.ChevronRight")));
         chevron.PointerPressed += (_, e) =>
         {
-            if (row.IsExpanded)
-            {
-                Collapse(row);
-            }
-            else
-            {
-                Expand(row);
-            }
+            Toggle(row);
             e.Handled = true;
         };
         panel.Children.Add(chevron);

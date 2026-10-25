@@ -22,8 +22,16 @@ public partial class ExplorerView : UserControl
     {
         InitializeComponent();
         Rows.ItemsSource = Tree.Rows;
-        // Ahead of the list's own keys: it takes Enter for its selection, so a row would never open.
-        Rows.AddHandler(KeyDownEvent, OnRowsKeyDown, RoutingStrategies.Tunnel);
+        // Every key the keymap gives an action (Rename, Delete, the clipboard's) is the window's, run on the chosen row.
+        TreeKeys.Attach<ExplorerNode>(Rows, Tree.Toggle, node =>
+        {
+            if (!node.IsFile || node.Path is not { } path)
+            {
+                return false;
+            }
+            FileOpened?.Invoke(this, path);
+            return true;
+        });
         Surface.Children.Add(drop);
         drag = new DragGesture<IReadOnlyList<ExplorerNode>>(Surface, drop, DropZoneAt, (items, at) =>
         {
@@ -380,19 +388,6 @@ public partial class ExplorerView : UserControl
         return null;
     }
 
-    /// <summary>The row of what holds a row: the nearest above it, less deep.</summary>
-    private ExplorerNode? Holder(ExplorerNode row)
-    {
-        for (int at = Tree.Rows.IndexOf(row) - 1; at >= 0; at--)
-        {
-            if (Tree.Rows[at].Depth < row.Depth)
-            {
-                return Tree.Rows[at];
-            }
-        }
-        return null;
-    }
-
     /// <summary>The folder or project what is dragged would go into at a point: the one under it, or a file's; none where
     /// it would not move (all of it there already) or a folder would go inside itself.</summary>
     private ExplorerNode? TargetAt(IReadOnlyList<ExplorerNode> items, Point at)
@@ -405,7 +400,7 @@ public partial class ExplorerView : UserControl
         ExplorerNode? target = row;
         while (target is { Kind: NodeKind.File })
         {
-            target = Holder(target);
+            target = Tree.Rows.Holder(target);
         }
         if (target?.Into is not { } into)
         {
@@ -443,39 +438,5 @@ public partial class ExplorerView : UserControl
             }
         }
         return place is { } lit ? new DropZone(lit.Intersect(new Rect(Surface.Bounds.Size))) : null;
-    }
-
-    /// <summary>The tree's own keys: Enter opens a row, Right and Left open and close a folder or go to what holds a row.
-    /// Every key the keymap gives an action (Rename, Delete, the clipboard's) is the window's, run on the chosen row.</summary>
-    private void OnRowsKeyDown(object? sender, KeyEventArgs e)
-    {
-        if (Rows.SelectedItem is not ExplorerNode node)
-        {
-            return;
-        }
-        switch (e.Key)
-        {
-            case Key.Enter:
-                Activate(node);
-                e.Handled = true;
-                break;
-            case Key.Right when node.HasChildren && !node.IsExpanded:
-                Tree.Expand(node);
-                e.Handled = true;
-                break;
-            case Key.Left when node.HasChildren && node.IsExpanded:
-                Tree.Collapse(node);
-                e.Handled = true;
-                break;
-            case Key.Left when node.Depth > 0:
-                int at = Tree.Rows.IndexOf(node);
-                while (at > 0 && Tree.Rows[at].Depth >= node.Depth)
-                {
-                    at--;
-                }
-                Rows.SelectedIndex = at;
-                e.Handled = true;
-                break;
-        }
     }
 }

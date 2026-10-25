@@ -66,6 +66,7 @@ public sealed class AvaloniaFramesTests : IClassFixture<RestoredFolders>, IDispo
         Assert.True(panel.Cost.Work.Measures >= 31, $"The slow panel was measured {panel.Cost.Work.Measures} times");
         Assert.True(panel.Cost.Work.MeasureSelfMs >= 30 * 29.5, $"The slow panel's own measuring came to {panel.Cost.Work.MeasureSelfMs:0} ms");
         Assert.Contains("frames:", frames.Summary, StringComparison.Ordinal);
+        TreeKeysCheck.Press(window, frames.Rows, frames.Rows[0], "the Frames page's layout");
 
         int chosen = frames.Frames.ToList().IndexOf(slow[5]);
         frames.Chart.Select(chosen);

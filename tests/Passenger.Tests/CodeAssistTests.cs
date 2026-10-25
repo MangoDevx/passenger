@@ -425,6 +425,7 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
             Assert.True(usages.DistinctBy(u => (u.Path, u.Line, u.Column)).Count() == usages.Count,
                 $"The Find window lists a place of {title[10..]} more than once: {string.Join("; ", usages.Select(u => $"{u.Line + 1}:{u.Column + 1} {u.LineText.Trim()}"))}");
         }
+        TreeKeysCheck.Press(window, find.Rows, find.Rows[0], "the Find window");
         window.Close();
 
         // The rows under a group of what usages do, to the next group.
@@ -1781,6 +1782,11 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         HierarchyRow caller = window.Hierarchy.Rows[1];
         Assert.Equal(PathNames.Canonical(project.PathOf("Program.cs")), caller.Node.Path);
         Assert.Equal(4, caller.Node.Where.Line);
+        TreeKeysCheck.Press(window, window.Hierarchy.Rows, window.Hierarchy.Rows[0], "the Hierarchy window", enterOpens: false);
+        Ui.Press(window, "Right");
+        Ui.Press(window, "Down");
+        Ui.Press(window, "Enter");
+        Assert.True(window.EditorArea.Active?.Path == caller.Node.Path, "Enter on a caller in the Hierarchy window did not go to its call");
 
         Task callees = window.Hierarchy.ChooseAsync(first: false);
         Ui.WaitFor(() => callees.IsCompleted, "the callees");

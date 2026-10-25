@@ -465,6 +465,8 @@ public sealed class AspireStandInTests(StandInAppHost project) : IClassFixture<S
             Ui.Click(Chevron(window, "apiservice"));
             Ui.WaitFor(() => window.Aspire.Rows.Count == 2, "the chevron to open the parent");
             Assert.Equal("apiservice", window.Aspire.SelectedResource?.Name);
+            ListBox resources = window.AspireWindow.ResourceList;
+            TreeKeysCheck.Press(window, resources.ItemsSource!, resources.Items.OfType<Passenger.App.ToolWindows.RunItem<AspireRow>>().First(i => i.Data.Resource.Name == "apiservice"), i => i.Data, "the Aspire window");
             worker.State = "Stopped";
             backend.PushResource(worker);
             Ui.WaitFor(() => window.Aspire.ResourceSnapshots.Any(resource => resource.Name == "worker" && resource.State == "Stopped"),

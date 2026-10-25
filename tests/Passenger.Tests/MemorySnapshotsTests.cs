@@ -206,6 +206,7 @@ public sealed class MemorySnapshotsTests : IDisposable
         Assert.Equal(cached, memory.PathRows[1].Node.RetainedBytes);
         Assert.Equal(cached, memory.PathRows[2].Node.RetainedBytes);
         Assert.Equal(RootKind.Handle, memory.PathRows[4].Node.Root?.Kind);
+        TreeKeysCheck.Press(window, memory.PathRows, memory.PathRows[0], "Shortest Paths to Roots");
 
         Ui.ClickButton(memory, "Key Retention Paths");
         Assert.Equal(

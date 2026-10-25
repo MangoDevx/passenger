@@ -22,8 +22,10 @@ public enum BranchNodeKind
 }
 
 /// <summary>A row of the branches panel: what it is, its name, how deep it sits, and the branch or tag it is.</summary>
-public sealed class BranchNode(BranchNodeKind kind, string title, string key, int depth, BranchInfo? branch = null)
+public sealed class BranchNode(BranchNodeKind kind, string title, string key, int depth, BranchInfo? branch = null) : Observable, ITreeRow
 {
+    private bool isExpanded;
+
     public BranchNodeKind Kind { get; } = kind;
 
     public string Title { get; } = title;
@@ -37,13 +39,19 @@ public sealed class BranchNode(BranchNodeKind kind, string title, string key, in
 
     public List<BranchNode> Children { get; } = [];
 
-    public bool IsExpanded { get; set; }
+    public bool IsExpanded
+    {
+        get => isExpanded;
+        set => Set(ref isExpanded, value);
+    }
 
     public bool IsFavorite { get; set; }
 
     public bool HasFavorites => Children.Any(c => c.IsFavorite || c.HasFavorites);
 
     public bool IsGroup => Kind is BranchNodeKind.Group or BranchNodeKind.Remote or BranchNodeKind.Folder;
+
+    bool ITreeRow.Expands => IsGroup;
 
     public override string ToString() => Title;
 }
@@ -81,7 +89,7 @@ public sealed class BranchesPanel : DockPanel
     private readonly Dictionary<string, bool> expanded = [];
     private readonly Button favorite;
     private List<BranchNode> roots = [];
-    private IReadOnlyList<BranchNode> rows = [];
+    private readonly TreeRows<BranchNode> rows = [];
     private int loads;
 
     public BranchesPanel(VcsController git)
@@ -90,6 +98,7 @@ public sealed class BranchesPanel : DockPanel
         list = new ListBox
         {
             Classes = { "tree" },
+            ItemsSource = rows,
             ItemTemplate = new FuncDataTemplate<BranchNode>((node, _) => node is null ? new TextBlock() : Row(node), supportsRecycling: false),
         };
         list.DoubleTapped += (_, e) =>
@@ -100,6 +109,15 @@ public sealed class BranchesPanel : DockPanel
                 e.Handled = true;
             }
         };
+        TreeKeys.Attach<BranchNode>(list, Toggle, node =>
+        {
+            if (node.IsGroup)
+            {
+                return false;
+            }
+            Activate(node);
+            return true;
+        });
         list.AddHandler(KeyDownEvent, OnKey, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         list.SelectionChanged += (_, _) => UpdateTools();
         ListMenus.Attach(list, () => Selected is { Branch: { } branch } ? Menu(branch) : []);
@@ -292,9 +310,22 @@ public sealed class BranchesPanel : DockPanel
         {
             return;
         }
-        expanded[node.Key] = !node.IsExpanded;
-        Show();
-        list.SelectedItem = rows.FirstOrDefault(r => r.Key == node.Key);
+        node.IsExpanded = !node.IsExpanded;
+        expanded[node.Key] = node.IsExpanded;
+        if (node.IsExpanded)
+        {
+            List<BranchNode> below = [];
+            foreach (BranchNode child in node.Children)
+            {
+                Flatten(child, below, SearchText.Trim().Length > 0);
+            }
+            rows.Open(node, below);
+        }
+        else
+        {
+            rows.Close(node);
+        }
+        list.SelectedItem = node;
     }
 
     /// <summary>A double-click or Enter: a group opens or closes, a branch or HEAD filters the log to it.</summary>
@@ -365,8 +396,7 @@ public sealed class BranchesPanel : DockPanel
         {
             Flatten(root, shown, text.Length > 0);
         }
-        rows = shown;
-        list.ItemsSource = rows;
+        rows.Show(shown);
         list.SelectedItem = rows.FirstOrDefault(r => r.Key == chosen);
         UpdateTools();
     }
@@ -466,9 +496,9 @@ public sealed class BranchesPanel : DockPanel
 
     private void UpdateTools() => favorite.IsEnabled = Selected is { Branch.Kind: not RefKind.Tag };
 
-    /// <summary>Rider's keys here: Enter filters the log, Delete (Backspace too on the Mac) deletes, F2 or Shift+F6 renames
-    /// a local branch on the Mac (Rename's Ctrl+R, R elsewhere, which the window routes here), Ctrl+Alt+N (Cmd+Alt+N) makes one
-    /// from the chosen, and Right and Left open and close a group.</summary>
+    /// <summary>Rider's keys here, beside the tree's (<see cref="TreeKeys"/>): Delete (Backspace too on the Mac) deletes, F2 or
+    /// Shift+F6 renames a local branch on the Mac (Rename's Ctrl+R, R elsewhere, which the window routes here), and
+    /// Ctrl+Alt+N (Cmd+Alt+N) makes one from the chosen.</summary>
     private void OnKey(object? sender, KeyEventArgs e)
     {
         bool mac = OperatingSystem.IsMacOS();
@@ -477,15 +507,7 @@ public sealed class BranchesPanel : DockPanel
             return;
         }
         KeyModifiers command = mac ? KeyModifiers.Meta : KeyModifiers.Control;
-        if (e.Key == Key.Enter && e.KeyModifiers == KeyModifiers.None)
-        {
-            Activate(node);
-        }
-        else if (node.IsGroup && e.KeyModifiers == KeyModifiers.None && (e.Key == Key.Right && !node.IsExpanded || e.Key == Key.Left && node.IsExpanded))
-        {
-            Toggle(node);
-        }
-        else if (node.Branch is { } branch && (e.Key == Key.Delete && e.KeyModifiers == KeyModifiers.None
+        if (node.Branch is { } branch && (e.Key == Key.Delete && e.KeyModifiers == KeyModifiers.None
             || mac && e.Key == Key.Back && e.KeyModifiers is KeyModifiers.None or KeyModifiers.Meta) && !branch.IsCurrent)
         {
             DeleteRequested?.Invoke(this, branch);
@@ -511,7 +533,7 @@ public sealed class BranchesPanel : DockPanel
         if (node.IsGroup)
         {
             PathIcon chevron = new() { Classes = { "chevron" }, Width = 10, Height = 10, Margin = new Thickness(4, 0, 4, 0) };
-            chevron.Bind(PathIcon.DataProperty, chevron.GetResourceObservable(node.IsExpanded ? "Icon.ChevronDown" : "Icon.ChevronRight"));
+            node.FollowWhileShown(chevron, (_, _) => chevron.Bind(PathIcon.DataProperty, chevron.GetResourceObservable(node.IsExpanded ? "Icon.ChevronDown" : "Icon.ChevronRight")));
             Border hit = new() { Background = Brushes.Transparent, Child = chevron, VerticalAlignment = VerticalAlignment.Center };
             hit.PointerPressed += (_, e) =>
             {

@@ -368,6 +368,7 @@ public sealed class UnitTestsTests : UnitTestsFolders, IClassFixture<RestoredFol
         File.Delete(Path.Combine(solution, "MSTest.Tests", "StoreTests.cs"));
         Ui.WaitFor(() => Method(window, "Written_elsewhere") is not null && Method(window, "Keeps") is null, "the tree to follow a file written and one deleted by another program");
         Assert.DoesNotContain("MSTest.Tests", Shown(window));
+        TreeKeysCheck.Press(window, window.Tests.Tree.Rows, window.Tests.Tree.Rows.First(r => r.Name == "Sums.Tests"), "the Unit Tests window");
 
         string plain = NewFolder();
         Write(plain, "Library/Library.csproj", TestProjects.Library());

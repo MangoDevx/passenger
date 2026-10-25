@@ -14,8 +14,10 @@ namespace Passenger.App.Aspire;
 
 /// <summary>A resource of the Aspire window's list at its depth: a parent's children are listed under it, opened and
 /// closed by its chevron.</summary>
-public sealed record AspireRow(AspireResource Resource, int Depth, bool Expands, bool Expanded)
+public sealed record AspireRow(AspireResource Resource, int Depth, bool Expands, bool Expanded) : ITreeRow
 {
+    bool ITreeRow.IsExpanded => Expanded;
+
     /// <summary>Whether its run left it unstarted, as its configuration says Don't start: Not started, never a failure.</summary>
     public bool LeftUnstarted { get; init; }
 }
@@ -97,7 +99,7 @@ public sealed class AspireView : DockPanel, IDisposable
                 RowChosen?.Invoke(this, EventArgs.Empty);
             }
         };
-        RunRows.Toggles(ResourceList, () => this.model.Chosen is { Expands: true }, () => this.model.Toggle(this.model.Chosen));
+        RunRows.Toggles<AspireRow>(ResourceList, row => this.model.Toggle(row));
         ListMenus.Attach(ResourceList, RowMenu);
         AppSelector.SelectionChanged += (_, _) =>
         {

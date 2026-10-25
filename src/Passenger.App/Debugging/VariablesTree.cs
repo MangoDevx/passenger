@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using Avalonia;
 using Passenger.Dap;
 
@@ -6,7 +5,7 @@ namespace Passenger.App.Debugging;
 
 /// <summary>A row of the Variables view: a local, a member, an element, a watch or an evaluated
 /// result. One with a reference opens into its children, asked of the debugger the first time.</summary>
-public sealed class VariableNode(string name, string value, string? type, int reference, int depth, VariableRole role) : Observable
+public sealed class VariableNode(string name, string value, string? type, int reference, int depth, VariableRole role) : Observable, ITreeRow
 {
     /// <summary>The most of a value its row, the row's tooltip and a hover show: a string of megabytes laid out whole would
     /// hold the window for seconds at every stop. Copy Value and Set Value take all of it.</summary>
@@ -121,6 +120,8 @@ public sealed class VariableNode(string name, string value, string? type, int re
     public VariableRole Role { get; } = role;
     public bool HasChildren => Reference > 0;
 
+    bool ITreeRow.Expands => HasChildren;
+
     /// <summary>The type in braces before the value, unless the value already says it.</summary>
     public string TypeLabel => Type is { Length: > 0 } t && Value != t && !Value.StartsWith(t, StringComparison.Ordinal) ? $"{{{t}}} " : string.Empty;
 
@@ -177,7 +178,7 @@ public enum VariableRole
 /// what is open so a virtualizing list draws only what is on screen; a node's children are fetched when it first opens.</summary>
 public sealed class VariablesTree
 {
-    public ObservableCollection<VariableNode> Rows { get; } = [];
+    public TreeRows<VariableNode> Rows { get; } = [];
 
     /// <summary>Asks the debugger for a reference's children: the session's, while one runs.</summary>
     public Func<int, Task<IReadOnlyList<DapVariable>>>? Load { get; set; }
@@ -237,16 +238,12 @@ public sealed class VariablesTree
                 node.Children = [new VariableNode("error", error.Reason, null, 0, node.Depth + 1, VariableRole.Error)];
             }
         }
-        int at = Rows.IndexOf(node);
-        if (at < 0)
+        if (!Rows.Contains(node))
         {
             return;
         }
         node.IsExpanded = true;
-        foreach (VariableNode child in node.Children)
-        {
-            Rows.Insert(++at, child);
-        }
+        Rows.Open(node, TreeRows<VariableNode>.Shown(node.Children, child => child.Children));
     }
 
     /// <summary>Opens a lazy row: the debugger asked for its value, which runs code in the program, and the row it reads as
@@ -297,12 +294,7 @@ public sealed class VariablesTree
             return Task.CompletedTask;
         }
         node.IsExpanded = false;
-        int at = Rows.IndexOf(node) + 1;
-        while (at < Rows.Count && Rows[at].Depth > node.Depth)
-        {
-            Rows[at].IsExpanded = false;
-            Rows.RemoveAt(at);
-        }
+        Rows.Close(node);
         return Task.CompletedTask;
     }
 }

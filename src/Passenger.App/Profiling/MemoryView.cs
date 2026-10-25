@@ -14,15 +14,19 @@ namespace Passenger.App.Profiling;
 
 /// <summary>A row of an object set's Shortest Paths to Roots: a step, how deep it sits, and whether the steps after it are
 /// listed under it.</summary>
-public sealed class RetentionRow(RetentionNode node, int depth, ObservableCollection<RetentionRow> list) : Observable
+public sealed class RetentionRow(RetentionNode node, int depth) : Observable, ITreeRow
 {
     private bool isExpanded;
+    private List<RetentionRow>? steps;
 
     public RetentionNode Node { get; } = node;
 
     public int Depth { get; } = depth;
 
-    public ObservableCollection<RetentionRow> List { get; } = list;
+    public bool Expands => Node.Children.Count > 0;
+
+    /// <summary>The rows of the steps after it, made the first time it opens.</summary>
+    public IReadOnlyList<RetentionRow> Steps => steps ??= [.. Node.Children.Select(c => new RetentionRow(c, Depth + 1))];
 
     public bool IsExpanded
     {
@@ -48,7 +52,7 @@ public sealed class MemoryView : DockPanel
     private readonly ListBox types;
     private readonly ListBox deltas;
     private readonly ListBox objects;
-    private readonly ObservableCollection<RetentionRow> pathRows = [];
+    private readonly TreeRows<RetentionRow> pathRows = [];
     private readonly ListBox paths;
     private readonly ListBox keyPaths;
     private readonly ToggleButton[] setTabs;
@@ -112,7 +116,7 @@ public sealed class MemoryView : DockPanel
         Table pathTable = new(("Path", 0), ("Objects", NumberWidth), ("Retained bytes", NumberWidth + 16));
         paths = List<RetentionRow>(row => pathTable.Row(PathStep(row), Number($"{row.Node.Objects:N0}"), Number(Size(row.Node.RetainedBytes))));
         paths.ItemsSource = pathRows;
-        paths.KeyDown += OnPathKey;
+        TreeKeys.Attach<RetentionRow>(paths, Toggle);
         pathsPage = Framed(pathTable.Header(null), paths);
 
         Table keyTable = new(("Key retention path", 0), ("Objects", NumberWidth), ("Retained bytes", NumberWidth + 16));
@@ -386,7 +390,7 @@ public sealed class MemoryView : DockPanel
     private void ShowPaths(RetentionNode top)
     {
         pathRows.Clear();
-        RetentionRow row = new(top, 0, pathRows);
+        RetentionRow row = new(top, 0);
         pathRows.Add(row);
         while (row.Node.Children.Count > 0)
         {
@@ -409,46 +413,20 @@ public sealed class MemoryView : DockPanel
         }
     }
 
-    private static void Expand(RetentionRow row)
+    private void Expand(RetentionRow row)
     {
-        if (row.IsExpanded || row.Node.Children.Count == 0)
+        if (row.IsExpanded || !row.Expands)
         {
             return;
         }
         row.IsExpanded = true;
-        int at = row.List.IndexOf(row) + 1;
-        foreach (RetentionNode child in row.Node.Children)
-        {
-            row.List.Insert(at++, new RetentionRow(child, row.Depth + 1, row.List));
-        }
+        pathRows.Open(row, TreeRows<RetentionRow>.Shown(row.Steps, r => r.Steps));
     }
 
-    private static void Collapse(RetentionRow row)
+    private void Collapse(RetentionRow row)
     {
-        int at = row.List.IndexOf(row) + 1;
-        while (at < row.List.Count && row.List[at].Depth > row.Depth)
-        {
-            row.List.RemoveAt(at);
-        }
         row.IsExpanded = false;
-    }
-
-    private void OnPathKey(object? sender, KeyEventArgs e)
-    {
-        if (paths.SelectedItem is not RetentionRow row)
-        {
-            return;
-        }
-        if (e.Key == Key.Right && !row.IsExpanded)
-        {
-            Expand(row);
-            e.Handled = true;
-        }
-        else if (e.Key == Key.Left && row.IsExpanded)
-        {
-            Collapse(row);
-            e.Handled = true;
-        }
+        pathRows.Close(row);
     }
 
     /// <summary>Enter on a row opens it, as a double-click does; the row takes Enter as handled already, so it is heard

@@ -69,19 +69,20 @@ public sealed class TestsView : DockPanel
         tree.SelectionChanged += (_, _) => ShowDetails();
         tree.DoubleTapped += (_, _) =>
         {
-            if (tree.SelectedItem is TestNode node)
+            if (tree.SelectedItem is not TestNode node)
             {
-                if (node.HasChildren && node.Kind != TestNodeKind.Method)
-                {
-                    model.Toggle(node);
-                }
-                else
-                {
-                    GoToRequested?.Invoke(this, node);
-                }
+                return;
+            }
+            if (node.HasChildren && node.Kind != TestNodeKind.Method)
+            {
+                model.Toggle(node);
+            }
+            else
+            {
+                GoToRequested?.Invoke(this, node);
             }
         };
-        tree.KeyDown += OnTreeKey;
+        TreeKeys.Attach<TestNode>(tree, model.Toggle, GoTo);
         ListMenus.Attach(tree, () => tree.SelectedItem is not TestNode chosen ? [] :
         [
             ListMenus.Item("Run", Keys(AppActions.RunTests), () => RunRequested?.Invoke(this, false)),
@@ -333,24 +334,15 @@ public sealed class TestsView : DockPanel
         }, DispatcherPriority.Background);
     }
 
-    private void OnTreeKey(object? sender, KeyEventArgs e)
+    /// <summary>Goes to a class's, a method's or a data row's code; false for a group, which stands for no code of its own.</summary>
+    private bool GoTo(TestNode node)
     {
-        if (tree.SelectedItem is not TestNode node)
+        if (node.Kind is not (TestNodeKind.Class or TestNodeKind.Method or TestNodeKind.Row))
         {
-            return;
+            return false;
         }
-        switch (e.Key)
-        {
-            case Key.Right when node.HasChildren && !node.IsExpanded:
-            case Key.Left when node.IsExpanded:
-                Model.Toggle(node);
-                e.Handled = true;
-                break;
-            case Key.Enter or Key.F4:
-                GoToRequested?.Invoke(this, node);
-                e.Handled = true;
-                break;
-        }
+        GoToRequested?.Invoke(this, node);
+        return true;
     }
 
     /// <summary>The search, its text chosen, from Find's keys while the window has them.</summary>

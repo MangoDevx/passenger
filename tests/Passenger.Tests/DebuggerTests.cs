@@ -999,6 +999,7 @@ public sealed class DebuggerTests : IClassFixture<DebuggerTests.Sum>, IClassFixt
         StartDebugging(window);
         WaitDebugging(window, () => Row(window, "grid") is not null, "the stop before the line that writes them");
 
+        TreeKeysCheck.Press(window, window.BottomPanel.Debug.Tree.Rows, Row(window, "numbers")!, "Variables");
         SetElement(window, "numbers", "[100..199]", "[150]", "7");
         SetElement(window, "grid", "[1, ...]", "[1, 0]", "5");
         Assert.True(window.Status?.StartsWith("Could not set", StringComparison.Ordinal) != true, $"Set Value was refused: {window.Status}");

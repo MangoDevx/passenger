@@ -18,7 +18,7 @@ public enum ContainerRowKind
 
 /// <summary>A row of the Containers window, at its depth: a heading, a Compose project, a service, a container, an image, a
 /// volume or a network, with what it stands for. Its key (kind and id) keeps it chosen and expanded across refreshes.</summary>
-public sealed class ContainerRow(ContainerRowKind kind, int depth, string key, string label)
+public sealed class ContainerRow(ContainerRowKind kind, int depth, string key, string label) : ITreeRow
 {
     public ContainerRowKind Kind { get; } = kind;
 
@@ -35,6 +35,8 @@ public sealed class ContainerRow(ContainerRowKind kind, int depth, string key, s
     public bool Expands { get; init; }
 
     public bool Expanded { get; init; }
+
+    bool ITreeRow.IsExpanded => Expanded;
 
     public ContainerInfo? Container { get; init; }
 

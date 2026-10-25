@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -13,13 +12,19 @@ using Passenger.Core;
 namespace Passenger.App.Profiling;
 
 /// <summary>A row of the Frames page's layout table: a control type, or one of its controls under it once the type is opened.</summary>
-public sealed class LayoutRow(LayoutCost cost, int depth) : Observable
+public sealed class LayoutRow(LayoutCost cost, int depth) : Observable, ITreeRow
 {
     private bool isExpanded;
+    private List<LayoutRow>? controls;
 
     public LayoutCost Cost { get; } = cost;
 
     public int Depth { get; } = depth;
+
+    public bool Expands => Cost.Controls.Count > 0;
+
+    /// <summary>A type's rows of its controls, made the first time it opens.</summary>
+    public IReadOnlyList<LayoutRow> Controls => controls ??= [.. Cost.Controls.Select(c => new LayoutRow(c, Depth + 1))];
 
     public bool IsExpanded
     {
@@ -38,7 +43,7 @@ public sealed class FramesView : DockPanel
 
     private readonly FrameChart chart;
     private readonly TextBlock summary;
-    private readonly ObservableCollection<LayoutRow> rows = [];
+    private readonly TreeRows<LayoutRow> rows = [];
     private readonly ListBox table;
     private readonly TextBlock placeholder;
     private readonly DockPanel shown;
@@ -91,7 +96,7 @@ public sealed class FramesView : DockPanel
             Setters = { new Setter(ContentControl.HorizontalContentAlignmentProperty, HorizontalAlignment.Stretch) },
         });
         table.DoubleTapped += (_, _) => Open();
-        table.KeyDown += OnKey;
+        TreeKeys.Attach<LayoutRow>(table, Toggle, OpenControl);
         shown = new DockPanel { Children = { band, heading, table } };
         placeholder = Muted(NoFrames);
         placeholder.HorizontalAlignment = HorizontalAlignment.Center;
@@ -155,23 +160,13 @@ public sealed class FramesView : DockPanel
     {
         if (row.IsExpanded)
         {
-            int at = rows.IndexOf(row) + 1;
-            while (at < rows.Count && rows[at].Depth > row.Depth)
-            {
-                rows.RemoveAt(at);
-            }
             row.IsExpanded = false;
-            return;
+            rows.Close(row);
         }
-        if (row.Cost.Controls.Count == 0)
+        else if (row.Expands)
         {
-            return;
-        }
-        row.IsExpanded = true;
-        int next = rows.IndexOf(row) + 1;
-        foreach (LayoutCost control in row.Cost.Controls)
-        {
-            rows.Insert(next++, new LayoutRow(control, row.Depth + 1));
+            row.IsExpanded = true;
+            rows.Open(row, row.Controls);
         }
     }
 
@@ -212,38 +207,21 @@ public sealed class FramesView : DockPanel
 
     private void Open()
     {
-        if (table.SelectedItem is not LayoutRow row)
-        {
-            return;
-        }
-        if (row.Cost.Control is { } control)
-        {
-            ControlOpened?.Invoke(this, control);
-        }
-        else
+        if (table.SelectedItem is LayoutRow row && !OpenControl(row))
         {
             Toggle(row);
         }
     }
 
-    private void OnKey(object? sender, KeyEventArgs e)
+    /// <summary>A control's row opened: its XAML, or its place in the Live Visual Tree; false for a type's row.</summary>
+    private bool OpenControl(LayoutRow row)
     {
-        if (table.SelectedItem is not LayoutRow row)
+        if (row.Cost.Control is not { } control)
         {
-            return;
+            return false;
         }
-        switch (e.Key)
-        {
-            case Key.Right when !row.IsExpanded && row.Cost.Controls.Count > 0:
-            case Key.Left when row.IsExpanded:
-                Toggle(row);
-                e.Handled = true;
-                break;
-            case Key.Enter or Key.F4:
-                Open();
-                e.Handled = true;
-                break;
-        }
+        ControlOpened?.Invoke(this, control);
+        return true;
     }
 
     private Control RowOf(LayoutRow row, (string Title, double Width)[] columns)

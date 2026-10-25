@@ -46,6 +46,8 @@ public sealed class LiveTreeTests : IClassFixture<RestoredFolders>, IDisposable
         Assert.Contains(tree.Rows, r => r.Element is { Type: "StackPanel", Name: "Panel" });
         Assert.Contains(tree.Rows, r => r.Element is { Type: "TextBlock", Name: "Greeting" } && r.Element.Classes.Contains("title"));
         Assert.Contains(tree.Rows, r => r.Element is { Type: "Button", Name: "Save" });
+        TreeKeysCheck.Press(window, tree.Rows, tree.Rows.First(r => r.Element is { Type: "StackPanel", Name: "Panel" }), "the Live Visual Tree", enterOpens: false);
+        Ui.Press(window, "Right");
 
         ElementDetails save = Choose(window, "Save");
         PropertyValue background = save.Properties.Single(p => p.Name == "Background");

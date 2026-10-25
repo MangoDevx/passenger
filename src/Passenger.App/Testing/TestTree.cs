@@ -1,6 +1,3 @@
-using System.Collections.ObjectModel;
-using System.Collections.Specialized;
-using System.ComponentModel;
 using Avalonia;
 using Passenger.Core;
 
@@ -44,7 +41,7 @@ public enum TestNodeKind
 /// not run over passed), its duration their sum, both kept up to date by each method's change rather than summed again;
 /// a method's state is all its results', a data row's its own. A test under two categories is a method row under each,
 /// both given every result.</summary>
-public sealed class TestNode : Observable
+public sealed class TestNode : Observable, ITreeRow
 {
     private readonly List<TestOutcome> results = [];
 
@@ -140,6 +137,8 @@ public sealed class TestNode : Observable
     }
 
     public bool HasChildren => Children.Count > 0;
+
+    bool ITreeRow.Expands => HasChildren;
 
     /// <summary>The methods under this row, or the method itself; none under a data row.</summary>
     public IEnumerable<TestNode> Methods => Kind switch
@@ -333,7 +332,7 @@ public sealed class TestTree
     private HashSet<TestState> outcomes = [];
     private string emptyText = string.Empty;
 
-    public TestRows Rows { get; } = [];
+    public TreeRows<TestNode> Rows { get; } = [];
 
     /// <summary>Tests were found, or a run began or ended: what shows their state follows.</summary>
     public event EventHandler? Updated;
@@ -591,24 +590,14 @@ public sealed class TestTree
         {
             return;
         }
-        int at = Rows.IndexOf(node);
         node.IsExpanded = !node.IsExpanded;
-        if (at < 0)
-        {
-            return;
-        }
         if (node.IsExpanded)
         {
-            Rows.InsertRange(at + 1, [.. Visible(node, includeSelf: false, Passing())]);
+            Rows.Open(node, Visible(node, includeSelf: false, Passing()));
         }
         else
         {
-            int end = at + 1;
-            while (end < Rows.Count && Rows[end].Depth > node.Depth)
-            {
-                end++;
-            }
-            Rows.RemoveRange(at + 1, end - at - 1);
+            Rows.Close(node);
         }
     }
 
@@ -1120,81 +1109,4 @@ public sealed class TestTree
     private readonly record struct Segment(TestNodeKind Kind, string Name, int Rank, string? Id = null);
 
     private sealed record Placed(Entry Entry, List<Segment> Path, (string Label, string Full) Class);
-}
-
-/// <summary>The rows shown, changed a run of rows at a time: a list draws, and keeps its selection over, one change for
-/// a class opened or closed rather than one per row.</summary>
-public sealed class TestRows : ObservableCollection<TestNode>
-{
-    public void InsertRange(int index, IEnumerable<TestNode> rows)
-    {
-        List<TestNode> added = [.. rows];
-        if (added.Count == 0)
-        {
-            return;
-        }
-        CheckReentrancy();
-        ((List<TestNode>)Items).InsertRange(index, added);
-        Changed(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, added, index));
-    }
-
-    public void RemoveRange(int index, int count)
-    {
-        if (count == 0)
-        {
-            return;
-        }
-        CheckReentrancy();
-        List<TestNode> removed = ((List<TestNode>)Items).GetRange(index, count);
-        ((List<TestNode>)Items).RemoveRange(index, count);
-        Changed(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, removed, index));
-    }
-
-    /// <summary>Shows these rows: the runs of rows that went are taken out and the runs that came put in, so the rows that
-    /// stay are the same rows, chosen if they were; rows that moved are shown again whole.</summary>
-    public void Show(IReadOnlyList<TestNode> wanted)
-    {
-        HashSet<TestNode> keep = new(wanted, ReferenceEqualityComparer.Instance);
-        HashSet<TestNode> staying = new(Items.Where(keep.Contains), ReferenceEqualityComparer.Instance);
-        if (!Items.Where(keep.Contains).SequenceEqual(wanted.Where(staying.Contains)))
-        {
-            CheckReentrancy();
-            Items.Clear();
-            ((List<TestNode>)Items).AddRange(wanted);
-            Changed(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
-            return;
-        }
-        for (int at = Count - 1; at >= 0;)
-        {
-            if (keep.Contains(this[at]))
-            {
-                at--;
-                continue;
-            }
-            int end = at;
-            while (at >= 0 && !keep.Contains(this[at]))
-            {
-                at--;
-            }
-            RemoveRange(at + 1, end - at);
-        }
-        // What stays is now in the order wanted, so each run of new rows goes in where the next row staying is.
-        for (int at = 0; at < wanted.Count;)
-        {
-            int end = at;
-            while (end < wanted.Count && !staying.Contains(wanted[end]))
-            {
-                end++;
-            }
-            InsertRange(at, wanted.Skip(at).Take(end - at));
-            at = end + 1;
-        }
-    }
-
-    private void Changed(NotifyCollectionChangedEventArgs change)
-    {
-        OnPropertyChanged(new PropertyChangedEventArgs(nameof(Count)));
-        OnPropertyChanged(new PropertyChangedEventArgs("Item[]"));
-        OnCollectionChanged(change);
-    }
 }
