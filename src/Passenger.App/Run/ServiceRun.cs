@@ -226,6 +226,9 @@ public abstract class ServiceRun
     {
     }
 
+    /// <summary>Says a line of the IDE's about a service (what a Hot Reload apply to it came to) where its output is shown.</summary>
+    public abstract void Say(IRunService service, string line, bool error);
+
     /// <summary>Makes the holds chosen take effect at each service's next start (a container run's override written again).</summary>
     protected abstract Task HoldsChangedAsync(CancellationToken cancel);
 

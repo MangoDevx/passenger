@@ -1320,6 +1320,10 @@ public sealed class AspireAppRun : ServiceRun
     /// its start (<see cref="RestartAsync"/>'s build).</summary>
     public override bool BuildsBeforeRestart => false;
 
+    /// <summary>In the service's own console, which its resource shows in the Aspire window.</summary>
+    public override void Say(IRunService service, string line, bool error) =>
+        ((service as AspireResourceRun ?? ServiceNamed(service.Name) as AspireResourceRun)?.Console ?? Console).Append($"{line}\n", error);
+
     /// <summary>By its AppHost too, as two AppHosts may each run a resource of one name.</summary>
     public override string SessionName(IRunService service) => $"{Path.GetFileNameWithoutExtension(Configuration.Project)}: {service.Name}";
 

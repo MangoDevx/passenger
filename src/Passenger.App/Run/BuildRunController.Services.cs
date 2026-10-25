@@ -138,7 +138,7 @@ public sealed partial class BuildRunController
         {
             run.Debugged.Add(name);
             refused = purpose == RunStart.HotReload
-                ? await session.Debug.AttachForHotReloadAsync(program.Id, name, program.Place, stop)
+                ? await session.Debug.AttachForHotReloadAsync(program.Id, name, (line, error) => run.Say(service, line, error), program.Place, stop)
                 : await session.Debug.AttachAsync(program.Id, name, hotReload: program.HotReload, place: program.Place, group: run.Group, app: program.App);
             if (refused is null)
             {

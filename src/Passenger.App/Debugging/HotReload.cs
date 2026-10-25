@@ -60,6 +60,20 @@ public delegate Task<bool> HotReloadRestart(HotReloadOutcome outcome, bool runni
 /// made for edits one could not take running.</summary>
 public sealed record HotReloadApplied(HotReloadOutcome Outcome, bool Restarted);
 
+/// <summary>A program Hot Reload applies edits to (<see cref="DebugController.ApplyAsync"/>): a Debug tab's, or a service's
+/// session under Run with Hot Reload, which is quiet (no tab) and is restarted as its run's service.</summary>
+internal interface IHotReloadTarget
+{
+    string Name { get; }
+
+    HotReload? HotReload { get; }
+
+    bool Quiet { get; }
+
+    /// <summary>Says a line of what an apply came to, where the program's own output is.</summary>
+    void Say(string line, bool error);
+}
+
 /// <summary>Hot Reload of one debugging session (Edit and Continue): Roslyn's own Edit and Continue service, in the language
 /// server through Passenger's extension, compares the solution as the editors have it with what was built (and applied
 /// since) and emits the deltas; Passenger's debugger applies them to the program, paused or running. The capabilities

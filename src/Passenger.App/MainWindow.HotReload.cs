@@ -181,26 +181,17 @@ public partial class MainWindow
 
     /// <summary>The restart for edits Hot Reload could not apply, as an agent asks it: never the question, which is the
     /// person's; <paramref name="running"/> for the services of a container run with Hot Reload, else the program debugged.</summary>
-        internal Task<bool> RestartForAgentAsync(HotReloadOutcome outcome, bool running) => running
+    internal Task<bool> RestartForAgentAsync(HotReloadOutcome outcome, bool running) => running
         ? RestartOwnedServicesAsync(session, outcome, outcome.Restart)
         : RestartForAgentAsync(outcome, session.Debug.Chosen, session.Debug.Session);
-    /// <summary>The restart for edits Hot Reload could not apply, as an agent asks it: never the question, which is the person's.</summary>
-    internal Task<bool> RestartForAgentAsync(HotReloadOutcome outcome) =>
-        RestartForAgentAsync(outcome, session.Debug.Running.Count > 0 ? null : session.Debug.Chosen, session.Debug.Running.Count > 0 ? null : session.Debug.Session);
 
-    internal async Task<bool> RestartForAgentAsync(HotReloadOutcome outcome, DebugTab? tab, DebugSession? debugged,
-        CancellationToken cancel = default)
+    private async Task<bool> RestartForAgentAsync(HotReloadOutcome outcome, DebugTab? tab, DebugSession? debugged, CancellationToken cancel = default)
     {
         ProjectSession next = session;
         DebugController debugger = next.Debug;
         if (cancel.IsCancellationRequested || next.IsEnded)
         {
             return false;
-        }
-        if (tab is null && debugged is null && debugger.Running.Count > 0)
-        {
-            bool restarted = await RestartOwnedServicesAsync(next, outcome, outcome.Restart);
-            return restarted && session == next && !next.IsEnded && !cancel.IsCancellationRequested;
         }
         if (tab is null || debugged is null || !tab.IsLive || tab.Session != debugged || debugger.TabOf(debugged) != tab)
         {

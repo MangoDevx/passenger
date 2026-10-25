@@ -9,7 +9,7 @@ namespace Passenger.App.ToolWindows;
 /// <summary>A program's tab in the Debug window: its name (its run configuration's, or the program attached to), its own
 /// console, and whether its session has ended, the tab then kept greyed until another starts in its place or it is closed.
 /// The debugger keeps the session, and what it knows of it while the tab is not shown, here.</summary>
-public sealed class DebugTab(string name, OutputView console) : Observable
+public sealed class DebugTab(string name, OutputView console) : Observable, IHotReloadTarget
 {
     private bool isChosen;
     private bool hasEnded;
@@ -40,6 +40,12 @@ public sealed class DebugTab(string name, OutputView console) : Observable
 
     /// <summary>The session's Hot Reload, when it has one.</summary>
     internal Debugging.HotReload? HotReload { get; set; }
+
+    Debugging.HotReload? IHotReloadTarget.HotReload => HotReload;
+
+    bool IHotReloadTarget.Quiet => false;
+
+    void IHotReloadTarget.Say(string line, bool error) => Console.Append($"{line}\n", error);
 
     /// <summary>Its program as an Avalonia or WPF app with Passenger's inspector in it, from its launch until the tab goes
     /// (ended with its session, its failed bindings kept while the tab is); null for any other program.</summary>

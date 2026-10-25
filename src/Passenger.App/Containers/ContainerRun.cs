@@ -969,6 +969,10 @@ public sealed class ContainerRun(ContainerPlan plan, ContainerEngine engine, Con
     /// its restart builds its image.</summary>
     public override bool BuildsBeforeRestart => Plan.Mode == ContainerMode.Fast;
 
+    /// <summary>In the run's console, beside the services' logs, named for the service.</summary>
+    public override void Say(IRunService service, string line, bool error) =>
+        console.Write($"{service.Name}: {line}\n", error ? ConsoleStream.Error : ConsoleStream.Output);
+
     public override bool Refused(Exception failure) => failure is IOException or UnauthorizedAccessException or ContainerToolsException or ContainerCommandException
         or TimeoutException;
 

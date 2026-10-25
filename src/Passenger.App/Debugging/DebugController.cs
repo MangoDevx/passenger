@@ -264,8 +264,8 @@ public sealed class DebugController : IDisposable
     /// so a resume that applied first does not go on. The window's.</summary>
     public Func<HotReloadOutcome, Task<bool>> RestartFor { get; set; } = _ => Task.FromResult(false);
 
-    /// <summary>The Apply Changes under way, which a second one waits for.</summary>
-    private Task<HotReloadOutcome>? applying;
+    /// <summary>The Apply Changes under way, which another waits for: one at a time.</summary>
+    private Task<Applying>? applying;
 
     /// <summary>Why Apply Changes cannot run: nothing debugged, a session without Hot Reload, or one that stopped taking
     /// changes.</summary>
@@ -276,28 +276,19 @@ public sealed class DebugController : IDisposable
             : "This program was launched with Hot Reload when debugging off (Settings, Hot Reload)")
         : hotReload.WhyNot);
 
-    /// <summary>Apply Hot Reload Changes: the edits since the launch or the last apply, applied to the program
-    /// paused or running. Applied, the files' lines are the program's from now (the built lines forget their edits), their
-    /// breakpoints are bound again in the new code, and a paused program's stop is read again where it now is.</summary>
-    public Task<HotReloadOutcome> ApplyChangesAsync()
-    {
-        UiThread.Check();
-        return applying ??= ApplyOnceAsync();
-    }
-
-    /// <summary>Apply Changes as the action runs it: an edit that needs a restart restarts the program, as Settings says.</summary>
-    public async Task ApplyAndRestartAsync()
-    {
-        DebugTab? applied = chosen;
-        if (await ApplyChangesAsync() is { Result: HotReloadResult.RestartNeeded } outcome)
-        {
-            await RestartAsked(outcome, applied, SettingsRestart);
-        }
-    }
+    /// <summary>Apply Hot Reload Changes to the chosen program debugged with Hot Reload and its group, restarting none.</summary>
+    public async Task<HotReloadOutcome> ApplyChangesAsync() => (await ApplyAsync(Debugged(), null)).Outcome;
 
     /// <summary>The window's restart for edits Hot Reload cannot apply: as Settings say, or asked
     /// (<see cref="RestartFor"/>, <see cref="RestartRunningFor"/>).</summary>
     public HotReloadRestart SettingsRestart => (outcome, running) => running ? RestartRunningFor(outcome) : RestartFor(outcome);
+
+    /// <summary>The chosen program debugged with Hot Reload, then the others of its group (a container run's services debugged
+    /// together), which take its edits with it; none when Apply Changes cannot run on it.</summary>
+    private List<IHotReloadTarget> Debugged() => WhyNotApply() is null && chosen is { } applied
+        ? [applied, .. view.Sessions.Where(t => t != applied && applied.Group is { } group && t.Group == group
+            && t is { IsLive: true, HotReload.WhyNot: null, Session: not null })]
+        : [];
 
     /// <summary>A restart for edits Hot Reload cannot apply to the program of <paramref name="applied"/>'s tab, made as
     /// <paramref name="restart"/> says, the tab chosen again first should another program's stop have taken the window
@@ -321,88 +312,147 @@ public sealed class DebugController : IDisposable
         return false;
     }
 
-    private async Task<HotReloadOutcome> ApplyOnceAsync()
+    /// <summary>Apply Hot Reload Changes to <paramref name="targets"/>, the one path every apply takes (a save's, the action's,
+    /// an agent's, a resume's): one at a time, so one asked while another is under way waits for it and then applies only
+    /// what still has edits, sending no program a second update for the same edits. Each target's console says what its
+    /// apply came to; those that need a restart for their edits are restarted as <paramref name="restart"/> says (none when
+    /// null). Answers what they came to, said as one.</summary>
+    internal async Task<HotReloadApplied> ApplyAsync(IReadOnlyList<IHotReloadTarget> targets, HotReloadRestart? restart)
     {
-        using IDisposable held = BackgroundWork.Scope();
+        UiThread.Check();
+        Applying? before = null;
+        while (applying is { } under)
+        {
+            before = await under;
+        }
+        if (before is not null)
+        {
+            targets = [.. targets.Where(target => target.HotReload is { Changed: true })];
+            if (targets.Count == 0)
+            {
+                return new HotReloadApplied(before.Outcome, false);
+            }
+        }
+        Task<Applying> mine = ApplyOnceAsync(targets);
+        applying = mine;
+        Applying done;
         try
         {
-            if (WhyNotApply() is { } why || Session is not { } session || hotReload is not { } reload)
-            {
-                HotReloadOutcome refused = new(HotReloadResult.Failed, WhyNotApply() ?? NothingDebugged);
-                Message?.Invoke(this, refused.Said);
-                return refused;
-            }
-            Message?.Invoke(this, "Applying Hot Reload changes…");
-            // The other services of its container run take the changes with it: an edit is applied wherever its code runs.
-            DebugTab applied = chosen!;
-            List<DebugTab> together = applied.Group is { } group
-                ? [.. view.Sessions.Where(t => t != applied && t.Group == group && t is { IsLive: true, HotReload.WhyNot: null, Session: not null })]
-                : [];
-            HotReloadOutcome own = await reload.ApplyAsync();
-            HotReloadOutcome outcome = own;
-            if (together.Count > 0)
-            {
-                List<(string, HotReloadOutcome)> each = [(applied.Name, own)];
-                foreach (DebugTab other in together)
-                {
-                    HotReloadOutcome its = await other.HotReload!.ApplyAsync();
-                    if (its.Result is HotReloadResult.Applied or HotReloadResult.NothingToApply && other.Session is { } taking)
-                    {
-                        List<string> changed = [.. its.Files.Select(PathNames.Canonical)];
-                        foreach (string path in changed)
-                        {
-                            other.Lines?.Reset(path);
-                        }
-                        await taking.SendBreakpointsAgainAsync(changed);
-                    }
-                    each.Add((other.Name, its));
-                }
-                outcome = Together(each);
-            }
-            // The program applied to is its own tab's, whichever tab is chosen now (another program's stop takes the window).
-            if (disposed || applied.Session != session || !applied.IsLive)
-            {
-                return outcome;
-            }
-            if (own.Result is HotReloadResult.Applied or HotReloadResult.NothingToApply)
-            {
-                List<string> files = [.. own.Files.Select(PathNames.Canonical)];
-                // The stop shown keeps its place in the text, then the files' lines are the program's.
-                bool shown = applied == chosen;
-                (string Path, int Line)? shownAt = shown && executionPoint is { } point && files.Contains(point.Path) ? (point.Path, Current(point.Path, point.Line)) : null;
-                foreach (string path in files)
-                {
-                    applied.Lines?.Reset(path);
-                }
-                if (shownAt is { } now)
-                {
-                    executionPoint = (now.Path, Built(now.Path, now.Line));
-                }
-                await session.SendBreakpointsAgainAsync(files);
-                if (own.Result == HotReloadResult.Applied && session.State == DebugState.Paused && session.StoppedThread is int thread && applied == chosen && !disposed)
-                {
-                    try
-                    {
-                        await ChooseThread(thread);
-                    }
-                    catch (DapException error)
-                    {
-                        Message?.Invoke(this, $"The debugger could not show the stop: {error.Reason}");
-                    }
-                }
-                UpdateAllMarks();
-            }
-            LastApplied = outcome;
-            applied.Console.Append($"Hot Reload: {outcome.Said}\n", error: outcome.Result is not (HotReloadResult.Applied or HotReloadResult.NothingToApply));
-            Message?.Invoke(this, outcome.Said);
-            Applied?.Invoke(this, outcome);
-            StateChanged?.Invoke(this, EventArgs.Empty);
-            return outcome;
+            done = await mine;
         }
         finally
         {
-            applying = null;
+            if (applying == mine)
+            {
+                applying = null;
+            }
         }
+        if (restart is null)
+        {
+            return new HotReloadApplied(done.Outcome, false);
+        }
+        bool restarted = done.Services is { Result: HotReloadResult.RestartNeeded } rude && await RestartRunningAsked(rude, restart);
+        if (done.Program is { Result: HotReloadResult.RestartNeeded } edit)
+        {
+            restarted |= await RestartAsked(edit, done.Tab, restart);
+        }
+        return new HotReloadApplied(done.Outcome, restarted);
+    }
+
+    /// <summary>What an apply came to: said as one, and apart for the run's services and the tab's program, each restarted
+    /// as its own.</summary>
+    private sealed record Applying(HotReloadOutcome Outcome, HotReloadOutcome? Services, DebugTab? Tab, HotReloadOutcome? Program);
+
+    private async Task<Applying> ApplyOnceAsync(IReadOnlyList<IHotReloadTarget> targets)
+    {
+        using IDisposable held = BackgroundWork.Scope();
+        if (targets.Count == 0)
+        {
+            HotReloadOutcome refused = new(HotReloadResult.Failed, WhyNotApply() ?? NothingDebugged);
+            Message?.Invoke(this, refused.Said);
+            return new Applying(refused, null, null, null);
+        }
+        Message?.Invoke(this, "Applying Hot Reload changes…");
+        List<(IHotReloadTarget Target, DebugSession? Session, HotReloadOutcome Outcome)> each = [];
+        foreach (IHotReloadTarget target in targets)
+        {
+            DebugSession? session = (target as DebugTab)?.Session;
+            each.Add((target, session, target.HotReload is { } reload ? await reload.ApplyAsync()
+                : new HotReloadOutcome(HotReloadResult.Failed, $"{target.Name} is not debugged with Hot Reload")));
+        }
+        List<(DebugTab Tab, DebugSession? Session, HotReloadOutcome Outcome)> tabs = [.. each.Where(e => !e.Target.Quiet).Select(e => ((DebugTab)e.Target, e.Session, e.Outcome))];
+        List<(IHotReloadTarget Target, HotReloadOutcome Outcome)> quiet = [.. each.Where(e => e.Target.Quiet).Select(e => (e.Target, e.Outcome))];
+        bool marked = false;
+        foreach ((DebugTab tab, DebugSession? session, HotReloadOutcome its) in tabs)
+        {
+            marked |= await TakenAsync(tab, session, its);
+        }
+        if (marked)
+        {
+            UpdateAllMarks();
+        }
+        HotReloadOutcome? services = quiet.Count > 0 ? Together([.. quiet.Select(q => (q.Target.Name, q.Outcome))]) : null;
+        HotReloadOutcome? program = tabs is [var lone] ? lone.Outcome : tabs.Count > 0 ? Together([.. tabs.Select(t => (t.Tab.Name, t.Outcome))]) : null;
+        HotReloadOutcome outcome = services is { } both && program is { } and
+            ? Together([("the run's services", both), (tabs[0].Tab.Name, and)])
+            : services ?? program!;
+        foreach ((IHotReloadTarget target, HotReloadOutcome its) in quiet)
+        {
+            target.Say($"Hot Reload: {its.Said}", Unapplied(its));
+        }
+        // The program applied to is its own tab's, whichever is chosen now; one ended or restarted meanwhile is told nothing.
+        DebugTab? applied = tabs.Count > 0 ? tabs[0].Tab : null;
+        bool gone = applied is not null && (disposed || applied.Session != tabs[0].Session || !applied.IsLive);
+        if (applied is IHotReloadTarget own && program is { } said && !gone)
+        {
+            own.Say($"Hot Reload: {said.Said}", Unapplied(said));
+        }
+        if (!gone || quiet.Count > 0)
+        {
+            LastApplied = outcome;
+            Message?.Invoke(this, outcome.Said);
+            Applied?.Invoke(this, outcome);
+            StateChanged?.Invoke(this, EventArgs.Empty);
+        }
+        return new Applying(outcome, services, applied, program);
+
+        static bool Unapplied(HotReloadOutcome its) => its.Result is not (HotReloadResult.Applied or HotReloadResult.NothingToApply);
+    }
+
+    /// <summary>A tab's program that took an apply: the files' lines are its program's from now (the built lines forget their
+    /// edits), their breakpoints are bound again in the new code, and a paused program's stop shown is read again where it
+    /// now is. True when it took the edits, its marks to be drawn again.</summary>
+    private async Task<bool> TakenAsync(DebugTab tab, DebugSession? applied, HotReloadOutcome its)
+    {
+        if (its.Result is not (HotReloadResult.Applied or HotReloadResult.NothingToApply) || disposed || tab.Session is not { } session || session != applied || !tab.IsLive)
+        {
+            return false;
+        }
+        List<string> files = [.. its.Files.Select(PathNames.Canonical)];
+        // The stop shown keeps its place in the text, then the files' lines are the program's.
+        bool shown = tab == chosen;
+        (string Path, int Line)? shownAt = shown && executionPoint is { } point && files.Contains(point.Path) ? (point.Path, Current(point.Path, point.Line)) : null;
+        foreach (string path in files)
+        {
+            tab.Lines?.Reset(path);
+        }
+        if (shownAt is { } now)
+        {
+            executionPoint = (now.Path, Built(now.Path, now.Line));
+        }
+        await session.SendBreakpointsAgainAsync(files);
+        if (its.Result == HotReloadResult.Applied && session.State == DebugState.Paused && session.StoppedThread is int thread && tab == chosen && !disposed)
+        {
+            try
+            {
+                await ChooseThread(thread);
+            }
+            catch (DapException error)
+            {
+                Message?.Invoke(this, $"The debugger could not show the stop: {error.Reason}");
+            }
+        }
+        return true;
     }
 
     /// <summary>Launches a plan's program under the debugger (after its build), its output in its tab's Console in the Debug
@@ -726,7 +776,14 @@ public sealed class DebugController : IDisposable
     /// <summary>A program run with Hot Reload through the debugger rather than dotnet watch (a container run's service, whose
     /// image has no SDK): attached quietly, no breakpoint sent and no stop shown, so Apply Hot Reload Changes and a save
     /// apply the edits to it; ended with its run.</summary>
-    public sealed record RunningReload(string Name, DebugSession Session, HotReload Reload);
+    public sealed record RunningReload(string Name, DebugSession Session, HotReload Reload, Action<string, bool> Says) : IHotReloadTarget
+    {
+        HotReload? IHotReloadTarget.HotReload => Reload;
+
+        bool IHotReloadTarget.Quiet => true;
+
+        void IHotReloadTarget.Say(string line, bool error) => Says(line, error);
+    }
 
     private readonly List<RunningReload> running = [];
 
@@ -734,8 +791,10 @@ public sealed class DebugController : IDisposable
     public IReadOnlyList<RunningReload> Running => running;
 
     /// <summary>Attaches quietly for Hot Reload alone to a program run, which a container run's Run with Hot Reload held at its
-    /// start with DOTNET_MODIFIABLE_ASSEMBLIES=debug: the attach lets it go. Null once attached, else why not.</summary>
-    public async Task<string?> AttachForHotReloadAsync(int processId, string name, AdapterPlace? place = null, CancellationToken cancellation = default)
+    /// start with DOTNET_MODIFIABLE_ASSEMBLIES=debug: the attach lets it go. What its applies come to is said by
+    /// <paramref name="says"/>, where its output is. Null once attached, else why not.</summary>
+    public async Task<string?> AttachForHotReloadAsync(int processId, string name, Action<string, bool> says, AdapterPlace? place = null,
+        CancellationToken cancellation = default)
     {
         UiThread.Check();
         if (disposed)
@@ -761,7 +820,7 @@ public sealed class DebugController : IDisposable
             {
                 throw new OperationCanceledException("The workspace ended during Hot Reload attach");
             }
-            RunningReload reload = new(name, session, new HotReload(session, Server, editors));
+            RunningReload reload = new(name, session, new HotReload(session, Server, editors), says);
             running.Add(reload);
             session.StateChanged += (_, _) =>
             {
@@ -794,39 +853,6 @@ public sealed class DebugController : IDisposable
                 await attaching.CloseAsync();
             }
             throw;
-        }
-    }
-
-    /// <summary>Apply Hot Reload Changes to the programs run with it through the debugger, each in turn, said together.</summary>
-    public async Task<HotReloadOutcome> ApplyRunningAsync()
-    {
-        UiThread.Check();
-        using IDisposable held = BackgroundWork.Scope();
-        if (running.Count == 0)
-        {
-            return new HotReloadOutcome(HotReloadResult.Failed, NothingDebugged);
-        }
-        Message?.Invoke(this, "Applying Hot Reload changes…");
-        List<(string, HotReloadOutcome)> each = [];
-        foreach (RunningReload reload in running.ToList())
-        {
-            each.Add((reload.Name, await reload.Reload.ApplyAsync()));
-        }
-        HotReloadOutcome outcome = Together(each);
-        LastApplied = outcome;
-        Message?.Invoke(this, outcome.Said);
-        Applied?.Invoke(this, outcome);
-        StateChanged?.Invoke(this, EventArgs.Empty);
-        return outcome;
-    }
-
-    /// <summary>Apply to the programs run with Hot Reload as the action runs it: those whose edits need it restarted, as
-    /// Settings says (<see cref="RestartRunningFor"/>).</summary>
-    public async Task ApplyRunningAndRestartAsync()
-    {
-        if (await ApplyRunningAsync() is { Result: HotReloadResult.RestartNeeded } outcome)
-        {
-            await RestartRunningAsked(outcome, SettingsRestart);
         }
     }
 
@@ -1189,10 +1215,9 @@ public sealed class DebugController : IDisposable
     /// restarted for them, or is no longer paused, and so is not to be set going.</summary>
     public async Task<bool> ApplyBeforeResumingAsync(DebugSession session)
     {
-        DebugTab? tab = TabOf(session);
         if (HotReload is { Changed: true } && WhyNotApply() is null && session.State == DebugState.Paused)
         {
-            if (await ApplyChangesAsync() is { Result: HotReloadResult.RestartNeeded } outcome && await RestartAsked(outcome, tab, SettingsRestart))
+            if ((await ApplyAsync(Debugged(), SettingsRestart)).Restarted)
             {
                 return false;
             }
@@ -1414,59 +1439,18 @@ public sealed class DebugController : IDisposable
             }
         });
 
-        async Task SavedAsync()
-        {
-            if (run)
-            {
-                await ApplyRunningAndRestartAsync();
-            }
-            if (debugged && HotReload is { Changed: true } && WhyNotApply() is null)
-            {
-                await ApplyAndRestartAsync();
-            }
-        }
+        Task SavedAsync() => ApplyAsync([.. run ? running : [], .. debugged && HotReload is { Changed: true } ? Debugged() : []], SettingsRestart);
     }
 
     /// <summary>Apply Hot Reload Changes: the programs run with Hot Reload through the debugger take the edits whenever
     /// they have any (or nothing else would take them), whatever else is debugged, and the chosen session debugged with Hot
     /// Reload takes them too; each that needs it restarts as <paramref name="restart"/> says (the window's:
     /// <see cref="SettingsRestart"/>). Answers what each came to.</summary>
-    public async Task<HotReloadApplied> ApplyAllAsync(HotReloadRestart restart)
+    public Task<HotReloadApplied> ApplyAllAsync(HotReloadRestart restart)
     {
         UiThread.Check();
-        DebugTab? original = chosen;
         bool debugged = HotReload is not null && WhyNotApply() is null;
-        HotReloadOutcome? services = null;
-        HotReloadOutcome? program = null;
-        bool restarted = false;
-        if (running.Count > 0 && (!debugged || running.Any(r => r.Reload.Changed)))
-        {
-            services = await ApplyRunningAsync();
-            restarted = services.Result == HotReloadResult.RestartNeeded && await RestartRunningAsked(services, restart);
-        }
-        DebugTab? applied = null;
-        if (debugged || running.Count == 0)
-        {
-            applied = original;
-            // Its own program's edits, chosen again should another program's stop have taken the window meanwhile.
-            if (original is { IsLive: true } && chosen != original && view.Sessions.Contains(original) && !disposed && !ending)
-            {
-                await ChooseAsync(original);
-            }
-            if (disposed || ending || chosen != original)
-            {
-                program = new HotReloadOutcome(HotReloadResult.Failed, $"{original?.Name ?? "The program"} is no longer debugged");
-            }
-            else
-            {
-                program = await ApplyChangesAsync();
-                restarted |= program.Result == HotReloadResult.RestartNeeded && await RestartAsked(program, applied, restart);
-            }
-        }
-        HotReloadOutcome outcome = services is { } both && program is { } and
-            ? Together([("the run's services", both), (applied?.Name ?? "the program debugged", and)])
-            : services ?? program!;
-        return new HotReloadApplied(outcome, restarted);
+        return ApplyAsync([.. running.Count > 0 && (!debugged || running.Any(r => r.Reload.Changed)) ? running : [], .. Debugged()], restart);
     }
 
     /// <summary>The value of the expression under the pointer while paused (a.b.c up to the word hovered), evaluated in the

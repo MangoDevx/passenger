@@ -1068,6 +1068,55 @@ public sealed class AspireStandInTests(StandInAppHost project) : IClassFixture<S
         }
     }
 
+    /// <summary>A save made while Apply Hot Reload Changes applies an edit to a service run with Hot Reload sends the service no
+    /// second update: the save's apply waits for the one under way, which took the edit, and the service's console says the
+    /// one apply. Run with Hot Reload, the stand-in's API is attached to quietly as DCP starts it.</summary>
+    [AvaloniaFact]
+    public void A_save_during_an_apply_to_a_service_run_with_Hot_Reload_sends_it_one_update()
+    {
+        project.Reset();
+        project.BuildApi();
+        File.Delete(project.KeyFile);
+        AspireInteractionHost backend = Ui.Await(AspireInteractionHost.StartAsync(project.KeyFile), "the stand-in resource service");
+        project.Serve(backend);
+        MainWindow window = project.Open(project.Program);
+        try
+        {
+            Ui.WaitFor(() => window.Configurations.Any(configuration => configuration.Name == StandInAppHost.Configuration), "the stand-in AppHost's Aspire configuration");
+            Assert.True(window.SelectConfiguration(StandInAppHost.Configuration));
+            window.ApplySettings(window.Settings with { HotReload = true });
+            Ui.Run(window, AppActions.RunProgram);
+            Ui.WaitFor(() => backend.Connected.Task.IsCompleted && window.AspireRuntime.Apps.Count == 1, $"the stand-in AppHost to come up ({window.Status})");
+            (System.Net.WebSockets.ClientWebSocket notified, System.Net.HttpStatusCode answer) = project.AskToStartApi("apiservice");
+            using System.Net.WebSockets.ClientWebSocket subscribed = notified;
+            Assert.True((int)answer is >= 200 and < 300, $"The IDE refused the API's start: {answer} ({window.Status})");
+            Ui.WaitFor(() => window.Debugger.Running.Count == 1, $"the API to be attached to for Hot Reload ({window.Status})");
+            AspireResourceRun service = window.AspireRuntime.Apps.Single().Services.Single();
+
+            Assert.Null(window.OpenFile(project.PathOf($"{StandInAppHost.Api}/Program.cs")));
+            Typing.Replace(window, "\"The stand-in API is up\"", "\"The stand-in API is up, edited\"");
+            List<Passenger.App.Debugging.HotReloadOutcome> told = [];
+            window.Debugger.Applied += (_, outcome) => told.Add(outcome);
+            // The action's apply under way, then the save, before anything has settled.
+            Assert.Null(window.Actions.Run(AppActions.ApplyHotReloadChanges));
+            Assert.True(window.EditorArea.SaveAll(), "The edited file was not saved");
+            Ui.WaitFor(() => told.Count > 0 && window.Actions.Work.Of(AppActions.ApplyHotReloadChanges) is null, $"Apply Hot Reload Changes to end ({window.Status})",
+                TimeSpan.FromMinutes(2));
+            Ui.Settle();
+
+            string console = service.Console.Document.Snapshot.ToString();
+            Assert.True(told.Count == 1 && told[0].Result == Passenger.App.Debugging.HotReloadResult.Applied,
+                $"The API took {told.Count} applies for one edit, saved as it applied: {string.Join("; ", told.Select(outcome => outcome.Said))}");
+            Assert.True(console.Split('\n').Count(line => line.StartsWith("Hot Reload: ", StringComparison.Ordinal)) == 1,
+                $"The API's console does not say the one apply its edit took: {console}");
+        }
+        finally
+        {
+            window.Close();
+            Ui.Await(Complete(backend.DisposeAsync().AsTask()), "the stand-in resource service to stop");
+        }
+    }
+
     /// <summary>The stand-in API's program, once the IDE has started it as DCP asked.</summary>
     private static int Api(MainWindow window)
     {
