@@ -289,7 +289,7 @@ aspire and requests scenes run `tools/site-shots/services`, an AppHost that need
   calling a deleted body.
 - **The inspector** never touches `Dispatcher.UIThread` before the app makes it, never waits on Passenger, and readies its
   wire's types before the app's Main (System.Text.Json's lock against a thread the debugger stopped).
-- **MCP's tool list** is paid for by every agent session (45.2 KB, held under 62 KB by McpDebuggingTests): say each thing
+- **MCP's tool list** is paid for by every agent session (45.6 KB, held under 62 KB by McpDebuggingTests): say each thing
   once (shared parameters in `McpHost.Instructions`), and add no tool another covers. `save_all` stays a tool of its own:
   never asked about on a person's window (#278). `debug_evaluate`, `debug_input` and `breakpoint_set` are `Destructive`
   and ask the person the first time; every question closes unanswered after 2 minutes; calls send progress every 10 s
@@ -365,19 +365,19 @@ the times. The run sets its nice value to 0; a test needing an MSBuild node wait
 skips saying why. The VMs run a filter on a commit: Windows on Arm, `~/Documents/passenger-vm/vm-test.sh NAME FILTER` (no
 Node.js; it can't see dot folders), and Ubuntu 26.04 ARM64, `vm-test-linux.sh NAME FILTER`.
 
-**Helpers.** Clicks: `Ui.Click` (a real press on a control shown, enabled and hit, shutting first the tooltips its pointer
-leaves, which open in the window headless as the window redraws under a pointer that never moved; `RightClick`,
+**Helpers.** Clicks: `Ui.Click` (a real press on a control shown, enabled and hit, shutting first the tooltips its
+pointer leaves, which open in the window headless as the window redraws under a pointer that never moved; `RightClick`,
 `DoubleClick`, `ClickButton`, `ClickRow`, `ClickLink`); menus: `Ui.Choose`, `ChooseFromMenu`, `ChooseFromRowMenu`,
-`ChooseFromEditorMenu`. A chord in one `Ui.Press(window, "control M , control S")` (its first key is forgotten after 2 s).
-Consoles: `Ui.TypeLine` (`TypeToRun`, `TypeToDebugged`); the caret: `Ui.PlaceAfter`; a run: `Ui.Launched` and its status
-`Ui.Said`, both naming a failed build's errors. Projects: `TestProjects.Console`, `Library`, `Web` (`.With`) on
-`TestProjects.Framework`; files: `TestFolders.Write`. Multi-line edits: `Typing.Replace` (`KeyTextInput` drops `\n`). Read
-a log the IDE may be writing with `Ui.Shared`. A dialog is held to `DialogButtonsTests.Check`, the window to
-`UiRulesTests`. A stand-in leaves files a target writes as it found them (a new one makes MSBuild skip the target).
-Containers: `Docker.Stopped`/`TakenDown`; MCP: `McpRig.Text`, `Gone`; an agent that gives up sends "cancelled" itself
-(`CallGivingUp`). A headless click runs the window's queued work and draws frames after itself, so what a status said
-during a click is read from what it showed throughout, not after; a count of a key's frames sets aside the caret's
-blinks (`CodeEditor.Blinks`).
+`ChooseFromEditorMenu`. A chord in one `Ui.Press(window, "control M , control S")` (its first key is forgotten after 2
+s). Consoles: `Ui.TypeLine` (`TypeToRun`, `TypeToDebugged`); the caret: `Ui.PlaceAfter`; a run: `Ui.Launched` and its
+status `Ui.Said`, both naming a failed build's errors. Projects: `TestProjects.Console`, `Library`, `Web` (`.With`) on
+`TestProjects.Framework`; files: `TestFolders.Write`; a loopback HTTP server: `StandInHttp`. Multi-line edits:
+`Typing.Replace` (`KeyTextInput` drops `\n`). Read a log the IDE may be writing with `Ui.Shared`. A dialog is held to
+`DialogButtonsTests.Check`, the window to `UiRulesTests`. A stand-in leaves files a target writes as it found them (a
+new one makes MSBuild skip the target). Containers: `Docker.Stopped`/`TakenDown`; MCP: `McpRig.Text`, `Gone`; an agent
+that gives up sends "cancelled" itself (`CallGivingUp`). A headless click runs the window's queued work and draws frames
+after itself, so what a status said during a click is read from what it showed throughout, not after; a count of a key's
+frames sets aside the caret's blinks (`CodeEditor.Blinks`).
 
 **What a test needs, or skips saying why without:** a Linux container engine (`docker info`'s OSType; tests label
 everything with `Docker.RunLabel`, remove dead runs' leftovers, never prune or start or stop Docker Desktop, and pull
@@ -386,8 +386,9 @@ nothing large: a test needing an image the engine lacks names it and skips), Nod
 900 MB), Windows (WPF's preview and inspector, data breakpoints on x64). The WPF reference pack's version is pinned
 (`WindowsDesktopRefVersion`): a new SDK fails WpfXamlTests naming the version to pin.
 
-**Debuggees** (`tests/Debuggees`): tests stop at their lines and columns, so moving a line means moving the tests that
-name it (a breakpoint on a line with a lambda binds inside it: give the column). `SelfDebuggingTests` finds its
+**Debuggees** (`tests/Debuggees`): tests find the lines they stop at by their code (`Debuggees.Line`, `MyMethodEnd`), so
+changing a line's code means changing the tests that name it (a breakpoint on a line with a lambda binds inside it: give
+the column). `SelfDebuggingTests` finds its
 breakpoint by the code `status.Text = why;` in MainWindow.Actions.cs. `Debugging/Helpers/StartHold` holds a launched
 program at its start (`DOTNET_DiagnosticPorts=…,connect,suspend`). `PASSENGER_ENGINE_LOG=FILE` keeps the engine's log.
 
