@@ -28,6 +28,10 @@ public sealed partial class SuspendedLaunch : IDisposable
     /// runs its thread late) finds no child, and the exit code is lost. -1 where there is none.</summary>
     private int exitQueue = -1;
 
+    /// <summary>On Linux, a pidfd of the program, through which a kernel from 6.15 tells a reaped program's exit status to
+    /// any who held one before it was reaped (<c>PIDFD_INFO_EXIT</c>); -1 where there is none.</summary>
+    private int exitHandle = -1;
+
     private SuspendedLaunch(int processId, nint resumeHandle, Process? process, Stream input, Stream output, Stream error)
     {
         ProcessId = processId;
@@ -48,6 +52,10 @@ public sealed partial class SuspendedLaunch : IDisposable
 
     public Stream Output { get; }
     public Stream Error { get; }
+
+    /// <summary>Why the program's exit code is not known, once it has ended without one, where it was this process's to
+    /// learn; null otherwise.</summary>
+    public string? CodeLost { get; private set; }
 
     /// <summary>Moves the adapter's protocol off its standard input and output onto descriptors of its own,
     /// closed on exec so no program ever inherits them, and points 0 at /dev/null and 1 at standard error,
@@ -136,6 +144,7 @@ public sealed partial class SuspendedLaunch : IDisposable
             {
                 // Watched while it is held before its first instruction, so its exit cannot come first.
                 exitQueue = OperatingSystem.IsMacOS() ? WatchExit(processId) : -1,
+                exitHandle = OperatingSystem.IsLinux() ? OpenProcess(processId) : -1,
             };
         }
         catch
@@ -213,8 +222,8 @@ public sealed partial class SuspendedLaunch : IDisposable
         }
     }
 
-    /// <summary>Waits for the program to end and says how: its exit code, or 128 and the signal that ended
-    /// it, as a shell does. Null when it was not this process's child to wait for, or was let go of first.</summary>
+    /// <summary>Waits for the program to end and says how: its exit code, or 128 and the signal that ended it, as a shell
+    /// does. Null when the code is lost (<see cref="CodeLost"/>), or the program was let go of first.</summary>
     public int? WaitForExit()
     {
         if (process is not null)
@@ -244,7 +253,19 @@ public sealed partial class SuspendedLaunch : IDisposable
             result = WaitPid(ProcessId, out status, 0);
         }
         while (result == -1 && Marshal.GetLastPInvokeError() == Interrupted);
-        return result == ProcessId ? Decoded(status) : null;
+        if (result == ProcessId)
+        {
+            CloseExitHandle();
+            return Decoded(status);
+        }
+        if (OperatingSystem.IsLinux() && ReapedStatus() is int kept)
+        {
+            return Decoded(kept);
+        }
+        CodeLost = OperatingSystem.IsLinux()
+            ? "the debugger's own libraries reaped it first, and Linux before 6.15 keeps a reaped program's status for no one else"
+            : "the debugger's own libraries reaped it first";
+        return null;
     }
 
     /// <summary>An exit code as a shell tells it from a wait's status: the code, or 128 and the signal that ended it.</summary>
@@ -293,6 +314,59 @@ public sealed partial class SuspendedLaunch : IDisposable
         {
             Close(exitQueue);
             exitQueue = -1;
+        }
+    }
+
+    /// <summary>A pidfd of the process, or -1 when the system will not open one (Linux before 5.3).</summary>
+    [SupportedOSPlatform("linux")]
+    private static int OpenProcess(int processId) => (int)SystemCall(PidfdOpen, processId, 0);
+
+    /// <summary>The exit status the kernel kept for the program another reaped, through its pidfd; null where it kept none.
+    /// Its reaper takes it before releasing it, so a pidfd that still finds it there is asked again a moment later.</summary>
+    [SupportedOSPlatform("linux")]
+    private int? ReapedStatus()
+    {
+        if (exitHandle < 0)
+        {
+            return null;
+        }
+        try
+        {
+            long began = Stopwatch.GetTimestamp();
+            while (true)
+            {
+                ProcessInfo info = new() { Mask = InfoExit };
+                if (ProcessInfoOf(exitHandle, GetProcessInfo, ref info) < 0)
+                {
+                    if (Marshal.GetLastPInvokeError() == Interrupted)
+                    {
+                        continue;
+                    }
+                    return null;
+                }
+                if ((info.Mask & InfoExit) != 0)
+                {
+                    return info.ExitCode;
+                }
+                if (Stopwatch.GetElapsedTime(began) >= TimeSpan.FromSeconds(1))
+                {
+                    return null;
+                }
+                Thread.Sleep(1);
+            }
+        }
+        finally
+        {
+            CloseExitHandle();
+        }
+    }
+
+    private void CloseExitHandle()
+    {
+        if (exitHandle >= 0)
+        {
+            Close(exitHandle);
+            exitHandle = -1;
         }
     }
 
@@ -426,6 +500,25 @@ public sealed partial class SuspendedLaunch : IDisposable
 
     [LibraryImport("libc", EntryPoint = "waitpid", SetLastError = true)]
     private static partial int WaitPid(int processId, out int status, int options);
+
+    private const long PidfdOpen = 434; // pidfd_open, numbered alike on every architecture
+    private const ulong InfoExit = 1UL << 3; // PIDFD_INFO_EXIT
+    private const ulong GetProcessInfo = 0xC040FF0B; // PIDFD_GET_INFO: _IOWR(0xFF, 11, the 64 bytes of struct pidfd_info)
+
+    /// <summary>Linux's struct pidfd_info as first published, which every kernel that answers takes.</summary>
+    [StructLayout(LayoutKind.Explicit, Size = 64)]
+    private struct ProcessInfo
+    {
+        [FieldOffset(0)] public ulong Mask;
+        [FieldOffset(60)] public int ExitCode;
+    }
+
+    /// <summary>syscall with two arguments, which it takes in registers as a call of fixed arguments does (x64, arm64).</summary>
+    [LibraryImport("libc", EntryPoint = "syscall", SetLastError = true)]
+    private static partial long SystemCall(long number, long first, long second);
+
+    [LibraryImport("libc", EntryPoint = "ioctl", SetLastError = true)]
+    private static partial int ProcessInfoOf(int descriptor, ulong request, ref ProcessInfo info);
 
     private const int StandardInput = -10;
     private const int StandardOutput = -11;

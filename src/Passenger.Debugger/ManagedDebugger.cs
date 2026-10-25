@@ -84,8 +84,9 @@ public partial class ManagedDebugger
     private int _exitReported;
     private TaskCompletionSource _exitTold = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    /// <summary>Tells the client the program has ended, once, after the last of its output. A second caller (the runtime's
-    /// word of the end, after the wait's) returns only once it has been told, so the end it tells next comes after.</summary>
+    /// <summary>Tells the client the program has ended, once, after the last of its output, and why its exit code is lost
+    /// where it is. A second caller (the runtime's word of the end, after the wait's) returns only once it has been told,
+    /// so the end it tells next comes after.</summary>
     private void ReportExit(int? exitCode)
     {
         if (Interlocked.Exchange(ref _exitReported, 1) == 1)
@@ -96,6 +97,10 @@ public partial class ManagedDebugger
         try
         {
             WaitForLastOutput();
+            if (exitCode is null && _launch?.CodeLost is { } lost)
+            {
+                OnConsole?.Invoke($"The program ended, but its exit code is lost: {lost}.\n");
+            }
             OnExited?.Invoke(exitCode);
         }
         finally
