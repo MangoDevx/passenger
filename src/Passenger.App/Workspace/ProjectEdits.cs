@@ -1,125 +1,79 @@
-using System.Text;
-using System.Text.RegularExpressions;
+using System.Xml;
 using System.Xml.Linq;
 using Passenger.Core;
 
 namespace Passenger.App.Workspace;
 
-/// <summary>Add Reference and Remove on a project reference, its items following a file moved, and a property set (Add
-/// > Docker Support's container properties), made to the project file's text: a reference goes beside the project's
-/// others, or in an item group of its own before &lt;/Project&gt;, written relative with backslashes; taking it out
-/// takes the group it leaves empty, so the file is as it was. The rest of the file keeps its bytes, its byte order
-/// mark, line endings and indentation. Paths are canonical. A reference's edit returns null when it was done, else why
-/// not; a file that cannot be read or written throws.</summary>
-public static partial class ProjectEdits
+/// <summary>Add Reference and Remove on a project reference, a package reference added, its items following a file
+/// moved, and a property set (Add &gt; Docker Support's container properties), made to the project file's text through
+/// <see cref="XmlText"/>: a reference goes beside the project's others, or in an item group of its own before
+/// &lt;/Project&gt;, written relative with backslashes; taking it out takes the group it leaves empty, so the file is as
+/// it was. What a comment holds is never read or changed, and the rest of the file keeps its bytes, its byte order mark,
+/// line endings and indentation. Paths are canonical. An edit returns null when it was done, else why not; a file that
+/// cannot be read or written throws.</summary>
+public static class ProjectEdits
 {
-    public static string? AddReference(string project, string referenced)
+    public static string? AddReference(string project, string referenced) => Change(project, xml =>
     {
-        ProjectText file = new(project);
-        if (file.References().Any(r => PathNames.Same(r.Path, referenced)))
+        if (References(xml, project).Any(r => PathNames.Same(r.Path, referenced)))
         {
             return $"{Path.GetFileNameWithoutExtension(project)} already references {Path.GetFileNameWithoutExtension(referenced)}";
         }
         string include = Path.GetRelativePath(Path.GetDirectoryName(project)!, referenced).Replace('/', '\\');
-        string text = file.Text;
-        string eol = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
-        string indent = IndentUnit(text);
-        string element = $"<ProjectReference Include=\"{include}\" />";
-        if (file.References().LastOrDefault(r => r.Group is { Conditioned: false }) is { Group: not null } last)
+        string element = $"<ProjectReference Include=\"{XmlText.Quoted(include, '"')}\" />";
+        if (References(xml, project).LastOrDefault(r => r.Element.Parent is { } group && IsItemGroup(group) && !Conditioned(group)).Element is { } last)
         {
-            int lineEnd = text.IndexOf('\n', last.End);
-            int at = lineEnd < 0 ? text.Length : lineEnd + 1;
-            if (text[last.End..(lineEnd < 0 ? text.Length : lineEnd)].Trim().Length > 0)
-            {
-                // The group's close (or more) follows it on its line: the new one goes between them, on that line.
-                file.Write(text.Insert(last.End, element));
-                return null;
-            }
-            // On a line of its own, indented as the last one's, a level deeper when that line begins with its group.
-            int lineStart = text.LastIndexOf('\n', Math.Max(0, last.Start - 1)) + 1;
-            string under = text[lineStart..last.Start].Trim().Length > 0 ? indent : string.Empty;
-            file.Write(text.Insert(at, $"{LineIndent(text, last.Start)}{under}{element}{eol}"));
+            xml.After(last, element);
             return null;
         }
-        return InGroupOfItsOwn(file, project, element);
-    }
+        InGroupOfItsOwn(xml, element);
+        return null;
+    });
 
     /// <summary>A package reference added as dotnet add package writes one, its version given (none under central package
-    /// management, whose Directory.Packages.props holds it): after the project's last package reference outside comments
-    /// (<see cref="XmlText.After"/>), else in an item group of its own before &lt;/Project&gt;. Null once done, else why not.</summary>
-    public static string? AddPackage(string project, string id, string? version)
+    /// management, whose Directory.Packages.props holds it): after the project's last package reference, else in an item
+    /// group of its own before &lt;/Project&gt;. Null once done, else why not.</summary>
+    public static string? AddPackage(string project, string id, string? version) => Change(project, xml =>
     {
-        ProjectText file = new(project);
-        XmlText text = new(file.Text);
-        List<XElement> references = PackageReferences(text);
+        List<XElement> references = PackageReferences(xml);
         if (references.Any(r => string.Equals((string?)r.Attribute("Include"), id, StringComparison.OrdinalIgnoreCase)))
         {
             return $"{Path.GetFileNameWithoutExtension(project)} already references {id}";
         }
-        string include = XmlText.Escape(id);
-        string element = version is null ? $"<PackageReference Include=\"{include}\" />" : $"<PackageReference Include=\"{include}\" Version=\"{XmlText.Escape(version)}\" />";
+        string include = XmlText.Quoted(id, '"');
+        string element = version is null ? $"<PackageReference Include=\"{include}\" />" : $"<PackageReference Include=\"{include}\" Version=\"{XmlText.Quoted(version, '"')}\" />";
         if (references.LastOrDefault() is { } last)
         {
-            text.After(last, element);
-            file.Write(text.Text);
-            return null;
+            xml.After(last, element);
         }
-        return InGroupOfItsOwn(file, project, element);
-    }
-
-    /// <summary>Whether a project file's text references a package, outside comments.</summary>
-    public static bool HasPackage(string text, string id) =>
-        PackageReferences(new XmlText(text)).Any(r => string.Equals((string?)r.Attribute("Include"), id, StringComparison.OrdinalIgnoreCase));
-
-    private static List<XElement> PackageReferences(XmlText text) => [.. text.Root.Descendants().Where(e => e.Name.LocalName == "PackageReference")];
-
-    /// <summary>An item put in an item group of its own before &lt;/Project&gt;, indented as the file indents.</summary>
-    private static string? InGroupOfItsOwn(ProjectText file, string project, string element)
-    {
-        string text = file.Text;
-        string eol = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
-        string indent = IndentUnit(text);
-        int close = text.LastIndexOf("</Project>", StringComparison.Ordinal);
-        if (close < 0)
+        else
         {
-            return $"{Path.GetFileName(project)} is not a project file";
+            InGroupOfItsOwn(xml, element);
         }
-        int closeLine = text.LastIndexOf('\n', Math.Max(0, close - 1)) + 1;
-        bool inline = text[closeLine..close].Trim().Length > 0;
-        if (inline)
-        {
-            closeLine = close;
-        }
-        // A file that leaves a blank line between its groups gets one after the new group too.
-        bool spaced = closeLine >= 2 && text[..closeLine].TrimEnd('\r', '\n').Length < text[..closeLine].Length - eol.Length;
-        string group = $"{indent}<ItemGroup>{eol}{indent}{indent}{element}{eol}{indent}</ItemGroup>{eol}{(spaced ? eol : string.Empty)}";
-        file.Write(text.Insert(closeLine, (inline ? eol : string.Empty) + group));
         return null;
-    }
+    });
 
-    public static string? RemoveReference(string project, string referenced)
+    /// <summary>Whether a project file's text references a package; false for text that does not read as XML.</summary>
+    public static bool HasPackage(string text, string id) =>
+        Read(text) is { } xml && PackageReferences(xml).Any(r => string.Equals((string?)r.Attribute("Include"), id, StringComparison.OrdinalIgnoreCase));
+
+    public static string? RemoveReference(string project, string referenced) => Change(project, xml =>
     {
-        ProjectText file = new(project);
-        if (file.References().FirstOrDefault(r => PathNames.Same(r.Path, referenced)) is not { } reference)
+        if (References(xml, project).FirstOrDefault(r => PathNames.Same(r.Path, referenced)).Element is not { } reference)
         {
             return $"{Path.GetFileNameWithoutExtension(project)} does not reference {Path.GetFileNameWithoutExtension(referenced)}";
         }
-        string text = file.Text;
-        (int start, int end) = WholeLines(text, reference.Start, reference.End);
-        if (reference.Group is { } group && (text[group.OpenEnd..start] + text[end..group.CloseStart]).Trim().Length == 0)
+        if (reference.Parent is { } group && IsItemGroup(group) && group.Nodes().All(n => n == reference || n is XText { Value: var space } && string.IsNullOrWhiteSpace(space)))
         {
             // The group is left empty: it goes too, with the blank line that set it apart from the next.
-            (int groupStart, int groupEnd) = WholeLines(text, group.OpenStart, group.CloseEnd);
-            if (IsBlankLineBefore(text, groupStart) && BlankLineAt(text, groupEnd) is int blankEnd)
-            {
-                groupEnd = blankEnd;
-            }
-            file.Write(text.Remove(groupStart, groupEnd - groupStart));
-            return null;
+            xml.Remove(group, spaced: true);
         }
-        file.Write(text.Remove(start, end - start));
+        else
+        {
+            xml.Remove(reference);
+        }
         return null;
-    }
+    });
 
     /// <summary>Sets a property in the project file, as Add > Docker Support sets the SDK's container properties and Manage User
     /// Secrets a UserSecretsId (<see cref="WithProperty"/>). Null once done, else why not.</summary>
@@ -135,77 +89,53 @@ public static partial class ProjectEdits
     }
 
     /// <summary>A project file's text with a property set: where an unconditioned property group sets it already, its value
-    /// there; else on a line of its own at the end of the first unconditioned property group, indented as that group's last
-    /// property; else in a property group of its own before &lt;/Project&gt;. The text, else why not.</summary>
+    /// there; else at the end of the first unconditioned property group, indented as that group's last property; else in a
+    /// property group of its own before &lt;/Project&gt;. The text, else why not.</summary>
     public static (string? Text, string? Problem) WithProperty(string text, string project, string name, string value)
     {
-        string written = System.Security.SecurityElement.Escape(value);
-        List<(int Start, int End)> comments = [.. Comment().Matches(text).Select(m => (m.Index, m.Index + m.Length))];
-        List<Match> groups = [.. PropertyGroup().Matches(text).Where(m => !comments.Any(c => m.Index >= c.Start && m.Index < c.End)
-            && !m.Groups["attributes"].Value.Contains("Condition", StringComparison.OrdinalIgnoreCase))];
-        Regex element = new($@"<{Regex.Escape(name)}\s*>(?<value>[^<]*)</{Regex.Escape(name)}\s*>");
-        foreach (Match group in groups)
+        if (Read(text) is not { } xml)
         {
-            Capture body = group.Groups["body"];
-            // One commented out sets nothing: the one MSBuild reads is outside every comment.
-            Match set = element.Match(text, body.Index, body.Length);
-            while (set.Success && comments.Any(c => set.Index >= c.Start && set.Index < c.End))
-            {
-                set = set.NextMatch();
-            }
-            if (set.Success)
-            {
-                Capture old = set.Groups["value"];
-                return (old.Value == written ? text : text.Remove(old.Index, old.Length).Insert(old.Index, written), null);
-            }
+            return (null, $"{Path.GetFileName(project)} does not read as XML");
         }
-        string eol = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
-        string indent = IndentUnit(text);
-        string line = $"<{name}>{written}</{name}>";
-        if (groups.FirstOrDefault() is { } first)
-        {
-            Capture body = first.Groups["body"];
-            int closeLine = text.LastIndexOf('\n', body.Index + body.Length - 1) + 1;
-            if (closeLine <= body.Index || text[closeLine..(body.Index + body.Length)].Trim().Length > 0)
-            {
-                // The group closes on a line it shares: the property goes just before its close.
-                return (text.Insert(body.Index + body.Length, line), null);
-            }
-            // Indented as the group's last property, or a level under the group with none.
-            int previous = text.LastIndexOf('\n', Math.Max(0, closeLine - 2)) + 1;
-            string under = previous <= first.Index ? LineIndent(text, first.Index) + indent : LineIndent(text, closeLine - 1);
-            return (text.Insert(closeLine, $"{under}{line}{eol}"), null);
-        }
-        int close = text.LastIndexOf("</Project>", StringComparison.Ordinal);
-        if (close < 0)
+        if (xml.Root.Name.LocalName != "Project")
         {
             return (null, $"{Path.GetFileName(project)} is not a project file");
         }
-        int closeAt = text.LastIndexOf('\n', Math.Max(0, close - 1)) + 1;
-        bool spaced = closeAt >= 2 && text[..closeAt].TrimEnd('\r', '\n').Length < text[..closeAt].Length - eol.Length;
-        return (text.Insert(closeAt, $"{indent}<PropertyGroup>{eol}{indent}{indent}{line}{eol}{indent}</PropertyGroup>{eol}{(spaced ? eol : string.Empty)}"), null);
+        string written = System.Security.SecurityElement.Escape(value);
+        List<XElement> groups = PropertyGroups(xml);
+        foreach (XElement group in groups)
+        {
+            if (group.Elements().FirstOrDefault(e => e.Name.LocalName == name && !e.HasElements) is not { } set)
+            {
+                continue;
+            }
+            if (xml.InnerOf(set) is not { } inner)
+            {
+                xml.Replace(set, $"<{name}>{written}</{name}>");
+            }
+            else if (xml.Written(inner) != written)
+            {
+                xml.Apply([(inner.Start, inner.Length, written)]);
+            }
+            return (xml.Text, null);
+        }
+        string line = $"<{name}>{written}</{name}>";
+        if (groups.FirstOrDefault() is { } first)
+        {
+            xml.Append(first, line);
+            return (xml.Text, null);
+        }
+        string outer = xml.IndentIn(xml.Root);
+        xml.Append(xml.Root, $"<PropertyGroup>{xml.NewLine}{outer}{xml.Unit}{line}{xml.NewLine}{outer}</PropertyGroup>", ownLine: true);
+        return (xml.Text, null);
     }
 
-    /// <summary>A property's value as the project file's own text sets it, outside comments and conditioned groups; null where it
-    /// sets none.</summary>
-    public static string? PropertyIn(string text, string name)
-    {
-        List<(int Start, int End)> comments = [.. Comment().Matches(text).Select(m => (m.Index, m.Index + m.Length))];
-        Regex element = new($@"<{Regex.Escape(name)}\s*>(?<value>[^<]*)</{Regex.Escape(name)}\s*>");
-        foreach (Match group in PropertyGroup().Matches(text).Where(m => !comments.Any(c => m.Index >= c.Start && m.Index < c.End)
-            && !m.Groups["attributes"].Value.Contains("Condition", StringComparison.OrdinalIgnoreCase)))
-        {
-            Capture body = group.Groups["body"];
-            for (Match set = element.Match(text, body.Index, body.Length); set.Success; set = set.NextMatch())
-            {
-                if (!comments.Any(c => set.Index >= c.Start && set.Index < c.End))
-                {
-                    return System.Net.WebUtility.HtmlDecode(set.Groups["value"].Value.Trim());
-                }
-            }
-        }
-        return null;
-    }
+    /// <summary>A property's value as the project file's own text sets it in an unconditioned property group; null where it
+    /// sets none, or the text does not read as XML.</summary>
+    public static string? PropertyIn(string text, string name) =>
+        Read(text) is { } xml
+            ? PropertyGroups(xml).SelectMany(g => g.Elements()).FirstOrDefault(e => e.Name.LocalName == name && !e.HasElements)?.Value.Trim()
+            : null;
 
     /// <summary>The project (at its path now) following files and folders that moved or were renamed: an item's Include,
     /// Update, Remove or Exclude naming a file, or a glob's folder, names where it went (a list or a property stays as
@@ -215,51 +145,63 @@ public static partial class ProjectEdits
     public static bool MoveItems(string project, IReadOnlyList<(string From, string To)> moves)
     {
         ProjectText file = new(project);
+        if (Read(file.Text) is not { } xml)
+        {
+            return false;
+        }
         string folder = Path.GetDirectoryName(project)!;
         string Moved(string path) => moves.FirstOrDefault(m => PathNames.Within(path, m.From)) is { From: not null } move ? PathNames.Moved(path, move.From, move.To) : path;
         string before = Path.GetDirectoryName(moves.FirstOrDefault(m => PathNames.Within(project, m.To)) is { To: not null } back ? PathNames.Moved(project, back.To, back.From) : project)!;
-        List<(int Start, int End)> comments = [.. Comment().Matches(file.Text).Select(m => (m.Index, m.Index + m.Length))];
-        string text = ItemElement().Replace(file.Text, item =>
+        List<(int Start, int Length, string With)> edits = [];
+        foreach (XElement item in xml.Root.Descendants())
         {
-            if (comments.Any(c => item.Index >= c.Start && item.Index < c.End))
+            string? own = null;
+            foreach (string kind in item.Attributes().Select(a => a.Name.LocalName).Where(n => n is "Include" or "Update" or "Remove" or "Exclude").ToList())
             {
-                return item.Value;
-            }
-            // Each path names where its file is now, from where the project is now; a glob by the folder it begins in.
-            string start = ItemAttribute().Replace(item.Groups["start"].Value, attribute =>
-            {
-                string items = attribute.Groups["items"].Value;
+                if (xml.ValueOf(item, kind) is not { } span)
+                {
+                    continue;
+                }
+                // Each path names where its file is now, from where the project is now; a glob by the folder it begins in.
+                string items = xml.Written(span);
+                own ??= kind is "Include" or "Update" && OneFile(items) ? items : null;
                 int wild = items.IndexOfAny(['*', '?']);
                 string path = (wild < 0 ? items : items[..Math.Max(0, items.LastIndexOfAny(['\\', '/'], wild))]).TrimEnd('\\', '/');
                 if (path.Trim().Length == 0 || items.IndexOfAny([';', '$', '@', '%']) >= 0)
                 {
-                    return attribute.Value;
+                    continue;
                 }
                 string now = Moved(Full(before, path));
-                return PathNames.Same(Full(folder, path), now) ? attribute.Value
-                    : Spliced(attribute, attribute.Groups["items"], Written(Path.GetRelativePath(folder, now), path) + items[path.Length..]);
-            });
-            string element = $"<{item.Groups["tag"].Value}{start}{item.Groups["end"].Value}";
-            if (ItemAttribute().Matches(item.Groups["start"].Value).FirstOrDefault(a => a.Groups["kind"].Value is "Include" or "Update" && OneFile(a.Groups["items"].Value)) is not { } own)
+                if (!PathNames.Same(Full(folder, path), now))
+                {
+                    edits.Add((span.Start, span.Length, Written(Path.GetRelativePath(folder, now), path) + items[path.Length..]));
+                }
+            }
+            if (own is null)
             {
-                return element;
+                continue;
             }
             // What the item names beside it, relative to its file: where that is now, from where its file is now.
-            string was = Path.GetDirectoryName(Full(before, own.Groups["items"].Value))!;
-            string at = Path.GetDirectoryName(Moved(Full(before, own.Groups["items"].Value)))!;
-            return RelatedName().Replace(element, related =>
+            string was = Path.GetDirectoryName(Full(before, own))!;
+            string at = Path.GetDirectoryName(Moved(Full(before, own)))!;
+            IEnumerable<(int Start, int Length)?> related = ((string[])["DependentUpon", "LastGenOutput"]).Select(n => xml.ValueOf(item, n))
+                .Concat(item.Elements().Where(e => e.Name.LocalName is "DependentUpon" or "LastGenOutput" && !e.HasElements).Select(xml.InnerOf));
+            foreach ((int Start, int Length) span in related.OfType<(int Start, int Length)>())
             {
-                Capture value = related.Groups["value"];
-                string target = Moved(Full(was, value.Value.Trim()));
-                return PathNames.Same(Full(at, value.Value.Trim()), target) ? related.Value
-                    : Spliced(related, value, Written(Path.GetRelativePath(at, target), value.Value));
-            });
-        });
-        if (text == file.Text)
+                string value = xml.Written(span);
+                string target = Moved(Full(was, value.Trim()));
+                if (value.Trim().Length > 0 && !PathNames.Same(Full(at, value.Trim()), target))
+                {
+                    edits.Add((span.Start, span.Length, Written(Path.GetRelativePath(at, target), value)));
+                }
+            }
+        }
+        if (edits.Count == 0)
         {
             return false;
         }
-        file.Write(text);
+        xml.Apply(edits);
+        file.Write(xml.Text);
         return true;
 
         static bool OneFile(string items) => items.Trim().Length > 0 && items.IndexOfAny(['*', '?', ';', '$', '@', '%']) < 0;
@@ -267,91 +209,68 @@ public static partial class ProjectEdits
         static string Full(string folder, string relative) => Path.GetFullPath(Path.Combine(folder, relative.Replace('\\', '/')));
     }
 
+    /// <summary>Reads the project, makes a change on its text, and writes it back unless the change says why not.</summary>
+    private static string? Change(string project, Func<XmlText, string?> change)
+    {
+        ProjectText file = new(project);
+        if (Read(file.Text) is not { } xml)
+        {
+            return $"{Path.GetFileName(project)} does not read as XML";
+        }
+        if (xml.Root.Name.LocalName != "Project")
+        {
+            return $"{Path.GetFileName(project)} is not a project file";
+        }
+        if (change(xml) is { } problem)
+        {
+            return problem;
+        }
+        if (xml.Text != file.Text)
+        {
+            file.Write(xml.Text);
+        }
+        return null;
+    }
+
+    private static XmlText? Read(string text)
+    {
+        try
+        {
+            return new XmlText(text);
+        }
+        catch (XmlException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>An item put in an item group of its own before &lt;/Project&gt;, indented as the file indents.</summary>
+    private static void InGroupOfItsOwn(XmlText xml, string element)
+    {
+        string outer = xml.IndentIn(xml.Root);
+        xml.Append(xml.Root, $"<ItemGroup>{xml.NewLine}{outer}{xml.Unit}{element}{xml.NewLine}{outer}</ItemGroup>", ownLine: true);
+    }
+
+    /// <summary>The project's references, in the file's order, each with the project it names.</summary>
+    private static List<(XElement Element, string Path)> References(XmlText xml, string project)
+    {
+        string folder = Path.GetDirectoryName(project)!;
+        return [.. xml.Root.Descendants().Where(e => e.Name.LocalName == "ProjectReference" && e.Attribute("Include") is not null)
+            .Select(e => (e, PathNames.Canonical(Path.Combine(folder, e.Attribute("Include")!.Value.Replace('\\', '/')))))];
+    }
+
+    private static List<XElement> PackageReferences(XmlText xml) => [.. xml.Root.Descendants().Where(e => e.Name.LocalName == "PackageReference")];
+
+    /// <summary>The project's own property groups that no condition holds, in the file's order.</summary>
+    private static List<XElement> PropertyGroups(XmlText xml) =>
+        [.. xml.Root.Elements().Where(e => e.Name.LocalName == "PropertyGroup" && !Conditioned(e))];
+
+    private static bool IsItemGroup(XElement element) => element.Name.LocalName == "ItemGroup";
+
+    private static bool Conditioned(XElement element) => element.Attributes().Any(a => a.Name.LocalName.Equals("Condition", StringComparison.OrdinalIgnoreCase));
+
     /// <summary>A path as a project writes it, with the separators the value it replaces had.</summary>
     private static string Written(string relative, string was) => was.Contains('\\') ? relative.Replace('/', '\\') : relative.Replace('\\', '/');
-
-    /// <summary>A match's text with one of its groups' text replaced.</summary>
-    private static string Spliced(Match match, Capture group, string replacement) =>
-        string.Concat(match.Value.AsSpan(0, group.Index - match.Index), replacement, match.Value.AsSpan(group.Index - match.Index + group.Length));
-
-    /// <summary>The line or lines a span stands on, their indentation and line break included, when nothing else is on
-    /// them; the span alone otherwise.</summary>
-    private static (int Start, int End) WholeLines(string text, int start, int end)
-    {
-        int lineStart = text.LastIndexOf('\n', Math.Max(0, start - 1)) + 1;
-        if (start > 0 && text[lineStart..start].Trim().Length > 0)
-        {
-            return (start, end);
-        }
-        int lineEnd = text.IndexOf('\n', end);
-        int stop = lineEnd < 0 ? text.Length : lineEnd + 1;
-        return text[end..(lineEnd < 0 ? text.Length : lineEnd)].Trim().Length > 0 ? (start, end) : (lineStart, stop);
-    }
-
-    private static bool IsBlankLineBefore(string text, int lineStart)
-    {
-        if (lineStart < 2)
-        {
-            return false;
-        }
-        int previous = text.LastIndexOf('\n', lineStart - 2) + 1;
-        return text[previous..(lineStart - 1)].Trim().Length == 0;
-    }
-
-    /// <summary>The end of a blank line beginning at a place, line break included, or null when the line there is not blank.</summary>
-    private static int? BlankLineAt(string text, int at)
-    {
-        int lineEnd = text.IndexOf('\n', at);
-        return lineEnd >= 0 && text[at..lineEnd].Trim().Length == 0 ? lineEnd + 1 : null;
-    }
-
-    /// <summary>The indentation one level of the file takes: its first indented element's.</summary>
-    private static string IndentUnit(string text) => IndentedLine().Match(text) is { Success: true } line ? line.Groups[1].Value : "  ";
-
-    /// <summary>The whitespace the line holding a place begins with, never what stands on it before the place.</summary>
-    private static string LineIndent(string text, int at)
-    {
-        int lineStart = text.LastIndexOf('\n', Math.Max(0, at - 1)) + 1;
-        int end = lineStart;
-        while (end < at && text[end] is ' ' or '\t')
-        {
-            end++;
-        }
-        return text[lineStart..end];
-    }
-
-    [GeneratedRegex(@"\n([ \t]+)<")]
-    private static partial Regex IndentedLine();
-
-    [GeneratedRegex(@"<ProjectReference\b[^>]*?\bInclude\s*=\s*""(?<include>[^""]*)""[^>]*?(/>|>.*?</ProjectReference\s*>)", RegexOptions.Singleline)]
-    private static partial Regex ReferenceElement();
-
-    [GeneratedRegex(@"<ItemGroup\b(?<attributes>[^>]*?)>(?<body>.*?)</ItemGroup\s*>", RegexOptions.Singleline)]
-    private static partial Regex ItemGroup();
-
-    [GeneratedRegex(@"<PropertyGroup\b(?<attributes>[^>]*?)>(?<body>.*?)</PropertyGroup\s*>", RegexOptions.Singleline)]
-    private static partial Regex PropertyGroup();
-
-    /// <summary>An item that names files: its tag, the rest of its start tag (an Include, Update, Remove or Exclude among
-    /// it), and its end.</summary>
-    [GeneratedRegex(@"<(?<tag>[A-Za-z_][\w.-]*)(?<start>(?=[^>]*\b(?:Include|Update|Remove|Exclude)\s*=)[^>]*?)(?<end>/>|>.*?</\k<tag>\s*>)", RegexOptions.Singleline)]
-    private static partial Regex ItemElement();
-
-    [GeneratedRegex(@"\b(?<kind>Include|Update|Remove|Exclude)\s*=\s*""(?<items>[^""]*)""")]
-    private static partial Regex ItemAttribute();
-
-    /// <summary>A file an item names beside it: what it depends on, or what generates from it, as an attribute or an element.</summary>
-    [GeneratedRegex(@"\b(?:DependentUpon|LastGenOutput)\s*=\s*""(?<value>[^""]+)""|<(?<name>DependentUpon|LastGenOutput)>(?<value>[^<]+)</\k<name>\s*>")]
-    private static partial Regex RelatedName();
-
-    [GeneratedRegex(@"<!--.*?-->", RegexOptions.Singleline)]
-    private static partial Regex Comment();
-
-    /// <summary>An item group's tags, by where they start and end in the file.</summary>
-    private sealed record Group(int OpenStart, int OpenEnd, int CloseStart, int CloseEnd, bool Conditioned);
-
-    /// <summary>A project reference in the file: the project it names, where its element is, and the group holding it.</summary>
-    private sealed record Reference(string Path, int Start, int End, Group? Group);
 
     /// <summary>A project file read for one change as a save reads a file: its encoding, byte order mark and line breaks,
     /// which go back as they came.</summary>
@@ -368,25 +287,6 @@ public static partial class ProjectEdits
         }
 
         public string Text { get; }
-
-        /// <summary>The project's references outside comments, in the file's order.</summary>
-        public List<Reference> References()
-        {
-            string folder = Path.GetDirectoryName(path)!;
-            List<(int Start, int End)> comments = [.. Comment().Matches(Text).Select(m => (m.Index, m.Index + m.Length))];
-            bool Commented(int at) => comments.Any(c => at >= c.Start && at < c.End);
-            List<Group> groups = [.. ItemGroup().Matches(Text).Where(m => !Commented(m.Index)).Select(m => new Group(
-                m.Index,
-                m.Groups["body"].Index,
-                m.Groups["body"].Index + m.Groups["body"].Length,
-                m.Index + m.Length,
-                m.Groups["attributes"].Value.Contains("Condition", StringComparison.OrdinalIgnoreCase)))];
-            return [.. ReferenceElement().Matches(Text).Where(m => !Commented(m.Index)).Select(m => new Reference(
-                PathNames.Canonical(Path.Combine(folder, m.Groups["include"].Value.Replace('\\', '/'))),
-                m.Index,
-                m.Index + m.Length,
-                groups.FirstOrDefault(g => m.Index >= g.OpenEnd && m.Index < g.CloseStart)))];
-        }
 
         /// <summary>Writes the project back as an editor's save does (<see cref="FileText.Save"/>), in the encoding and
         /// line breaks it came with.</summary>

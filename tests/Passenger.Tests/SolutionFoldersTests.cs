@@ -308,6 +308,42 @@ public sealed class SolutionFoldersTests : IDisposable
     }
 
     [AvaloniaFact]
+    public void A_project_added_to_a_slnx_and_removed_again_changes_only_its_own_line_every_quote_and_short_tag_kept()
+    {
+        const string Written = "<?xml version='1.0' encoding='utf-8'?>\n<!-- The shop, as a person wrote it. -->\n<Solution>\n"
+            + "\t<Project Path='src/Shop.Web/Shop.Web.csproj'/>\n"
+            + "\t<Folder Name='/Solution Items/'>\n\t\t<File Path='README.md'   />\n\t</Folder>\n"
+            + "\t<Folder Name=\"/src/\" >\n\t\t<Project Path=\"src/Shop.Core/Shop.Core.csproj\"/>\n\t</Folder>\n</Solution>\n";
+        string solution = Path.Combine(folder, "Shop.slnx");
+        File.WriteAllBytes(solution, new UTF8Encoding(false).GetBytes(Written));
+        Restore.Run(solution);
+        MainWindow window = Open();
+        Answer(window);
+        window.PickFiles = (_, _, _) => Task.FromResult<IReadOnlyList<string>>([Path.Combine(folder, "tools", "Importer", "Importer.csproj")]);
+        int heard = 0;
+        window.FolderWatcher!.Changed += (_, changes) => heard += changes.Paths.Contains(PathNames.Canonical(solution)) ? 1 : 0;
+        void Edit(Action edit)
+        {
+            int before = heard;
+            edit();
+            Ui.WaitFor(() => heard > before, "the folder watcher to hear of the change to the solution");
+            Ui.Settle();
+        }
+
+        Edit(() => Ui.ChooseFromRowMenu(window, Row(window, NodeKind.Solution, "Shop"), "Add", "Existing Project…"));
+        string added = Written.Replace("\t<Project Path='src/Shop.Web/Shop.Web.csproj'/>\n",
+            "\t<Project Path='src/Shop.Web/Shop.Web.csproj'/>\n\t<Project Path=\"tools/Importer/Importer.csproj\" />\n", StringComparison.Ordinal);
+        string text = Read(solution, "a project added");
+        Assert.True(text == added, $"Adding a project to the .slnx changed more than the line it added:\n{text}");
+
+        Ui.ClickRow(window, Row(window, NodeKind.Project, "Importer"));
+        Edit(() => Ui.Press(window, "BACK_SPACE"));
+        text = Read(solution, "the project removed");
+        Assert.True(text == Written, $"With the project removed again, the .slnx is not as it was written:\n{text}");
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public void Removing_a_solution_folder_names_the_projects_folders_and_files_that_go_with_it()
     {
         string solution = WriteSolution("slnx");

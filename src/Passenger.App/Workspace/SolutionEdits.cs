@@ -1,6 +1,4 @@
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Xml;
 using System.Xml.Linq;
 using Passenger.Core;
 
@@ -506,34 +504,17 @@ public static class SolutionEdits
         };
     }
 
-    /// <summary>A .slnx, its whitespace kept as read: an element added is indented as its neighbours are, and one taken
-    /// out goes with the line break and indentation before it. Its declaration goes back as it was written.</summary>
+    /// <summary>A .slnx, changed through <see cref="XmlText"/>: an element added is indented as its neighbours are, one
+    /// taken out goes with its line, and every other character stays as it was read.</summary>
     private sealed class SlnxText : SolutionText
     {
-        private readonly XDocument document;
-        private readonly string? declaration;
-        private readonly string newline;
+        private readonly XmlText xml;
 
-        public SlnxText(string path) : base(path)
-        {
-            document = XDocument.Parse(Text, LoadOptions.PreserveWhitespace);
-            newline = Text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
-            int start = Text.IndexOf("<?xml", StringComparison.Ordinal);
-            declaration = document.Declaration is null || start < 0 ? null : Text[start..(Text.IndexOf("?>", start, StringComparison.Ordinal) + 2)];
-        }
+        public SlnxText(string path) : base(path) => xml = new XmlText(Text);
 
-        private XElement Solution => document.Root!;
+        private XElement Solution => xml.Root;
 
-        protected override string Written()
-        {
-            StringBuilder written = new(declaration);
-            XmlWriterSettings settings = new() { OmitXmlDeclaration = true, NewLineHandling = NewLineHandling.Replace, NewLineChars = newline };
-            using (XmlWriter writer = XmlWriter.Create(written, settings))
-            {
-                document.Save(writer);
-            }
-            return written.ToString();
-        }
+        protected override string Written() => xml.Text;
 
         /// <summary>The Folder elements, each with its path in the solution as the reader makes it ("/src/tools/").</summary>
         private IEnumerable<(XElement Element, string Path)> Folders() =>
@@ -577,21 +558,22 @@ public static class SolutionEdits
                 return $"{name} is already there";
             }
             // A .slnx names each folder by its whole path, so the folders inside it are renamed too.
-            foreach ((XElement element, string path) in Folders().Where(f => f.Path.StartsWith(folder, StringComparison.Ordinal)).ToList())
-            {
-                element.SetAttributeValue("Name", renamed + path[folder.Length..]);
-            }
+            xml.Apply([.. Folders().Where(f => f.Path.StartsWith(folder, StringComparison.Ordinal))
+                .Select(f => (xml.ValueOf(f.Element, "Name")!.Value, renamed + f.Path[folder.Length..]))
+                .Select(v => (v.Value.Start, v.Value.Length, XmlText.Quoted(v.Item2, xml.Text[v.Value.Start - 1])))]);
             return null;
         }
 
         public override string? RemoveFolder(string folder)
         {
-            List<XElement> gone = [.. Folders().Where(f => f.Path.StartsWith(folder, StringComparison.Ordinal)).Select(f => f.Element)];
-            if (gone.Count == 0)
+            if (!Folders().Any(f => f.Path.StartsWith(folder, StringComparison.Ordinal)))
             {
                 return NoFolder(folder);
             }
-            gone.ForEach(Remove);
+            while (Folders().FirstOrDefault(f => f.Path.StartsWith(folder, StringComparison.Ordinal)).Element is { } gone)
+            {
+                xml.Remove(gone);
+            }
             return null;
         }
 
@@ -606,26 +588,46 @@ public static class SolutionEdits
                 return $"{NameOf(project)} is already in the solution";
             }
             XElement into = folder is null ? Solution : Element(folder);
-            XElement added = new("Project", new XAttribute("Path", Relative(project).Replace('\\', '/')));
-            Insert(into, added, into.Elements().LastOrDefault(e => e.Name.LocalName == "Project")?.NextNode);
+            string added = $"<Project Path=\"{XmlText.Quoted(Relative(project).Replace('\\', '/'), '"')}\" />";
+            if (into.Elements().LastOrDefault(e => e.Name.LocalName == "Project") is { } last)
+            {
+                xml.After(last, added);
+            }
+            else
+            {
+                xml.Append(into, added);
+            }
             return null;
         }
 
         public override bool Move(Func<string, string> moved)
         {
-            bool changed = false;
+            List<(int Start, int Length, string With)> edits = [];
             // A project's or file's Path, and a build dependency's Project.
-            foreach (XAttribute attribute in Solution.Descendants().SelectMany(e => e.Attributes()).Where(a =>
-                a.Parent!.Name.LocalName is "Project" or "File" && a.Name.LocalName == "Path" || a.Parent.Name.LocalName == "BuildDependency" && a.Name.LocalName == "Project").ToList())
+            foreach (XElement element in Solution.Descendants())
             {
+                string? named = element.Name.LocalName switch
+                {
+                    "Project" or "File" => "Path",
+                    "BuildDependency" => "Project",
+                    _ => null,
+                };
+                if (named is null || element.Attribute(named) is not { } attribute || xml.ValueOf(element, named) is not { } span)
+                {
+                    continue;
+                }
                 string was = Resolve(attribute.Value);
                 if (moved(was) is var now && now != was)
                 {
-                    attribute.Value = Followed(attribute.Value, now, '/');
-                    changed = true;
+                    edits.Add((span.Start, span.Length, XmlText.Quoted(Followed(attribute.Value, now, '/'), xml.Text[span.Start - 1])));
                 }
             }
-            return changed;
+            if (edits.Count == 0)
+            {
+                return false;
+            }
+            xml.Apply(edits);
+            return true;
         }
 
         public override string? RemoveProject(string project)
@@ -650,9 +652,19 @@ public static class SolutionEdits
                 return $"{Path.GetFileName(path)} is already in {folder.Split('/', StringSplitOptions.RemoveEmptyEntries)[^1]}";
             }
             // Files come before projects in a folder, as Visual Studio writes them.
-            XNode? before = into.Elements().LastOrDefault(e => e.Name.LocalName == "File")?.NextNode
-                ?? into.Elements().FirstOrDefault(e => e.Name.LocalName == "Project");
-            Insert(into, new XElement("File", new XAttribute("Path", Relative(path).Replace('\\', '/'))), before);
+            string added = $"<File Path=\"{XmlText.Quoted(Relative(path).Replace('\\', '/'), '"')}\" />";
+            if (into.Elements().LastOrDefault(e => e.Name.LocalName == "File") is { } last)
+            {
+                xml.After(last, added);
+            }
+            else if (into.Elements().FirstOrDefault(e => e.Name.LocalName == "Project") is { } first)
+            {
+                xml.Before(first, added);
+            }
+            else
+            {
+                xml.Append(into, added);
+            }
             return null;
         }
 
@@ -674,64 +686,43 @@ public static class SolutionEdits
             folder.Elements().Where(e => e.Name.LocalName == "File" && e.Attribute("Path") is not null).Select(e => (e, Resolve(e.Attribute("Path")!.Value)));
 
         /// <summary>A folder's own element, written now if the folder was only implied: among the folders in order of their
-        /// paths, before the solution's own projects, as Visual Studio writes them.</summary>
+        /// paths, before the solution's own projects, as Visual Studio writes them. As the text reads once it is written.</summary>
         private XElement Element(string folder)
         {
             if (Folders().FirstOrDefault(f => f.Path == folder).Element is { } written)
             {
                 return written;
             }
-            XElement made = new("Folder", new XAttribute("Name", folder));
-            XNode? before = Folders().FirstOrDefault(f => string.Compare(f.Path, folder, StringComparison.OrdinalIgnoreCase) > 0).Element
-                ?? Folders().LastOrDefault().Element?.NextNode
-                ?? Solution.Elements().FirstOrDefault(e => e.Name.LocalName == "Project");
-            Insert(Solution, made, before);
-            return made;
-        }
-
-        /// <summary>Puts an element into another before a node of it (at its end with none), on a line of its own indented
-        /// as its siblings are.</summary>
-        private void Insert(XElement into, XElement element, XNode? before)
-        {
-            string outer = IndentOf(into);
-            string inner = into.Elements().FirstOrDefault() is { } sibling ? IndentOf(sibling) : outer + Unit();
-            if (!into.Nodes().Any())
+            string made = $"<Folder Name=\"{XmlText.Quoted(folder, '"')}\" />";
+            if (Folders().FirstOrDefault(f => string.Compare(f.Path, folder, StringComparison.OrdinalIgnoreCase) > 0).Element is { } next)
             {
-                into.Add(new XText("\n" + inner), element, new XText("\n" + outer));
+                xml.Before(next, made);
             }
-            else if (before is not null and not XText)
+            else if (Folders().LastOrDefault().Element is { } last)
             {
-                before.AddBeforeSelf(element, new XText("\n" + inner));
+                xml.After(last, made);
             }
-            else if ((before ?? into.LastNode) is XText { Value: string space } trailing && string.IsNullOrWhiteSpace(space))
+            else if (Solution.Elements().FirstOrDefault(e => e.Name.LocalName == "Project") is { } project)
             {
-                trailing.AddBeforeSelf(new XText("\n" + inner), element);
+                xml.Before(project, made);
             }
             else
             {
-                into.Add(new XText("\n" + inner), element, new XText("\n" + outer));
+                xml.Append(Solution, made);
             }
+            return Folders().First(f => f.Path == folder).Element;
         }
 
-        /// <summary>Takes an element out with the whitespace before it; a folder left with nothing in it closes itself.</summary>
-        private static void Remove(XElement element)
+        /// <summary>Takes an element out with its line; a folder left with nothing in it closes itself.</summary>
+        private void Remove(XElement element)
         {
-            XElement? parent = element.Parent;
-            if (element.PreviousNode is XText { Value: string space } before && string.IsNullOrWhiteSpace(space))
+            string? holder = element.Parent is { } parent && parent != Solution && parent.Attribute("Name") is { } name ? PathOf(name.Value) : null;
+            xml.Remove(element);
+            if (holder is not null && Folders().FirstOrDefault(f => f.Path == holder).Element is { } folder
+                && !folder.Elements().Any() && folder.Nodes().All(n => n is XText { Value: var text } && string.IsNullOrWhiteSpace(text)) && xml.InnerOf(folder) is not null)
             {
-                before.Remove();
-            }
-            element.Remove();
-            if (parent is not null && parent.Parent is not null && !parent.Elements().Any() && parent.Nodes().All(n => n is XText { Value: string text } && string.IsNullOrWhiteSpace(text)))
-            {
-                parent.RemoveNodes();
+                xml.Replace(folder, xml.StartTag(folder) + " />");
             }
         }
-
-        private static string IndentOf(XElement element) =>
-            element.PreviousNode is XText { Value: string space } && string.IsNullOrWhiteSpace(space) ? space[(space.LastIndexOf('\n') + 1)..] : string.Empty;
-
-        /// <summary>One level of the file's indentation: what its first element is indented by.</summary>
-        private string Unit() => Solution.Elements().FirstOrDefault() is { } first && IndentOf(first) is { Length: > 0 } unit ? unit : "  ";
     }
 }
