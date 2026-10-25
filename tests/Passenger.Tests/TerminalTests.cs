@@ -551,10 +551,27 @@ public sealed class TerminalTests
         }
     }
 
-    /// <summary>Runs a case of the TerminalCases debuggee through the terminal's shell, as a command typed there, so its
-    /// program writes the same bytes on every system.</summary>
-    private static void RunCase(MainWindow window, params string[] words) =>
-        Run(window, $"\"{Dotnet.Host()}\" \"{Debugging.Helpers.Debuggees.Program("TerminalCases")}\" {string.Join(' ', words)}");
+    /// <summary>Runs a case of the TerminalCases debuggee through the terminal's shell, so its program writes the same
+    /// bytes on every system: typed as a short launcher in the folder, so the command line wraps alike whatever the
+    /// checkout's path.</summary>
+    private static void RunCase(MainWindow window, params string[] words)
+    {
+        string launcher = Path.Combine(window.Folder!, OperatingSystem.IsWindows() ? "cases.cmd" : "cases");
+        if (!File.Exists(launcher))
+        {
+            string program = Debugging.Helpers.Debuggees.Program("TerminalCases");
+            if (OperatingSystem.IsWindows())
+            {
+                File.WriteAllText(launcher, $"@\"{Dotnet.Host()}\" \"{program}\" %*\r\n");
+            }
+            else
+            {
+                File.WriteAllText(launcher, $"#!/bin/sh\nexec \"{Dotnet.Host()}\" \"{program}\" \"$@\"\n");
+                File.SetUnixFileMode(launcher, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            }
+        }
+        Run(window, $"{(OperatingSystem.IsWindows() ? "cases" : "./cases")} {string.Join(' ', words)}");
+    }
 
     /// <summary>Types a command into the terminal and presses Enter.</summary>
     private static void Run(MainWindow window, string command)
