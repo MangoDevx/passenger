@@ -146,7 +146,7 @@ Projects in `src/`:
 - `Passenger.Core`: what everything shares, no UI. `ChildProcesses` (`RunAsync`'s limit, a 2 s `OutputGrace` after exit,
   `mostOutput`; `StartAsync` forks off the UI thread, since a fork costs a large process tens of ms, #233),
   `Dotnet`/`Programs`/`ShellEnvironment` (tools found as the login shell would), `PathNames`, `AtomicFile`,
-  `SocketFolders` (every Unix socket, short paths), `DotnetProcesses` (attachable programs), `InFlight`.
+  `SocketFolders` (every Unix socket, short paths), `DotnetProcesses` (attachable programs), `InFlight`, `BackgroundWork`.
 - `Passenger.Text`: the rope (an immutable B-tree, so every version is a thread-safe snapshot), `TextDocument` (undo,
   LSP-ordered changes; carry offsets with `TextEditing.Map*` over the change's `SortedEdits` as it came), carets, every
   editing command as a pure function to an `EditPlan`, `MarkupIndent`, `WordDiff`, `FuzzyMatch` (allocates nothing).
@@ -393,8 +393,8 @@ size. Each checks a tool's answer, leaving the window's steps to the window's te
 
 ## Code style
 
-- C#: four spaces, file-scoped namespaces, braces on every block, explicit types over `var` (only a suggestion to the
-  build, so write the type), accessibility always written; the build fails on the first three (IDE0161, IDE0011, IDE0040).
+- C#: four spaces, file-scoped namespaces, braces on every block, explicit types over `var`, accessibility always
+  written; the build fails on each (IDE0161, IDE0011, IDE0008, IDE0040).
 - A comment speaks only of what it sits on, never how something else works, and says why, never what the next lines do.
   A file's or type's comment is at most 10 lines, a member's 5, and one inside a body 1 line, there only for a reason the
   code can't show (`just comments` holds the lengths).

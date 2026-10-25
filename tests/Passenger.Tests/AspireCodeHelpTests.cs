@@ -205,6 +205,9 @@ public sealed class AspireCodeHelpTests : IClassFixture<AspireCodeHelpTests.Proj
         try
         {
             Ui.WaitFor(() => UnsetParameters(window).SetEquals(["token"]), "the secret parameter with no value to be marked");
+            List<string> said = [];
+            using IDisposable following = Avalonia.AvaloniaObjectExtensions.GetObservable(window.FindControl<TextBlock>("StatusText")!, TextBlock.TextProperty)
+                .Subscribe(new Avalonia.Reactive.AnonymousObserver<string?>(text => said.Add(text ?? string.Empty)));
             SetParameter(window, "AddParameter(\"tok", "Set token in the AppHost's user secrets…", secret: true, "t0ken-value");
             Ui.WaitFor(() => Passenger.App.Workspace.ProjectEdits.PropertyIn(File.ReadAllText(projectFile), "UserSecretsId") is not null,
                 () => $"the AppHost to be given a UserSecretsId ({window.Status})");
@@ -213,7 +216,8 @@ public sealed class AspireCodeHelpTests : IClassFixture<AspireCodeHelpTests.Proj
             string secrets = Path.Combine(TestRun.UserSecrets, id, "secrets.json");
             Ui.WaitFor(() => File.Exists(secrets) && File.ReadAllText(secrets).Contains("\"Parameters:token\": \"t0ken-value\"", StringComparison.Ordinal),
                 "the secret to be kept in the AppHost's new user secrets, in the run's own folder");
-            Assert.True(window.Status == "Set token in the AppHost's user secrets, giving it a UserSecretsId", $"Setting the secret said: {window.Status}");
+            // The project read anew for its new id may say its own load's warning after.
+            Assert.True(said.Contains("Set token in the AppHost's user secrets, giving it a UserSecretsId"), $"Setting the secret said: {string.Join(" | ", said)}");
             Ui.WaitFor(() => UnsetParameters(window).Count == 0, "the secret's mark to go once the AppHost's new user secrets give it");
 
             Ui.Run(window, AppActions.FocusExplorer);
