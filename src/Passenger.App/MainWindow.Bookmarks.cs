@@ -31,7 +31,7 @@ public partial class MainWindow
         Editors.Opened += (_, document) =>
         {
             document.Bookmarks = session.Bookmarks.LinesIn(document.Path);
-            document.Text.Changed += (_, change) => session.Bookmarks.Follow(document.Path, change);
+            document.Text.Changed += (_, _) => session.Bookmarks.Follow(document.Path);
         };
     }
 

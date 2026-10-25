@@ -734,8 +734,8 @@ public sealed class ProjectSession : IAsyncDisposable
         }
     }
 
-    /// <summary>A file the editor opened: the language server, the debugger and Git follow it, its gutter showing their
-    /// marks.</summary>
+    /// <summary>A file the editor opened: the language server, the debugger, Git and the bookmarks follow it, its gutter
+    /// showing their marks.</summary>
     public void Attach(OpenDocument document)
     {
         CSharp?.Attach(document);
@@ -744,6 +744,7 @@ public sealed class ProjectSession : IAsyncDisposable
         MSBuild.Attach(document);
         Debug.Attach(document);
         Vcs.Attach(document);
+        Bookmarks.Attach(document.Path, document.Text);
     }
 
     /// <summary>A file the editor closed, which they follow no more.</summary>
@@ -755,6 +756,7 @@ public sealed class ProjectSession : IAsyncDisposable
         MSBuild.Detach(document);
         Debug.Detach(document);
         Vcs.Detach(document);
+        Bookmarks.Detach(document.Path);
     }
 
     /// <summary>A file or folder moved: its bookmarks and breakpoints, Git, the recent files, the places, Local History and
