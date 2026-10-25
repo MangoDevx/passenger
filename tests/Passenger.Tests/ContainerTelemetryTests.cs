@@ -74,7 +74,7 @@ public sealed class ContainerTelemetryTests : McpRig
             view.Telemetry.StructuredLogs.ScrollIntoView(view.Telemetry.ItemOf(log)!);
             Ui.Settle();
             Ui.Click(Assert.IsType<ListBoxItem>(view.Telemetry.StructuredLogs.ContainerFromItem(view.Telemetry.ItemOf(log)!)));
-            Ui.Click(view.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "telemetryShowTrace" && b.IsEffectivelyVisible));
+            Ui.Click(view.GetVisualDescendants().OfType<Button>().Single(b => b.Name == AppActions.ContainersShowTrace && b.IsEffectivelyVisible));
             Ui.WaitFor(() => view.Telemetry.Shown == TelemetryPage.Traces && view.Telemetry.SelectedTrace is { Spans.Count: >= 3 } chosen
                 && chosen.TraceId == log.TraceId && view.Telemetry.SelectedSpan?.Span.SpanId == log.SpanId,
                 $"the request's trace, with web's request to itself, its log's span chosen ({view.Telemetry.TracesStatus})", TimeSpan.FromMinutes(1));

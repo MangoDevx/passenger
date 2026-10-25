@@ -59,6 +59,33 @@ public partial class MainWindow
                 : "No container, image, volume or network is chosen in the Containers window",
         });
         actions.Add(new IdeAction(AppActions.ContainerShell, "Open Shell", "Containers", context => _ = OpenShellAsync(Chosen()!.Container!)) { WhyNot = OneContainer, Words = ["docker exec", "Attach"] });
+        foreach (string tab in ContainersView.Pages)
+        {
+            // Log and Stats are every row's; the rest are a chosen row's, which a window not yet built has none of.
+            actions.Add(new IdeAction(ContainersView.PageAction(tab), $"Show Container {tab}", "Containers", _ =>
+            {
+                ShowToolWindow(ToolWindowIds.Containers);
+                ContainersWindow.ShowTab(tab);
+            })
+            {
+                WhyNot = _ => tab is RunWindows.LogTab or RunWindows.StatsTab ? null
+                    : containersView is { } view ? view.WhyNotTab(tab) : $"Nothing chosen in the Containers window has a {tab} tab",
+            });
+        }
+        actions.Add(new IdeAction(AppActions.ContainersLogFind, "Find in Container Logs", "Containers", _ =>
+        {
+            ShowToolWindow(ToolWindowIds.Containers);
+            ContainersWindow.ShowTab(RunWindows.LogTab);
+            ContainersWindow.Log.OpenFind();
+        }));
+        actions.Add(new IdeAction(AppActions.ContainersShowTrace, "Show Container Log Trace", "Containers", _ => ContainersWindow.Telemetry.ShowSelectedTrace())
+        {
+            WhyNot = _ => containersView?.Telemetry.SelectedLog is { TraceId.Length: > 0 } ? null : "No log with a trace is selected",
+        });
+        actions.Add(new IdeAction(AppActions.ContainersShowRelatedLogs, "Show Related Container Logs", "Containers", _ => ContainersWindow.Telemetry.ShowRelatedLogs())
+        {
+            WhyNot = _ => containersView?.Telemetry is { SelectedTrace: not null, SelectedSpan: not null } ? null : "No trace span is selected",
+        });
 
         AddServiceActions();
         Dock.Add(new Docking.ToolWindow(ToolWindowIds.Containers, "Containers", "Icon.Containers", MakeContainers, Docking.ToolAnchor.BottomLeft)

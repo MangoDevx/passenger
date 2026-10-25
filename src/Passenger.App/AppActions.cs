@@ -115,6 +115,16 @@ public static class AppActions
     public const string ContainerInspect = "app.containers.inspect";
     public const string ContainerShell = "app.containers.shell";
 
+    // The Containers window's tabs, its log's Find, and its Telemetry's log trace and span logs, as Aspire's are.
+    public const string ContainersLog = "app.containers.log";
+    public const string ContainersStats = "app.containers.stats";
+    public const string ContainersFiles = "app.containers.files";
+    public const string ContainersDetails = "app.containers.details";
+    public const string ContainersTelemetry = "app.containers.telemetry";
+    public const string ContainersLogFind = "app.containers.logFind";
+    public const string ContainersShowTrace = "app.containers.showTrace";
+    public const string ContainersShowRelatedLogs = "app.containers.showRelatedLogs";
+
     // A .NET service of a run of services under way (a container run's, an AppHost's), chosen in the Containers or Aspire
     // window or by its gutter icon, the run left up: debugged from its start, attached to as it runs, let go by the debugger,
     // or profiled. No keys of Rider's. The ids each window had for them before they were one set still name them (Formerly).

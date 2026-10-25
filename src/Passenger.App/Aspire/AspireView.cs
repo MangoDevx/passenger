@@ -25,8 +25,9 @@ public sealed record AspireRow(AspireResource Resource, int Depth, bool Expands,
 /// <summary>The Aspire window over an AppHost's resources: an icon toolbar of the window's actions, the resources as rows
 /// (<see cref="RunRows"/>: a chevron over a parent's children, the state's dot, health's tag and addresses as links), the
 /// chosen one's Details (<see cref="AspireDetailsPane"/>), the resources' consoles merged (<see cref="MergedLog"/>), the
-/// dashboard's structured logs and traces (<see cref="TelemetryView"/>'s pages), and the AppHost's own console. A view of
-/// the session's <see cref="AspireModel"/>, built as the window is first shown.</summary>
+/// dashboard's structured logs and traces (<see cref="TelemetryView"/>'s pages), and the AppHost's own console, on the frame
+/// of a run's windows (<see cref="RunWindowFrame"/>). A view of the session's <see cref="AspireModel"/>, built as the window is
+/// first shown.</summary>
 public sealed class AspireView : DockPanel, IDisposable
 {
     private const string LogTab = AspireModel.LogTab;
@@ -39,7 +40,8 @@ public sealed class AspireView : DockPanel, IDisposable
     private readonly ContentControl page = new();
     private readonly ContentControl appHostConsole = new();
     private readonly TextBlock readiness = new() { Classes = { "muted" }, Margin = new Thickness(8, 6), TextWrapping = TextWrapping.Wrap };
-    private readonly Dictionary<string, (ToggleButton Tab, Control Page)> pages = new(StringComparer.Ordinal);
+    private readonly IReadOnlyDictionary<string, ToggleButton> tabs;
+    private readonly Dictionary<string, Control> pages;
     private readonly TextBlock consoleStatus = Said();
     private AspireModel model;
     private bool updating;
@@ -62,7 +64,7 @@ public sealed class AspireView : DockPanel, IDisposable
         AppSelector = new ComboBox { MaxWidth = 300, MinWidth = 200, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0) };
         AutomationProperties.SetName(AppSelector, "Aspire AppHost");
         ToolTip.SetTip(AppSelector, "Running AppHost (every request uses its absolute project path)");
-        StackPanel bar = new() { Orientation = Orientation.Horizontal, Spacing = 2, Margin = new Thickness(6, 0), VerticalAlignment = VerticalAlignment.Center, Children = { AppSelector } };
+        StackPanel bar = RunWindowFrame.Tools(AppSelector);
         // Its Refresh, then the service actions (titled once bound), then the resource's own.
         foreach ((string action, string icon, string tip) in (ReadOnlySpan<(string, string, string)>)[
             (AppActions.AspireDiscover, "Icon.Search", "Discover running Aspire AppHosts"),
@@ -73,16 +75,13 @@ public sealed class AspireView : DockPanel, IDisposable
             (AppActions.AspireSource, "Icon.DocumentText", "Open the chosen resource's source"),
             (AppActions.AspireContainer, "Icon.Containers", "Show the chosen resource's container in Containers")])
         {
-            Button button = ToolButtons.Of(icon, tip);
-            button.Name = action;
+            Button button = RunWindowFrame.Tool(action, icon, tip, Request);
             tools.Add((button, action));
             bar.Children.Add(button);
         }
         commands = tools.Single(t => t.Action == AppActions.AspireCommand).Button;
         DockPanel top = new() { Children = { bar, status } };
         DockPanel.SetDock(bar, Dock.Left);
-        Border toolbar = ToolBars.Top(top);
-        Children.Add(toolbar);
 
         ResourceList = new ListBox
         {
@@ -121,27 +120,14 @@ public sealed class AspireView : DockPanel, IDisposable
         Console.LinkClicked += (_, link) => LinkClicked?.Invoke(this, link);
         Console.Links.Folders = AppHostFolders;
 
-        StackPanel strip = new() { Orientation = Orientation.Horizontal, Spacing = 2, Margin = new Thickness(8, 0), VerticalAlignment = VerticalAlignment.Center };
-        Dictionary<string, Control> contents = new(StringComparer.Ordinal)
+        pages = new(StringComparer.Ordinal)
         {
             [LogTab] = Log,
             [AspireModel.DetailsTab] = Details,
             [TelemetryTab] = Telemetry.Both,
             [AspireModel.AppHostTab] = WithHeader(readiness, appHostConsole),
         };
-        foreach (string name in RunWindows.Tabs.Where(contents.ContainsKey))
-        {
-            AddPage(name, contents[name], strip);
-        }
-        Border tabBar = ToolBars.Top(new ScrollViewer { Content = strip, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled });
-        DockPanel right = new() { Children = { tabBar, page } };
-
-        Grid panes = new() { ColumnDefinitions = new ColumnDefinitions("2*,1,3*") };
-        panes.Children.Add(new Panel { Children = { ResourceList, empty } });
-        panes.Children.Add(new HairlineDivider(GridResizeDirection.Columns) { [Grid.ColumnProperty] = 1 });
-        right[Grid.ColumnProperty] = 2;
-        panes.Children.Add(right);
-        Children.Add(panes);
+        tabs = RunWindowFrame.Build(this, top, new Panel { Children = { ResourceList, empty } }, page, AspireModel.Pages, AspireModel.PageAction, "aspire", Request);
         DetachedFromVisualTree += (_, _) => this.model.SetDisplayVisible(false);
         PropertyChanged += (_, change) =>
         {
@@ -345,12 +331,11 @@ public sealed class AspireView : DockPanel, IDisposable
 
     private void ShowPage(bool another)
     {
-        (ToggleButton Tab, Control Page) chosen = pages[model.ShownPage];
-        foreach ((ToggleButton tab, Control _) in pages.Values)
+        foreach ((string name, ToggleButton tab) in tabs)
         {
-            tab.IsChecked = tab == chosen.Tab;
+            tab.IsChecked = name == model.ShownPage;
         }
-        page.Content = chosen.Page;
+        page.Content = pages[model.ShownPage];
         if (another)
         {
             UpdateConsole();
@@ -371,7 +356,6 @@ public sealed class AspireView : DockPanel, IDisposable
         foreach ((Button button, string action) in tools)
         {
             ActionTips.Set(button, action, actions[action]?.Title ?? ToolTip.GetTip(button) as string ?? action);
-            ActionButtons.Bind(button, action, actions, request);
         }
     }
 
@@ -613,16 +597,8 @@ public sealed class AspireView : DockPanel, IDisposable
         ];
     }
 
-    private void AddPage(string name, Control content, StackPanel strip)
-    {
-        ToggleButton tab = ToolTabs.Tab(name, false);
-        tab.Name = $"aspire{name.Replace(" ", string.Empty, StringComparison.Ordinal)}Tab";
-        string id = AspireModel.PageAction(name);
-        ActionButtons.Mark(tab, id);
-        tab.Click += (_, _) => requestAction?.Invoke(id);
-        pages.Add(name, (tab, content));
-        strip.Children.Add(tab);
-    }
+    /// <summary>One of the window's actions asked for by a button or a tab, once bound.</summary>
+    private void Request(string action) => requestAction?.Invoke(action);
 
     /// <summary>Shows the Telemetry tab on one of its pages, as a log's trace or a span's logs asks for it.</summary>
     public void ShowTelemetry(TelemetryPage shown)

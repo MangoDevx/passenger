@@ -1,6 +1,7 @@
 using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
@@ -1029,6 +1030,46 @@ public sealed class ContainersTests
         File.WriteAllText(sh, $"#!/bin/sh\nif [ \"$1\" = version ]; then echo '{Client}'; echo '{Error}' >&2; exit 1; fi\nexit 1\n");
         File.SetUnixFileMode(sh, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         return sh;
+    }
+
+    /// <summary>The Containers window's tabs are actions, as the Aspire window's are: Find Action reaches each by its title and
+    /// shows the window on that tab, its tab chosen, one the chosen row has not greyed with why; and Find in Container Logs
+    /// shows the Log tab with its Find open.</summary>
+    [AvaloniaFact]
+    public void Find_Action_reaches_each_of_the_Containers_windows_tabs_and_its_logs_Find()
+    {
+        string folder = TestFolders.Create("ctr-tabs-");
+        File.WriteAllText(Path.Combine(folder, "notes.txt"), "no containers here\n");
+        MainWindow window = Ui.OpenFolder(folder, languageServer: false);
+        try
+        {
+            foreach (string tab in (string[])[RunWindows.StatsTab, RunWindows.LogTab])
+            {
+                FindAction(window, $"Show Container {tab}");
+                Ui.WaitFor(() => window.DockHost.IsShown(ToolWindowIds.Containers) && window.ContainersWindow.ShownTab == tab, $"the Containers window on its {tab} tab");
+                ToggleButton shown = window.ContainersWindow.GetVisualDescendants().OfType<ToggleButton>().Single(t => t.Name == $"containers{tab}Tab");
+                Assert.True(shown.IsChecked == true, $"Find Action showed the Containers window's {tab} tab without choosing it");
+            }
+            Assert.Equal("Nothing chosen in the Containers window has a Details tab", window.Actions.WhyNot(AppActions.ContainersDetails, window.Actions.Context()));
+            FindAction(window, "Find in Container Logs");
+            Ui.WaitFor(() => window.ContainersWindow.Log.Find.IsVisible, "the log's Find to open");
+            Assert.Equal(RunWindows.LogTab, window.ContainersWindow.ShownTab);
+        }
+        finally
+        {
+            window.Close();
+            TestFolders.Delete(folder);
+        }
+
+        static void FindAction(MainWindow window, string title)
+        {
+            Ui.Run(window, AppActions.FindAction);
+            window.KeyTextInput(title);
+            Ui.Settle();
+            Passenger.App.Navigation.ActionPopup popup = Assert.IsType<Passenger.App.Navigation.ActionPopup>(window.Popup);
+            Assert.Equal(title, popup.Rows[0].Title);
+            Ui.Press(window, "ENTER");
+        }
     }
 
     private static ContainersView Shown(MainWindow window)

@@ -24,7 +24,8 @@ public sealed record ContainersParts(Func<ContainerEngine> Engine, ActionWork Wo
 /// health, ports (links) and image; and the chosen container's Log, Stats, Files and Details (a service's its container's),
 /// or a project's or an AppHost's merged Log and Stats; and for a container run that collects them, its Telemetry. It asks
 /// the engine only while shown: its lists once, then again as the engine's events say something changed; a container's
-/// log and stats stream only while their tab is shown. Its toolbar's buttons run the window's actions.</summary>
+/// log and stats stream only while their tab is shown. On the frame of a run's windows (<see cref="RunWindowFrame"/>), its
+/// toolbar's buttons and its tabs run the window's actions.</summary>
 public sealed class ContainersView : DockPanel
 {
     // The tabs' names are those every list of a run's services has, in its order (RunWindows.Tabs).
@@ -39,7 +40,7 @@ public sealed class ContainersView : DockPanel
     private readonly System.Collections.ObjectModel.ObservableCollection<RunItem<ContainerRow>> items = [];
     private readonly TextBlock empty;
     private readonly TextBlock nothingChosen;
-    private readonly Dictionary<string, ToggleButton> tabs = [];
+    private readonly IReadOnlyDictionary<string, ToggleButton> tabs;
     private readonly ContentControl detail = new();
     private readonly HashSet<string> collapsed = ["group:Images", "group:Volumes", "group:Networks"];
     private readonly Debounce refreshing;
@@ -64,11 +65,16 @@ public sealed class ContainersView : DockPanel
         Stats = new ContainerStatsPane(chosen);
         Files = new ContainerFilesPane(chosen, parts.StateFolder);
         Details = new ContainerDetailsPane(chosen, parts.Browse, () => State?.Endpoint);
+        Telemetry = new TelemetryView(AppActions.ContainersShowTrace, AppActions.ContainersShowRelatedLogs, id =>
+        {
+            Request(id);
+            return true;
+        });
         Log.LinkClicked += (_, link) => LinkClicked?.Invoke(this, link);
         Telemetry.LinkClicked += (_, link) => LinkClicked?.Invoke(this, link);
         Telemetry.ShownChanged += (_, _) => ShowChosen();
 
-        StackPanel tools = new() { Orientation = Orientation.Horizontal, Spacing = 2, Margin = new Thickness(6, 0), VerticalAlignment = VerticalAlignment.Center };
+        StackPanel tools = RunWindowFrame.Tools();
         // Its Refresh, then the service actions, then a container's own.
         foreach ((string action, string icon) in (ReadOnlySpan<(string, string)>)[
             (AppActions.ContainersRefresh, "Icon.Rerun"),
@@ -84,10 +90,8 @@ public sealed class ContainersView : DockPanel
             (AppActions.ContainerScale, "Icon.Add"),
             (AppActions.ContainerPrune, "Icon.Clear")])
         {
-            tools.Children.Add(ActionTool(action, icon, parts.Title(action)));
+            tools.Children.Add(RunWindowFrame.Tool(action, icon, parts.Title(action), Request));
         }
-        Border bar = ToolBars.Top(tools);
-        Children.Add(bar);
 
         list = new ListBox
         {
@@ -124,29 +128,29 @@ public sealed class ContainersView : DockPanel
         empty = new TextBlock { Classes = { "emptyText" }, Text = "Reading what the engine holds…" };
         nothingChosen = new TextBlock { Classes = { "emptyText" }, Text = NothingChosen };
 
-        StackPanel strip = new() { Orientation = Orientation.Horizontal, Spacing = 2, Margin = new Thickness(8, 0), VerticalAlignment = VerticalAlignment.Center };
-        foreach (string name in RunWindows.Tabs.Where(tab => tab is LogTab or StatsTab or FilesTab or DetailsTab or TelemetryTab))
-        {
-            ToggleButton tab = ToolTabs.Tab(name, name == shownTab);
-            tab.Name = $"containers{name}Tab";
-            tab.Click += (_, _) => ShowTab(name);
-            tabs[name] = tab;
-            strip.Children.Add(tab);
-        }
-        Border tabBar = ToolBars.Top(strip);
-        DockPanel details = new() { Children = { tabBar, new Panel { Children = { detail, nothingChosen } } } };
-
-        Grid panes = new() { ColumnDefinitions = new ColumnDefinitions("2*,1,3*") };
-        panes.Children.Add(new Panel { Children = { list, empty } });
-        panes.Children.Add(new HairlineDivider(GridResizeDirection.Columns) { [Grid.ColumnProperty] = 1 });
-        details[Grid.ColumnProperty] = 2;
-        panes.Children.Add(details);
-        Children.Add(panes);
+        tabs = RunWindowFrame.Build(this, tools, new Panel { Children = { list, empty } }, new Panel { Children = { detail, nothingChosen } }, Pages, PageAction,
+            "containers", Request);
         ShowChosen();
     }
 
-    /// <summary>One of the window's actions asked for by a button.</summary>
+    /// <summary>One of the window's actions asked for by a button or a tab.</summary>
     public event EventHandler<string>? ActionRequested;
+
+    private void Request(string action) => ActionRequested?.Invoke(this, action);
+
+    /// <summary>The tabs' names, as their tabs and actions say them, in their order.</summary>
+    public static IReadOnlyList<string> Pages { get; } = [.. RunWindows.Tabs.Where(tab => tab is LogTab or StatsTab or FilesTab or DetailsTab or TelemetryTab)];
+
+    /// <summary>The action that shows a tab, which its tab runs and Find Action reaches.</summary>
+    public static string PageAction(string name) => name switch
+    {
+        LogTab => AppActions.ContainersLog,
+        StatsTab => AppActions.ContainersStats,
+        FilesTab => AppActions.ContainersFiles,
+        DetailsTab => AppActions.ContainersDetails,
+        TelemetryTab => AppActions.ContainersTelemetry,
+        _ => throw new ArgumentException("Unknown Containers tab.", nameof(name)),
+    };
 
     /// <summary>A person chose a row (a click, the keys), never the list read again.</summary>
     public event EventHandler? RowChosen;
@@ -165,8 +169,8 @@ public sealed class ContainersView : DockPanel
 
     public ContainerDetailsPane Details { get; }
 
-    /// <summary>The Telemetry tab's logs and traces.</summary>
-    public TelemetryView Telemetry { get; } = new();
+    /// <summary>The Telemetry tab's logs and traces, a log's trace and a span's logs the window's actions.</summary>
+    public TelemetryView Telemetry { get; }
 
     /// <summary>Where a Compose project's logs and traces are read, by its name: the container run of this window's folder
     /// that runs Passenger's dashboard for it; null for any other.</summary>
@@ -305,6 +309,10 @@ public sealed class ContainersView : DockPanel
             }
         }
     }
+
+    /// <summary>Why a detail tab cannot be shown now, or null: the row chosen (or none) has no such tab.</summary>
+    public string? WhyNotTab(string name) => tabs[name].IsVisible ? null
+        : Chosen is { } row ? $"{row.Name} has no {name} tab in the Containers window" : $"Nothing chosen in the Containers window has a {name} tab";
 
     /// <summary>Shows a detail tab.</summary>
     public void ShowTab(string name)
@@ -654,15 +662,6 @@ public sealed class ContainersView : DockPanel
     /// <summary>A row menu's item for one of the window's actions, as the window's row menus make them: titled as the action
     /// is, greyed with why while it cannot run.</summary>
     private MenuItem Item(string action) => parts.Item(action);
-
-    private Button ActionTool(string action, string icon, string tip)
-    {
-        Button button = ToolButtons.Of(icon, tip, () => ActionRequested?.Invoke(this, action));
-        button.Name = action;
-        ActionTips.Set(button, action, tip);
-        ActionButtons.Mark(button, action);
-        return button;
-    }
 
     /// <summary>A row (<see cref="RunRows"/>): a heading with its count, a project with its status, a service or container
     /// with its health and ports (links on the engine's machine while it runs), an image, volume or network with what it
