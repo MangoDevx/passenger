@@ -222,7 +222,7 @@ public sealed partial class BuildRunController
 
     /// <summary>Whether the Run console has a program Run started (a plain run's, or a container run's log), or a tab of the
     /// terminal has: one at a time, which Run and Rerun of a configuration that runs there stop first. An AppHost's is its own.</summary>
-    private bool RunsInConsole => session.Runner.IsRunning || followingAgain is not null || session.InTerminal is { IsRunning: true };
+    private bool RunsInConsole => session.RunProgram.IsRunning || followingAgain is not null;
 
     /// <summary>Whether the program Run started runs under dotnet watch (Settings' Hot Reload when running), which applies
     /// the edits of each file saved.</summary>
@@ -231,7 +231,7 @@ public sealed partial class BuildRunController
     private bool watching;
 
     /// <summary>The end of the program Run last started, in the Run window or the terminal, with its exit code.</summary>
-    public Task<int> RunEnd => aspireEnd ?? session.InTerminal?.Ended ?? session.Runner.Ended;
+    public Task<int> RunEnd => aspireEnd ?? session.RunProgram.Ended;
 
     private Task<int>? aspireEnd;
 
@@ -240,13 +240,6 @@ public sealed partial class BuildRunController
     public string? RunProject { get; private set; }
 
     public string? DebugProject { get; private set; }
-
-    /// <summary>The plan Debug last launched: where its program serves, which a route's request is sent to while it is debugged.</summary>
-    public LaunchPlan? DebugPlan { get; private set; }
-
-    /// <summary>The plan Run last started: what its program is named, which Attach Profiler looks for among what dotnet
-    /// watch started.</summary>
-    public LaunchPlan? RunPlan { get; private set; }
 
     /// <summary>Builds as Build does, and says how it ended once it has: built, failed, stopped, refused or unable to start.
     /// Canceled, the build is stopped as the Build window's Stop stops it.</summary>
@@ -652,7 +645,7 @@ public sealed partial class BuildRunController
             work.Say($"Starting {chosen.Name}…");
             ran = chosen.Name;
             RunProject = Path.GetDirectoryName(plan.Project);
-            RunPlan = plan;
+            session.RunPlan = plan;
             string running = watched ? $"Running {chosen.Name} with Hot Reload: a save applies its changes" : $"Running {chosen.Name}";
             // An Avalonia or WPF app is launched with the inspector in it, which tells of its failed bindings while it runs.
             LaunchPlan launched = session.InspectedRun(plan, watched);
@@ -736,7 +729,7 @@ public sealed partial class BuildRunController
     /// <summary>Ends what the Run console (or the terminal's tab) has, done once its end has landed.</summary>
     private async Task EndInConsoleAsync()
     {
-        Task<int> ended = session.InTerminal is { IsRunning: true } terminal ? terminal.Ended : session.Runner.Ended;
+        Task<int> ended = session.RunProgram.Ended;
         StopRun();
         await ended;
     }
@@ -1136,7 +1129,6 @@ public sealed partial class BuildRunController
         parts.Views.Debug.ShowTab(console: true);
         // Before the session clears the Debug window's console, which forgets the links the last one's output had.
         DebugProject = Path.GetDirectoryName(plan.Project);
-        DebugPlan = plan;
         DebugController debug = session.Debug;
         // An Avalonia or WPF app is launched with the Live Visual Tree's inspector, held by its tab, ending with this debugging.
         (LaunchPlan launched, LiveApp? inspected) = session.Inspected(plan);
@@ -1303,13 +1295,11 @@ public sealed partial class BuildRunController
     {
         Task containers = session.StopContainersAsync();
         Task aspire = session.Aspire.StopAllAsync();
-        Task ran = session.Runner.IsRunning ? session.Runner.Ended : Task.CompletedTask;
-        Task inTerminal = session.InTerminal is { IsRunning: true } terminal ? terminal.Ended : Task.CompletedTask;
-        session.Runner.Stop();
-        session.InTerminal?.Stop();
+        Task ran = session.RunProgram.IsRunning ? session.RunProgram.Ended : Task.CompletedTask;
+        session.RunProgram.Stop();
         session.Profiled?.Run.Kill();
         session.Builder.Stop();
-        return Task.WhenAll(containers, aspire, ran, inTerminal);
+        return Task.WhenAll(containers, aspire, ran);
     }
 
     /// <summary>Rerun's stop: Run's own start under way and the program it started (in the Run window or the terminal, or its
@@ -1319,8 +1309,7 @@ public sealed partial class BuildRunController
     {
         parts.Work.Of(AppActions.RunProgram)?.Cancel();
         _ = session.StopContainersAsync();
-        session.Runner.Stop();
-        session.InTerminal?.Stop();
+        session.RunProgram.Stop();
     }
 
     /// <summary>Whether a run of a configuration is up: Run's program (in the Run window or the terminal) or container run,

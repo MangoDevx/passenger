@@ -52,16 +52,19 @@ public sealed partial class PassengerTools
     private async Task<(ServiceRun Run, TelemetrySource? Source, string? Filter)> TelemetryOfAsync(ProjectSession current, string? appHost, string? resource,
         CancellationToken cancel)
     {
-        Containers.ContainerRun? containers = current.ContainerRun is { IsStopped: false, Plan.Telemetry: not null } collecting ? collecting : null;
+        IReadOnlyList<ServiceRun> runs = current.ServiceRuns;
+        Containers.ContainerRun? running = runs.OfType<Containers.ContainerRun>().FirstOrDefault();
+        bool hosts = runs.OfType<AspireAppRun>().Any();
+        Containers.ContainerRun? containers = running is { Plan.Telemetry: not null } ? running : null;
         // A container run that collects nothing, named or the only run there is: what to turn on, not Aspire's refusal.
-        if (appHost is null && current.ContainerRun is { IsStopped: false, Plan.Telemetry: null } uncollected
-            && (resource is null && !current.Aspire.Apps.Any(app => !app.IsTest && !app.Stopping) || resource is not null && OfRun(uncollected, resource) is not null))
+        if (appHost is null && running is { Plan.Telemetry: null } uncollected
+            && (resource is null && !hosts || resource is not null && OfRun(uncollected, resource) is not null))
         {
             throw new InvalidOperationException($"{uncollected.Name} collects no logs or traces: turn on its configuration's Collect logs and traces with "
                 + "Aspire's dashboard (Edit Configurations), then run it again");
         }
         if (appHost is null && containers is not null
-            && (resource is null && !current.Aspire.Apps.Any(app => !app.IsTest && !app.Stopping)
+            && (resource is null && !hosts
                 || resource is not null && !resource.Contains("::", StringComparison.Ordinal)
                     && (containers.Plan.Dotnet.Any(d => d.Service == resource) || containers.Plan.Backing.Contains(resource))))
         {
@@ -75,8 +78,7 @@ public sealed partial class PassengerTools
         {
             throw new ArgumentException("appHost and resource name different AppHosts");
         }
-        AspireAppRun[] apps = current.Aspire.Apps.Where(app => !app.IsTest && !app.Stopping
-            && (path is null || Passenger.Core.PathNames.Same(path, app.Configuration.Project))).ToArray();
+        AspireAppRun[] apps = [.. current.ServiceRuns.OfType<AspireAppRun>().Where(app => path is null || Passenger.Core.PathNames.Same(path, app.Configuration.Project))];
         AspireAppRun app = apps.Length == 1 ? apps[0]
             : throw new InvalidOperationException(containers is not null && path is null
                 ? $"Name the run: appHost, or resource (a service of {containers.Name} or an AppHost's); workspace lists them"

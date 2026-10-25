@@ -1419,12 +1419,12 @@ public sealed class ContainerRun(ContainerPlan plan, ContainerEngine engine, Con
             : string.Empty;
     }
 
-    /// <summary>Where a project's .NET service of the run answers HTTP from this machine: the port the engine published for
-    /// its container's ASP.NET Core port (8080, else 80, else the first it published), on the engine's machine
-    /// (<see cref="ContainerPort.LinkOn"/>); null when the run has no started service of that project or publishes none.</summary>
-    public async Task<string?> ServiceAddressAsync(string project, CancellationToken cancel)
+    /// <summary>Where a .NET service of the run answers HTTP from this machine: the port the engine published for its
+    /// container's ASP.NET Core port (8080, else 80, else the first it published), on the engine's machine
+    /// (<see cref="ContainerPort.LinkOn"/>); null when it is not started or publishes none.</summary>
+    public override async Task<string?> AddressAsync(IRunService started, CancellationToken cancel)
     {
-        if (Plan.Dotnet.FirstOrDefault(s => s.Starts && Core.PathNames.Same(s.Project, project)) is not { } service)
+        if (Plan.Dotnet.FirstOrDefault(s => s.Starts && s.Service == started.Name) is not { } service)
         {
             return null;
         }

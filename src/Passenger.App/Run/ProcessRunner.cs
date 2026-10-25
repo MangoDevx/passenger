@@ -12,7 +12,7 @@ namespace Passenger.App.Run;
 /// person types into the console; a build's input is closed, so a step that reads ends rather than waits. Stopping kills
 /// the whole process tree. The console is the window's; a runner lets go of it when disposed, its folder left, and
 /// another folder's runner writes there.</summary>
-public sealed class ProcessRunner : IDisposable
+public sealed class ProcessRunner : IDisposable, IRunningProgram
 {
     private readonly StringBuilder partialLine = new();
     private readonly OutputView console;

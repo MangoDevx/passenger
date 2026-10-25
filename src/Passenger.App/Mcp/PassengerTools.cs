@@ -826,7 +826,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
                 Ends(ended), app is null ? _ => () => { } : On(h => app.StateChanged += h, h => app.StateChanged -= h));
         }
         int? code = ended.IsCompletedSuccessfully ? ended.Result : null;
-        string output = Session.InTerminal is { } inTerminal ? Tail(inTerminal.Session, 200) : Tail(Session.Runner.Shown(), 200);
+        string output = RunOutput(200);
         string status = code is int exit ? BuildRunController.RunEnded(name, exit)
             : app is { State: LiveTree.LiveAppState.Connected } ? $"Running {name}, its UI up: app_windows, app_screenshot and app_click look at it and use it"
             : $"Running {name}";
@@ -880,9 +880,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
             console.Flush();
             return Tail(console.Document.Snapshot, lines);
         }
-        return Session.InTerminal is { } inTerminal ? Tail(inTerminal.Session, lines)
-            : Builds.Containers is { } running ? $"{await ServicesAsync(running, cancel)}\n{Tail(Session.Runner.Shown(), lines)}"
-            : Tail(Session.Runner.Shown(), lines);
+        return Builds.Containers is { } running ? $"{await ServicesAsync(running, cancel)}\n{RunOutput(lines)}" : RunOutput(lines);
     });
 
     /// <summary>A container run's services as the engine has them now, one line each as a resource's run says them
@@ -1979,6 +1977,9 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         }
         return string.Join('\n', all.Skip(Math.Max(0, all.Count - lines)));
     }
+
+    /// <summary>The last lines of what Run's program wrote, where it runs: its tab of the terminal, else the Run console.</summary>
+    private string RunOutput(int lines) => Session.RunProgram is TerminalRun terminal ? Tail(terminal.Session, lines) : Tail(Session.Runner.Shown(), lines);
 
     /// <summary>A console's last lines.</summary>
     private static string Tail(TextSnapshot text, int lines)

@@ -2,6 +2,7 @@ using System.Net.Http;
 using Avalonia.Headless.XUnit;
 using Passenger.App;
 using Passenger.App.Endpoints;
+using Passenger.App.Run;
 using Passenger.Profiler;
 
 namespace Passenger.Tests;
@@ -193,6 +194,53 @@ public sealed class LiveRequestsTests
             window.Perform(AppActions.Stop);
             Ui.WaitFor(() => !window.Runner.IsRunning, "the shop to stop");
             window.Close();
+        }
+    }
+
+    /// <summary>A web app whose configuration runs it in the terminal has its requests followed as one in the Run console
+    /// does: Run's program is the same wherever it runs.</summary>
+    [AvaloniaFact]
+    public void The_requests_window_follows_a_web_app_Run_runs_in_the_terminal()
+    {
+        using HeldPort port = new();
+        string folder = TestFolders.Create("requests-terminal-");
+        WriteShop(folder, port.Port);
+        MainWindow window = Ui.OpenFolder(folder, languageServer: false);
+        try
+        {
+            window.ShowToolWindow(ToolWindowIds.Requests);
+            port.LetGo(Path.Combine(folder, "gate"));
+            RunConfiguration shop = window.Configurations.FirstOrDefault(c => c.Name == "Shop: http")
+                ?? throw new Xunit.Sdk.XunitException($"No configuration Shop: http among {string.Join(", ", window.Configurations.Select(c => c.Name))}");
+            RunConfiguration inTerminal = shop with { Name = "Shop in the terminal", Generated = false, Console = ConsoleKind.Terminal };
+            window.SetConfigurations([inTerminal], inTerminal.Name);
+            Ui.Launched(window, window.RunAsync(), "the shop to start in the terminal", TimeSpan.FromMinutes(2));
+            Assert.True(window.RunInTerminal is { IsRunning: true }, "The shop does not run in the terminal");
+            using HttpClient client = new();
+            Ui.WaitFor(() => Answers(client, $"http://127.0.0.1:{port.Port}/orders/2"), "the shop to listen", TimeSpan.FromMinutes(2));
+            Ui.WaitFor(() => window.RequestLog.Following.StartsWith("Following", StringComparison.Ordinal) && window.RequestLog.Following.Contains("process", StringComparison.Ordinal),
+                () => $"the Requests window to follow the shop in the terminal; it says: {window.RequestLog.Following}", TimeSpan.FromMinutes(1));
+            Assert.Equal("Grace", Get(client, $"http://127.0.0.1:{port.Port}/orders/2"));
+            Ui.WaitFor(() => window.RequestLog.Requests.Any(r => r.Path == "/orders/2" && r.Status == 200),
+                () => $"the request, listed as it ended: [{string.Join("; ", window.RequestLog.Requests.Select(r => $"{r.Method} {r.Path} {r.Status}"))}]", TimeSpan.FromSeconds(30));
+        }
+        finally
+        {
+            window.Perform(AppActions.Stop);
+            Ui.WaitFor(() => window.RunInTerminal is not { IsRunning: true }, "the shop to stop");
+            window.Close();
+        }
+
+        static bool Answers(HttpClient client, string url)
+        {
+            try
+            {
+                return Task.Run(() => client.GetAsync(url)).GetAwaiter().GetResult().IsSuccessStatusCode;
+            }
+            catch (HttpRequestException)
+            {
+                return false;
+            }
         }
     }
 

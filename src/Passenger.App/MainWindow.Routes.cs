@@ -382,50 +382,30 @@ public partial class MainWindow
         }
     }
 
-    /// <summary>The address a project's app answers at now: Run's program's, else the program debugged, else its .NET
-    /// service's published port in the container run under way, else its project resource's URL in a running AppHost;
-    /// null when none runs it.</summary>
+    /// <summary>The address a project's app answers at now: the first of the programs the folder runs of it
+    /// (<see cref="ProjectSession.Running"/>) that says one, Run's or a Debug tab's by the plan it was launched by, a .NET
+    /// service's of a run of services as its run publishes it; null when none runs it.</summary>
     private async Task<string?> RunningAddressAsync(string project)
     {
-        if (RunningAddress(project) is { } here)
+        RunningProgram[] running = [.. session.Running.Where(p => p.Project is { } of && PathNames.Same(of, project))];
+        if (running.Select(p => p.Plan is { } plan ? AddressOf(plan) : null).FirstOrDefault(a => a is not null) is { } here)
         {
             return here;
         }
         using IDisposable held = BackgroundWork.Scope();
-        try
+        foreach (RunningProgram service in running.Where(p => p.Services is not null))
         {
-            if (buildRun.Containers is { } run && await run.ServiceAddressAsync(project, CancellationToken.None) is { } published)
+            try
             {
-                return published;
-            }
-            foreach (Passenger.App.Aspire.AspireAppRun app in session.Aspire.Apps.Where(a => !a.IsTest && !a.Stopping && a.Interactions is not null).ToArray())
-            {
-                IReadOnlyList<Passenger.App.Aspire.AspireResource> resources = await app.Interactions!.GetResourcesAsync();
-                if (resources.FirstOrDefault(r => r.IsProject && r.Source is { } source && PathNames.Same(source, project)) is { } resource
-                    && Passenger.App.Aspire.AspireModel.Links(resource) is { Count: > 0 } links)
+                if (await service.Services!.AddressAsync(service.Service!, CancellationToken.None) is { } published)
                 {
-                    return (links.FirstOrDefault(l => l.Scheme == "http") ?? links[0]).GetLeftPart(UriPartial.Authority);
+                    return published;
                 }
             }
-        }
-        catch (Exception error) when (error is IOException or InvalidOperationException or TimeoutException or System.Text.Json.JsonException)
-        {
-            // An engine or AppHost that does not answer leaves the file's own address.
-        }
-        return null;
-    }
-
-    /// <summary>The address Run's program or the program debugged answers at, when it is the project's.</summary>
-    private string? RunningAddress(string project)
-    {
-        if (buildRun.IsRunning && buildRun.RunPlan is { Project: { } ran } running && PathNames.Same(ran, project) && AddressOf(running) is { } run)
-        {
-            return run;
-        }
-        if (buildRun.DebugPlan is { Project: { } debugged } debugging && PathNames.Same(debugged, project) && session.Debug.Tabs.Any(t => t.IsLive)
-            && AddressOf(debugging) is { } debug)
-        {
-            return debug;
+            catch (Exception error) when (service.Services!.Refused(error) || error is InvalidOperationException or System.Text.Json.JsonException)
+            {
+                // An engine or AppHost that does not answer leaves the file's own address.
+            }
         }
         return null;
 

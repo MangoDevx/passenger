@@ -227,7 +227,7 @@ public sealed partial class BuildRunController
         ran = chosen.Name;
         RunProject = plan.Folder;
         DebugProject = plan.Folder;
-        RunPlan = null;
+        session.RunPlan = null;
         session.InTerminal = null;
         parts.Views.Run.Links.Forget();
         parts.Views.Run.SetRunning(true);

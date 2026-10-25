@@ -106,53 +106,44 @@ public partial class MainWindow
         _ = FollowRequestsAsync();
     }
 
-    /// <summary>The programs whose requests are followed now: Run's, Profile's, each live Debug tab's on this machine, and
-    /// each started .NET service of the runs of services under way; one program once.</summary>
+    /// <summary>The programs whose requests are followed now: what the folder runs (<see cref="ProjectSession.Running"/>) on
+    /// this machine, or in a container its run reaches; one program once.</summary>
     private async Task<IReadOnlyList<RequestTarget>> RequestTargetsAsync()
     {
         List<RequestTarget> targets = [];
-        if (session.Runner.IsRunning && session.Runner.ProcessId is int run && buildRun.RunPlan is { } plan)
+        foreach (RunningProgram program in session.Running)
         {
-            targets.Add(new RequestTarget("run", plan.Name, plan.Project, run, null));
-        }
-        if (session.Profiled is { Run.Place: null } profiled && !profiled.Landed.IsCompleted)
-        {
-            targets.Add(new RequestTarget("profile", profiled.Name, null, profiled.Run.ProcessId, null));
-        }
-        foreach (ToolWindows.DebugTab tab in session.Debug.Tabs.Where(t => t.IsLive && t.Session is { IsLocal: true }))
-        {
-            Task<int> started = tab.Session!.ProcessStarted;
-            if (started.IsCompletedSuccessfully)
+            if (program.Kind != RunningKind.Service)
             {
-                targets.Add(new RequestTarget($"debug:{tab.Name}", tab.Name, null, await started, null));
+                if (program.Process is int process)
+                {
+                    targets.Add(new RequestTarget(program.Kind == RunningKind.Debug ? $"debug:{program.Name}" : program.Kind == RunningKind.Run ? "run" : "profile",
+                        program.Name, program.Kind == RunningKind.Run ? program.Project : null, process, null));
+                }
+                else if (program.Starting is { } started && waitedStarts.Add(started))
+                {
+                    // Its program is followed once the debugger says it has started.
+                    _ = started.ContinueWith(_ => UiThread.Post(() => _ = FollowRequestsAsync()), TaskScheduler.Default);
+                }
+                continue;
             }
-            else if (!started.IsCompleted && waitedStarts.Add(started))
+            (ServiceRun services, IRunService service) = (program.Services!, program.Service!);
+            // One followed already is kept as it is: finding it again in its container costs docker commands each pass.
+            if (followedRequests.TryGetValue($"{services.Name}:{service.Name}", out (RequestTarget Target, LiveRequests Live) known))
             {
-                // Its program is followed once the debugger says it has started.
-                _ = started.ContinueWith(_ => UiThread.Post(() => _ = FollowRequestsAsync()), TaskScheduler.Default);
+                targets.Add(known.Target);
+                continue;
             }
-        }
-        foreach (ServiceRun services in buildRun.ServiceRuns.Where(r => !r.IsStopped).ToArray())
-        {
-            foreach (IRunService service in services.Services.Where(s => s.Starts && !services.LeftUnstarted(s)).ToArray())
+            try
             {
-                // One followed already is kept as it is: finding it again in its container costs docker commands each pass.
-                if (followedRequests.TryGetValue($"{services.Name}:{service.Name}", out (RequestTarget Target, LiveRequests Live) known))
+                if (await services.ProgramAsync(service, Task.CompletedTask, CancellationToken.None) is { WhyNot: null } found)
                 {
-                    targets.Add(known.Target);
-                    continue;
+                    targets.Add(new RequestTarget($"{services.Name}:{service.Name}", program.Name, service.Project, found.Id, found.Recorded));
                 }
-                try
-                {
-                    if (await services.ProgramAsync(service, Task.CompletedTask, CancellationToken.None) is { WhyNot: null } program)
-                    {
-                        targets.Add(new RequestTarget($"{services.Name}:{service.Name}", services.NameOf(service), service.Project, program.Id, program.Recorded));
-                    }
-                }
-                catch (Exception error) when (error is ServiceUnreachedException || services.Refused(error))
-                {
-                    // A service not yet started, or one its tools cannot reach, is followed once it can be.
-                }
+            }
+            catch (Exception error) when (error is ServiceUnreachedException || services.Refused(error))
+            {
+                // A service not yet started, or one its tools cannot reach, is followed once it can be.
             }
         }
         return [.. targets.DistinctBy(t => t.Place is null ? $"process {t.Process}" : t.Key)];

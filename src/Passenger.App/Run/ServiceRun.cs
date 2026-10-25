@@ -243,6 +243,10 @@ public abstract class ServiceRun
     /// <see cref="ServiceUnreachedException"/> saying why it could not be reached.</summary>
     public abstract Task<ServiceProgram?> ProgramAsync(IRunService service, Task up, CancellationToken stop);
 
+    /// <summary>Where a started service answers HTTP from this machine, as its kind publishes it; null when it serves at none.
+    /// Throws as <see cref="Refused"/> says when its kind does not answer.</summary>
+    public abstract Task<string?> AddressAsync(IRunService service, CancellationToken cancel);
+
     /// <summary>Whether its services' projects are built here before an edit Hot Reload cannot apply restarts them (their
     /// program reads the build here), rather than by their restart.</summary>
     public abstract bool BuildsBeforeRestart { get; }

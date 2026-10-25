@@ -254,7 +254,7 @@ public partial class MainWindow
         }
         // Each run of services restarts its own, a container run's and an Aspire AppHost's the same way.
         bool restarted = names.Count > 0;
-        foreach (ServiceRun run in buildRun.ServiceRuns.ToList())
+        foreach (ServiceRun run in session.ServiceRuns.ToList())
         {
             string[] its = [.. names.Where(name => run.Services.Any(service => run.SessionName(service) == name))];
             if (its.Length > 0)

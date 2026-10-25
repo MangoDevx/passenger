@@ -470,7 +470,7 @@ public sealed class DebugController : IDisposable
             : null;
         bool hotReloadOn = HotReloadOn();
         return OpenAsync((built, log, output, starting) => DebugSession.LaunchAsync(plan, Breakpoints, built, log, output, inTerminal, ColumnOf, hotReloadOn, starting, elsewhere, place),
-            plan.Name, launched: true, inTerminal: inTerminal is not null, hotReloadOn: hotReloadOn, tab: tab, app: app);
+            plan.Name, launched: true, inTerminal: inTerminal is not null, hotReloadOn: hotReloadOn, tab: tab, app: app, plan: plan);
     }
 
     /// <summary>The column a breakpoint asks the debugger for: in Avalonia XAML, its attribute's or its line's first name's
@@ -588,7 +588,8 @@ public sealed class DebugController : IDisposable
     /// leaves its tab ended, with no session. Tabs of one <paramref name="group"/> (a container run's services) take Hot
     /// Reload's changes together; an inspected <paramref name="app"/> is held by its tab.</summary>
     private async Task<string?> OpenAsync(Func<BuiltLines, Action<string>, Action<OutputEvent>, Action<DebugSession>, Task<DebugSession>> open, string name, bool launched,
-        bool inTerminal = false, bool hotReloadOn = false, AdapterPlace? place = null, string? group = null, DebugTab? tab = null, LiveApp? app = null)
+        bool inTerminal = false, bool hotReloadOn = false, AdapterPlace? place = null, string? group = null, DebugTab? tab = null, LiveApp? app = null,
+        Run.LaunchPlan? plan = null)
     {
         UiThread.Check();
         // A start that comes after its folder was left would open in the next folder's Debug window, which is not its own.
@@ -616,6 +617,7 @@ public sealed class DebugController : IDisposable
         tab ??= Place(name);
         tab.Group = group ?? tab.Group;
         tab.App = app ?? tab.App;
+        tab.Plan = plan;
         BuiltLines built = new(path => CSharp.ServerPlaces.TextOf(editors, path));
         tab.Lines = built;
         await ChooseAsync(tab);

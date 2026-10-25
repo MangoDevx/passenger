@@ -329,6 +329,13 @@ public sealed class ProjectSession : IAsyncDisposable
     /// <summary>The program Run last started in a tab of the Terminal window, until a run in the Run console comes after it.</summary>
     public TerminalRun? InTerminal { get; set; }
 
+    /// <summary>The program Run started last, wherever it runs: in a tab of the terminal, else the Run console's (a container
+    /// run's log there too).</summary>
+    public IRunningProgram RunProgram => InTerminal is { } terminal ? terminal : Runner;
+
+    /// <summary>The plan Run last started a program by, in the Run console or the terminal; null after a container run.</summary>
+    public LaunchPlan? RunPlan { get; set; }
+
     /// <summary>The container configuration Run brought up, its log followed by <see cref="Runner"/>, until Stop takes it
     /// down (or the next run comes); its containers are the folder's (<see cref="Containers"/>) until then.</summary>
     public Containers.ContainerRun? ContainerRun { get; set; }
@@ -470,14 +477,77 @@ public sealed class ProjectSession : IAsyncDisposable
     /// <summary>Run, Debug or Profile launched another app, inspected or not.</summary>
     public event EventHandler? InspectedChanged;
 
-    /// <summary>The bindings that failed in the app Run launched last and those of the Debug tabs, each once with its count:
-    /// those of an app that ended stay until the next Run, or while its tab is there.</summary>
+    /// <summary>The bindings that failed in the inspected apps Problems lists (<see cref="InspectedApps"/>), each once with
+    /// its count: those of an app that ended stay until the next Run, or while its tab is there.</summary>
     public IEnumerable<(LiveApp App, BindingFailure Failure)> FailedBindings =>
         InspectedApps.SelectMany(app => app.Bindings.Select(failure => (app, failure)));
 
-    /// <summary>The app Run launched last and each Debug tab's, with an inspector in them, whose failed bindings Problems lists.</summary>
-    public IEnumerable<LiveApp> InspectedApps => new[] { RunApp }.Concat(Debug.Apps.Select(a => a.App))
-        .Concat(Aspire.Apps.SelectMany(app => app.Services.Select(service => service.Inspection))).OfType<LiveApp>().Distinct();
+    /// <summary>The apps the folder's launches put Passenger's inspector in, an app once: Run's last, Profile's last, each
+    /// Debug tab's, and each service an AppHost runs; ended ones too, until the next of their kind. Problems, agents' app
+    /// tools and the overlays each take those they act on from it.</summary>
+    public IReadOnlyList<InspectedApp> Inspecting => [.. new[]
+        {
+            RunApp is { } run ? new InspectedApp(run, RunningKind.Run, "run") : null,
+            ProfiledApp is { } profiled ? new InspectedApp(profiled, RunningKind.Profile, "profile") : null,
+        }.OfType<InspectedApp>()
+        .Concat(Debug.Apps.Select(a => new InspectedApp(a.App, RunningKind.Debug, a.Tab.Name) { Tab = a.Tab }))
+        .Concat(Aspire.Apps.SelectMany(app => app.Services.Where(service => service.Inspection is not null)
+            .Select(service => new InspectedApp(service.Inspection!, RunningKind.Service, app.NameOf(service)))))
+        .DistinctBy(a => a.App)];
+
+    /// <summary>The inspected apps whose failed bindings Problems lists: all but Profile's, whose output is the profiler's.</summary>
+    public IEnumerable<LiveApp> InspectedApps => Inspecting.Where(a => a.Kind != RunningKind.Profile).Select(a => a.App);
+
+    /// <summary>The runs of services under way: the container run's, and each Aspire AppHost's the window started.</summary>
+    public IReadOnlyList<ServiceRun> ServiceRuns => [.. ContainerRun is { IsStopped: false } containers ? new ServiceRun[] { containers } : [],
+        .. Aspire.Apps.Where(app => !app.IsTest && !app.IsStopped)];
+
+    /// <summary>What the folder runs now, a program once: Run's (in the Run console or the terminal, while Run's plan is its),
+    /// Profile's until its end has landed, each live Debug tab's, and each started .NET service of the runs of services under
+    /// way. The one list the Requests window, the routes' addresses and Attach Profiler read.</summary>
+    public IReadOnlyList<RunningProgram> Running
+    {
+        get
+        {
+            List<RunningProgram> running = [];
+            if (RunProgram is { IsRunning: true } run && RunPlan is { } plan)
+            {
+                running.Add(new RunningProgram(RunningKind.Run, plan.Name, plan.Project) { Process = run.ProcessId, Plan = plan, App = RunApp });
+            }
+            if (Profiled is { } program && !program.Landed.IsCompleted)
+            {
+                running.Add(new RunningProgram(RunningKind.Profile, program.Name, null)
+                {
+                    Process = program.Run.Place is null ? program.Run.ProcessId : null,
+                    App = ProfiledApp,
+                });
+            }
+            foreach (DebugTab tab in Debug.Tabs.Where(t => t.IsLive && t.Session is not null))
+            {
+                Task<int> started = tab.Session!.ProcessStarted;
+                bool local = tab.Session.IsLocal;
+                running.Add(new RunningProgram(RunningKind.Debug, tab.Name, tab.Plan?.Project)
+                {
+                    Process = local && started.IsCompletedSuccessfully ? started.Result : null,
+                    Starting = local && !started.IsCompleted ? started : null,
+                    Plan = tab.Plan,
+                    App = tab.App,
+                    Tab = tab,
+                });
+            }
+            foreach (ServiceRun services in ServiceRuns)
+            {
+                running.AddRange(services.Services.Where(s => s.Starts && !services.LeftUnstarted(s)).Select(service =>
+                    new RunningProgram(RunningKind.Service, services.NameOf(service), service.Project)
+                    {
+                        Services = services,
+                        Service = service,
+                        App = (service as AspireResourceRun)?.Inspection,
+                    }));
+            }
+            return running;
+        }
+    }
 
     /// <summary>The folder's Git working tree, once its lookup (<see cref="Start"/>) has found one.</summary>
     public VcsController Vcs { get; } = new();
@@ -881,13 +951,9 @@ public sealed class ProjectSession : IAsyncDisposable
         {
             parts.Add(("the build", Builder.Ended));
         }
-        if (Runner.IsRunning)
+        if (RunProgram.IsRunning)
         {
-            parts.Add(("the program", Runner.Ended));
-        }
-        if (InTerminal is { IsRunning: true } inTerminal)
-        {
-            parts.Add(("the program in the terminal", inTerminal.Ended));
+            parts.Add((RunProgram == InTerminal ? "the program in the terminal" : "the program", RunProgram.Ended));
         }
         if (Profiled is { } program)
         {
@@ -935,10 +1001,9 @@ public sealed class ProjectSession : IAsyncDisposable
         // A build stopped now says so with nothing of this folder's in Problems, which another folder's take next.
         Problems.Clear();
         parts.Add(("the Aspire applications", Aspire.DisposeAsync().AsTask()));
-        Runner.Stop();
+        RunProgram.Stop();
         Builder.Stop();
         Packages.Stop();
-        InTerminal?.Stop();
         ProfileStarting?.Cancel();
         foreach (Run.StartUnderWay start in Starting.ToList())
         {

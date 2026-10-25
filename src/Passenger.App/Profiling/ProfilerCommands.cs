@@ -717,15 +717,12 @@ public sealed class ProfilerCommands
         {
             return new(profiled.Run.ProcessId, profiled.Name, profiled.File);
         }
-        BuildRunController builds = parts.Builds();
-        int? ran = current.InTerminal is { IsRunning: true } terminal ? terminal.ProcessId : current.Runner.IsRunning ? current.Runner.ProcessId : null;
-        if ((current.RunApp?.ProcessId ?? ran) is int running && builds.IsRunning)
+        if (current.Running.FirstOrDefault(p => p.Kind == RunningKind.Run) is { Plan: { } plan } ran && (ran.App?.ProcessId ?? ran.Process) is int running)
         {
-            LaunchPlan? plan = builds.RunPlan;
-            string name = current.RunApp?.Name ?? plan?.Name ?? "the program";
-            string program = current.RunApp?.Plan?.Built is { } built ? Path.GetFileNameWithoutExtension(built) : plan?.ProgramName ?? name;
+            string name = ran.App?.Name ?? plan.Name;
+            string program = ran.App?.Plan?.Built is { } built ? Path.GetFileNameWithoutExtension(built) : plan.ProgramName;
             // Under Hot Reload the process Run started is dotnet watch's own, and the app one it started in turn.
-            return new(running, name, FileName(program), builds.WatchesHotReload ? program : null);
+            return new(running, name, FileName(program), parts.Builds().WatchesHotReload ? program : null);
         }
         return null;
     }

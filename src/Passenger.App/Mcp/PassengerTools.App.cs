@@ -4,6 +4,7 @@ using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Passenger.App.Debugging;
 using Passenger.App.LiveTree;
+using Passenger.App.Run;
 using Passenger.Core;
 using Passenger.Inspector;
 
@@ -298,14 +299,14 @@ public sealed partial class PassengerTools
     });
 
     [McpServerTool(Name = "app_binding_errors", Title = "The app's failed bindings", ReadOnly = true), Description(
-        "The failed bindings of the apps Run and Debug started last (or app's), each once: control, property, path, the " +
+        "The failed bindings of the apps Run and Debug started last and an AppHost's services (or app's), each once: control, property, path, the " +
         "framework's message (with the nearest members when the source lacks the one named), XAML place and count. An ended " +
         "app's stay until the next of its kind starts; past an app's first 1000, a last entry of level Untold counts the rest.")]
     public Task<IReadOnlyList<AppBindingError>> AppBindingErrors(string? app = null, CancellationToken cancel = default) => OnUi(cancel, () =>
     {
         IEnumerable<LiveApp> apps = app switch
         {
-            null => new[] { Session.RunApp }.Concat(Session.Debug.Apps.Select(a => a.App)).OfType<LiveApp>(),
+            null => Session.InspectedApps,
             "run" => [Session.RunApp ?? throw new InvalidOperationException("Run has started no Avalonia or WPF app in this folder")],
             "debug" => [DebugApp() ?? throw new InvalidOperationException("Debug has started no Avalonia or WPF app in this folder")],
             "ide" => [LiveApp.Own()],
@@ -318,7 +319,13 @@ public sealed partial class PassengerTools
         }
         return Task.FromResult<IReadOnlyList<AppBindingError>>([.. chosen.SelectMany(live =>
         {
-            string which = live == Session.RunApp ? "run" : Session.Debug.Apps.FirstOrDefault(a => a.App == live).Tab is { } tab ? AppName(tab) : "ide";
+            string which = Session.Inspecting.FirstOrDefault(a => a.App == live) switch
+            {
+                { Kind: RunningKind.Run } => "run",
+                { Tab: { } tab } => AppName(tab),
+                { } inspected => inspected.Name,
+                null => "ide",
+            };
             IEnumerable<AppBindingError> listed = live.Bindings.Select(failure =>
             {
                 BindingProblem placed = Builds.Placed(live, failure);

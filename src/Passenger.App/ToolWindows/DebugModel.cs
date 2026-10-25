@@ -54,6 +54,9 @@ public sealed class DebugTab(string name, OutputView console) : Observable, IHot
     /// <summary>Whether its program was launched with its output in this console, rather than attached to or in the terminal.</summary>
     internal bool OwnsConsole { get; init; }
 
+    /// <summary>The plan Debug launched its program by, where it serves; null for a program attached to.</summary>
+    public Run.LaunchPlan? Plan { get; internal set; }
+
     /// <summary>The programs it is debugged with (a container run's services, by its configuration's name): Hot Reload's
     /// changes go to each of them together.</summary>
     public string? Group { get; internal set; }

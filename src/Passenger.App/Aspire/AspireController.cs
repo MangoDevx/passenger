@@ -1341,6 +1341,20 @@ public sealed class AspireAppRun : ServiceRun
         environment.GetValueOrDefault("DOTNET_EnableDiagnostics") == "0" || environment.GetValueOrDefault("DOTNET_EnableDiagnostics_Debugger") == "0"
             ? "Its runtime was started with DOTNET_EnableDiagnostics=0, which turns its debugger off: nothing can attach to it" : null;
 
+    /// <summary>Where a service answers: its project resource's URL as the AppHost's resource service gives it, HTTP first;
+    /// null before the AppHost's resource service is reached, and for a resource with none.</summary>
+    public override async Task<string?> AddressAsync(IRunService service, CancellationToken cancel)
+    {
+        if (Interactions is not { } interactions)
+        {
+            return null;
+        }
+        IReadOnlyList<AspireResource> resources = await interactions.GetResourcesAsync();
+        return resources.FirstOrDefault(r => r.IsProject && r.Source is { } source && PathNames.Same(source, service.Project) && r.IsNamed(service.Name)) is { } resource
+            && AspireModel.Links(resource) is { Count: > 0 } links
+            ? (links.FirstOrDefault(l => l.Scheme == "http") ?? links[0]).GetLeftPart(UriPartial.Authority) : null;
+    }
+
     /// <summary>Restarts services through the AppHost, one after another, each waited for until its next start has started
     /// and been attached to (a held one) as it started; built between its stop and its start when asked.</summary>
     public override async Task<string?> RestartAsync(IReadOnlyList<IRunService> services, CancellationToken cancel, string? why = null, bool build = false)

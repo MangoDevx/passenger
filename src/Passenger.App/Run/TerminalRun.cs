@@ -8,7 +8,7 @@ namespace Passenger.App.Run;
 /// which it reads keys from and draws on as it likes. It ends with the IDE, a crash included
 /// (<see cref="ChildProcesses.Adopt"/>), Stop ends it and all it started, and its tab says when it ended and its exit
 /// code. A UI-thread object.</summary>
-public sealed class TerminalRun
+public sealed class TerminalRun : IRunningProgram
 {
     /// <summary>The exit code a shell gives a program SIGKILL ended, which is how Stop ends one on macOS and Linux.</summary>
     private const int Killed = 128 + 9;
@@ -37,6 +37,8 @@ public sealed class TerminalRun
     public Task<int> Ended => ended.Task;
 
     public bool IsRunning => ProcessId != 0 && !ended.Task.IsCompleted;
+
+    int? IRunningProgram.ProcessId => ProcessId == 0 ? null : ProcessId;
 
     /// <summary>Whether it ended because the IDE ended it (Stop, or the debugger's).</summary>
     public bool WasStopped => stopping;

@@ -1,3 +1,4 @@
+using Passenger.App.Run;
 using Passenger.App.ToolWindows;
 using Passenger.Editor;
 using Passenger.Inspector;
@@ -62,13 +63,10 @@ public sealed class OverlaysCommands
     /// <summary>Each app the session's launches inspect shows its window's toggle while it is connected.</summary>
     private void Follow(ProjectSession followed)
     {
-        foreach (LiveApp? app in new[] { followed.RunApp, followed.LiveApp, followed.ProfiledApp })
+        foreach (LiveApp app in followed.Inspecting.Select(inspected => inspected.App))
         {
-            if (app is not null)
-            {
-                app.StateChanged -= OnAppState;
-                app.StateChanged += OnAppState;
-            }
+            app.StateChanged -= OnAppState;
+            app.StateChanged += OnAppState;
         }
         Show();
     }
@@ -83,10 +81,8 @@ public sealed class OverlaysCommands
 
     /// <summary>The Avalonia app the Run window's console runs, while its inspector answers: Run's, else Profile's (a WPF app
     /// has no renderer overlays).</summary>
-    private LiveApp? RunApp() =>
-        session?.RunApp is { State: LiveAppState.Connected, Kind: LiveAppKind.Avalonia } run ? run
-        : session?.ProfiledApp is { State: LiveAppState.Connected, Kind: LiveAppKind.Avalonia } profiled ? profiled
-        : null;
+    private LiveApp? RunApp() => session?.Inspecting.Where(a => a.Kind is RunningKind.Run or RunningKind.Profile).OrderBy(a => a.Kind)
+        .Select(a => a.App).FirstOrDefault(app => app is { State: LiveAppState.Connected, Kind: LiveAppKind.Avalonia });
 
     /// <summary>The Avalonia app being debugged, while its inspector answers.</summary>
     private LiveApp? DebugApp() => session?.LiveApp is { State: LiveAppState.Connected, Kind: LiveAppKind.Avalonia } debugged ? debugged : null;

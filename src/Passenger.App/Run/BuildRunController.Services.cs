@@ -57,10 +57,6 @@ public sealed partial class BuildRunController
         }
     }
 
-    /// <summary>The runs of services under way: the container run's, and each Aspire AppHost's the window started.</summary>
-    public IEnumerable<ServiceRun> ServiceRuns => [.. Containers is { } containers ? new ServiceRun[] { containers } : [],
-        .. session.Aspire.Apps.Where(app => !app.IsTest && !app.IsStopped)];
-
     /// <summary>Attaches to each service held at its start, all at once, while its run comes up: null once each is attached
     /// (one whose runtime has its debugger off runs on undebugged, said in <paramref name="notes"/>), else why not.</summary>
     private async Task<string?> AttachAllAsync(ServiceRun run, IReadOnlyList<IRunService> services, Task up, List<string> notes, Working work, CancellationToken stop,
@@ -441,7 +437,7 @@ public sealed partial class BuildRunController
     /// and attached to again. True once they are.</summary>
     public async Task<bool> RestartServicesForEditAsync(Debugging.HotReloadOutcome outcome, IReadOnlyList<string> names)
     {
-        if (ServiceRuns.Select(run => (Run: run, Named: run.Held.Where(h => names.Contains(run.SessionName(h))).ToList())).FirstOrDefault(r => r.Named.Count > 0)
+        if (session.ServiceRuns.Select(run => (Run: run, Named: run.Held.Where(h => names.Contains(run.SessionName(h))).ToList())).FirstOrDefault(r => r.Named.Count > 0)
             is not ({ } run, { } named))
         {
             return false;

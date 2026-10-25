@@ -750,6 +750,35 @@ public sealed class AspireStandInTests(StandInAppHost project) : IClassFixture<S
             node.Module.Contains(StandInAppHost.Api, StringComparison.Ordinal) || node.Children.Any(Named);
     }
 
+    /// <summary>An Avalonia app the AppHost runs as a service (DCP's start of it, Passenger's inspector put in it as in Run's
+    /// app) has its failed bindings told to an agent as Problems lists them, named by its service.</summary>
+    [AvaloniaFact]
+    public void An_agent_is_told_the_failed_bindings_of_an_Avalonia_app_the_AppHost_runs_as_a_service()
+    {
+        project.Reset();
+        string app = project.WriteBindingsApp();
+        AspireInteractionHost backend = Ui.Await(AspireInteractionHost.StartAsync(project.KeyFile), "the stand-in resource service");
+        MainWindow window = OpenRunning(backend);
+        try
+        {
+            (System.Net.WebSockets.ClientWebSocket notified, System.Net.HttpStatusCode answer) = project.AskToStartApi("bindings", projectPath: app);
+            using System.Net.WebSockets.ClientWebSocket subscribed = notified;
+            Assert.True((int)answer is >= 200 and < 300, $"The IDE refused the run session: {answer}");
+            Ui.WaitFor(() => window.Session.FailedBindings.Any(f => f.Failure.Path == "Nmae"), () => $"the service's caption binding to fail, as Problems lists it ({window.Status}): "
+                + string.Join(", ", window.AspireRuntime.Apps.SelectMany(a => a.Services).Select(s => $"{((IRunService)s).Name} {s.Inspection?.State.ToString() ?? "uninspected"}")),
+                TimeSpan.FromMinutes(2));
+            IReadOnlyList<Passenger.App.Mcp.AppBindingError> told = Ui.Await(new Passenger.App.Mcp.PassengerTools(window).AppBindingErrors(), "the failed bindings an agent asks for");
+            Assert.True(told.Any(f => f.Path == "Nmae" && f.Control == "TextBlock#Caption" && f.App.StartsWith("bindings of ", StringComparison.Ordinal)),
+                $"An agent was not told the service's failed binding Problems lists: [{string.Join("; ", told.Select(f => $"{f.App}: {f.Control} {f.Path}"))}]");
+            Assert.Empty(backend.Errors);
+        }
+        finally
+        {
+            window.Close();
+            Ui.Await(Complete(backend.DisposeAsync().AsTask()), "the stand-in resource service to stop");
+        }
+    }
+
     /// <summary>"(running)" says only what runs, and Rerun follows the configuration chosen: a plain run that ended is not
     /// "(running)" once an AppHost runs; with the API's configuration chosen while the AppHost runs, Rerun runs the API beside
     /// it, then stops it and runs it again, the AppHost running on as another configuration's run.</summary>
@@ -2042,15 +2071,31 @@ public sealed class StandInAppHost : SharedProject
     /// sessions' notifications subscribed to first (held while the socket given back is open), then a run session asked of
     /// the execution endpoint the IDE gave the AppHost; with the IDE's answer.</summary>
     internal (System.Net.WebSockets.ClientWebSocket Notified, System.Net.HttpStatusCode Answer) AskToStartApi(string resource, string mode = "NoDebug",
-        IReadOnlyDictionary<string, string>? environment = null) =>
-        Ui.Await(Task.Run(() => StartApiAsync(resource, mode, environment)), "the IDE's answer to the run session");
+        IReadOnlyDictionary<string, string>? environment = null, string? projectPath = null) =>
+        Ui.Await(Task.Run(() => StartApiAsync(resource, mode, environment, projectPath: projectPath)), "the IDE's answer to the run session");
+
+    /// <summary>Writes tests/Debuggees/BindingErrorsApp into the stand-in's folder, restored from the run's feed and built by
+    /// its real path, for the AppHost to start as a service of its own: an Avalonia app whose caption's binding fails. Its
+    /// project's path; the next test's <see cref="SharedProject.Reset"/> takes it away.</summary>
+    internal string WriteBindingsApp()
+    {
+        string folder = PathOf("Bindings");
+        Directory.CreateDirectory(folder);
+        string app = PathNames.Canonical(AvaloniaApp.Debuggee(folder, "BindingErrorsApp"));
+        AvaloniaApp.UseFeed(folder);
+        Restore.Run(app);
+        ChildResult result = Ui.Await(ChildProcesses.RunAsync(ChildProcesses.DotnetCommand(["build", app, "-nologo", "-v:q"]),
+            limit: TimeSpan.FromMinutes(4).Scaled()), "the Avalonia service's build");
+        Assert.True(result.Succeeded, $"The Avalonia service did not build: {result.Output}{result.Error}");
+        return app;
+    }
 
     /// <summary><see cref="AskToStartApi"/> off the window's thread, as DCP asks again for a resource its AppHost restarts:
     /// the session's mode as DCP gives it, and variables beside the resource's name; subscribed to the sessions' notifications
     /// unless <paramref name="subscribe"/> is false (DCP subscribes once, which a second refuses). The IDE's answer is no
     /// status at all when it closed its endpoint as it stopped the AppHost, the request unanswered.</summary>
     internal async Task<(System.Net.WebSockets.ClientWebSocket Notified, System.Net.HttpStatusCode Answer)> StartApiAsync(string resource, string mode = "NoDebug",
-        IReadOnlyDictionary<string, string>? environment = null, bool subscribe = true)
+        IReadOnlyDictionary<string, string>? environment = null, bool subscribe = true, string? projectPath = null)
     {
         string[] session = (await File.ReadAllTextAsync(SessionFile)).Split('\n', 3);
         using JsonDocument info = JsonDocument.Parse(session[2]);
@@ -2068,7 +2113,7 @@ public sealed class StandInAppHost : SharedProject
         {
             Content = new StringContent(JsonSerializer.Serialize(new
             {
-                launch_configurations = new[] { new { type = "project", project_path = ApiProject, mode } },
+                launch_configurations = new[] { new { type = "project", project_path = projectPath ?? ApiProject, mode } },
                 env = new[] { new { name = "OTEL_SERVICE_NAME", value = resource } }
                     .Concat((environment ?? new Dictionary<string, string>()).Select(variable => new { name = variable.Key, value = variable.Value })).ToArray(),
                 args = Array.Empty<string>(),
