@@ -376,7 +376,7 @@ public sealed class DebuggerTests : IClassFixture<DebuggerTests.Sum>, IClassFixt
         Ui.ChooseFromMenu(frames, "Copy Stack");
         Ui.WaitFor(() => Ui.Clipboard(window)?.Contains("<Main>$", StringComparison.Ordinal) == true, "the stack on the clipboard");
         Assert.Contains("Program.cs:5", Ui.Clipboard(window), StringComparison.Ordinal);
-        Passenger.App.Mcp.DebugSnapshot told = Ui.Await(new Passenger.App.Mcp.PassengerTools(window).GetDebugState(), "the stop as an agent is told it");
+        Passenger.App.Mcp.DebugSnapshot told = (Passenger.App.Mcp.DebugSnapshot)Ui.Await(new Passenger.App.Mcp.PassengerTools(window).GetDebugState(), "the stop as an agent is told it");
         Assert.StartsWith("Program.cs:5:", told.Location, StringComparison.Ordinal);
         Assert.EndsWith("at Program.cs:5", told.Frames[0], StringComparison.Ordinal);
 

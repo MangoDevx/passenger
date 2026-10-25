@@ -109,7 +109,7 @@ public sealed class McpDebuggingTests : McpRig, IClassFixture<RestoredFolders>
             try
             {
                 Assert.Equal("looping", looping.StandardOutput.ReadLine());
-                JsonElement program = Assert.Single((await Call(client, "debug_processes")).EnumerateArray(), p => p.GetProperty("processId").GetInt32() == looping.Id);
+                JsonElement program = Assert.Single((await Call(client, "debug_state", new() { ["of"] = "processes" })).EnumerateArray(), p => p.GetProperty("processId").GetInt32() == looping.Id);
                 Assert.Equal("LoopingConsoleApp", program.GetProperty("program").GetString());
                 string source = Debugging.Helpers.Debuggees.Source("LoopingConsoleApp", "Program.cs");
                 int line = Debugging.Helpers.Debuggees.Line("LoopingConsoleApp", "turns++;");
@@ -118,7 +118,7 @@ public sealed class McpDebuggingTests : McpRig, IClassFixture<RestoredFolders>
                 Assert.Equal(("paused", "breakpoint"), (attached.GetProperty("state").GetString(), attached.GetProperty("reason").GetString()));
                 Assert.EndsWith($"Program.cs:{line}:5", attached.GetProperty("location").GetString(), StringComparison.Ordinal);
                 Assert.True(long.TryParse(Local(attached, "turns"), out long turns) && turns >= 0, $"The stop's locals had no count of turns: {attached}");
-                Assert.Equal("Detached from LoopingConsoleApp, which runs on", (await Call(client, "debug_detach")).GetString());
+                Assert.Equal("Detached from LoopingConsoleApp, which runs on", (await Call(client, "stop", new() { ["detach"] = true })).GetString());
                 Assert.Equal("not debugging", (await Call(client, "debug_state")).GetProperty("state").GetString());
                 Assert.False(looping.WaitForExit(TimeSpan.FromSeconds(2)), "The program the agent detached from ended");
             }

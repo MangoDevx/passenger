@@ -45,7 +45,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
     [McpServerTool(Name = "open", Title = "Open a folder, solution, project or file", Destructive = false), Description(
         "Opens a folder, solution or project (a directory, .sln, .slnx or .csproj) as the workspace, or a file in the editor " +
         "(its folder first if none is open; with line, a project or solution file too), its caret at line and column if given, " +
-        "before that column's character. On a person's window, replacing their folder is asked of them first. Returns the workspace.")]
+        "before that column's character. Returns the workspace.")]
     public Task<Workspace> Open(string path, int? line = null, int? column = null, CancellationToken cancel = default) => OnUi(cancel, async () =>
     {
         string full = Resolve(path);
@@ -164,11 +164,17 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
 
     // Code: the language server's
 
-    [McpServerTool(Name = "diagnostics", Title = "Errors and warnings in a file", ReadOnly = true), Description(
+    // The Problems window's lists are this tool's with no path: a tool of their own cost every session's list more.
+    [McpServerTool(Name = "diagnostics", Title = "Errors and warnings", ReadOnly = true), Description(
         "A file's errors and warnings as the editor marks them, fresh: C#'s from the language server (its messages too), any " +
         "other's once its checks have run (XAML's, an MSBuild file's evaluation and NuGet advisories, a web language's server " +
-        "and ESLint).")]
-    public Task<IReadOnlyList<Finding>> Diagnostics(string path, CancellationToken cancel = default) => OnUi(cancel, async () =>
+        "and ESLint). With no path, what the Problems window lists beyond a file's: toolset (each project's load warnings and " +
+        "errors), build (the last build's, whoever started it) and solution (every file's, while settings' solutionWideAnalysis " +
+        "is on).")]
+    public async Task<object> Diagnostics(string? path = null, CancellationToken cancel = default) =>
+        path is null ? await Problems(cancel) : await FileDiagnostics(path, cancel);
+
+    private Task<IReadOnlyList<Finding>> FileDiagnostics(string path, CancellationToken cancel) => OnUi(cancel, async () =>
     {
         if (await DocumentAsync(path, cancel) is { Language.Name: not ("C#" or "Razor") } marked)
         {
@@ -836,7 +842,8 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         "The last lines of a console. of run (the default): what Run's program wrote (under Hot Reload, dotnet watch's words " +
         "too) or a terminal configuration's tab; with resource, that one's own; with requests, the running web apps' requests " +
         "and their SQL. of debug (the default with session): the debugged program's. of build: the last build's MSBuild " +
-        "output, as it runs too.")]
+        "output, as it runs too. of terminal: the IDE terminal's tab shown, its scrollback and screen (a full-screen program's " +
+        "too).")]
     public Task<string> Output(string? of = null, int lines = 200, string? resource = null, bool requests = false, string? session = null,
         CancellationToken cancel = default) => OnUi(cancel, async () =>
     {
@@ -846,8 +853,10 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
                 return Tail(Session.Builder.Shown(), Math.Max(1, lines));
             case "debug":
                 return DebugOutput(lines, session);
+            case "terminal":
+                return window.TerminalPanel.Active is { } shell ? Tail(shell, Math.Max(1, lines)) : throw new InvalidOperationException("The terminal has no shell running");
             case not "run":
-                throw new ArgumentException($"No console '{of}'; there are run, debug and build", nameof(of));
+                throw new ArgumentException($"No console '{of}'; there are run, debug, build and terminal", nameof(of));
         }
         if (requests)
         {
@@ -893,8 +902,11 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
     }
 
     [McpServerTool(Name = "stop", Title = "Stop", Destructive = false), Description("Stops whatever runs or is debugged, as Stop All does, a " +
-        "container run's containers taken down; with session or resource, that one alone.")]
-    public Task<string> Stop(string? session = null, string? resource = null, CancellationToken cancel = default) => OnUi(cancel, async () =>
+        "container run's containers taken down; with session or resource, that one alone. With detach, lets go of the program " +
+        "the debugger attached to instead, as Detach does: its breakpoints are taken out and it runs on.")]
+    public Task<string> Stop(string? session = null, string? resource = null, bool detach = false, CancellationToken cancel = default) => detach
+        ? resource is null ? DebugDetach(session, cancel) : throw new ModelContextProtocol.McpException("Detach lets go of a debugged program: name its session, not a resource")
+        : OnUi(cancel, async () =>
     {
         if (resource is not null)
         {
@@ -1105,7 +1117,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
             {
                 (DebugSession debugged, long element, _, _) = await WatchedElement(control, cancel);
                 watched = store.Properties.FirstOrDefault(p => p.Session == debugged && p.Element == element && p.Property.Equals(wanted, StringComparison.OrdinalIgnoreCase))
-                    ?? throw new ArgumentException($"No property breakpoint is on {wanted} of {control}; breakpoints lists those there are");
+                    ?? throw new ArgumentException($"No property breakpoint is on {wanted} of {control}; debug_state of breakpoints lists those there are");
             }
             store.Remove(watched);
             await InTheApp(cancel);
@@ -1194,10 +1206,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         }
     }
 
-    [McpServerTool(Name = "breakpoints", Title = "Every breakpoint", ReadOnly = true), Description(
-        "Every breakpoint (line, data and property, exception with its scenarios, XAML Binding Errors), each with whether the " +
-        "debugger took it. While Mute Breakpoints (ide_action app.debug.muteBreakpoints) is on, none stops.")]
-    public Task<IReadOnlyList<BreakpointInfo>> ListBreakpoints(CancellationToken cancel = default) =>
+    private Task<IReadOnlyList<BreakpointInfo>> ListBreakpoints(CancellationToken cancel) =>
         OnUi(cancel, () => Task.FromResult<IReadOnlyList<BreakpointInfo>>([.. Breakpoints(null), .. DataBreakpoints(), .. ExceptionBreakpoints()]));
 
     [McpServerTool(Name = "debug_start", Title = "Debug a configuration", Destructive = true), Description(
@@ -1298,18 +1307,14 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
             : started;
     }
 
-    [McpServerTool(Name = "debug_processes", Title = "The .NET programs to attach to", ReadOnly = true), Description(
-        "The .NET programs here and in running containers the debugger can attach to, each with its process id, executable, " +
-        "program (the .dll the dotnet host runs), user, command line and container (its id there 0 until debug_attach puts " +
-        "Passenger's tools in).")]
-    public Task<IReadOnlyList<ProcessInfo>> DebugProcesses(CancellationToken cancel = default) => OnUi(cancel, async () =>
+    private Task<IReadOnlyList<ProcessInfo>> DebugProcesses(CancellationToken cancel) => OnUi(cancel, async () =>
         (IReadOnlyList<ProcessInfo>)[.. (await window.AttachableAsync()).Where(p => p.WhyNot is null)
             .Select(p => new ProcessInfo(p.Id, p.Name, p.Program, p.User, p.CommandLine, p.Container))]);
 
     [McpServerTool(Name = "debug_attach", Title = "Attach to a running program", Destructive = true), Description(
         "Attaches the debugger to a running .NET program, as Attach to Process does: processId, or program when one has that " +
-        "name, in container when it runs in one (debug_processes lists them), or resource. Waits for a stop or its end and " +
-        "returns where it is; debug_detach lets it go on, stop ends it.")]
+        "name, in container when it runs in one (debug_state of processes lists them), or resource. Waits for a stop or its end and " +
+        "returns where it is; stop with detach lets it go on, stop ends it.")]
     public Task<DebugSnapshot> DebugAttach(int? processId = null, string? program = null,
         string? container = null, int waitSeconds = 10, string? resource = null, CancellationToken cancel = default) => OnUi(cancel, async () =>
     {
@@ -1329,7 +1334,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         DotnetProcess chosen = named switch
         {
             [{ } only] => only,
-            [] => throw new InvalidOperationException($"No .NET program {(processId is int pid ? $"with process id {pid}" : $"named {program}")} is running for the debugger to attach to; debug_processes lists those there are"),
+            [] => throw new InvalidOperationException($"No .NET program {(processId is int pid ? $"with process id {pid}" : $"named {program}")} is running for the debugger to attach to; debug_state of processes lists those there are"),
             _ => throw new InvalidOperationException($"{named.Count} running programs are named {program}: name one by its processId ({string.Join(", ", named.Select(p => p.Id))})"),
         };
         if (await window.AttachAsync(chosen) is { } problem)
@@ -1339,21 +1344,33 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         return await AfterResume(TimeSpan.FromSeconds(waitSeconds), cancel);
     });
 
-    [McpServerTool(Name = "debug_detach", Title = "Detach", Destructive = false), Description(
-        "Lets go of the program the debugger attached to, as Detach does: its breakpoints are taken out and it runs on.")]
-    public Task<string> DebugDetach(string? session = null, CancellationToken cancel = default) => OnUi(cancel, async () =>
+    private Task<string> DebugDetach(string? session, CancellationToken cancel) => OnUi(cancel, async () =>
     {
         DebugSession attached = await Debugged(session);
         return await Session.Debug.DetachAsync(attached) is { } problem ? throw new InvalidOperationException(problem)
             : Session.Debug.SummaryOf(attached) ?? "Detached";
     });
 
+    // A value's members, the breakpoints and the programs to attach to are this tool's too: tools of their own cost every
+    // session's list more.
     [McpServerTool(Name = "debug_state", Title = "Where the debugger is", ReadOnly = true), Description(
         "The debugger's state and, while paused, the stop: its reason, the thread's frames and the chosen frame's variables, " +
         "and in an Avalonia app the binding values of the .axaml files open in the editor. With several programs debugged, " +
-        "sessions names them.")]
-    public Task<DebugSnapshot> GetDebugState(string? session = null, CancellationToken cancel = default) =>
-        OnUi(cancel, () => DebugSnapshotAsync(session is null ? Unnamed() : TabFor(session)?.Session));
+        "sessions names them. With reference (a variable's, debug_evaluate's or an earlier answer's), the members, elements " +
+        "or locals behind it. of breakpoints: every breakpoint (line, data and property, exception with its scenarios, XAML " +
+        "Binding Errors), each with whether the debugger took it; while Mute Breakpoints (ide_action " +
+        "app.debug.muteBreakpoints) is on, none stops. of processes: the .NET programs here and in running containers the " +
+        "debugger can attach to, program being the .dll the dotnet host runs (a container's id 0 until debug_attach puts " +
+        "Passenger's tools in).")]
+    public async Task<object> GetDebugState(string? session = null, string? of = null, int? reference = null, CancellationToken cancel = default) => (of, reference) switch
+    {
+        (null or "stop", int members) => await DebugVariables(members, session, cancel),
+        (null or "stop", null) => await OnUi(cancel, () => DebugSnapshotAsync(session is null ? Unnamed() : TabFor(session)?.Session)),
+        ("breakpoints", null) => await ListBreakpoints(cancel),
+        ("processes", null) => await DebugProcesses(cancel),
+        (_, null) => throw new ModelContextProtocol.McpException($"No '{of}' to give; of takes stop (the default), breakpoints or processes"),
+        _ => throw new ModelContextProtocol.McpException("A reference's members are the stop's: give reference or of, not both"),
+    };
 
     [McpServerTool(Name = "debug_continue", Title = "Resume", Destructive = false), Description(
         "Resumes the program and waits for it to stop again or end; with path and line, runs to that line as Run to Cursor " +
@@ -1416,7 +1433,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
 
     [McpServerTool(Name = "debug_evaluate", Title = "Evaluate an expression", Destructive = true), Description(
         "Evaluates a C# expression, which may call the program's methods, in a frame of the stopped thread (0, the top, by " +
-        "default), as the Debug window's evaluate box does; a result with members has a reference debug_variables opens. With " +
+        "default), as the Debug window's evaluate box does; a result with members has a reference debug_state opens. With " +
         "value, a C# expression, assigns it to expression (a local, member or element) as Set Value does, answering what it " +
         "now is.")]
     public Task<VariableInfo> DebugEvaluate(string expression, int frame = 0, string? session = null,
@@ -1434,9 +1451,7 @@ public sealed partial class PassengerTools(MainWindow window, AgentConnection? c
         return new VariableInfo(expression, result.Result, result.Type, result.VariablesReference);
     });
 
-    [McpServerTool(Name = "debug_variables", Title = "A value's members", ReadOnly = true), Description(
-        "The members, elements or locals behind a reference from debug_state, debug_evaluate or an earlier call.")]
-    public Task<IReadOnlyList<VariableInfo>> DebugVariables(int reference, string? session = null, CancellationToken cancel = default) => OnUi(cancel, async () =>
+    private Task<IReadOnlyList<VariableInfo>> DebugVariables(int reference, string? session, CancellationToken cancel) => OnUi(cancel, async () =>
     {
         DebugSession paused = await Paused(session);
         return (IReadOnlyList<VariableInfo>)[.. (await Session.Debug.MembersAsync(paused, reference)).Select(v => new VariableInfo(v.Name, v.Value, v.Type, v.VariablesReference))];

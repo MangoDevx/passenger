@@ -10,7 +10,7 @@ namespace Passenger.Tests;
 
 /// <summary>An EF Core query's SQL at a stop: a program on EF Core and SQLite stopped holding a query its provider
 /// translates and one it cannot, each listing first among its members a row of the SQL it would run, read only as the row
-/// is opened (ToQueryString() run in the program then), in Variables, the hover card and an agent's debug_variables
+/// is opened (ToQueryString() run in the program then), in Variables, the hover card and an agent's debug_state
 /// alike; the SQL opens whole in a read-only tab, and what keeps a query from SQL is said as its row's value. The tests
 /// share the program as written (<see cref="Shop"/>). Debugged, so run alone.</summary>
 [Collection(Alone.Name)]
@@ -84,7 +84,7 @@ public sealed class QuerySqlTests : McpRig, IClassFixture<QuerySqlTests.Shop>
     }
 
     [Fact]
-    public async Task An_agents_debug_variables_reads_a_querys_SQL_as_it_opens_its_row()
+    public async Task An_agents_debug_state_reads_a_querys_SQL_as_it_opens_its_row()
     {
         await using McpClient client = await Start(["--mcp", shop.Folder], languageServer: false);
         await Call(client, "breakpoint_set", new() { ["path"] = "Program.cs", ["line"] = Shop.Stop + 1 });
@@ -92,9 +92,9 @@ public sealed class QuerySqlTests : McpRig, IClassFixture<QuerySqlTests.Shop>
         Assert.Equal("paused", stop.GetProperty("state").GetString());
         int query = stop.GetProperty("locals").EnumerateArray().Single(l => l.GetProperty("name").GetString() == "stocked").GetProperty("reference").GetInt32();
 
-        JsonElement row = (await Call(client, "debug_variables", new() { ["reference"] = query })).EnumerateArray().First();
+        JsonElement row = (await Call(client, "debug_state", new() { ["reference"] = query })).EnumerateArray().First();
         Assert.Equal((DapRows.QuerySql, DapRows.QuerySqlUnread), (row.GetProperty("name").GetString(), row.GetProperty("value").GetString()));
-        JsonElement read = Assert.Single((await Call(client, "debug_variables", new() { ["reference"] = row.GetProperty("reference").GetInt32() })).EnumerateArray());
+        JsonElement read = Assert.Single((await Call(client, "debug_state", new() { ["reference"] = row.GetProperty("reference").GetInt32() })).EnumerateArray());
         string sql = read.GetProperty("value").GetString()!;
         Assert.True(read.GetProperty("name").GetString() == DapRows.QuerySql && sql.Contains("FROM \"Products\" AS \"p\"", StringComparison.Ordinal),
             $"The agent read the query's SQL row as: {read}");

@@ -9,10 +9,17 @@ namespace Passenger.App.Mcp;
 /// and containers, a container's log, a command run in one, and the window's start, stop, restart and remove.</summary>
 public sealed partial class PassengerTools
 {
+    // A container's log is this tool's with container: a tool of its own cost every session's list more.
     [McpServerTool(Name = "containers", Title = "The container engine", ReadOnly = true), Description(
         "The docker engine of the person's current context: its status (with what to do when it cannot serve), its Compose " +
-        "projects with their services, and every container with its state, health, ports and image.")]
-    public Task<ContainersInfo> Containers(CancellationToken cancel = default) => OnUi(cancel, async () =>
+        "projects with their services, and every container with its state, health, ports and image. With container (its name " +
+        "or id, a Compose project or project/service with every service's lines), its log instead: the last tail lines, or " +
+        "those since a time (2026-10-21T10:00:00, or 10m); followSeconds keeps reading new lines up to that long.")]
+    public async Task<object> Containers(string? container = null, int tail = 200, string? since = null, int followSeconds = 0, bool timestamps = false,
+        CancellationToken cancel = default) =>
+        container is null ? await Engine(cancel) : await ContainerLogs(container, tail, since, followSeconds, timestamps, cancel);
+
+    private Task<ContainersInfo> Engine(CancellationToken cancel) => OnUi(cancel, async () =>
     {
         AgentCall.Say("Asking the container engine");
         (EngineState state, ContainerSnapshot snapshot) = await EngineHoldsAsync(again: true, cancel);
@@ -22,11 +29,7 @@ public sealed partial class PassengerTools
                 c.IsTestcontainers ? true : null))]);
     });
 
-    [McpServerTool(Name = "container_logs", Title = "A container's log", ReadOnly = true), Description(
-        "A container's log (its name or id), or a Compose project's or project/service's with every service's lines: the last " +
-        "tail lines, or those since a time (2026-10-21T10:00:00, or 10m); followSeconds keeps reading new lines up to that long.")]
-    public Task<string> ContainerLogs(string container, int tail = 200, string? since = null, int followSeconds = 0, bool timestamps = false,
-        CancellationToken cancel = default) => OnUi(cancel, async () =>
+    private Task<string> ContainerLogs(string container, int tail, string? since, int followSeconds, bool timestamps, CancellationToken cancel) => OnUi(cancel, async () =>
     {
         ContainerRow row = await NamedContainer(container, cancel);
         List<string> options = since is null ? ["--tail", Math.Clamp(tail, 1, 10_000).ToString(System.Globalization.CultureInfo.InvariantCulture)] : ["--since", since];

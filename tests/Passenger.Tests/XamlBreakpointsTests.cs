@@ -136,7 +136,7 @@ public sealed class XamlBreakpointsTests : IClassFixture<RestoredFolders>, IDisp
         window.ShowToolWindow(ToolWindowIds.Debug);
         window.BottomPanel.Debug.ShowTab(console: false);
         Ui.WaitFor(() => FrameRows(window).Contains($"MainWindow.axaml:{save + 1}"), $"the frame's row to name Save's line, not {string.Join(", ", FrameRows(window))}");
-        Passenger.App.Mcp.DebugSnapshot told = Ui.Await(new Passenger.App.Mcp.PassengerTools(window).GetDebugState(), "the stop as an agent is told it");
+        Passenger.App.Mcp.DebugSnapshot told = (Passenger.App.Mcp.DebugSnapshot)Ui.Await(new Passenger.App.Mcp.PassengerTools(window).GetDebugState(), "the stop as an agent is told it");
         Assert.Equal($"MainWindow.axaml:{save + 1}:{background + 1}", told.Location);
         Assert.EndsWith($"at MainWindow.axaml:{save + 1}", told.Frames[0], StringComparison.Ordinal);
 

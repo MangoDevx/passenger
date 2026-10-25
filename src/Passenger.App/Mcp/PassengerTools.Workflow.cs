@@ -21,8 +21,12 @@ public sealed partial class PassengerTools
         "The branch and the files changed since the last commit (modified, added, deleted, renamed, unversioned, conflicted). " +
         "While a merge, rebase, unstash or cherry-pick is stopped for conflicts, conflicts says what is under way, which " +
         "branches yours and theirs are (in a rebase yours is the branch being rebased) and whether each side modified or " +
-        "deleted each file in conflict; vcs_resolve resolves them.")]
-    public Task<VcsStatus> VcsStatus(CancellationToken cancel = default) => OnUi(cancel, async () =>
+        "deleted each file in conflict; vcs_resolve resolves them. With path, that file's changes since the last commit as a " +
+        "unified diff: the editor's text when it is open (unsaved changes included), else the file on disk.")]
+    public async Task<object> VcsStatus(string? path = null, CancellationToken cancel = default) =>
+        path is null ? await VcsChanges(cancel) : await VcsDiff(path, cancel);
+
+    private Task<VcsStatus> VcsChanges(CancellationToken cancel) => OnUi(cancel, async () =>
     {
         VcsController vcs = Session.Vcs;
         await vcs.Opened;
@@ -64,9 +68,7 @@ public sealed partial class PassengerTools
         return left == 0 ? $"{Relative(full)} resolved; no conflicts are left" : $"{Relative(full)} resolved; {Plural.Of(left, "file")} {(left == 1 ? "is" : "are")} still in conflict";
     });
 
-    [McpServerTool(Name = "vcs_diff", Title = "A file's changes", ReadOnly = true), Description(
-        "What changed in a file since the last commit, as a unified diff: the editor's text when the file is open (unsaved changes included), else the file on disk.")]
-    public Task<string> VcsDiff(string path, CancellationToken cancel = default) => OnUi(cancel, async () =>
+    private Task<string> VcsDiff(string path, CancellationToken cancel) => OnUi(cancel, async () =>
     {
         string full = Resolve(path);
         string name = Relative(full).Replace('\\', '/');
@@ -232,7 +234,7 @@ public sealed partial class PassengerTools
         "thread's hot path, and for an Avalonia app its frames: the UI thread's median and longest, measure, arrange, render " +
         "and compositor totals, the layout table by control type with the heaviest controls and their XAML lines, and the " +
         "longest frame's breakdown (or 0 and why). With attach, Attach Profiler instead, from now, left running: the debugged " +
-        "program, else Run's, or container's .NET program (debug_processes lists them). With resource, that one, its " +
+        "program, else Run's, or container's .NET program (debug_state of processes lists them). With resource, that one, its " +
         "configuration started if none runs it.")]
     public Task<ProfileInfo> Profile(
         string? configuration = null,
@@ -390,7 +392,7 @@ public sealed partial class PassengerTools
         {
             [{ } only] => only,
             [] when there.Count > 0 => throw new InvalidOperationException($"No program in {container} can be profiled: {there[0].WhyNot}"),
-            [] => throw new InvalidOperationException($"No .NET program runs in a container named {container}; debug_processes lists those there are"),
+            [] => throw new InvalidOperationException($"No .NET program runs in a container named {container}; debug_state of processes lists those there are"),
             _ => throw new InvalidOperationException($"{reachable.Count} .NET programs run in {container} ({string.Join(", ", reachable.Select(p => p.Program))}): "
                 + "attach the debugger to the one to profile (debug_attach), then profile with attach alone"),
         };
@@ -478,20 +480,6 @@ public sealed partial class PassengerTools
             lines.Add(screen.LineAt(line).Text());
         }
         return string.Join('\n', lines).TrimEnd();
-    });
-
-    [McpServerTool(Name = "terminal_screen", Title = "What the terminal shows", ReadOnly = true), Description(
-        "The IDE terminal's screen as it stands in the tab shown (a full-screen program's included, and a run configuration's program), " +
-        "with the last lines of the scrollback above it.")]
-    public Task<string> TerminalScreen(int scrollback = 20, CancellationToken cancel = default) => OnUi(cancel, () =>
-    {
-        if (window.TerminalPanel.Active is not { } shell)
-        {
-            throw new InvalidOperationException("The terminal has no shell running");
-        }
-        TerminalScreen screen = shell.Screen;
-        IEnumerable<string> above = screen.Scrollback.Skip(Math.Max(0, screen.Scrollback.Count - Math.Max(0, scrollback))).Select(l => l.Text());
-        return Task.FromResult(string.Join('\n', above.Concat(screen.Lines.Select(l => l.Text()))).TrimEnd());
     });
 
     private async Task<TerminalSession> Terminal(CancellationToken cancel)

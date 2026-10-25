@@ -780,7 +780,7 @@ public sealed class CodeAssistTests : IClassFixture<CodeAssistTests.Project>
         Ui.WaitFor(() => opened.IsCompleted, "the open", TimeSpan.FromSeconds(10));
         Assert.Same(server, window.CSharpService);
         Assert.NotNull(server.For(program));
-        Task<IReadOnlyList<Passenger.App.Mcp.Finding>> found = tools.Diagnostics("Program.cs");
+        Task<object> found = tools.Diagnostics("Program.cs");
         Ui.WaitFor(() => found.IsCompleted, "the diagnostics of the file open before", TimeSpan.FromSeconds(15));
         Assert.True(found.IsCompletedSuccessfully, found.Exception?.Message);
         window.Close();

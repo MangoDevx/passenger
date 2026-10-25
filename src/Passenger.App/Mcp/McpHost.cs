@@ -74,11 +74,11 @@ public static partial class McpHost
         "Parameter, Encapsulate Field, Optimize Imports and Code Cleanup; refactor with describe true answers what its dialog offers and the " +
         "options to send back, changing nothing. Each change is one step of the IDE's Undo.\n\n" +
         "build, run, tests_list and tests_run build (and publish), run and test. To debug: breakpoint_set, then debug_start (or debug_attach), debug_step, " +
-        "debug_evaluate, debug_variables and debug_continue, each waiting for the program to stop and saying where, with the top frame's " +
+        "debug_evaluate, debug_state and debug_continue, each waiting for the program to stop and saying where, with the top frame's " +
         "locals. An Avalonia or WPF app that run or debug_start starts is looked at and used as a person tests it: app_windows, app_tree, " +
-        "app_screenshot, app_click, app_type, app_key, app_scroll, app_binding_errors. Also version control (vcs_status, vcs_diff, " +
-        "vcs_commit), NuGet (nuget_search, nuget_install), Problems and Local History (problems, local_history), the settings (settings, " +
-        "settings_set), the container engine (containers, container_logs, container_exec, container_action) and Passenger's own " +
+        "app_screenshot, app_click, app_type, app_key, app_scroll, app_binding_errors. Also version control (vcs_status, " +
+        "vcs_commit), NuGet (nuget_search, nuget_install), Problems and Local History (diagnostics with no path, local_history), the settings (settings, " +
+        "settings_set), the container engine (containers, container_exec, container_action) and Passenger's own " +
         "window (the app_ tools with app ide, ide_action).\n\n" +
         "Attached to a person's Passenger (--mcp-attach), the first call joins the Passenger window open on the agent's folder (the folder " +
         "after --mcp-attach, else the agent's working folder). With none open, it has the running Passenger open that folder, or starts " +

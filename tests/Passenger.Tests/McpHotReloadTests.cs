@@ -30,7 +30,7 @@ public sealed class McpHotReloadTests : McpRig, IClassFixture<RestoredFolders>
         await using McpClient client = await Start(["--mcp", Folder]);
         await Call(client, "breakpoint_set", new() { ["exception"] = "System.InvalidOperationException" });
         // Listed with "Any exception", the new one in every scenario.
-        JsonElement[] exceptions = [.. (await Call(client, "breakpoints")).EnumerateArray()
+        JsonElement[] exceptions = [.. (await Call(client, "debug_state", new() { ["of"] = "breakpoints" })).EnumerateArray()
             .Where(b => b.TryGetProperty("exception", out JsonElement type) && type.ValueKind == JsonValueKind.String)];
         Assert.Equal(["Any exception", "System.InvalidOperationException"], exceptions.Select(b => b.GetProperty("exception").GetString()));
         Assert.Equal(["thrownInUserCode", "thrownInExternalCode", "handledInUserCode", "handledInExternalCode", "unhandled"],

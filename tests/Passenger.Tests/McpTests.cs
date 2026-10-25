@@ -136,7 +136,7 @@ public sealed class McpTests : McpRig, IClassFixture<RestoredFolders>
             Assert.Equal("main", status.GetProperty("branch").GetString());
             Assert.Equal(["Notes.txt modified", "New.txt unversioned"], status.GetProperty("changes").EnumerateArray()
                 .Select(c => $"{c.GetProperty("path").GetString()} {c.GetProperty("kind").GetString()}").Order(StringComparer.Ordinal).Reverse());
-            string diff = (await Call(client, "vcs_diff", new() { ["path"] = "Notes.txt" })).GetString()!;
+            string diff = (await Call(client, "vcs_status", new() { ["path"] = "Notes.txt" })).GetString()!;
             Assert.Contains("-two\n+2\n", diff, StringComparison.Ordinal);
 
             // With no paths, every change but the new file goes in.
@@ -186,8 +186,8 @@ public sealed class McpTests : McpRig, IClassFixture<RestoredFolders>
             string answer = (await Call(client, "terminal_run", new() { ["command"] = command })).GetString()!;
             Assert.Contains("42", answer, StringComparison.Ordinal);
             Assert.Contains("Notes.txt", answer, StringComparison.Ordinal);
-            string screen = (await Call(client, "terminal_screen")).GetString()!;
-            Assert.True(screen.Contains("42", StringComparison.Ordinal), $"terminal_screen did not show what the command printed:\n{screen}");
+            string screen = (await Call(client, "output", new() { ["of"] = "terminal" })).GetString()!;
+            Assert.True(screen.Contains("42", StringComparison.Ordinal), $"output of terminal did not show what the command printed:\n{screen}");
             if (OperatingSystem.IsWindows())
             {
                 // The shells' history is the run's (HISTFILE), never the person's.

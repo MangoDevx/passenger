@@ -122,7 +122,7 @@ public sealed class LocalizationTests : IClassFixture<LocalizationTests.Project>
             Ui.Press(window, "ESCAPE");
 
             Passenger.App.Mcp.PassengerTools agent = new(window);
-            IReadOnlyList<Passenger.App.Mcp.Finding> findings = Ui.Await(agent.Diagnostics("Shop/Pages/Home.razor"), "an agent's diagnostics of the component");
+            IReadOnlyList<Passenger.App.Mcp.Finding> findings = (IReadOnlyList<Passenger.App.Mcp.Finding>)Ui.Await(agent.Diagnostics("Shop/Pages/Home.razor"), "an agent's diagnostics of the component");
             Passenger.App.Mcp.Finding missing = Assert.Single(findings, f => f.Message.Contains("translation", StringComparison.Ordinal));
             Assert.Equal(("warning", "'Goodbye' has no Spanish translation (Home.es.resx)"), (missing.Severity, missing.Message));
             IReadOnlyList<string> actions = Ui.Await(agent.CodeActions("Shop/Pages/Home.razor", missing.Line, missing.Column + 2), "the code actions an agent asks for");

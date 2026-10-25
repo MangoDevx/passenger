@@ -68,7 +68,7 @@ public sealed class McpIdeTests : McpRig, IClassFixture<RestoredFolders>
 
         JsonElement built = await Call(client, "build");
         Assert.False(built.GetProperty("succeeded").GetBoolean());
-        JsonElement problems = await Call(client, "problems");
+        JsonElement problems = await Call(client, "diagnostics");
         string[] build = [.. problems.GetProperty("build").EnumerateArray().Select(p => $"{p.GetProperty("code").GetString()} {p.GetProperty("path").GetString()}:{p.GetProperty("line").GetInt32()}")];
         Assert.True(build.Contains("CS0029 Bad.cs:3") && build.Contains("CS0219 Helper.cs:5"), $"Problems' Build tab, for an agent: {string.Join("; ", build)}");
         Assert.Equal(JsonValueKind.Array, problems.GetProperty("toolset").ValueKind);
@@ -82,7 +82,7 @@ public sealed class McpIdeTests : McpRig, IClassFixture<RestoredFolders>
 
         JsonElement turnedOn = Assert.Single((await Call(client, "settings_set", new() { ["changes"] = new Dictionary<string, object> { ["solutionWideAnalysis"] = true } })).EnumerateArray());
         Assert.Equal((false, true), (turnedOn.GetProperty("before").GetBoolean(), turnedOn.GetProperty("after").GetBoolean()));
-        string[] solution = [.. (await Call(client, "problems")).GetProperty("solution").EnumerateArray().Select(p => $"{p.GetProperty("code").GetString()} {p.GetProperty("path").GetString()}:{p.GetProperty("line").GetInt32()}")];
+        string[] solution = [.. (await Call(client, "diagnostics")).GetProperty("solution").EnumerateArray().Select(p => $"{p.GetProperty("code").GetString()} {p.GetProperty("path").GetString()}:{p.GetProperty("line").GetInt32()}")];
         Assert.True(solution.Contains("CS0029 Bad.cs:3"), $"Solution-wide analysis's problems, for an agent: {string.Join("; ", solution)}");
         // A windowless Passenger's settings are its own, kept nowhere.
         Assert.False((await Call(client, "settings")).GetProperty("kept").GetBoolean());

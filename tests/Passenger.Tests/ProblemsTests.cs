@@ -350,7 +350,7 @@ public sealed class ProblemsTests : IClassFixture<RestoredFolders>, IDisposable
         Ui.Settle();
         Choose(window, problems, separated);
         Assert.Equal(new TextPosition(3, 23), editor.CaretPosition);
-        Passenger.App.Mcp.ProblemsInfo told = Ui.Await(new Passenger.App.Mcp.PassengerTools(window).Problems(), "the problems an agent asks for");
+        Passenger.App.Mcp.ProblemsInfo told = (Passenger.App.Mcp.ProblemsInfo)Ui.Await(new Passenger.App.Mcp.PassengerTools(window).Diagnostics(), "the problems an agent asks for");
         Assert.Equal((4, 24), told.Build.Where(f => f.Path == "Separated.cs").Select(f => (f.Line, f.Column)).Single());
         Assert.Equal((4, 24), told.Solution!.Where(f => f.Path == "Separated.cs").Select(f => (f.Line, f.Column)).Single());
         window.Close();

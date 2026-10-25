@@ -145,7 +145,7 @@ public sealed class XamlEditingTests : IClassFixture<XamlEditingTests.AvaloniaGa
             Ui.Settle();
 
             Passenger.App.Mcp.PassengerTools agent = new(window);
-            IReadOnlyList<Passenger.App.Mcp.Finding> findings = Ui.Await(agent.Diagnostics(view), "an agent's diagnostics of the view");
+            IReadOnlyList<Passenger.App.Mcp.Finding> findings = (IReadOnlyList<Passenger.App.Mcp.Finding>)Ui.Await(agent.Diagnostics(view), "an agent's diagnostics of the view");
             Passenger.App.Mcp.Finding missing = Assert.Single(findings, f => f.Message.Contains("translation", StringComparison.Ordinal));
             Assert.Equal(("warning", "'Thanks' has no French translation (Resources.fr.resx)"), (missing.Severity, missing.Message));
             IReadOnlyList<string> actions = Ui.Await(agent.CodeActions(view, missing.Line, missing.Column + 2), "the code actions an agent asks for");

@@ -432,10 +432,8 @@ public sealed partial class PassengerTools
 
     // Problems and the Build window
 
-    [McpServerTool(Name = "problems", Title = "The Problems window", ReadOnly = true), Description(
-        "What the Problems window lists beyond a file's diagnostics: toolset (each project's load warnings and errors), build " +
-        "(the last build's, whoever started it) and solution (every file's, while settings' solutionWideAnalysis is on).")]
-    public Task<ProblemsInfo> Problems(CancellationToken cancel = default) => OnUi(cancel, async () =>
+    /// <summary>What the Problems window lists beyond a file's diagnostics, as diagnostics with no path answers it.</summary>
+    private Task<ProblemsInfo> Problems(CancellationToken cancel) => OnUi(cancel, async () =>
     {
         if (Session.CSharp is { SolutionWide: true })
         {

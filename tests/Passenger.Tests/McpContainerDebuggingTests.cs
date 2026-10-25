@@ -6,7 +6,7 @@ namespace Passenger.Tests;
 
 /// <summary>An agent debugging in containers on a real engine: debug_start on a compose configuration debugs each .NET
 /// service in a session of its own, answering with each one's state, and its container_action on a debugged service goes
-/// through the run; debug_processes lists a program in a container Passenger did not start, and debug_attach attaches to
+/// through the run; debug_state of processes lists a program in a container Passenger did not start, and debug_attach attaches to
 /// it there. Skipped, saying why, where no Linux engine runs.</summary>
 [Collection(Alone.Name)]
 public sealed class McpContainerDebuggingTests : McpRig
@@ -131,12 +131,12 @@ public sealed class McpContainerDebuggingTests : McpRig
             Docker.Run(["run", "-d", .. Docker.AnyPids, "--name", attached, "--label", Docker.RunLabel, "-v", $"{output}:/app:ro", "mcr.microsoft.com/dotnet/aspnet:10.0",
                 "dotnet", "/app/Web.dll"]);
             JsonElement listed = default;
-            Assert.True(await Waiting.UntilAsync(async () => (listed = await Call(client, "debug_processes")).EnumerateArray()
+            Assert.True(await Waiting.UntilAsync(async () => (listed = await Call(client, "debug_state", new() { ["of"] = "processes" })).EnumerateArray()
                 .Any(p => p.TryGetProperty("container", out JsonElement c) && c.GetString() == attached), TimeSpan.FromMinutes(1), TestContext.Current.CancellationToken),
-                $"debug_processes never listed the program in {attached}: {listed}");
+                $"debug_state of processes never listed the program in {attached}: {listed}");
             JsonElement at = await Call(client, "debug_attach", new() { ["program"] = "Web", ["container"] = attached, ["waitSeconds"] = 2 });
             Assert.True(at.GetProperty("state").GetString() is "running" or "paused", $"debug_attach in the container answered: {at}");
-            await Call(client, "debug_detach");
+            await Call(client, "stop", new() { ["detach"] = true });
             Assert.Equal("running", Docker.State(attached));
         }
         finally

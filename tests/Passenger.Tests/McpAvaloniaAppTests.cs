@@ -206,7 +206,7 @@ public sealed class McpAvaloniaAppTests : McpRig, IClassFixture<AgentAppFolder>
 
         // By the breakpoint's own id for its element, since the paused app answers no query.
         await Call(client, "breakpoint_set", new() { ["control"] = watched.GetProperty("control").GetString(), ["property"] = "Text", ["remove"] = true });
-        Assert.DoesNotContain((await Call(client, "breakpoints")).EnumerateArray(), b => b.TryGetProperty("property", out _));
+        Assert.DoesNotContain((await Call(client, "debug_state", new() { ["of"] = "breakpoints" })).EnumerateArray(), b => b.TryGetProperty("property", out _));
         await Call(client, "debug_continue", new() { ["waitSeconds"] = 1 });
         Assert.Contains("\"Clicked 2 times\"", Text(await Call(client, "app_tree", new() { ["control"] = "#Counter" })), StringComparison.Ordinal);
         await Call(client, "stop");
@@ -219,7 +219,7 @@ public sealed class McpAvaloniaAppTests : McpRig, IClassFixture<AgentAppFolder>
             $"The misspelt binding did not stop the app with XAML Binding Errors on: {failed}");
         // At the editor's line, which XamlIl's runs one past below the window's lone '\r'.
         int reference = failed.GetProperty("locals").EnumerateArray().First(l => l.GetProperty("name").GetString() == "$bindingError").GetProperty("reference").GetInt32();
-        JsonElement xaml = Assert.Single((await Call(client, "debug_variables", new() { ["reference"] = reference })).EnumerateArray(), m => m.GetProperty("name").GetString() == "Xaml");
+        JsonElement xaml = Assert.Single((await Call(client, "debug_state", new() { ["reference"] = reference })).EnumerateArray(), m => m.GetProperty("name").GetString() == "Xaml");
         Assert.Equal($"\"{AppXamlPlace("TextBlock x:Name=\"Caption\"")}\"", xaml.GetProperty("value").GetString());
         JsonElement off = Assert.Single((await Call(client, "breakpoint_set", new() { ["bindingErrors"] = true, ["remove"] = true })).EnumerateArray(), b => b.TryGetProperty("bindingErrors", out _));
         Assert.False(off.GetProperty("enabled").GetBoolean(), $"XAML Binding Errors is still on: {off}");

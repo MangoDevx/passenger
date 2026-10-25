@@ -21,7 +21,7 @@ public sealed class McpContainerProfileTests : McpRig
         CallToolResult unattached = await Result(client, "profile", new() { ["container"] = container, ["seconds"] = 1 });
         Assert.True(unattached.IsError == true && Text(unattached).Contains("attach", StringComparison.Ordinal), $"A container's profile without attach answered: {Text(unattached)}");
         CallToolResult nowhere = await Result(client, "profile", new() { ["attach"] = true, ["container"] = $"{container}-not", ["seconds"] = 1 });
-        Assert.True(nowhere.IsError == true && Text(nowhere).Contains("debug_processes", StringComparison.Ordinal), $"A profile in no such container answered: {Text(nowhere)}");
+        Assert.True(nowhere.IsError == true && Text(nowhere).Contains("debug_state of processes", StringComparison.Ordinal), $"A profile in no such container answered: {Text(nowhere)}");
 
         JsonElement profiled = await Call(client, "profile", new() { ["attach"] = true, ["container"] = container, ["seconds"] = 2, ["memory"] = true });
         Assert.True(profiled.GetProperty("samples").GetInt32() > 0, $"The profile in the container sampled nothing: {profiled.GetRawText()}");

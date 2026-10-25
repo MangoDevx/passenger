@@ -31,7 +31,7 @@ public sealed class McpContainersTests : McpRig, IClassFixture<RestoredFolders>
         Assert.Equal("running", mine.GetProperty("state").GetString());
         Assert.Equal(Docker.Image, Docker.Short(mine.GetProperty("image").GetString()!));
 
-        Assert.Contains("agent-hello", Text(await Call(client, "container_logs", new() { ["container"] = name })), StringComparison.Ordinal);
+        Assert.Contains("agent-hello", Text(await Call(client, "containers", new() { ["container"] = name })), StringComparison.Ordinal);
 
         Assert.Equal($"{name}: stop done", Text(await Call(client, "container_action", new() { ["container"] = name, ["action"] = "stop" })));
         Assert.Equal("exited", Docker.State(name));
@@ -156,14 +156,14 @@ public sealed class McpContainersTests : McpRig, IClassFixture<RestoredFolders>
             JsonElement project = Assert.Single(listed.GetProperty("projects").EnumerateArray());
             Assert.Equal(("shop", "running(1)"), (project.GetProperty("name").GetString(), project.GetProperty("status").GetString()));
             Assert.Equal(["shop-web-1", "solo"], listed.GetProperty("containers").EnumerateArray().Select(c => c.GetProperty("name").GetString()));
-            Assert.Contains("hello from the stand-in web", Text(Await(Task.Run(() => Call(client, "container_logs", new() { ["container"] = "shop-web-1" })), "the container's log")),
+            Assert.Contains("hello from the stand-in web", Text(Await(Task.Run(() => Call(client, "containers", new() { ["container"] = "shop-web-1" })), "the container's log")),
                 StringComparison.Ordinal);
             // The start both containers' ids share names neither: an action is never taken on the one listed first.
-            CallToolResult either = Await(Task.Run(() => Result(client, "container_logs", new() { ["container"] = "5a5d0c0ffee" })), "the log of an id's start two share");
+            CallToolResult either = Await(Task.Run(() => Result(client, "containers", new() { ["container"] = "5a5d0c0ffee" })), "the log of an id's start two share");
             Assert.True(either.IsError == true && Text(either).Contains("begins the ids of 2 containers (shop-web-1, solo)", StringComparison.Ordinal),
                 $"An id's start two containers share answered: {Text(either)}");
             // A project's log is Compose's to read, so the engine's refusal is the agent's answer.
-            CallToolResult merged = Await(Task.Run(() => Result(client, "container_logs", new() { ["container"] = "shop" })), "the project's log");
+            CallToolResult merged = Await(Task.Run(() => Result(client, "containers", new() { ["container"] = "shop" })), "the project's log");
             Assert.True(merged.IsError == true && Text(merged).Contains("'compose' is not a docker command", StringComparison.Ordinal)
                 && !Text(merged).Contains(PassengerTools.Faulted, StringComparison.Ordinal), $"The project's log answered: {Text(merged)}");
         }
